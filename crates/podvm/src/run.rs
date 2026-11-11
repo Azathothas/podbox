@@ -168,6 +168,9 @@ pub(crate) use acquire::*;
 
 mod wall;
 
+// TODO/cli.md T-1706: the reason of a SIGXFSZ death.
+mod exit_note;
+
 #[cfg(test)]
 mod timeout_tests;
 

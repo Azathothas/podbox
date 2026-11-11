@@ -122,6 +122,7 @@ pub(super) fn enter(
         "exec",
         &maps,
         &o.command,
+        &working_dir,
         &env,
         support_native,
         &findings,
@@ -143,7 +144,13 @@ pub(super) fn enter(
     // interpreter.
     let gargv = userland.as_ref().map_or(&o.command, |u| &u.guest_argv);
     let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply("exec", &maps, gargv, &mut env, &mut interpose_note) {
+    if let Err(e) = crate::interpose::apply(
+        "exec",
+        &maps,
+        &podvm_enter::program_in(gargv.first().map_or("", String::as_str), &working_dir),
+        &mut env,
+        &mut interpose_note,
+    ) {
         eprintln!("{e}");
         return podvm_image::error::EXIT_RUNTIME_ERROR;
     }
@@ -170,7 +177,10 @@ pub(super) fn enter(
     crate::run::push_guest_exe(
         &mut env,
         &maps,
-        gargv.first().map(String::as_str).unwrap_or(""),
+        &podvm_enter::program_in(
+            gargv.first().map(String::as_str).unwrap_or(""),
+            &working_dir,
+        ),
         &path_dirs,
     );
     // ⭐ TODO/enter.md T-1407 and T-1409, as in `run`'s `prepare`: the

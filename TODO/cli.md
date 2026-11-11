@@ -2672,7 +2672,7 @@ Source:      issue 231; the podrunner design review (the owner's design
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     The official runner (linux-x64, glibc, .NET) does not start
              under podvm on a chroot-denied host: exit 154, then 137 after
@@ -2720,6 +2720,34 @@ Prove:       `sh experiments/428-actions-runner.sh` exits 0 on the
              under `prlimit --fsize=1073741824` a run with W^X on exits
              153 with a message that names `RLIMIT_FSIZE`, while the same
              run with `-e DOTNET_EnableWriteXorExecute=0` exits 0.
+
+**Partial, 2026-11-11.** `experiments/428-actions-runner.sh` builds the
+test image on the capable rung (debian bookworm-slim, `ca-certificates`,
+`libicu72`, `libssl3`, `libkrb5-3`, `zlib1g`, `liblttng-ust1`, and the
+runner v2.338.2 in `/opt/runner`, checked against SHA-256 `baebf204…`),
+and `PODVM_428_MIRROR=1 sh experiments/428-actions-runner.sh` exits 0 on
+the chroot-denying fixture with no `--unsafe-host-paths`
+([the run](../experiments/results/actions-runner.txt)):
+`-w /opt/runner ./bin/Runner.Listener --version` prints `2.338.2`,
+`./config.sh --help` exits 0, and under `prlimit --fsize=1073741824` the
+same run exits 153 while podvm names the soft `RLIMIT_FSIZE` of
+1073741824 bytes and `DOTNET_EnableWriteXorExecute=0`; with
+`-e DOTNET_EnableWriteXorExecute=0` it exits 0. The SIGXFSZ lines are
+`crates/podvm/src/run/exit_note.rs` (a foreground run; a .NET payload is
+a `DOTNET_` variable or a `.dll` beside the program).
+
+Found on the way, fixed under T-1707: with a relative first program the
+interposer was not loaded at all (`interpose::apply` classified the raw
+`argv[0]`), so the runner exited 154 and a child ran the host's binary.
+
+Remaining: `run.sh` with the three credential files of a synthetic blob
+against a loopback stand-in of `POST /oauth/token`, `POST /session` and
+`GET /message`, which reaches the long poll and ends within 30 s of
+SIGTERM. The shape of M1's stand-in is in PodUtils/podrunner, outside
+this session's GitHub scope; a COORD issue asks podrunner for it.
+Observed and not yet read: the interposer prints "realpath: podvm cannot
+resolve the path" and the same for `access` four times on each start of
+the runner; the start succeeds.
 
 **Filed 2026-11-10.** From issue 231 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), WP-V1: "Official runner starts on

@@ -41,6 +41,22 @@ pub const NAMES: Names = Names {
 
 pub use pod_enter::{Limit, Resource};
 
+/// The guest name of the first program for its resolution.
+///
+/// TODO/enter.md T-1707. docker's rule: a relative program that holds a
+/// `/` is relative to the working directory (`-w /opt/x ./bin/prog` runs
+/// `/opt/x/bin/prog`). A bare name still searches `PATH`, and an absolute
+/// name stays as it is. The payload's `argv[0]` keeps the caller's
+/// spelling; only the resolution takes this name.
+pub fn program_in(argv0: &str, working_dir: &str) -> String {
+    if argv0.starts_with('/') || !argv0.contains('/') {
+        return argv0.to_string();
+    }
+    let wd = working_dir.trim_end_matches('/');
+    let wd = if wd.starts_with('/') { wd } else { "" };
+    format!("{wd}/{argv0}")
+}
+
 /// One docker `--ulimit NAME=SOFT[:HARD]` as a limit of the payload.
 ///
 /// TODO/cli.md T-1655. `NAME` is a word of `pod-enter`'s [`Resource`]

@@ -1,0 +1,70 @@
+== conditions
+date              2026-11-11T05:12:49Z
+host kernel       Linux 6.18.44-fc-v378
+input             mirror.gcr.io/library/debian:bookworm-slim
+runner            actions-runner-linux-x64-2.338.2.tar.gz sha256 baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40
+libraries         ca-certificates libicu72 libssl3 libkrb5-3 zlib1g liblttng-ust1
+build             ok
+podvm             podvm 0.2.0-beta.2
+bookworm-slim: Pulling from library/debian
+dd051e1b8c92: Pull complete
+Digest: sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+Status: Downloaded newer image for mirror.gcr.io/library/debian:bookworm-slim
+podvm: probed this machine rather than using the cache: /workspace/podvm/experiments/.sweep428-work/store/probe.json does not exist yet
+debian digest     sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
+Loaded image: docker.io/library/runner-428:1
+image             ok
+fixture rung      userland
+
+== version
+exit              0
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
+  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  2.338.2
+
+== config-help
+exit              0
+   --name string          Name of the runner to configure (default vm)
+   --runnergroup string   Name of the runner group to add this runner to (defaults to the default runner group)
+   --labels string        Custom labels that will be added to the runner. This option is mandatory if --no-default-labels is used.
+   --no-default-labels    Disables adding the default labels: 'self-hosted,Linux,X64'
+   --local                Removes the runner config files from your local machine. Used as an option to the remove command
+   --work string          Relative runner work directory (default _work)
+   --replace              Replace any existing runner with the same name (default false)
+   --pat                  GitHub personal access token with repo scope. Used for checking network connectivity when executing `./run.sh --check`
+   --disableupdate        Disable self-hosted runner automatic update to the latest released version`
+   --ephemeral            Configure the runner to only take one job and then let the service un-configure the runner after the job finishes (default false)
+  
+  Examples:
+   Check GitHub server network connectivity:
+    ./run.sh --check --url <url> --pat <pat>
+   Configure a runner non-interactively:
+    ./config.sh --unattended --url <url> --token <token>
+   Configure a runner non-interactively, replacing any existing runner with the same name:
+    ./config.sh --unattended --url <url> --token <token> --replace [--name <name>]
+   Configure a runner non-interactively with three extra labels:
+    ./config.sh --unattended --url <url> --token <token> --labels L1,L2,L3
+
+== fsize-wx
+exit              153
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
+  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
+  the payload died on signal 25: exit 153
+  podvm run: SIGXFSZ: a write or an ftruncate of the payload passed the soft RLIMIT_FSIZE of 1073741824 bytes (`ulimit -f` of the caller, or --ulimit fsize); podvm does not raise it (TODO/cli.md T-1706)
+  podvm run: a .NET runtime with W^X on maps a memfd of 2 TiB at start, so it dies so under a smaller limit; -e DOTNET_EnableWriteXorExecute=0 turns that map off (TODO/cli.md T-1706)
+
+== fsize-nowx
+exit              0
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
+  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
+  podvm: interpose: access: podvm cannot resolve the path, so the call fails
+  2.338.2
+
+verdict           THE RUNNER STARTS ON THE USERLAND RUNG

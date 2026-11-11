@@ -38,7 +38,7 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`, from item 1 (the `pod-enter`
-   entries of the runner, T-1707 and T-1719, then T-1706). T-1716,
+1. The work order of `TODO/PROGRESS.md`, from item 1 (the stand-in
+   clause of T-1706; T-1719 waits for podcrates `v0.19.0`). T-1716,
    T-1712, T-1713, T-1704, T-1705, T-1708, T-1715, T-1655, T-1653,
-   T-1720, T-1703 and T-1710 are done on 2026-11-11.
+   T-1720, T-1703, T-1710 and T-1707 are done on 2026-11-11.

@@ -71,22 +71,23 @@ fn a_script_runs_its_interpreter_from_the_image() {
     );
     let root = d.to_string_lossy().to_string();
     let path = vec!["/bin".to_string()];
-    let f =
-        follow(&root, &words(&["tool.sh", "a", "b"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    let f = follow(&root, &words(&["tool.sh", "a", "b"]), &path, "/")
+        .unwrap_or_else(|e| panic!("{}", e.1));
     assert_eq!(f.argv, words(&["/bin/sh", "-e", "/bin/tool.sh", "a", "b"]));
     assert_eq!(f.resolved, format!("{root}/bin/sh"));
     assert_eq!(f.scripts.len(), 1);
     assert_eq!(f.scripts[0].1, "#!/bin/sh -e");
     // Two levels, as the kernel nests them.
-    let f =
-        follow(&root, &words(&["/bin/outer.sh", "x"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    let f = follow(&root, &words(&["/bin/outer.sh", "x"]), &path, "/")
+        .unwrap_or_else(|e| panic!("{}", e.1));
     assert_eq!(
         f.argv,
         words(&["/bin/sh", "-e", "/bin/tool.sh", "/bin/outer.sh", "x"])
     );
     assert_eq!(f.scripts.len(), 2);
     // Not a script: the argv of the caller, unchanged.
-    let f = follow(&root, &words(&["sh", "-c", "x"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    let f =
+        follow(&root, &words(&["sh", "-c", "x"]), &path, "/").unwrap_or_else(|e| panic!("{}", e.1));
     assert_eq!(f.argv, words(&["sh", "-c", "x"]));
     assert!(f.scripts.is_empty());
     let _ = std::fs::remove_dir_all(&d);
@@ -113,7 +114,7 @@ fn a_script_whose_interpreter_is_not_in_the_image_refuses() {
         ("rel.sh", "relative path"),
         ("loop.sh", "more than 4"),
     ] {
-        let Err((code, note, routed)) = follow(&root, &words(&[name]), &path) else {
+        let Err((code, note, routed)) = follow(&root, &words(&[name]), &path, "/") else {
             panic!("{name} was followed");
         };
         assert_eq!(code, EXIT_CANNOT_INVOKE, "{name}: {note}");
@@ -141,7 +142,7 @@ fn an_entrypoint_script_refusal_names_the_entrypoint_flag() {
     let root = d.to_string_lossy().to_string();
     let path = vec!["/usr/local/bin".to_string()];
     let argv = words(&["docker-entrypoint.sh", "node", "-e", "console.log(1)"]);
-    let Err((code, note, routed)) = follow(&root, &argv, &path) else {
+    let Err((code, note, routed)) = follow(&root, &argv, &path, "/") else {
         panic!("the image holds no /bin/sh, so the route refuses");
     };
     assert_eq!(code, EXIT_CANNOT_INVOKE);
@@ -152,7 +153,7 @@ fn an_entrypoint_script_refusal_names_the_entrypoint_flag() {
     assert!(m.contains("#!/bin/sh"), "{m}");
     assert!(!no_chroot_message("run", &note, routed, None).contains("--entrypoint"));
     // A payload that resolves to nothing followed no script: no remedy.
-    let Err((_, note, routed)) = follow(&root, &words(&["nothing"]), &path) else {
+    let Err((_, note, routed)) = follow(&root, &words(&["nothing"]), &path, "/") else {
         panic!("nothing resolves");
     };
     assert!(!routed);
@@ -184,16 +185,53 @@ fn a_script_in_a_volume_runs_from_the_volume() {
     let maps = podvm_enter::userland::Maps::new(&podvm_enter::NAMES, &root, &vols).unwrap();
     let path = vec!["/bin".to_string(), "/data".to_string()];
     // The image has no /data/tool.sh: without the table it is absent.
-    let Err((code, _, _)) = follow(&root, &words(&["/data/tool.sh"]), &path) else {
+    let Err((code, _, _)) = follow(&root, &words(&["/data/tool.sh"]), &path, "/") else {
         panic!("the rootfs alone resolved a file of the volume");
     };
     assert_eq!(code, EXIT_NOT_FOUND);
-    let f =
-        follow(&maps, &words(&["/data/tool.sh", "a"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    let f = follow(&maps, &words(&["/data/tool.sh", "a"]), &path, "/")
+        .unwrap_or_else(|e| panic!("{}", e.1));
     assert_eq!(f.argv, words(&["/bin/sh", "-e", "/data/tool.sh", "a"]));
     assert_eq!(f.resolved, format!("{root}/bin/sh"));
     assert_eq!(f.scripts[0].0, format!("{host}/tool.sh"));
-    let f = follow(&maps, &words(&["tool.sh"]), &path).unwrap_or_else(|e| panic!("{}", e.1));
+    let f = follow(&maps, &words(&["tool.sh"]), &path, "/").unwrap_or_else(|e| panic!("{}", e.1));
     assert_eq!(f.argv, words(&["/bin/sh", "-e", "/data/tool.sh"]));
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+/// TODO/enter.md T-1707: `-w /opt/x ./prog` resolves to `/opt/x/prog`, as
+/// docker's does; the argv keeps `./prog`. A relative `#!` script hands
+/// its interpreter the name as invoked, as the kernel does. A bare name
+/// still searches `PATH`, and `./prog` from `/` misses.
+#[test]
+fn a_relative_program_resolves_against_the_working_directory() {
+    use crate::lifecycle::script::follow;
+    assert_eq!(podvm_enter::program_in("./prog", "/opt/x"), "/opt/x/./prog");
+    assert_eq!(podvm_enter::program_in("bin/p", "/opt/x/"), "/opt/x/bin/p");
+    assert_eq!(podvm_enter::program_in("./p", ""), "/./p");
+    assert_eq!(podvm_enter::program_in("/bin/p", "/opt/x"), "/bin/p");
+    assert_eq!(podvm_enter::program_in("p", "/opt/x"), "p");
+    let d = rootfs(
+        "workdir",
+        &[
+            ("bin/sh", b"\x7fELF-not-read-here"),
+            ("opt/x/prog", b"\x7fELF-not-read-here"),
+            ("opt/x/run.sh", b"#!/bin/sh\n"),
+        ],
+    );
+    let root = d.to_string_lossy().to_string();
+    let path = vec!["/bin".to_string()];
+    let f = follow(&root, &words(&["./prog", "a"]), &path, "/opt/x")
+        .unwrap_or_else(|e| panic!("{}", e.1));
+    assert_eq!(f.resolved, format!("{root}/opt/x/prog"));
+    assert_eq!(f.argv, words(&["./prog", "a"]));
+    let f =
+        follow(&root, &words(&["./run.sh"]), &path, "/opt/x").unwrap_or_else(|e| panic!("{}", e.1));
+    assert_eq!(f.argv, words(&["/bin/sh", "./run.sh"]));
+    assert_eq!(f.resolved, format!("{root}/bin/sh"));
+    let Err((code, _, _)) = follow(&root, &words(&["./prog"]), &path, "/") else {
+        panic!("./prog resolved from /");
+    };
+    assert_eq!(code, 127);
     let _ = std::fs::remove_dir_all(&d);
 }

@@ -390,13 +390,15 @@ fn decline(note: &mut String, verb: &str, argv0: &str, why: String) {
 pub fn apply<G: GuestRoot + ?Sized>(
     verb: &str,
     root: &G,
-    argv: &[String],
+    first: &str,
     env: &mut Vec<String>,
     note: &mut String,
 ) -> Result<(), String> {
-    let Some(first) = argv.first() else {
+    // TODO/enter.md T-1707: `first` is the name that resolves, a relative
+    // program joined to the workdir ([`podvm_enter::program_in`]).
+    if first.is_empty() {
         return Ok(());
-    };
+    }
     // ⭐ T-0711: the requested identity, if any. Named in the banner wherever
     // the tier loads, because a `getuid` that answers a record must never
     // read as a kernel answer.

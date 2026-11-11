@@ -157,6 +157,7 @@ pub fn enter_userland(
             // T-1649: the guest argv, so a `#!` payload stages its
             // interpreter, the program that the decision read.
             let argv0 = userland.guest_argv.first().cloned().unwrap_or_default();
+            let argv0 = podvm_enter::program_in(&argv0, &plan.working_dir);
             let payload =
                 match podvm_enter::ladder::payload_head(&userland.maps, &argv0, &plan.path_dirs) {
                     Ok(p) => p,

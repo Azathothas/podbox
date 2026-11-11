@@ -152,12 +152,17 @@ pub fn exec(args: &[String]) -> i32 {
         podvm_enter::binfmt::support_for(&record.architecture, &host.arch),
         podvm_enter::binfmt::Support::Native
     );
+    let working_dir = o
+        .workdir
+        .clone()
+        .unwrap_or_else(|| cfg.config.working_dir.clone());
     // The image path has no volume: the table is the root pair alone.
     let maps = podvm_enter::userland::Maps::of_root(&rootfs);
     let userland = match crate::lifecycle::decide_entry(
         "exec",
         &maps,
         &argv,
+        &working_dir,
         &env,
         support_native,
         &findings,
@@ -173,7 +178,13 @@ pub fn exec(args: &[String]) -> i32 {
     // a `#!` payload on the userland rung classifies its interpreter.
     let gargv = userland.as_ref().map_or(&argv, |u| &u.guest_argv);
     let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply("exec", &rootfs, gargv, &mut env, &mut interpose_note) {
+    if let Err(e) = crate::interpose::apply(
+        "exec",
+        &rootfs,
+        &podvm_enter::program_in(gargv.first().map_or("", String::as_str), &working_dir),
+        &mut env,
+        &mut interpose_note,
+    ) {
         eprintln!("{e}");
         let _ = std::fs::remove_file(&memo_host_path);
         return podvm_image::error::EXIT_RUNTIME_ERROR;
@@ -199,7 +210,10 @@ pub fn exec(args: &[String]) -> i32 {
     crate::run::push_guest_exe(
         &mut env,
         &rootfs,
-        gargv.first().map(String::as_str).unwrap_or(""),
+        &podvm_enter::program_in(
+            gargv.first().map(String::as_str).unwrap_or(""),
+            &working_dir,
+        ),
         &path_dirs,
     );
     // ⭐ TODO/enter.md T-1407 and T-1409, as above: the table and the
@@ -225,10 +239,6 @@ pub fn exec(args: &[String]) -> i32 {
             Err(code) => return code,
         }
     }
-    let working_dir = o
-        .workdir
-        .clone()
-        .unwrap_or_else(|| cfg.config.working_dir.clone());
     // ⭐ TODO/enter.md T-1412, as in `run`'s `prepare` and the container
     // path above: refused naming the path and the image before any fixup
     // mutates the rootfs.

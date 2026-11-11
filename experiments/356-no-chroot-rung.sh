@@ -120,6 +120,9 @@
 #   30. read-only (T-1655): under --read-only on the fixture a write to the
 #      image fails with EROFS and a write to a volume lands in the host
 #      directory; on the capable rung --read-only refuses at 125 by name.
+#   31. workdir (T-1707): `-w /bin ./busybox sh -c 'ls /etc/alpine-release'`
+#      lists the file of the image on the fixture, and `-w /data
+#      ./tool.sh` runs a script of a volume workdir.
 #   29. the loader's paths (T-1705): a program of a debian image opens the
 #      path that dladdr gives for its own library (a host path under the
 #      rootfs, from the loader) at 0, and the path is not prefixed again.
@@ -904,6 +907,15 @@ grep -qx "read-ok" "$WORK/out-fx-read-only.txt" || { echo "a read under --read-o
 grep -qx "w" "$VOL/rw356" 2>/dev/null || { echo "the volume write did not land in the host directory" >>"$REPORT"; fail=1; }
 step sane-read-only "$RUN_ERR" "$PB" run --rm --read-only "$ALPINE" true
 grep -q "read-only layer" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung was not refused by name" >>"$REPORT"; fail=1; }
+
+# Clause 31 (T-1707): a relative program resolves against -w.
+# A child of the relative program needs the interposer: without it the
+# kernel runs the host's ls, which has no /etc/alpine-release.
+step fx-workdir-rel 0 $FX "$PB" run --rm -w /bin "$ALPINE" ./busybox sh -c 'ls /etc/alpine-release'
+grep -qx "/etc/alpine-release" "$WORK/out-fx-workdir-rel.txt" || { echo "a relative program ran without the image's view" >>"$REPORT"; fail=1; }
+printf '#!/bin/sh\necho vol-workdir-ok\n' >"$VOL/tool356.sh"; chmod +x "$VOL/tool356.sh"
+step fx-workdir-vol 0 $FX "$PB" run --rm -v "$VOL:/data" -w /data "$ALPINE" ./tool356.sh
+grep -qx "vol-workdir-ok" "$WORK/out-fx-workdir-vol.txt" || { echo "a relative script of a volume workdir did not run" >>"$REPORT"; fail=1; }
 
 {
 echo ""

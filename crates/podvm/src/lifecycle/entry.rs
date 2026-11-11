@@ -305,6 +305,9 @@ pub fn gaps_of(userland: Option<&Userland>) -> Vec<crate::complete::Gap> {
 /// the volumes): each guest path resolves through it, so a first program
 /// in a volume is the file of the volume.
 ///
+/// ⭐ TODO/enter.md T-1707. A relative first program resolves against
+/// `working_dir`, as docker's does.
+///
 /// ⭐ TODO/cli.md T-1649. A `#!` payload runs its interpreter, resolved
 /// inside the rootfs, with the script path as its argument
 /// ([`script::follow`]). `retry` is the first word of the caller where
@@ -316,6 +319,7 @@ pub fn decide_entry(
     verb: &str,
     maps: &podvm_enter::userland::Maps,
     argv: &[String],
+    working_dir: &str,
     env: &[String],
     support_native: bool,
     findings: &podvm_probe::Findings,
@@ -333,7 +337,7 @@ pub fn decide_entry(
         );
         Err(code)
     };
-    let f = match script::follow(maps, argv, &path_dirs) {
+    let f = match script::follow(maps, argv, &path_dirs, working_dir) {
         Ok(f) => f,
         Err((code, note, routed)) => return no_chroot(code, note, routed),
     };
@@ -419,14 +423,16 @@ pub fn decide_entry(
     // which dangles on the host side, so the resolved file is what opens
     // and `loader_argv_for` below carries the invoked name as the applet.
     // A relative link (debian's `/bin/sh`) opens as invoked.
-    let payload_host = podvm_enter::userland::invocation_path(maps, argv0, &path_dirs, &f.resolved);
+    // T-1707: the lookups take the name joined to the workdir.
+    let name = podvm_enter::program_in(argv0, working_dir);
+    let payload_host = podvm_enter::userland::invocation_path(maps, &name, &path_dirs, &f.resolved);
     let plan = match podvm_enter::userland::loader_plan(maps, &interp, &payload_host) {
         Ok(p) => p,
         // ⚠ Found, but the loader cannot run it: 126, never 125.
         Err(why) => return no_chroot(EXIT_CANNOT_INVOKE, why, routed),
     };
     if let crate::interpose::Reach::Declined(why) =
-        crate::interpose::classify(maps, argv0, &path_dirs)
+        crate::interpose::classify(maps, &name, &path_dirs)
     {
         // ⚠ Found, but the tier cannot virtualize it (Go markers, an
         // unknown libc, an unreadable ELF): without the interposer no

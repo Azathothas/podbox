@@ -200,7 +200,7 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     )]);
     // Chroot usable: the payload is never read.
     let nowhere = Maps::of_root("/nowhere");
-    let chosen = decide_entry("run", &nowhere, &[], &[], true, &ok, false, None);
+    let chosen = decide_entry("run", &nowhere, &[], "/", &[], true, &ok, false, None);
     assert!(chosen.unwrap().is_none());
     // Static payload, native, memfd kernel: the memfd family.
     let d = std::env::temp_dir().join(format!("podvm-decide-{}", std::process::id()));
@@ -214,7 +214,7 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     // T-1648: only under the opt-in; the refusal without it is pinned in
     // `a_static_payload_refuses_without_the_opt_in` below.
     if podvm_enter::memfd::memfd_exec().runs() {
-        let u = decide_entry("run", &m, &argv, &env, true, &denied, true, None)
+        let u = decide_entry("run", &m, &argv, "/", &env, true, &denied, true, None)
             .unwrap()
             .expect("a static payload decides a family");
         assert_eq!(u.family, podvm_enter::userland::Family::Memfd);
@@ -224,15 +224,15 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     // file and its `#!` line (T-1413).
     std::fs::write(d.join("bin/tool.sh"), b"#!/bin/sh\necho hi\n").unwrap();
     let argv = ["tool.sh".to_string()];
-    let e = decide_entry("run", &m, &argv, &env, true, &denied, false, None).unwrap_err();
+    let e = decide_entry("run", &m, &argv, "/", &env, true, &denied, false, None).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_CANNOT_INVOKE);
     // A name nothing resolves is 127, wherever the rung would run it.
     let argv = ["no-such-prog".to_string()];
-    let e = decide_entry("run", &m, &argv, &env, true, &denied, false, None).unwrap_err();
+    let e = decide_entry("run", &m, &argv, "/", &env, true, &denied, false, None).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_NOT_FOUND);
     // A foreign image refuses naming binfmt, at 125: podvm-side.
     let argv = ["prog".to_string()];
-    let e = decide_entry("run", &m, &argv, &env, false, &denied, false, None).unwrap_err();
+    let e = decide_entry("run", &m, &argv, "/", &env, false, &denied, false, None).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
     let _ = std::fs::remove_dir_all(&d);
 }
@@ -261,7 +261,7 @@ fn a_static_payload_refuses_without_the_opt_in() {
     let m = Maps::of_root(&root);
     let argv = ["prog".to_string()];
     let env = ["PATH=/bin".to_string()];
-    let e = decide_entry("run", &m, &argv, &env, true, &denied, false, None).unwrap_err();
+    let e = decide_entry("run", &m, &argv, "/", &env, true, &denied, false, None).unwrap_err();
     assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
     for want in [
         "statically linked",
@@ -276,7 +276,7 @@ fn a_static_payload_refuses_without_the_opt_in() {
             "{want}: {STATIC_HOST_PATHS}"
         );
     }
-    let opted = decide_entry("run", &m, &argv, &env, true, &denied, true, None);
+    let opted = decide_entry("run", &m, &argv, "/", &env, true, &denied, true, None);
     if podvm_enter::memfd::memfd_exec().runs() {
         let u = opted.unwrap().expect("the opt-in decides a family");
         assert_eq!(u.family, podvm_enter::userland::Family::Memfd);

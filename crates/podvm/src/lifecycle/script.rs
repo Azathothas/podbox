@@ -78,17 +78,23 @@ fn invoked_path<G: podvm_enter::abi::GuestRoot + ?Sized>(
 /// rides the refusals, the resolution sentences decide the code (127
 /// absent, 126 found but not invocable), and the loader arm reuses them.
 /// Read-only: a refusal writes nothing into the image.
+///
+/// ⭐ TODO/enter.md T-1707. A relative program resolves against
+/// `working_dir` ([`podvm_enter::program_in`]); the argv keeps it as the
+/// caller wrote it.
 pub(super) fn follow<G: podvm_enter::abi::GuestRoot + ?Sized>(
     root: &G,
     argv: &[String],
     path_dirs: &[String],
+    working_dir: &str,
 ) -> Result<Followed, Refusal> {
     let mut argv = argv.to_vec();
     let mut scripts: Vec<(String, String)> = Vec::new();
     loop {
         let routed = !scripts.is_empty();
         let argv0 = argv.first().cloned().unwrap_or_default();
-        let resolved = match podvm_enter::ladder::resolve_payload(root, &argv0, path_dirs) {
+        let name = podvm_enter::program_in(&argv0, working_dir);
+        let resolved = match podvm_enter::ladder::resolve_payload(root, &name, path_dirs) {
             Ok(p) => p,
             Err(e) => {
                 return Err(match scripts.last() {
@@ -113,7 +119,7 @@ pub(super) fn follow<G: podvm_enter::abi::GuestRoot + ?Sized>(
                 });
             }
         };
-        let bytes = match podvm_enter::ladder::payload_head(root, &argv0, path_dirs) {
+        let bytes = match podvm_enter::ladder::payload_head(root, &name, path_dirs) {
             Ok(p) => p.head,
             Err(e) => {
                 // ⚠ T-0802's errno split: a directory is found-but-not-

@@ -126,7 +126,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #229 | [podrunner] interpose: realpath of /proc/self/exe names the image's loader, while readlink names the program, so the .NET runner exits 154 | closed | T-1704 |
 | #230 | [podrunner] interpose: a host path that a loaded object reports gets the rootfs prefix a second time, so CoreCLR exits 137 | closed | T-1705 |
 | #231 | [podrunner] the userland rung runs the unmodified actions/runner: it exits 154, then 137, and it dies on SIGXFSZ under a finite RLIMIT_FSIZE | open | T-1706; T-1655 (amended) |
-| #232 | [podrunner] enter: a relative first program resolves against the image root, not against -w, so -w /opt/runner ./run.sh exits 127 | open | T-1707 |
+| #232 | [podrunner] enter: a relative first program resolves against the image root, not against -w, so -w /opt/runner ./run.sh exits 127 | closed | T-1707 |
 | #233 | [podrunner] supervise: stop and rm -f signal the payload only, so orphaned grandchildren keep running after the container is gone | open | T-1708; T-1655 (amended) |
 | #234 | [podrunner] image: all containers of one image share one mutable rootfs, so a write in one container is read by another and --rm is not a fresh start | open | T-1709 |
 | #235 | [podrunner] interpose: a Unix socket path in connect and bind passes the path table, so bind creates the socket on the host and a -v pair does not apply | closed | T-1710 |
@@ -142,3 +142,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #245 | COORD-027: pod-enter: resource limits and no_new_privs in the child before the exec (T-1655) (to podcrates) | closed (podcrates v0.17.0, taken 522b437) | T-1655 (amended) |
 | #246 | COORD-028: the answer to PodUtils/podrunner#49: wait reads the record again until it has the exit code (to podrunner) | open | T-1720 |
 | #247 | COORD-029: pod-enter: lib_dirs takes /usr/local/lib and the image's loader configuration (T-1719) (to podcrates) | open | T-1719 |
+| #248 | COORD-030: the official runner starts on the userland rung; the shape of M1's stand-in for run.sh (T-1706) (to podrunner) | open | T-1706 |

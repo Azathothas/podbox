@@ -268,12 +268,12 @@ pub(crate) fn prepare(
     // family (the record carries its argv) and refuse only where the
     // decided family has no detached driver, naming the blocking call
     // and the affected verbs.
-    // ⭐ T-1648 and T-1649: the opt-in (a static payload needs it) and the
-    // word that a refusal of an Entrypoint script names ride in.
+    // ⭐ T-1648, T-1649, T-1707: the opt-in, the word of a refusal, the workdir.
     let userland = crate::lifecycle::decide_entry(
         verb,
         &maps,
         &argv,
+        &working_dir,
         &env,
         support_native,
         &findings,
@@ -289,7 +289,8 @@ pub(crate) fn prepare(
     // payload on the userland rung runs, and so classifies, its interpreter.
     let gargv = userland.as_ref().map_or(&argv, |u| &u.guest_argv);
     let mut interpose_note = String::new();
-    if let Err(e) = crate::interpose::apply(verb, &maps, gargv, &mut env, &mut interpose_note) {
+    let first = podvm_enter::program_in(gargv.first().map_or("", String::as_str), &working_dir);
+    if let Err(e) = crate::interpose::apply(verb, &maps, &first, &mut env, &mut interpose_note) {
         eprintln!("{e}");
         return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
     }
@@ -328,16 +329,10 @@ pub(crate) fn prepare(
         }
     }
     podvm_enter::device::push_spec(&mut env, &devices);
-    // ⭐ TODO/complete.md T-0413. The payload's resolved guest path rides
-    // beside the exec for the interposer's `/proc/self/exe` emulation: a
-    // caller-supplied value is scrubbed first, so a stale or foreign one
-    // cannot survive into a nested run. Unset where nothing resolves.
-    push_guest_exe(
-        &mut env,
-        &maps,
-        gargv.first().map(String::as_str).unwrap_or(""),
-        &path_dirs,
-    );
+    // ⭐ TODO/complete.md T-0413, T-1707. The payload's guest path for the
+    // interposer's `/proc/self/exe`; a caller's value is scrubbed first.
+    let exe = podvm_enter::program_in(gargv.first().map_or("", String::as_str), &working_dir);
+    push_guest_exe(&mut env, &maps, &exe, &path_dirs);
     // ⭐ TODO/enter.md T-1407 and T-1409. On a userland entry the
     // root-anchoring table (or the explicit opt-out) and the loader
     // exe-force join the environment here, before the banner names them

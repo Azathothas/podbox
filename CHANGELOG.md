@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a relative program runs from `-w`, and SIGXFSZ has a reason, 2026-11-11
+
+Record: T-1707, T-1706 (partial); issues 232 and 231.
+Deployed: not deployed; no version change.
+
+- `run -w /opt/x ./bin/prog` runs `/opt/x/bin/prog`, as docker does, on
+  each rung; `argv[0]` stays `./bin/prog`. On the userland rung the
+  interposer and `/proc/self/exe` take the same name.
+- A foreground payload that dies on SIGXFSZ (exit 153) gets a line that
+  names its soft `RLIMIT_FSIZE`; for a .NET payload, a second line names
+  `DOTNET_EnableWriteXorExecute=0`.
+- The official `actions/runner` v2.338.2 starts on the userland rung
+  (`--version`, `config.sh --help`), with no `--unsafe-host-paths`.
+
 ### Fixed: children that libc starts on the userland rung, 2026-11-11
 
 Record: T-1703, T-1710; issue 235.

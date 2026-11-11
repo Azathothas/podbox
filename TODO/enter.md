@@ -2067,7 +2067,7 @@ Source:      issue 232; the podrunner design review (the owner's design
 Category:    enter
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     `podvm run -w /opt/runner IMAGE ./bin/Runner.Listener` exits
              127 with "./bin/Runner.Listener names no file in the image".
@@ -2094,6 +2094,29 @@ Prove:       `cargo test -p podvm` exits 0 with a test that `-w /opt/x
              exits 0 with a new clause: `-w /bin ./busybox true` exits 0
              on the userland rung, and a relative program in a volume
              workdir runs.
+
+**Done 2026-11-11.** podvm needs no change of `pod-enter`: each lookup of
+the first program is a call of podvm. `podvm_enter::program_in`
+(`crates/podvm-enter/src/lib.rs`) joins a relative program that holds a
+`/` to the working directory; a bare name still searches `PATH`, and the
+payload's `argv[0]` keeps the caller's spelling. The joined name goes to
+`decide_entry` and `script::follow` (resolution, head, `invocation_path`,
+`interpose::classify`), to `interpose::apply` (the preload), to
+`push_guest_exe` (`/proc/self/exe`), to the memfd stage of a userland run,
+and to a forced ladder rung, in `run` and in both paths of `exec`. The
+chroot and namespace rungs exec after `chdir`, as the kernel resolves it.
+A first drive found that `interpose::apply` still took the raw `argv[0]`:
+the payload ran with no preload, and its children ran the host's
+binaries; the clause of experiment 356 now runs a child that sees the
+image only through the interposer, not `./busybox true`.
+
+Proof: `cargo test -p podvm` exits 0 with
+`a_relative_program_resolves_against_the_working_directory`.
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 with
+clause 31 ([the run](../experiments/results/no-chroot-rung.txt)):
+`-w /bin ./busybox sh -c 'ls /etc/alpine-release'` lists the image's
+file, and `-w /data ./tool356.sh` runs a script of a volume workdir.
+Experiment 428 runs `-w /opt/runner ./bin/Runner.Listener --version`.
 
 **Filed 2026-11-10.** From issue 232 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), M2 surprise 9: "the first program

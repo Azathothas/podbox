@@ -278,7 +278,9 @@ pub fn run(args: &[String]) -> i32 {
                  (TODO/packaging.md T-1003)",
                 mode.name()
             );
+            // T-1707: a relative program resolves against the workdir.
             let argv0 = plan.argv.first().cloned().unwrap_or_default();
+            let argv0 = podvm_enter::program_in(&argv0, &plan.working_dir);
             match crate::ladder::enter_forced(
                 &root,
                 &plan,
@@ -338,6 +340,7 @@ pub fn run(args: &[String]) -> i32 {
             p.wall_ms.unwrap_or(0) / 1000
         );
     }
+    super::exit_note::note(code, &plan, &p.rootfs, &mut err);
     end_tree(reaper, &mut err);
     drop(err);
     // ⭐ TODO/supervise.md T-1421. The record lands `Exited` with the code
