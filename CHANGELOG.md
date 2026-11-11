@@ -17,9 +17,9 @@ Deployed: not deployed; no version change.
   before the record had the exit code, so it no longer answers "it is Up"
   for a payload that ended.
 
-### Added: `--read-only` and `:ro` volumes, 2026-11-11
+### Added: `--read-only`, `:ro` volumes and `--tmpfs`, 2026-11-11
 
-Record: T-1655 (partial), T-1653; issue 130.
+Record: T-1655, T-1653; issue 130.
 Deployed: not deployed; no version change.
 
 - On the userland loader family, `run --read-only` and a `-v
@@ -27,6 +27,9 @@ Deployed: not deployed; no version change.
   with `EROFS`, through the interposer; `/dev` and each writable volume
   stay writable. A raw system call passes the layer. Each other entry
   refuses both by name.
+- `run --tmpfs PATH[:OPTIONS]` gives a foreground run an empty writable
+  directory at PATH, removed at its end. It is not a mount: `size=` is
+  not enforced. A detached run refuses it by name.
 
 ### Added: `--timeout`, `--ulimit` and `--security-opt no-new-privileges`, 2026-11-11
 

@@ -120,6 +120,9 @@ pub const RUN_OPTIONS: &str = "\
   --security-opt no-new-privileges
                    PR_SET_NO_NEW_PRIVS in the payload; each other option is
                    refused by name (TODO/cli.md T-1655)
+  --tmpfs P[:O]    an empty writable directory at P for a foreground run,
+                   removed at its end; not a mount, so size= is not enforced
+                   (TODO/cli.md T-1655)
   --read-only      a write outside a writable volume fails with EROFS, through
                    the interposer of the userland loader family; elsewhere it
                    is refused by name (TODO/cli.md T-1655)

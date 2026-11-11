@@ -1,0 +1,60 @@
+== conditions
+date              2026-11-11T04:20:09Z
+host kernel       Linux 6.18.44-fc-v378
+input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+build             ok
+podvm             podvm 0.2.0-beta.2
+3.20: Pulling from library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podvm: probed this machine rather than using the cache: /workspace/podvm/experiments/.sweep411-work/store/probe.json does not exist yet
+flag --cap-drop ALL: works
+flag --security-opt no-new-privileges: works
+flag --read-only: works
+flag --tmpfs /tmp:rw,nosuid,nodev,size=64m: works
+flag --tmpfs /dev/shm:rw,nosuid,nodev,size=64m: works
+flag --ulimit fsize=1048576: works
+flag -v /workspace/podvm/experiments/.sweep411-work/project:/workspace: works
+flag -v /workspace/podvm/experiments/.sweep411-work/state:/state: works
+flag -w /tmp: works
+flag --network none: refused by name: podvm run: --network is in the parity table with status None: there is no network namespace to select
+flag --userns keep-id: refused by name: podvm run: --pid, --ipc, --uts, --userns is in the parity table with status None: the payload shares this machine's namespaces; there is no PID, IPC, UTS or use
+flag --entrypoint /bin/true: works
+
+== line
+exit              0
+  touch: /ro411: Read-only file system
+  ws-ok
+  tmp-ok
+  dd: error writing '/tmp/big': File too large
+  17+0 records in
+  16+0 records out
+  65536 bytes (64.0KB) copied, 0.000799 seconds, 78.2MB/s
+  done
+capable NoNewPrivs 1
+
+== user
+exit              0
+  podvm: interpose: setgid: the runtime refused it, and --user is faking the identity, so podvm recorded the requested id and reported success (TODO/interpose.md T-0711)
+  podvm: interpose: setuid: the runtime refused it, and --user is faking the identity, so podvm recorded the requested id and reported success (TODO/interpose.md T-0711)
+  podvm: interpose: setgid: the runtime refused it, and --user is faking the identity, so podvm recorded the requested id and reported success (TODO/interpose.md T-0711)
+  podvm: interpose: setuid: the runtime refused it, and --user is faking the identity, so podvm recorded the requested id and reported success (TODO/interpose.md T-0711)
+  993
+  wrote
+
+== memory
+exit              125
+  podvm run: -m, --memory is in the parity table with status None: resource limits need a cgroup this runtime does not grant
+
+== nofile
+exit              0
+  64
+
+== timeout
+exit              137
+  the payload died on signal 9: exit 137
+  podvm run: --timeout 2 s came: the payload's tree was killed (TODO/cli.md T-1655)
+timeout took 2 s
+
+verdict           THE LINE WORKS OR REFUSES BY NAME

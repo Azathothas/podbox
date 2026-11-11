@@ -12,7 +12,7 @@ pub(crate) fn prepare(
     store: &podvm_image::Store,
     verb: &str,
 ) -> std::result::Result<crate::lifecycle::Prepared, i32> {
-    let o = parse(verb, args)?;
+    let mut o = parse(verb, args)?;
     // ⭐ TODO/machine.md T-1302. The tier is decided before anything is
     // fetched: a machine-tier refusal names the legs, and there is nothing
     // to pull for a tier that cannot run.
@@ -241,6 +241,7 @@ pub(crate) fn prepare(
     // ⭐ TODO/enter.md T-1653: the table of the run. The payload, the
     // working directory and each guest path below resolve through it, so
     // a -w or a first program in a volume is the file of the volume.
+    add_tmpfs(verb, store, &mut o)?; // TODO/cli.md T-1655
     let maps = crate::lifecycle::volume::maps(verb, &rootfs, &o.volumes)?;
     let mut env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
     // ⭐ T-0711: the requested identity travels in the environment, resolved

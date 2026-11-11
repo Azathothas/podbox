@@ -395,6 +395,16 @@ fn the_read_only_table_takes_the_longest_prefix() {
     assert!(denied_in(b"ro:/data", b"/data/x"));
     assert!(!denied_in(b"", b"/etc/x"));
     assert!(!denied_in(b"xx:/,ro:relative", b"/etc/x"));
+    // The job-container table of the official runner (T-1711): `/__e`
+    // read-only beside `/__w`, with `/__w/_temp` writable inside it.
+    let job = b"ro:/__e";
+    assert!(denied_in(job, b"/__e/node20/bin/node"));
+    assert!(!denied_in(job, b"/__w/_temp/x"));
+    assert!(!denied_in(job, b"/__w/repo/x"));
+    let job = b"ro:/,rw:/dev,rw:/__w,rw:/__w/_temp,ro:/__e";
+    assert!(!denied_in(job, b"/__w/_temp/x"));
+    assert!(denied_in(job, b"/__e/x"));
+    assert!(denied_in(job, b"/etc/x"));
 }
 
 /// TODO/cli.md T-1655. `open` writes with a write access mode, a create, a

@@ -1954,7 +1954,7 @@ Source:      issue 167; #193; the owner's ruling of 2026-11-06;
 Category:    cli
 Priority:    P2
 Effort:      L
-Status:      partial
+Status:      done
 
 Problem:     sand-net ran podman and docker with one fixed hardening line.
              podvm refuses most of that line with status None, so the same
@@ -2002,6 +2002,31 @@ Prove:       `cargo test -p podvm` exits 0 with parity tests for each
              refuses by name on a rootfs tier, `--ulimit nofile=64` shows in
              `ulimit -n` in the payload, and `--timeout 2` on `sh -c 'sleep 100 &
              wait'` ends the whole tree, with each child gone, within 60 s.
+
+**Done 2026-11-11.** Each flag of the line works on the rung that podvm
+enters or refuses by name; the partial records below give each part:
+`--timeout` (the wall bound), `--ulimit` and `--security-opt
+no-new-privileges` (podcrates `v0.17.0`), `--cap-drop ALL`, the read-only
+layer of `--read-only` and `:ro`, and `--tmpfs` (a directory of a
+foreground run; a detached run refuses it by name). `--network`,
+`--userns`, `--memory`, `--cpus` and `--pids-limit` refuse by name. The
+Prove, on the cloud host, 2026-11-11: `cargo test --workspace` exits 0
+with the parse and parity tests of each changed row, and the interposer
+tests (75) with the read-only layer and the job-container table of the
+runner (`/__e` read-only beside `/__w` and `/__w/_temp`).
+`PODVM_411_MIRROR=1 sh experiments/411-hardening-line.sh` exits 0 on the
+chroot-denied fixture ([the run](../experiments/results/hardening-line.txt)):
+each flag alone works or refuses by name; the line gives `EROFS` for a
+write to `/` while `/workspace` and `/tmp` take writes, `EFBIG` past
+`--ulimit fsize`, and `NoNewPrivs: 1` in the payload; `--user 993:990`
+prints 993 and writes the project; `--memory 128m` refuses by name;
+`--ulimit nofile=64` shows in `ulimit -n`; `--timeout 2` ends `sh -c
+'sleep N & wait'` in 2 s with no child left. Two clauses of the
+amendments ride with their own entries: the .NET case with SIGXFSZ under
+a small `fsize` is part of T-1706 (the help and the row of `--ulimit`
+name it), and the container-hook table of the runner is T-1711. The
+measures of the end (peak resident set, CPU) are in `.End` (T-1708) for
+the report of T-1695.
 
 **Filed 2026-11-06.** Quoted from issue 167. The host was Debian 13 in an
 unprivileged Incus container, podman 5.4.2, docker 26.1.5, with egress

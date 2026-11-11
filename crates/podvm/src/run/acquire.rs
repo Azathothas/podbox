@@ -155,6 +155,48 @@ pub(super) fn ro_env(
     )
 }
 
+/// The directory of the `--tmpfs` directories of this process, under the
+/// store. A foreground run removes it at its end. TODO/cli.md T-1655.
+pub(crate) fn tmpfs_base(store: &podvm_image::Store) -> std::path::PathBuf {
+    store
+        .root()
+        .join("tmpfs")
+        .join(std::process::id().to_string())
+}
+
+/// Make an empty writable directory for each `--tmpfs` and add it to the
+/// volumes of the run. TODO/cli.md T-1655. It is a directory of the store,
+/// not a mount: its size and its mount options are not enforced, and the
+/// row says so. A detached run refuses it by name, because nothing would
+/// remove the directory at its end.
+pub(super) fn add_tmpfs(verb: &str, store: &podvm_image::Store, o: &mut Opts) -> Result<(), i32> {
+    if o.tmpfs.is_empty() {
+        return Ok(());
+    }
+    if o.detach || verb == "create" {
+        eprintln!(
+            "podvm {verb}: --tmpfs is refused for a detached container: podvm makes it \
+             a directory of the run and removes it when a foreground run ends \
+             (TODO/cli.md T-1655)"
+        );
+        return Err(EXIT_FLAG_ERROR);
+    }
+    let base = tmpfs_base(store);
+    for (i, guest) in o.tmpfs.clone().iter().enumerate() {
+        let dir = base.join(i.to_string());
+        let _ = std::fs::remove_dir_all(&dir);
+        if let Err(e) = std::fs::create_dir_all(&dir) {
+            eprintln!("podvm {verb}: --tmpfs {guest}: {}: {e}", dir.display());
+            return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
+        }
+        o.volumes.push(podvm_enter::userland::Volume {
+            guest: guest.clone(),
+            host: dir.display().to_string(),
+        });
+    }
+    Ok(())
+}
+
 /// Make sure the store holds the image, honouring `--pull`.
 pub(super) fn acquire(
     verb: &str,

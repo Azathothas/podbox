@@ -76,6 +76,8 @@ fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
     if let Some(tee) = fg.tee {
         untee(tee);
     }
+    // TODO/cli.md T-1655: the `--tmpfs` directories go with the run.
+    let _ = std::fs::remove_dir_all(super::tmpfs_base(store));
     if fg.rm {
         let _ = podvm_supervise::remove(store, &fg.id, true);
         return;

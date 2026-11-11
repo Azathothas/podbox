@@ -67,6 +67,8 @@ pub(super) struct Opts {
     /// T-1655: the interposer's read-only layer serves them with `EROFS`.
     pub(super) read_only: bool,
     pub(super) ro_volumes: Vec<String>,
+    /// The guest paths of `--tmpfs`, made writable directories of the run.
+    pub(super) tmpfs: Vec<String>,
     /// `--ulimit` and `--security-opt no-new-privileges`. TODO/cli.md T-1655.
     pub(super) hardening: podvm_supervise::table::Hardening,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
@@ -152,19 +154,6 @@ fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<String>, i32
     Ok(out)
 }
 
-/// One `-v` value, TODO/enter.md T-1653: a flag error names the value.
-fn volume(verb: &str, spec: &str, o: &mut Opts) -> std::result::Result<(), i32> {
-    let (v, ro) = crate::lifecycle::volume::parse(spec).map_err(|why| {
-        eprintln!("podvm {verb}: -v {spec:?}: {why}");
-        EXIT_FLAG_ERROR
-    })?;
-    if ro {
-        o.ro_volumes.push(v.guest.trim_end_matches('/').to_string());
-    }
-    o.volumes.push(v);
-    Ok(())
-}
-
 /// ⛔ Parsing stops at the image name: everything after it is the payload's.
 /// `podvm run alpine ls -l` must pass `-l` to `ls` and not read it as podvm's,
 /// which is docker's rule and the one thing a caller cannot work around.
@@ -208,6 +197,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         timeout: None,
         read_only: false,
         ro_volumes: Vec::new(),
+        tmpfs: Vec::new(),
         hardening: Default::default(),
         ask: crate::complete::Ask::default(),
     };
@@ -268,6 +258,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                 },
                 "-v" => volume(verb, a, &mut o)?,
                 "--timeout" => o.timeout = Some(timeout(verb, a)?),
+                "--tmpfs" => tmpfs(verb, a, &mut o)?,
                 "--ulimit" => o.hardening.ulimits.push(ulimit(verb, a)?),
                 "--security-opt" => o.hardening.no_new_privs |= security_opt(verb, a)?,
                 "--cap-drop" => o.hardening.no_new_privs |= cap_drop(verb, a)?,
@@ -349,6 +340,10 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             "--podvm-mem" => expecting = Some("--podvm-mem"),
             "--timeout" => expecting = Some("--timeout"),
             "--read-only" => o.read_only = true,
+            "--tmpfs" => expecting = Some("--tmpfs"),
+            other if other.starts_with("--tmpfs=") => {
+                tmpfs(verb, &other["--tmpfs=".len()..], &mut o)?
+            }
             "--ulimit" => expecting = Some("--ulimit"),
             "--security-opt" => expecting = Some("--security-opt"),
             "--cap-drop" => expecting = Some("--cap-drop"),

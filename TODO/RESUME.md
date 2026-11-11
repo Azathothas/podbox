@@ -32,7 +32,6 @@ clauses in its own record:
 
 | Entry | Remaining clause |
 | --- | --- |
-| [T-1655](cli.md) | `--tmpfs`, the guest resources of T-1656, the report of T-1695, experiment 411 |
 | [T-1604](enter.md) | the plant, a second lane run, the saved lane log |
 | [T-0211](image.md) | experiment 157: each mutation turns one test red |
 | [T-0204](image.md) | the Prove reads the lock skip with podvm as the holder |

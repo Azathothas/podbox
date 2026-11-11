@@ -2,7 +2,7 @@
 //! unimplemented verbs, driven through the built binary.
 //!
 //! Script: experiments/355-parity-curated.sh. This file covers the refusal
-//! half: clause 1 (the 37 refused `run` flags), clause 2 (the 10 refused
+//! half: clause 1 (the 36 refused `run` flags), clause 2 (the 10 refused
 //! verbs), clause 4 (`create` inherits the surface through `run`'s parser),
 //! clause 5 (malformed `--device` shapes), and the flag-error halves of
 //! clause 3 (`--env-file` and `--log-driver` refusals). Every check here
@@ -85,8 +85,8 @@ fn run(args: &[&str], store: &Path) -> Output {
     child.wait_with_output().expect("collect the podvm output")
 }
 
-/// Clause 1: the 37 refused flags (`--ulimit`, `--security-opt` and
-/// `--read-only` work since TODO/cli.md T-1655). Each `run --rm <flag>` exits with the
+/// Clause 1: the 36 refused flags (`--ulimit`, `--security-opt`,
+/// `--read-only` and `--tmpfs` work since TODO/cli.md T-1655). Each `run --rm <flag>` exits with the
 /// flag-error code and names status None, before any image work happens.
 /// `--log-driver` is not among them (it takes `json-file`) and `--device`
 /// is not either (it maps; clause 5 covers its malformed shapes).
@@ -103,12 +103,12 @@ fn refused_run_flags_exit_125_naming_status_none() {
         "--ipc", "--isolation", "--link", "--log-opt", "--mac-address",
         "--mount", "--oom-kill-disable", "--pid", "--pids-limit", "--runtime",
         "--shm-size", "--stop-signal", "--stop-timeout", "--sysctl",
-        "--tmpfs", "--userns", "--uts", "--volume-driver", "--volumes-from",
+        "--userns", "--uts", "--volume-driver", "--volumes-from",
     ];
     assert_eq!(
         flags.len(),
-        37,
-        "the script refuses exactly 37 flags, not {}",
+        36,
+        "the script refuses exactly 36 flags, not {}",
         flags.len()
     );
     let mut bad = Vec::new();
@@ -174,7 +174,7 @@ fn create_inherits_run_refusals() {
             "create",
             "--name",
             "c-refused",
-            "--tmpfs",
+            "--userns",
             DUMMY_IMAGE,
             "true",
         ],
@@ -184,12 +184,12 @@ fn create_inherits_run_refusals() {
     assert_eq!(
         out.status.code(),
         Some(EXIT_FLAG_ERROR),
-        "create --tmpfs exited {:?}, stderr {err:?}",
+        "create --userns exited {:?}, stderr {err:?}",
         out.status.code()
     );
     assert!(
         err.contains("status None"),
-        "create --tmpfs did not name status None: {err:?}"
+        "create --userns did not name status None: {err:?}"
     );
     let _ = std::fs::remove_dir_all(&store);
 }
