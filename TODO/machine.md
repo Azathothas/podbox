@@ -1754,7 +1754,7 @@ Effort:      S
 Status:      done
 
 Problem:     podvm keeps its own client of the incus REST API
-             (`crates/podvm/src/incus/client.rs`, T-1718). podcrates
+             (the module `incus::client` of T-1718, gone since this entry). podcrates
              `v0.21.0` (`ada3699`) has `pod-incus`, made from podvm's ask.
 Premise:     The README of `pod-incus` maps each call of podvm's client to a
              call of the crate. The crate reads no variable of the
