@@ -354,7 +354,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1677](deps.md) | P2 | L | none | deps | done | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
 | [T-1678](deps.md) | P2 | L | none | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
 | [T-1679](deps.md) | P2 | M | none | deps | partial | Take `pod-services` for the third-party hosts compiled into podvm |
-| [T-1680](deps.md) | P2 | L | none | deps | partial | Take `pod-todo` for the record half of `podvm-gate` |
+| [T-1680](deps.md) | P2 | L | none | deps | done | Take `pod-todo` for the record half of `podvm-gate` |
 | [T-1681](deps.md) | P2 | L | none | deps | done | Hand the seven generic crates to podcrates and freeze their files |
 | [T-1682](machine.md) | P2 | M | none | machine | done | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
 | [T-1683](gate.md) | P2 | M | none | gate | done | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
@@ -415,7 +415,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-346 entries: 11 open, 10 partial, 6 blocked, 319 done.
+346 entries: 11 open, 9 partial, 6 blocked, 320 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -426,9 +426,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
-| P2 | 6 | 6 | 6 | 97 | 115 |
+| P2 | 6 | 5 | 6 | 98 | 115 |
 | P3 | 4 | 0 | 0 | 12 | 16 |
-| **All** | 11 | 10 | 6 | 319 | 346 |
+| **All** | 11 | 9 | 6 | 320 | 346 |
 
 ## Work order
 

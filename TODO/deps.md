@@ -1942,7 +1942,7 @@ crate, and this entry closes.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1992,6 +1992,26 @@ record checks of `podvm-gate` to pod-todo once they are 0.
 
 ## Done
 
+**Done 2026-11-11.** The record checks of `podvm-gate` that pod-todo holds
+are gone from `crates/podvm-gate/src/gate/run.rs`: the duplicate row and
+entry, the words of a status and a priority, a row with no entry and an
+entry with no row, the link and the title of a row, nine of the ten
+fields, the agreement of a status, a category and a priority with the row,
+and the counts of the index and of `TODO/PROGRESS.md`. Check 35 reports
+each of them with pod-todo's words. Plants 1 to 4 and 10 expect those
+words ("has a row and no entry in TODO/probe.md", "has no row in the
+index", "the entry says Status", "the counts line says").
+
+The checks that pod-todo does not hold stay in `podvm-gate`: the field
+Decision (pod-todo does not require it), the first line of a Prove is a
+command, the prove registry, the Prove flags against the parity table, the
+parity notes and the checks of the tree. The citation, link and id checks
+stay too, because they read the citations of `references/` against
+`references/MANIFEST.tsv`, which pod-todo does not read.
+
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 and
+`./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 (64 caught, 0 missed).
+
 **Partial 2026-11-11.** `podvm-todo check` finds 0 problems ("the record
 agrees: 341 entries"), from 356 after the move of T-1672:
 
@@ -2016,13 +2036,6 @@ of its problems is a problem of the gate: a status `doen` gave three, among
 them "the entry says Status doen, the index says blocked", measured.
 `./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 (64 caught).
 
-Remaining: the record checks of `podvm-gate` that pod-todo holds go (the
-duplicate row, the words of a status and a priority, a row and its entry,
-the link and the title of a row, the fields, the agreement of a status, a
-category and a priority, the counts), and their plants expect pod-todo's
-words. The checks that pod-todo does not hold stay in `podvm-gate`: the
-first line of a Prove is a command, the prove registry, the Prove flags
-against the parity table, the parity notes, and the checks of the tree.
 
 # T-1681: Hand the seven generic crates to podcrates and freeze their files
 
