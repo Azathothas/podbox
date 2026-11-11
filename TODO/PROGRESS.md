@@ -7,7 +7,7 @@ start.
 
 ## State
 
-333 entries: 28 open, 8 partial, 3 blocked, 294 done.
+333 entries: 28 open, 7 partial, 3 blocked, 295 done.
 
 The state on 2026-11-11:
 
@@ -60,8 +60,11 @@ that is not done. Read its Prove before you start. Set its status with
    incusd of route A ([incus without root](../docs/incus.md), experiment
    434). [T-1722](machine.md) (the other verbs of incus) comes after the
    scope entries of step 8.
-3. [T-1652](enter.md): a native-static rung with Syscall User Dispatch
-   and `openat2(RESOLVE_IN_ROOT)` (issue 109).
+3. [T-1652](enter.md) is done: a static x86_64 payload runs on the
+   native-static rung (Syscall User Dispatch and `openat2(RESOLVE_IN_ROOT)`,
+   experiment 356). Then [T-1724](enter.md): a static child of the loader
+   family takes the same rung (today it runs with the host's root), and
+   `-v` on the rung.
 4. [T-1651](enter.md): an `emulate` tier on a patched, fail-closed
    qemu-user (issue 94). It comes after T-1652, which is the first choice
    for a native static payload.

@@ -1603,7 +1603,7 @@ Source:      issue 109; issue 114 section 1, section 4 and section 6
 Category:    enter
 Priority:    P2
 Effort:      XL
-Status:      partial
+Status:      done
 
 Problem:     On the errand host the supervise rung is out of reach. A
              tracer reads a path argument through `process_vm_readv`,
@@ -1641,6 +1641,22 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm-probe`
              `go build` of a hello program exit 0 from the golang image,
              the probe reports `measured_by.user_dispatch` true, and with
              the `prctl` refused the run names the emulate tier.
+
+**Done 2026-11-11.** `cargo test -p podvm-dispatch` exits 0 with seven
+tests (the trap and `/proc/self/exe`, the in-root open and `..`, an
+absolute link, the re-arm in `fork`, a thread and `posix_spawn`, the exec,
+a script); the tests are in `podvm-dispatch`, the crate of the engine, and
+not in `podvm-enter` and `podvm-probe` as the Prove first wrote.
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 on the
+cloud host ([the run](../experiments/results/no-chroot-rung.txt), verdict
+"NO-CHROOT FAMILY RUNS"): on the chroot-denied fixture the static hello
+runs on the native-static rung with its banner; with the `prctl` denied
+(`--deny-dispatch`) it refuses at 125 naming the static reason, the `prctl`
+and the emulate tier; in the golang image `go version` exits 0, `go build`
+of a hello program exits 0, the built program prints `g356-ok`, nothing
+lands on the host; and `podvm probe --json` reports
+`measured_by.user_dispatch` true. The paragraph below has the parts and the
+four defects found on the way.
 
 **Partial, 2026-11-11.** The rung is in the crate `podvm-dispatch`
 (`crates/podvm-dispatch/src/`): a loader of a static x86_64 program
