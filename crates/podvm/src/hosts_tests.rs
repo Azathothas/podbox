@@ -10,17 +10,6 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
-/// Hosts that podvm names and that `pod-services` does not list yet. Each
-/// was reported to podcrates (COORD-044); the test fails when the crate
-/// lists one, so this list only shrinks.
-const WAITING: &[&str] = &[
-    // distroless/static-debian12 of the profile distroless-static (T-1659).
-    "gcr.io",
-    // The mirror of the measure workload for a host where public.ecr.aws
-    // answers 429 (T-1687).
-    "mirror.gcr.io",
-];
-
 /// Hosts that are podvm's own or no host of another party.
 const OWN: &[&str] = &["localhost", "example.com", "example.org"];
 
@@ -135,26 +124,34 @@ fn each_host_that_podvm_names_is_in_pod_services() {
     let missing: Vec<&String> = named
         .iter()
         .filter(|h| !listed.contains(*h) && !OWN.contains(&h.as_str()) && !reserved(h))
-        .filter(|h| !WAITING.contains(&h.as_str()))
         .collect();
     assert!(
         missing.is_empty(),
         "podvm names hosts that pod-services does not list: {missing:?}; report \
          each to podcrates (TODO/deps.md T-1679), podvm keeps no second list"
     );
-    for w in WAITING {
-        assert!(
-            !listed.contains(*w),
-            "pod-services lists {w} now: drop it from WAITING"
-        );
-        assert!(
-            named.contains(*w),
-            "podvm no longer names {w}: drop it from WAITING"
-        );
-    }
     // The values that podvm reads resolve.
     assert!(crate::machine::guest::kernel::url().starts_with("https://dl-cdn.alpinelinux.org/"));
     assert_eq!(crate::machine::guest::kernel::kernel_sha256().len(), 64);
+    // The NIC module sums of the guest are facts of pod-services now; the
+    // values are the ones podvm pinned before (T-1656).
+    assert_eq!(
+        crate::machine::guest::kernel::modules(),
+        [
+            (
+                "failover",
+                "6abca214c939b70af47d83380251e0ea16a1d8e47490ddb0521e64abcad3e1a1"
+            ),
+            (
+                "net_failover",
+                "0ede1d375546f9b177cc1d4250bc71d74e9a8444a83f5da7d1f92b7479b6c036"
+            ),
+            (
+                "virtio_net",
+                "fd93a908f5cc37eeb446c7255d614af90ab13dcadd21ddd7bada67a77cb1d177"
+            ),
+        ]
+    );
     assert_eq!(
         crate::images::default_login_server(),
         "https://index.docker.io/v1/"

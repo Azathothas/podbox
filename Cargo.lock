@@ -480,8 +480,8 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pod-broker"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "base64",
  "libc",
@@ -497,9 +497,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-confine"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
+dependencies = [
+ "pod-core",
+ "pod-hostprobe",
+]
+
+[[package]]
 name = "pod-core"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "libc",
  "rand",
@@ -509,17 +518,18 @@ dependencies = [
 
 [[package]]
 name = "pod-enter"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
+ "pod-confine",
  "pod-core",
  "pod-hostprobe",
 ]
 
 [[package]]
 name = "pod-extract"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "flate2",
  "pod-core",
@@ -531,18 +541,19 @@ dependencies = [
 
 [[package]]
 name = "pod-guest"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
  "sha2",
+ "xz4rust",
 ]
 
 [[package]]
 name = "pod-hostprobe"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "linux-raw-sys",
  "pod-core",
@@ -551,8 +562,8 @@ dependencies = [
 
 [[package]]
 name = "pod-incus"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "pod-core",
  "pod-proxy",
@@ -565,8 +576,8 @@ dependencies = [
 
 [[package]]
 name = "pod-oci"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "base64",
  "pod-core",
@@ -580,8 +591,8 @@ dependencies = [
 
 [[package]]
 name = "pod-proxy"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "base64",
  "libc",
@@ -596,8 +607,8 @@ dependencies = [
 
 [[package]]
 name = "pod-rootfs"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "pod-core",
  "pod-extract",
@@ -606,8 +617,8 @@ dependencies = [
 
 [[package]]
 name = "pod-services"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "pod-core",
  "toml",
@@ -615,8 +626,8 @@ dependencies = [
 
 [[package]]
 name = "pod-supervise"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -626,16 +637,16 @@ dependencies = [
 
 [[package]]
 name = "pod-term"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "unicode-width",
 ]
 
 [[package]]
 name = "pod-tls"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "base64",
  "p256",
@@ -653,13 +664,13 @@ dependencies = [
 
 [[package]]
 name = "pod-todo"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 
 [[package]]
 name = "pod-ws"
-version = "0.22.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+version = "0.24.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.24.0#228e2e33f675b8c008354fbae816fdac324fa017"
 dependencies = [
  "base64",
  "bytes",
@@ -1399,6 +1410,12 @@ dependencies = [
  "hybrid-array",
  "primefield",
 ]
+
+[[package]]
+name = "xz4rust"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "606930b71bad6379f366994e4e6252a3462fa28bfc3695c33b07bef8f967d6d6"
 
 [[package]]
 name = "zeroize"

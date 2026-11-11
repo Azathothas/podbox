@@ -435,6 +435,7 @@ fn one_step(
         limits: Vec::new(),
         no_new_privs: false,
         die_with_parent: false,
+        confine: None,
     };
     let mut sink = std::io::sink();
     let spawned = podvm_enter::spawn(root, &plan, &mut sink);

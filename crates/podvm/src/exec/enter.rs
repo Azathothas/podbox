@@ -342,6 +342,7 @@ pub(super) fn enter(
         limits: Vec::new(),
         no_new_privs: false,
         die_with_parent: false,
+        confine: None,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         return c;

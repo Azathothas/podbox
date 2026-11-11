@@ -1862,7 +1862,7 @@ hand-off that names the crate podvm takes for its relay.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1910,6 +1910,18 @@ relay, so the relay row needs no data file and this entry does not wait
 for T-1678. The status moves from `blocked` to `open`.
 
 ## Done
+
+**Done 2026-11-11.** podvm takes podcrates `v0.24.0` (`228e2e3`), whose
+`pod-services` lists `gcr-registry` (`gcr.io`), `mirror-gcr-registry`
+(`mirror.gcr.io`) and the facts `module-failover-sha256`,
+`module-net-failover-sha256` and `module-virtio-net-sha256` of
+`alpine-netboot` (the answer to COORD-044, issue 263). The list of
+reported hosts is gone from `crates/podvm/src/hosts_tests.rs`, and
+`crates/podvm/src/machine/guest/kernel.rs` reads the three module sums from
+the crate (`modules()`); the test asserts that they are the sums that podvm
+pinned before. The tag also brings `Plan.confine` of `pod-enter` (each
+literal of podvm names `confine: None` until T-1658). `cargo test
+--workspace` exits 0, with `each_host_that_podvm_names_is_in_pod_services`.
 
 **Partial 2026-11-11.** podvm takes `pod-services` at podcrates `v0.22.0`
 and reads each host of another party that the crate lists: the netboot

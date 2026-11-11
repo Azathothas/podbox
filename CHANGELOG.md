@@ -10,6 +10,16 @@ They describe their recorded revision, not the current build.
 
 ## 0.2.0-beta.4 (2026-11-11)
 
+### Changed: podcrates v0.24.0, 2026-11-11
+
+Record: T-1679; issue 263.
+Deployed: version 0.2.0-beta.4.
+
+- podvm takes the crates of podcrates at `v0.24.0`. `pod-services` lists
+  each host that podvm names, and the sums of the NIC modules of the
+  guest; podvm keeps no list of its own. A layer whose root entry has an
+  empty name applies (`pod-extract`).
+
 ### Added: a payload that ignores the proxy variables reaches the broker, 2026-11-11
 
 Record: T-1665; issue 184.

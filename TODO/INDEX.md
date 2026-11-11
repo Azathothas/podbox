@@ -332,7 +332,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1655](cli.md) | P2 | L | none | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
 | [T-1656](machine.md) | P2 | L | none | machine | done | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
 | [T-1657](enter.md) | P2 | L | none | enter | done | A syscall-interpreting tier: the gVisor capability without user namespaces |
-| [T-1658](enter.md) | P2 | L | none | enter | blocked | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
+| [T-1658](enter.md) | P2 | L | none | enter | open | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
 | [T-1659](cli.md) | P2 | M | none | cli | partial | Provider shapes and bare userlands as built-in profiles |
 | [T-1660](cli.md) | P2 | L | none | cli | done | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
 | [T-1661](cli.md) | P2 | M | none | cli | partial | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
@@ -353,7 +353,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1676](deps.md) | P2 | M | none | deps | done | Take `pod-tls` for both TLS stacks, with its synchronous face |
 | [T-1677](deps.md) | P2 | L | none | deps | done | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
 | [T-1678](deps.md) | P2 | L | none | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
-| [T-1679](deps.md) | P2 | M | none | deps | partial | Take `pod-services` for the third-party hosts compiled into podvm |
+| [T-1679](deps.md) | P2 | M | none | deps | done | Take `pod-services` for the third-party hosts compiled into podvm |
 | [T-1680](deps.md) | P2 | L | none | deps | done | Take `pod-todo` for the record half of `podvm-gate` |
 | [T-1681](deps.md) | P2 | L | none | deps | done | Hand the seven generic crates to podcrates and freeze their files |
 | [T-1682](machine.md) | P2 | M | none | machine | done | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
@@ -415,7 +415,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-346 entries: 8 open, 10 partial, 6 blocked, 322 done.
+346 entries: 9 open, 9 partial, 5 blocked, 323 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -426,9 +426,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
-| P2 | 4 | 5 | 6 | 100 | 115 |
+| P2 | 5 | 4 | 5 | 101 | 115 |
 | P3 | 3 | 1 | 0 | 12 | 16 |
-| **All** | 8 | 10 | 6 | 322 | 346 |
+| **All** | 9 | 9 | 5 | 323 | 346 |
 
 ## Work order
 

@@ -372,6 +372,7 @@ pub fn exec(args: &[String]) -> i32 {
         limits: Vec::new(),
         no_new_privs: false,
         die_with_parent: false,
+        confine: None,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         drop(memo);

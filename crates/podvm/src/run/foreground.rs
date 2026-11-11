@@ -243,6 +243,7 @@ pub fn run(args: &[String]) -> i32 {
         limits: p.hardening.limits(),
         no_new_privs: p.hardening.no_new_privs,
         die_with_parent: false,
+        confine: None,
     };
     // ⭐ T-0204 and T-0211. The lock is handed to the payload immediately
     // before the fork that leads to its exec, and to nothing else.

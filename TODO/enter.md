@@ -1037,7 +1037,7 @@ image (clause 19), both recorded with their pulled digests.
 
 **Source:** issue 74; `crates/podvm-interpose/src/path_calls.rs:63`;
   `src/ladder.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/foreground.rs:277`
+  `crates/podvm/src/run/foreground.rs:278`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -2360,7 +2360,7 @@ Decisions and deviations:
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -2413,17 +2413,6 @@ to port 22 fail with `EACCES` and port 443 pass;
 `/proc/self/status` shows `NoNewPrivs 1` and `Seccomp 2`; with
 Landlock absent the profile refuses by name.
 
-## Blocker
-
-**Blocked 2026-11-11 on podcrates.** The confine step must run in the
-payload's child after the root change, the `chdir`, the rlimits and
-`no_new_privs`, and before the exec. That child is `pod-enter`'s, which
-podvm takes frozen, and its `Plan` has no step for a ruleset or a filter.
-COORD-040 (issue 259) asks podcrates for `pod-confine` and for
-`Plan.confine`, as the Decision says. Measured here: the cloud host
-(Linux 6.18) answers Landlock ABI 7. The condition that clears the block:
-a podcrates tag with `pod-confine` and `Plan.confine`.
-
 ## Correction
 
 **Filed 2026-11-06.** Quoted from issue 170:
@@ -2468,6 +2457,20 @@ Second, the experiment adds a canary file outside `fs.read` that the
 payload cannot read, a host loopback TCP listener that it cannot reach
 (Landlock ABI 4 or later), and records whether a host Unix socket is
 reachable.
+
+**Blocked 2026-11-11 on podcrates.** The confine step must run in the
+payload's child after the root change, the `chdir`, the rlimits and
+`no_new_privs`, and before the exec. That child is `pod-enter`'s, which
+podvm takes frozen, and its `Plan` has no step for a ruleset or a filter.
+COORD-040 (issue 259) asks podcrates for `pod-confine` and for
+`Plan.confine`, as the Decision says. Measured here: the cloud host
+(Linux 6.18) answers Landlock ABI 7. The condition that clears the block:
+a podcrates tag with `pod-confine` and `Plan.confine`.
+
+**Unblocked 2026-11-11.** podcrates `v0.23.0` has `pod-confine` and
+`Plan.confine` (the answer to COORD-040, PodUtils/podcrates#69), and podvm
+takes `v0.24.0` (T-1679). Each `Plan` of podvm names `confine: None` until
+this entry sets it from the profile.
 
 # T-1688: The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging
 

@@ -44,21 +44,20 @@ const LIMITS: Limits = Limits {
 
 /// The modules of the network, out of `boot/initramfs-virt` of the same
 /// archive, each with its SHA-256 (T-1656). The NIC driver of the pinned
-/// kernel is a module.
-pub const MODULES: [(&str, &str); 3] = [
-    (
-        "failover",
-        "6abca214c939b70af47d83380251e0ea16a1d8e47490ddb0521e64abcad3e1a1",
-    ),
-    (
-        "net_failover",
-        "0ede1d375546f9b177cc1d4250bc71d74e9a8444a83f5da7d1f92b7479b6c036",
-    ),
-    (
-        "virtio_net",
-        "fd93a908f5cc37eeb446c7255d614af90ab13dcadd21ddd7bada67a77cb1d177",
-    ),
-];
+/// kernel is a module. The sums are facts of `alpine-netboot` in
+/// `pod-services` (TODO/deps.md T-1679).
+pub fn modules() -> [(&'static str, &'static str); 3] {
+    let fact = |name: &str| {
+        netboot()
+            .text(name)
+            .unwrap_or_else(|| panic!("alpine-netboot has the fact {name}"))
+    };
+    [
+        ("failover", fact("module-failover-sha256")),
+        ("net_failover", fact("module-net-failover-sha256")),
+        ("virtio_net", fact("module-virtio-net-sha256")),
+    ]
+}
 const INITRAMFS: &str = "boot/initramfs-virt";
 
 /// What a guest boots with: the kernel, and the module files of the
@@ -70,7 +69,7 @@ pub struct Assets {
 
 fn cached(dir: &Path) -> Option<Assets> {
     let kernel = dir.join(format!("vmlinuz-{}", &kernel_sha256()[..16]));
-    let modules: Vec<_> = MODULES
+    let modules: Vec<_> = modules()
         .iter()
         .map(|(n, sha)| (*n, dir.join(format!("{n}-{}.ko", &sha[..16]))))
         .collect();
@@ -132,7 +131,7 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
             .and_then(|()| std::fs::rename(&tmp, &path))
             .map_err(|e| format!("{}: {e}", path.display()))
     };
-    for (n, sha) in MODULES {
+    for (n, sha) in modules() {
         let want = format!("/{n}.ko");
         let bytes = super::cpio::member(&cpio, &want).ok_or(format!("{INITRAMFS}: no {n}.ko"))?;
         check(bytes, sha, &format!("{n}.ko"))?;

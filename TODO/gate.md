@@ -1778,7 +1778,7 @@ debug binary, kernel `7.2.0-WSL2-STABLE`):
 `experiments/368-run-decay.sh` exits 0
 (`experiments/results/run-decay-368.txt`), 11 of 11 predictions
 held with 16-to-69-fold separation. The `--rm` arm in
-`crates/podvm/src/run/foreground.rs:139-263` deletes the extracted
+`crates/podvm/src/run/foreground.rs:139-264` deletes the extracted
 rootfs where `referencing()`
 (`crates/podvm-supervise/src/lib.rs:171`) answers empty, so
 each keeper-less ephemeral run re-pays full extraction (a1
