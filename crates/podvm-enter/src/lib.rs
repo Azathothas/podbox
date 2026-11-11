@@ -117,6 +117,9 @@ pub fn ns_fallback_line(cause: &str) -> String {
 }
 
 /// The launch ladder with podvm's names.
+/// The spec of `--podvm-confine` (TODO/enter.md T-1658).
+pub mod confine;
+
 pub mod ladder {
     pub use pod_enter::ladder::*;
 

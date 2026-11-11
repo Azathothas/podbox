@@ -734,6 +734,7 @@ version = "0.2.0-beta.4"
 name = "podvm-enter"
 version = "0.2.0-beta.4"
 dependencies = [
+ "pod-confine",
  "pod-core",
  "pod-enter",
  "podvm-probe",

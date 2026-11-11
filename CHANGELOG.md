@@ -10,6 +10,18 @@ They describe their recorded revision, not the current build.
 
 ## 0.2.0-beta.4 (2026-11-11)
 
+### Added: the confine layer, 2026-11-11
+
+Record: T-1658; issue 170.
+Deployed: version 0.2.0-beta.4.
+
+- `run --podvm-confine='read=/etc/passwd;write=/out;connect=443'` (or a
+  profile with `confine = true`) confines the payload with Landlock, a
+  seccomp deny filter and no_new_privs on a rung with a chroot. Each path
+  that no rule names is denied. Each case with no mechanism (another
+  rung, `run -d`, no Landlock) refuses by name; a payload never runs
+  without the layer that it asked for.
+
 ### Fixed: the profile lambda-al2023 runs, 2026-11-11
 
 Record: T-1659; issue 172.

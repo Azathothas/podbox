@@ -63,6 +63,8 @@ pub struct Prepared {
     /// ⭐ TODO/enter.md T-1317. The no-chroot entry foreground `run` takes
     /// where chroot is denied. None is the chroot sequence, as before.
     pub userland: Option<Userland>,
+    /// `--podvm-confine`, guest paths (TODO/enter.md T-1658).
+    pub confine: Option<podvm_enter::confine::Spec>,
 }
 
 /// Resolve a container reference to the rootfs `exec` re-enters.

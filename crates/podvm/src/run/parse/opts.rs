@@ -47,6 +47,8 @@ pub(crate) struct Opts {
     /// `--network broker` with `--ports` and `--allow`: the egress broker
     /// of the run (TODO/net.md T-1665).
     pub(crate) broker: bool,
+    /// `--podvm-confine=SPEC`: the confine layer (TODO/enter.md T-1658).
+    pub(crate) confine: Option<podvm_enter::confine::Ask>,
     pub(crate) ports: Vec<u16>,
     pub(crate) allow: Vec<String>,
     /// `--device`. Carried raw here and parsed now: a malformed shape is a
@@ -119,6 +121,7 @@ impl Opts {
             drops: Vec::new(),
             needs: Vec::new(),
             broker: false,
+            confine: None,
             ports: Vec::new(),
             allow: Vec::new(),
             devices: Vec::new(),

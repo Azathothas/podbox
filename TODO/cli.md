@@ -1673,7 +1673,7 @@ closes below.
 
 # T-1414: The no-chroot path returns 127 and 126
 
-**Source:** issue 75; `crates/podvm/src/lifecycle/entry.rs:184`;
+**Source:** issue 75; `crates/podvm/src/lifecycle/entry.rs:186`;
   `crates/podvm-probe/src/exit.rs:86`;
   `experiments/330-exit-codes.sh`
 **Category:** cli
@@ -2165,7 +2165,7 @@ the retry line. Clause 13 of experiment 356 holds it. Remaining: one full run of
 **Source:** issue 93; issue 114 section 3.7 and section 6 item 8;
   `crates/podvm/src/complete/strict.rs:129`;
   `crates/podvm/src/complete/strict.rs:174`;
-  `crates/podvm/src/lifecycle/entry.rs:449`; [T-1415](cli.md)
+  `crates/podvm/src/lifecycle/entry.rs:451`; [T-1415](cli.md)
 **Category:** cli
 **Milestone:** none
 **Priority:** P1
@@ -2271,7 +2271,7 @@ each command line ran unchanged in every shape.
 ## Premise
 
 The parity table is the only description of what `run`
-accepts (`crates/podvm/src/parity.rs:209-275`). `--podvm-tier`
+accepts (`crates/podvm/src/parity.rs:209-276`). `--podvm-tier`
 takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
 Resource flags refuse by name (`parity.rs:341`, T-0804). The
 identity calls are virtualised (T-0711, `parity.rs:338`). No
@@ -2406,11 +2406,11 @@ an unprivileged equivalent that podvm does not use.
 The parity table refuses `--read-only`
 (`crates/podvm/src/parity.rs:257`), `--tmpfs`
 (`crates/podvm/src/parity.rs:259`), `--ulimit`
-(`crates/podvm/src/parity.rs:272`), `--cap-add, --cap-drop`
+(`crates/podvm/src/parity.rs:273`), `--cap-add, --cap-drop`
 (`crates/podvm/src/parity.rs:227`), `--security-opt`
-(`crates/podvm/src/parity.rs:276`), `--runtime`
-(`crates/podvm/src/parity.rs:275`) and `--userns`
-(`crates/podvm/src/parity.rs:273`). `-u, --user` is Degraded
+(`crates/podvm/src/parity.rs:277`), `--runtime`
+(`crates/podvm/src/parity.rs:276`) and `--userns`
+(`crates/podvm/src/parity.rs:274`). `-u, --user` is Degraded
 through the interposer identity
 (`crates/podvm/src/parity.rs:225`). `setrlimit`,
 `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
@@ -3033,7 +3033,7 @@ find its own jobs.
 ## Premise
 
 The `--label` flag is accepted and dropped
-(`crates/podvm/src/run/parse.rs:222`). The parity table
+(`crates/podvm/src/run/parse.rs:223`). The parity table
 marks it Stub (`crates/podvm/src/parity.rs:254`). The help
 of `ps` says that a label filter matches nothing
 (`crates/podvm/src/lifecycle.rs:41`), and so does the help of
@@ -3128,7 +3128,7 @@ the first process only.
 
 `--env-file` reads a file at parse time
 (`crates/podvm/src/run/parse.rs:91`, used at
-`crates/podvm/src/run/parse.rs:203`) and the values go into
+`crates/podvm/src/run/parse.rs:204`) and the values go into
 the environment (`crates/podvm/src/run/prepare.rs:242`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
@@ -3533,8 +3533,8 @@ which call fails first.
 `crates/podvm/src/parity.rs:235`); `-v` is Degraded and
 refuses `:ro` (`crates/podvm/src/parity.rs:222`); `exec -e`
 and `-w` are Native, `exec -d` is None
-(`crates/podvm/src/parity.rs:289` to
-`crates/podvm/src/parity.rs:295`); `logs` is one interleaved
+(`crates/podvm/src/parity.rs:290` to
+`crates/podvm/src/parity.rs:296`); `logs` is one interleaved
 file (`crates/podvm/src/parity.rs:153`); `network` and `-p`
 are None. `exec` checks its workdir through the container's
 volume table (`crates/podvm/src/exec/enter.rs:203`), not yet

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 9 open, 7 partial, 5 blocked, 325 done.
+346 entries: 8 open, 8 partial, 5 blocked, 325 done.
 
 The state on 2026-11-11:
 
@@ -53,8 +53,8 @@ that is not done. Read its Prove before you start. Set its status with
    and [T-1722](machine.md) (the other verbs of incus) come after the
    scope entries of step 2.
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
-   [T-1658](enter.md) (`pod-confine` is in podcrates `v0.23.0`, and podvm
-   takes `v0.24.0`); [T-1667](cli.md) (partial:
+   [T-1658](enter.md) (partial: the rungs with no chroot, `run -d`, `exec`,
+   the ABI in the probe and the `errand` profile remain); [T-1667](cli.md) (partial:
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they

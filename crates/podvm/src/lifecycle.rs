@@ -421,6 +421,8 @@ mod script;
 
 mod native;
 
+/// The confine layer of `--podvm-confine` (TODO/enter.md T-1658).
+pub mod confine;
 pub mod emulate;
 pub mod syscall;
 

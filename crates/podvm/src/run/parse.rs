@@ -133,6 +133,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                     }
                 },
                 "--podvm-cpus" => o.cpus = Some(cpus(verb, a)?),
+                "--podvm-confine" => o.confine = Some(confine(verb, a)?),
                 "--profile" => o.profile = Some(a.clone()),
                 "--network" => network(verb, a, &mut o)?,
                 "--ports" => o.ports.extend(ports(verb, a)?),
@@ -235,6 +236,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--podvm-qemu-arg" => expecting = Some("--podvm-qemu-arg"),
             "--podvm-mem" => expecting = Some("--podvm-mem"),
             "--podvm-cpus" => expecting = Some("--podvm-cpus"),
+            "--podvm-confine" => expecting = Some("--podvm-confine"),
             "--profile" => expecting = Some("--profile"),
             "--network" | "--net" => expecting = Some("--network"),
             "--ports" => expecting = Some("--ports"),
@@ -346,6 +348,9 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             }
             other if other.starts_with("--set=") => {
                 o.sets.push(other["--set=".len()..].to_string())
+            }
+            other if other.starts_with("--podvm-confine=") => {
+                o.confine = Some(confine(verb, &other["--podvm-confine=".len()..])?)
             }
             other if other.starts_with("--podvm-cpus=") => {
                 o.cpus = Some(cpus(verb, &other["--podvm-cpus=".len()..])?)

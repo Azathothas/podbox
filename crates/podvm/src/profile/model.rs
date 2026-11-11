@@ -14,6 +14,7 @@ const TOP: &[&str] = &[
     "leaves_out",
     "needs",
     "runtime",
+    "confine",
     "fs",
     "limits",
     "net",
@@ -51,12 +52,13 @@ pub struct Checked {
     /// The language runtime whose flags come from `fs.read` and
     /// `fs.write` (TODO/cli.md T-1661).
     pub runtime: Option<String>,
+    /// `confine = true`: the layer of T-1658 (TODO/enter.md).
+    pub confine: bool,
     pub read: Vec<String>,
     pub write: Vec<String>,
     /// The image of the shape.
     pub image: Option<String>,
-    /// The entrypoint of the run: `""` clears the image's own, as
-    /// `--entrypoint=` does (TODO/cli.md T-1659).
+    /// `--entrypoint=` of the run; `""` clears it (TODO/cli.md T-1659).
     pub entrypoint: Option<String>,
     pub backend: Option<String>,
     pub user: Option<String>,
@@ -253,6 +255,7 @@ pub fn check(t: &Table) -> Result<Checked, String> {
         leaves_out: strings(t, "", "leaves_out")?,
         needs: strings(t, "", "needs")?,
         runtime: string(t, "", "runtime")?,
+        confine: boolean(t, "", "confine")?.unwrap_or(false),
         ..Checked::default()
     };
     if let Some(fs) = want_table(t, "fs")? {
@@ -344,9 +347,10 @@ pub fn check(t: &Table) -> Result<Checked, String> {
 /// command, so a profile has one of them.
 fn runtime_check(c: &Checked) -> Result<(), String> {
     match &c.runtime {
-        None if !c.read.is_empty() || !c.write.is_empty() => Err(
-            "`fs.read` and `fs.write` give the flags of a runtime, and the profile names \
-             no `runtime` (TODO/cli.md T-1661)"
+        None if !c.confine && (!c.read.is_empty() || !c.write.is_empty()) => Err(
+            "`fs.read` and `fs.write` give the flags of a runtime or the confine layer, \
+             and the profile names no `runtime` and no `confine = true` (TODO/cli.md \
+             T-1661, TODO/enter.md T-1658)"
                 .to_string(),
         ),
         Some(_) if !c.wrap.is_empty() => {
@@ -423,6 +427,18 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
     }
     if let Some(t) = c.timeout {
         a.push(format!("--timeout={t}"));
+    }
+    if c.confine {
+        let ask = podvm_enter::confine::Ask {
+            read: c.read.clone(),
+            write: c.write.clone(),
+            exec: Vec::new(),
+            connect: (!c.net_ports.is_empty()).then(|| c.net_ports.clone()),
+        };
+        a.push(format!(
+            "--podvm-confine={}",
+            podvm_enter::confine::render(&ask)
+        ));
     }
     match c.net_mode.as_deref() {
         None | Some("host") => {}

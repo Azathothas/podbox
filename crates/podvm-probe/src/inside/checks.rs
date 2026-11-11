@@ -274,11 +274,23 @@ pub fn identity() -> Vec<Record> {
             Err(e) => Record::new(s, t, Verdict::of_errno(e.0), &errno_name(e.0)),
         });
     }
+    // TODO/enter.md T-1658: no_new_privs and the seccomp mode from
+    // prctl(2) as well, so they hold where no /proc is mounted (the
+    // namespace rung); /proc/self/status is the fallback.
+    const PR_GET_SECCOMP: u64 = 21;
+    const PR_GET_NO_NEW_PRIVS: u64 = 39;
+    for (t, f, op) in [
+        ("nonewprivs", "NoNewPrivs", PR_GET_NO_NEW_PRIVS),
+        ("seccomp", "Seccomp", PR_GET_SECCOMP),
+    ] {
+        match call(sys::SYS_PRCTL, [op, 0, 0, 0, 0, 0]) {
+            Ok(n) => v.push(Record::new(s, t, Verdict::Allow, &n.to_string())),
+            Err(_) => v.push(fact(t, status_field(f))),
+        }
+    }
     for (t, f) in [
         ("capeff", "CapEff"),
         ("capbnd", "CapBnd"),
-        ("nonewprivs", "NoNewPrivs"),
-        ("seccomp", "Seccomp"),
         ("tracerpid", "TracerPid"),
     ] {
         v.push(fact(t, status_field(f)));

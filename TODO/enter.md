@@ -1241,7 +1241,7 @@ against the chroot control at 0.
 # T-1412: A missing workdir refuses naming the path
 
 **Source:** issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/parse.rs:205`
+  `crates/podvm/src/run/parse.rs:206`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -1299,7 +1299,7 @@ host and prints exactly `/tmp` for the control.
 
 # T-1413: A script refusal names the file and its shebang
 
-**Source:** issue 78; `crates/podvm/src/lifecycle/entry.rs:217`;
+**Source:** issue 78; `crates/podvm/src/lifecycle/entry.rs:219`;
   `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
   `src/ladder.rs` of `pod-enter` (PodUtils/podcrates)
 **Category:** enter
@@ -1712,8 +1712,8 @@ HTTP 429).
 # T-1648: A static Go payload runs into a GOROOT error instead of a named refusal
 
 **Source:** issue 91; issue 114 section 3.4;
-  `crates/podvm/src/lifecycle/entry.rs:351`;
-  `crates/podvm/src/lifecycle/entry.rs:382`;
+  `crates/podvm/src/lifecycle/entry.rs:353`;
+  `crates/podvm/src/lifecycle/entry.rs:384`;
   `crates/podvm/src/interpose.rs:365`;
   `experiments/356-no-chroot-rung.sh:574`;
   A-V-04 of PodUtils/podcrates#39
@@ -2360,7 +2360,7 @@ Decisions and deviations:
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2472,6 +2472,45 @@ a podcrates tag with `pod-confine` and `Plan.confine`.
 takes `v0.24.0` (T-1679). Each `Plan` of podvm names `confine: None` until
 this entry sets it from the profile.
 
+## Done
+
+**Partial 2026-11-11.** `run --podvm-confine=SPEC` applies the layer of
+`pod-confine` through `Plan.confine` of `pod-enter`: SPEC is
+`read=P,...;write=P,...;exec=P,...;connect=PORT,...` with guest paths
+(`crates/podvm-enter/src/confine.rs`). The spec adds read and execute of
+the system directories of the image that exist (`/bin`, `/sbin`, `/usr`,
+`/lib`, `/lib64`, `/lib32`, podvm's `/.podvm`), read of `/proc` and three
+device nodes, and read and write of `/dev/null`; `/etc` is not among them.
+A profile takes `confine = true` with `fs.read`, `fs.write` and
+`net.ports`. The layer runs on a rung with a chroot (namespace, chroot),
+for a foreground run, and is decided after the fixups, so a node that the
+completion layer made gets its rule. Each other case refuses by name with
+exit 125 before anything runs: a rung with no chroot, `run -d`, a kernel
+with no Landlock, an ABI under 3, and `connect` under ABI 4
+(`crates/podvm/src/lifecycle/confine.rs`, the test
+`each_case_with_no_mechanism_refuses_by_name`). The probe of
+`probe-inside` reads no_new_privs and the seccomp mode with prctl(2), so
+they hold where no `/proc` is mounted (`crates/podvm-probe/src/inside/checks.rs`).
+
+`sh experiments/414-confine.sh` exits 0 on the cloud host (Linux 6.18,
+Landlock ABI 7, the namespace rung): `/etc/passwd` reads, `/etc/shadow`
+and a write to `/tmp` fail with "Permission denied", a TCP connect to the
+allowed host listener answers and the other fails; the control without
+the layer reads `/etc/shadow` and reaches both ports; `probe-inside` reads
+NoNewPrivs 1 and Seccomp 2 under the layer and 0 and 0 without it; the
+userland rung and `run -d` refuse by name. `cargo test -p podvm-enter` and
+`cargo test -p podvm` exit 0 with the tests of the spec, the profile key
+and the refusals. Two readings of the Prove changed: busybox:musl has no
+`/etc/hostname`, so the outside read is `/etc/shadow`; the network of the
+cloud host is a proxy only, so the TCP clause uses two listeners of the
+host loopback in place of ports 22 and 443.
+
+Remaining: the layer on the rungs with no chroot (the loader family and
+the syscall tier, with host paths through the path map and `-v`), `run
+-d` and `exec`, the Landlock ABI in `podvm probe` and in the report of
+T-1695, and the built-in profile `errand` of issue 170.
+
+
 # T-1688: The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging
 
 **Source:** issue 212; T-1667 (the doctor row shape); T-1003 (the fd exec)
@@ -2495,7 +2534,7 @@ doctor` has no row for it.
 The probe is `src/memfd.rs` of `pod-enter` (PodUtils/podcrates): it creates
 and closes a memfd and never executes one. The callers are
 `crates/podvm/src/ladder.rs:202` and
-`crates/podvm/src/lifecycle/entry.rs:354`. The late step is
+`crates/podvm/src/lifecycle/entry.rs:356`. The late step is
 `src/launch.rs` of `pod-enter` (PodUtils/podcrates). The census row
 `memfd_create+exec` of `pod_hostprobe::probes` runs a shell
 script through `/proc/self/fd/N`, not `execveat` of a static
@@ -2711,9 +2750,9 @@ Experiment 428 runs `-w /opt/runner ./bin/Runner.Listener --version`.
   podcrates podcrates@T-155 (commit d8b77b5, no tag on 2026-11-10);
   PodUtils/podcrates#53 (COORD-028: `v0.15.0` carries it);
   `crates/podvm-enter/src/lib.rs:26`,
-  `crates/podvm-enter/src/lib.rs:169`,
-  `crates/podvm-enter/src/lib.rs:174`,
-  `crates/podvm-enter/src/lib.rs:185`
+  `crates/podvm-enter/src/lib.rs:172`,
+  `crates/podvm-enter/src/lib.rs:177`,
+  `crates/podvm-enter/src/lib.rs:188`
 **Category:** enter
 **Milestone:** none
 **Priority:** P2

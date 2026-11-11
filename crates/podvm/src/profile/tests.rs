@@ -247,3 +247,21 @@ fn one_profile_gives_the_runtime_flags_and_the_path_map() {
     let e = super::effective("node-permission", &["fs.wrap=[\"env\"]".into()]).unwrap_err();
     assert!(e.contains("fs.wrap"), "{e}");
 }
+
+/// TODO/enter.md T-1658: `confine = true` gives `--podvm-confine` from the
+/// paths and the ports of the profile.
+#[test]
+fn confine_gives_the_flag_from_the_paths_and_the_ports() {
+    let t: toml::Table = toml::from_str(
+        "confine = true\n[fs]\nread = [\"/etc/passwd\"]\nwrite = [\"/tmp\"]\n[net]\nports = [443]\n",
+    )
+    .unwrap();
+    let c = check(&t).unwrap();
+    let a = run_args(&c, &std::env::temp_dir()).unwrap();
+    assert!(
+        a.contains(&"--podvm-confine=read=/etc/passwd;write=/tmp;connect=443".to_string()),
+        "{a:?}"
+    );
+    let t: toml::Table = toml::from_str("[fs]\nread = [\"/etc\"]\n").unwrap();
+    assert!(check(&t).unwrap_err().contains("confine = true"));
+}

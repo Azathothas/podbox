@@ -1268,7 +1268,7 @@ was taken:
 
 | Value | Where | What it is |
 | --- | --- | --- |
-| 265 | `crates/podvm/src/parity.rs:119-422` | the source count, current |
+| 265 | `crates/podvm/src/parity.rs:119-423` | the source count, current |
 | 220 | `TODO/cli.md:183` | T-0801's 2026-09-25 reading |
 | 164 | `experiments/results/parity-drive.txt:7` | the 2026-09-22 drive |
 | 160 | `TODO/cli.md:812` | T-0808's 2026-09-21 reading |
@@ -1288,7 +1288,7 @@ has one cell that answers and three that do not compete with it.
 other values named as dated readings beside it: 220 from `TODO/cli.md:183`,
 164 from `experiments/results/parity-drive.txt:7`, and 160 from
 `TODO/cli.md:812`. The value is re-derived on this tree rather than copied:
-`TABLE` runs from `crates/podvm/src/parity.rs:119` to `:422` and holds
+`TABLE` runs from `crates/podvm/src/parity.rs:119` to `:423` and holds
 265 `Row {` literals inside that range. A fourth figure, 267, is recorded as
 a whole-file artefact, because `pub struct Row` at `:58` and `impl Row` at
 `:65` both match the same grep; the whole-file count is 267. The Prove grep

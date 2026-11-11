@@ -2647,7 +2647,7 @@ pre-flight is now `find`) plus `unnecessary_map_or` (now
 
 **Source:** issue 71; `crates/podvm-image/src/store.rs:218`;
   `pod_hostprobe::space`;
-  `crates/podvm/src/lifecycle/entry.rs:138`;
+  `crates/podvm/src/lifecycle/entry.rs:140`;
   [T-0203](image.md)
 **Category:** image
 **Milestone:** none

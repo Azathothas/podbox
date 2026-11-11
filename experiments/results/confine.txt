@@ -1,0 +1,37 @@
+== conditions
+date              2026-11-11T17:17:07Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.4
+rung              namespace
+image             mirror.gcr.io/library/busybox:musl
+listeners         127.0.0.1:A and 127.0.0.1:B
+
+== clause 1  the layer
+    2013d9003084: Extracted (430 entries, 0 whiteouts)
+    root:x:0:0:root:/root:/bin/sh
+    cat: can't open '/etc/shadow': Permission denied
+    sh: line 0: can't create /tmp/w: Permission denied
+    shadow=1
+    write=1
+    hello-A
+    a=0
+    b=1
+
+== clause 2  the control, with no layer
+    root:x:0:0:root:/root:/bin/sh
+    shadow=0
+    write=0
+    hello-A
+    a=0
+    hello-B
+    b=0
+
+== clause 3  no_new_privs and the seccomp mode, read inside
+  confined: nonewprivs=1 seccomp=2 
+  control: nonewprivs=0 seccomp=0 
+
+== clause 4  a rung with no chroot refuses by name
+  userland: exit 125: podvm run: --podvm-confine: the layer needs a rung with a chroot (namespace or chroot), and this run enters the userland rung, so podvm refuses: a pay
+  run -d: exit 125: podvm run: --podvm-confine: `run -d` takes no confine layer yet: the launcher of a detached payload builds its own entry. Run the payload in the foreg
+
+verdict: THE CONFINE LAYER HOLDS THE PAYLOAD, AND EACH CASE WITH NO MECHANISM REFUSES BY NAME

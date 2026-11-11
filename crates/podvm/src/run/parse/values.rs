@@ -171,6 +171,16 @@ pub(super) fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<S
     Ok(out)
 }
 
+/// The SPEC of `--podvm-confine` (TODO/enter.md T-1658).
+pub(super) fn confine(verb: &str, a: &str) -> std::result::Result<podvm_enter::confine::Ask, i32> {
+    podvm_enter::confine::parse(a).map_err(|why| {
+        eprintln!(
+            "podvm {verb}: --podvm-confine takes read=P,...;write=P,...;exec=P,...;connect=PORT,...: {why}"
+        );
+        EXIT_FLAG_ERROR
+    })
+}
+
 /// The vCPUs of `--podvm-cpus`: a whole number from 1 to 64.
 /// TODO/cli.md T-1654.
 pub(super) fn cpus(verb: &str, a: &str) -> std::result::Result<u32, i32> {
