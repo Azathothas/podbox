@@ -38,13 +38,14 @@ pub struct GapDef {
 
 /// The open gaps of the loader family, as of the entries they name.
 pub const LOADER_GAPS: &[GapDef] = &[GapDef {
-    entry: "T-1652",
-    text: "a statically linked child keeps the direct exec, and a dynamic \
-               program can issue the syscall instruction itself (Go, liburing) \
-               instead of a call of libc: those raw syscalls pass the \
-               interposer, so their absolute paths resolve on the host and a \
-               write lands on the host tree; T-1648 refuses only a static \
-               top-level payload (TODO/enter.md T-1652, T-1651)",
+    entry: "T-1724",
+    text: "a statically linked child enters the native-static rung where \
+               Syscall User Dispatch arms, and keeps the direct exec where it does \
+               not; a dynamic program can issue the syscall instruction itself \
+               (Go with cgo, liburing) instead of a call of libc: those raw \
+               syscalls pass the interposer, so their absolute paths resolve on \
+               the host and a write lands on the host tree (TODO/enter.md T-1724, \
+               T-1651)",
     probe: Probe::StaticChild,
 }];
 

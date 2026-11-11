@@ -2323,7 +2323,7 @@ Source:      T-1652 (measured on the cloud host, 2026-11-11);
 Category:    enter
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     A dynamic shell of the golang image on the loader family ran
              `go build` as its child: the interposer executes a static
@@ -2352,5 +2352,18 @@ Prove:       `RUSTFLAGS="-C target-feature=-crt-static" cargo test --manifest-pa
              runs `go build`, the output is in the rootfs and not on the host,
              and a clause where a static payload reads a file of a `-v`
              volume on the native-static rung.
+
+**Partial, 2026-11-11.** The static child: the interposer reads a static
+ELF of the machine as `File::Static`, and where podvm names itself in
+`PODVM_DISPATCH_SELF` (`podvm_dispatch::SELF_VAR`, set by podvm where Syscall
+User Dispatch arms) the exec route runs `podvm --podvm-dispatch-enter ROOTFS
+GUEST ARGV...` (`Tail::Dispatch` in `crates/podvm-interpose/src/exec/launch.rs`);
+a `#!` script with a static interpreter takes the same route with the
+kernel's arguments. The interposer's tests exit 0 (84, with the new test of
+the route). On the chroot-denied fixture of experiment 356, `sh -c 'go build
+-o h main.go && ./h'` in the golang image printed `g724-ok`, and nothing
+landed on the host (no `/tmp/g724`, no `/go`). The `--strict` gap of the loader family names
+this entry now. Remaining: `-v` on the rung, and the run of experiment 356
+with the two clauses of the Prove.
 
 **Filed 2026-11-11.** From the measurement of T-1652.

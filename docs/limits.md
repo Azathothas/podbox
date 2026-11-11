@@ -15,9 +15,9 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   image with `openat2(RESOLVE_IN_ROOT)`. `/proc`, `/sys` and `/dev` are
   the host's, and `/proc/self/exe` names the guest program. Threads,
   `fork`, `vfork` and `execve` keep the rung; an `execve` of a dynamic
-  program fails with `ENOEXEC`. The rung takes no `-v` yet, and a static
-  child of a dynamic program on the loader family still runs with the
-  host root (T-1724). Where the kernel refuses the `prctl`, the payload
+  program fails with `ENOEXEC`. A static child of a dynamic program on the
+  loader family enters the same rung through podvm (T-1724). The rung
+  takes no `-v` yet (T-1724). Where the kernel refuses the `prctl`, the payload
   refuses at 125, because its absolute paths would resolve on the host
   (T-1648). Under `--unsafe-host-paths` it runs from a staged memfd with
   the host root. It then reads its own exe as the staged memfd path, so a

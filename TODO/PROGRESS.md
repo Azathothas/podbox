@@ -7,7 +7,7 @@ start.
 
 ## State
 
-333 entries: 28 open, 7 partial, 3 blocked, 295 done.
+333 entries: 27 open, 8 partial, 3 blocked, 295 done.
 
 The state on 2026-11-11:
 

@@ -296,6 +296,35 @@ fn the_route_enters_each_arm_through_the_rootfs() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
+/// TODO/enter.md T-1724: where podvm names itself, a static child enters
+/// the native-static rung through podvm, with the rootfs and its guest
+/// path; a `#!` script with a static interpreter too, with the kernel's
+/// arguments. A dynamic child keeps the guest loader.
+#[test]
+fn a_static_child_enters_the_native_static_rung_through_podvm() {
+    let d = tree("dispatch");
+    let root = d.to_string_lossy().to_string();
+    put(&d.join("bin/static"), &elf(1, b""));
+    put(&d.join("bin/scr"), b"#!/bin/static -x\necho\n");
+    let env = ["A=1"];
+    unsafe { std::env::set_var("PODVM_MAPS", format!("/:{root}")) };
+    unsafe { std::env::set_var("PODVM_DISPATCH_SELF", "/opt/podvm") };
+    let (path, argv, _) = launch("/bin/static", &["static", "z"], &env).unwrap();
+    assert_eq!(path, "/opt/podvm");
+    assert_eq!(argv, ["/opt/podvm", "--podvm-dispatch-enter", &root, "/bin/static", "static", "z"]);
+    let (path, argv, _) = launch("/bin/scr", &["scr", "s1"], &env).unwrap();
+    assert_eq!(path, "/opt/podvm");
+    assert_eq!(
+        argv,
+        ["/opt/podvm", "--podvm-dispatch-enter", &root, "/bin/static", "/bin/static", "-x", "/bin/scr", "s1"]
+    );
+    unsafe { std::env::remove_var("PODVM_DISPATCH_SELF") };
+    let (path, _, _) = launch("/bin/static", &["static"], &env).unwrap();
+    assert_eq!(path, format!("{root}/bin/static"), "with no podvm named, the kernel runs it");
+    unsafe { std::env::remove_var("PODVM_MAPS") };
+    let _ = std::fs::remove_dir_all(&d);
+}
+
 /// A guest `LD_LIBRARY_PATH` goes to host names before the image's list;
 /// the inherited host list is not named twice.
 #[test]

@@ -50,6 +50,11 @@ use std::os::unix::ffi::OsStrExt;
 pub const ROOT_VAR: &str = "PODVM_DISPATCH_ROOT";
 /// The variable that names the program (its guest path).
 pub const EXE_VAR: &str = "PODVM_DISPATCH_EXE";
+/// The variable that names podvm itself (its host path) for the
+/// interposer: a static child of the loader family enters this rung
+/// through it (TODO/enter.md T-1724). podvm sets it where [`available`]
+/// says yes.
+pub const SELF_VAR: &str = "PODVM_DISPATCH_SELF";
 
 /// Whether this build and this kernel can serve the rung: x86_64, and a
 /// `prctl(PR_SET_SYSCALL_USER_DISPATCH)` that the kernel takes. The error

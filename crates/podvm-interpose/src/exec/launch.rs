@@ -244,6 +244,10 @@ pub fn guest_exe_entry(guest: &[u8], out: &mut [u8; OUT]) -> Result<(), c_int> {
 pub enum Tail {
     /// Exec the host path itself: static, foreign, or not ELF.
     Direct,
+    /// Exec podvm, whose host path is in `Scratch::loader`, on the
+    /// native-static rung: `podvm --podvm-dispatch-enter ROOTFS GUEST
+    /// ARGV...`, with the rootfs in `Scratch::lib` (TODO/enter.md T-1724).
+    Dispatch,
     /// Exec the guest loader; its name is in `Scratch::lib`.
     Loader,
 }
@@ -292,8 +296,11 @@ pub unsafe fn assemble(
             head::basename(unsafe { core::slice::from_raw_parts(first as *const u8, fl) });
         head::basename(&s.host[..hn]) == b"busybox" && !invoked.is_empty() && invoked != b"busybox"
     };
+    let dispatch = matches!(tail, Tail::Dispatch);
     let opts = if loader {
         2 + 2 * (lib_n > 0) as usize + 2 * (!no_argv0) as usize + applet as usize + inhibit as usize
+    } else if dispatch {
+        4
     } else {
         0
     };
@@ -310,7 +317,13 @@ pub unsafe fn assemble(
     let need = argv_n + if exe_at.is_some() { envc + 1 } else { 0 };
     let mut v = unsafe { Slots::new(&mut s.stack, need) }?;
     let host = s.host.as_ptr() as *const c_char;
-    if loader {
+    if dispatch {
+        v.push(s.loader.as_ptr() as *const c_char);
+        v.push(c"--podvm-dispatch-enter".as_ptr());
+        v.push(s.lib.as_ptr() as *const c_char);
+        v.push(s.resolved.as_ptr() as *const c_char);
+        v.push(first);
+    } else if loader {
         v.push(s.loader.as_ptr() as *const c_char);
         if inhibit {
             v.push(c"--inhibit-cache".as_ptr());
@@ -370,7 +383,7 @@ pub unsafe fn assemble(
         None => envp,
     };
     Ok(Launch {
-        path: if loader {
+        path: if loader || dispatch {
             s.loader.as_ptr() as *const c_char
         } else {
             host

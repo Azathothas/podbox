@@ -10,7 +10,7 @@ They describe their recorded revision, not the current build.
 
 ### Added: a native-static rung, 2026-11-11
 
-Record: T-1652, T-1724; issue 109.
+Record: T-1652, T-1724 (partial); issue 109.
 Deployed: not deployed; no version change.
 
 - Where chroot is denied, a static x86_64 payload runs in a podvm process
@@ -21,6 +21,9 @@ Deployed: not deployed; no version change.
   which stays where the kernel refuses the `prctl`; `--unsafe-host-paths`
   keeps the memfd family. `podvm probe --json` reports
   `measured_by.user_dispatch`.
+- A static child of a dynamic program on the loader family (`go build`
+  under `sh`) enters the native-static rung through podvm, where it wrote
+  on the host's root before (T-1724).
 
 ### Added: run on an incusd, 2026-11-11
 

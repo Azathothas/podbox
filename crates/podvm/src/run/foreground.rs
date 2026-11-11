@@ -404,9 +404,17 @@ pub(crate) fn push_guest_exe<G: podvm_enter::abi::GuestRoot + ?Sized>(
     argv0: &str,
     path_dirs: &[String],
 ) {
-    env.retain(|e| e.split('=').next().unwrap_or("") != podvm_enter::ladder::GUEST_EXE_VAR);
+    let ours = [podvm_enter::ladder::GUEST_EXE_VAR, podvm_dispatch::SELF_VAR];
+    env.retain(|e| !ours.contains(&e.split('=').next().unwrap_or("")));
     if let Some(g) = podvm_enter::ladder::guest_exe(root, argv0, path_dirs) {
         env.push(format!("{}={g}", podvm_enter::ladder::GUEST_EXE_VAR));
+    }
+    // TODO/enter.md T-1724: a static child of the loader family enters the
+    // native-static rung through podvm itself.
+    if podvm_dispatch::available().is_ok()
+        && let Ok(me) = std::fs::read_link("/proc/self/exe")
+    {
+        env.push(format!("{}={}", podvm_dispatch::SELF_VAR, me.display()));
     }
 }
 

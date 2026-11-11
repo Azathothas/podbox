@@ -71,7 +71,7 @@ fn a_static_head_is_told_from_its_program_headers() {
 }
 
 /// The gaps of the loader family for one payload: a static program that
-/// a `-c` string runs hits T-1652, and a dynamic one does not.
+/// a `-c` string runs hits T-1724, and a dynamic one does not.
 #[test]
 fn the_loader_gaps_name_their_entries_and_their_hits() {
     let d = std::env::temp_dir().join(format!("podvm-gaps-{}", std::process::id()));
@@ -88,7 +88,7 @@ fn the_loader_gaps_name_their_entries_and_their_hits() {
         &path,
     );
     let entries: Vec<_> = gaps.iter().map(|g| g.entry).collect();
-    assert_eq!(entries, vec!["T-1652"]);
+    assert_eq!(entries, vec!["T-1724"]);
     assert!(
         gaps[0].hit.as_deref().unwrap().contains("`stat`"),
         "{gaps:?}"
@@ -145,7 +145,7 @@ fn strict_refuses_a_capability_gap_that_the_payload_hits() {
     assert!(s.contains("  - [capability] a gap"), "{s}");
     assert!(s.contains("`stat` is a statically linked program"), "{s}");
     assert!(s.contains("chroot rung runs this command"), "{s}");
-    assert!(s.contains("T-1651, T-1652"), "{s}");
+    assert!(s.contains("T-1651, T-1724"), "{s}");
     // `--strict=all` refuses the warned gap too.
     let all = Ask {
         strict: true,

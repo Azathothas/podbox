@@ -316,6 +316,12 @@ pub(crate) unsafe fn plan(
             }
             head::File::Dynamic => break (rn, Tail::Loader),
             head::File::Direct => break (rn, Tail::Direct),
+            // T-1724: podvm enters a static child on the native-static
+            // rung where it named itself, else the kernel runs it.
+            head::File::Static => match unsafe { dispatch_into(t, s) } {
+                true => break (rn, Tail::Dispatch),
+                false => break (rn, Tail::Direct),
+            },
             head::File::Foreign => {
                 // T-1703: the kernel would read the loader of another
                 // machine, or its binfmt handler, on the host root.
@@ -382,6 +388,33 @@ pub(crate) unsafe fn plan(
             s,
         )
     }
+}
+
+/// The variable through which podvm names itself (`podvm_dispatch::SELF_VAR`).
+pub const DISPATCH_SELF_VAR: &[u8] = b"PODVM_DISPATCH_SELF";
+
+/// Put podvm's host path in `s.loader` and the rootfs of the table's root
+/// pair in `s.lib`, each with a NUL; false where podvm did not name itself
+/// or the table has no root (TODO/enter.md T-1724).
+///
+/// # Safety
+/// Reads the process's environ.
+unsafe fn dispatch_into(t: &Table, s: &mut Scratch) -> bool {
+    let Some((p, n)) = (unsafe { crate::map::lookup_env(DISPATCH_SELF_VAR) }) else {
+        return false;
+    };
+    let root = t.pairs[..t.n].iter().find(|pr| pr.from_n == 1 && unsafe { *pr.from_p } == b'/');
+    let Some(root) = root else { return false };
+    if n == 0 || n >= OUT || root.to_n == 0 || root.to_n >= OUT {
+        return false;
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(p, s.loader.as_mut_ptr(), n);
+        core::ptr::copy_nonoverlapping(root.to_p, s.lib.as_mut_ptr(), root.to_n);
+    }
+    s.loader[n] = 0;
+    s.lib[root.to_n] = 0;
+    true
 }
 
 #[cfg(test)]

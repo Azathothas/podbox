@@ -397,11 +397,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1721](interpose.md) | P2 | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
 | [T-1722](machine.md) | P3 | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 | [T-1723](machine.md) | P3 | machine | open | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
-| [T-1724](enter.md) | P2 | enter | open | A static child of the loader family, and a volume, on the native-static rung |
+| [T-1724](enter.md) | P2 | enter | partial | A static child of the loader family, and a volume, on the native-static rung |
 
 ## Counts
 
-333 items: 28 open, 7 partial, 3 blocked, 295 done.
+333 items: 27 open, 8 partial, 3 blocked, 295 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -412,9 +412,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 24 | 0 | 3 | 84 | 111 |
+| P2 | 23 | 1 | 3 | 84 | 111 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **28** | **7** | **3** | **295** | **333** |
+| **All** | **27** | **8** | **3** | **295** | **333** |
 
 ## Work order
 
