@@ -2,15 +2,15 @@
 
 ## Crates of this tree
 
-podvm takes 12 shared crates from PodUtils/podcrates at the tag `v0.21.0`
-(podcrates commit `ada3699`; T-1727 took it).
+podvm takes 15 shared crates from PodUtils/podcrates at the tag `v0.22.0`
+(podcrates commit `93de04a`; T-1732 took it).
 A local crate gives podvm's names, paths and settings to its `pod-*` crate
 and keeps the parts that only podvm needs.
 The `Cargo.toml` of each crate names its `pod-*` dependencies.
 
 | Directory | Owns | Takes from podcrates |
 | --- | --- | --- |
-| `crates/podvm` | The binary: dispatch, arguments, parity table, manual, `run` and the lifecycle verbs, `images`, `doctor`, `system`, the tier flag, the profiles of `run --profile` (`profile.rs`, T-1654), `probe-inside` and `compare` (`sandprobe.rs`, T-1666), `remote`, `machine ssh`, `windows`, the incus tier | `pod-incus` (the client of the incus REST API); the rest through the crates below |
+| `crates/podvm` | The binary: dispatch, arguments, parity table, manual, `run` and the lifecycle verbs, `images`, `doctor`, `system`, the tier flag, the profiles of `run --profile` (`profile.rs`, T-1654), `probe-inside` and `compare` (`sandprobe.rs`, T-1666), `remote`, `machine ssh`, `windows`, the incus tier, the egress broker of `--network broker` (`broker.rs`, T-1665) | `pod-incus` (the client of the incus REST API), `pod-broker` (the broker), `pod-services` (the hosts of other parties, T-1679); the rest through the crates below |
 | `crates/podvm-probe` | podvm's settings for the probes, the report, the exit codes, the JSON writer, the non-goals, the probe inside a payload and its compare (`inside.rs`, T-1666) | `pod-hostprobe` (probes, rung selection, machine legs) |
 | `crates/podvm-image` | The store, its layout and records, credentials paths, platform choice, space and exec checks, `pull` | `pod-oci` (registry client), `pod-proxy`, `pod-tls`, `pod-supervise` (store lock), `pod-hostprobe`, `pod-core` |
 | `crates/podvm-extract` | The layers of a manifest as blob paths, the rootfs place in the store, the tree of each container (`tree.rs`, T-1709) | `pod-extract` (layers, whiteouts, containment, sidecar) |
@@ -21,10 +21,11 @@ The `Cargo.toml` of each crate names its `pod-*` dependencies.
 | `crates/podvm-windows` | podvm's names and places for the Windows and DOS guest driver, the base caches, docker's exit range | `pod-guest` (boot plan, overlay, FAT16 mailbox, agent, QMP, bounded stop) |
 | `crates/podvm-ssh` | SSH transport, relay frames, multiplexing, server, interactive session; the `node`, `operator`, `proxy` and `shell` helpers | `pod-tls`, `pod-proxy`, `pod-term` (line discipline) |
 | `crates/podvm-interpose` | The `LD_PRELOAD` interposer, one object for glibc and one for musl; outside the workspace | none |
-| `crates/podvm-gate` | `podvm-gate`, `podvm-count`, `podvm-plant`, `podvm-dev`, `podvm-smoke`, `podvm-interpose-build`, `podvm-libc-interpose` | none |
+| `crates/podvm-gate` | `podvm-gate`, `podvm-count`, `podvm-plant`, `podvm-dev`, `podvm-smoke`, `podvm-interpose-build`, `podvm-libc-interpose` | `pod-todo` (the reader of check 35, T-1680) |
+| `crates/podvm-todo` | `podvm-todo check`: pod-todo's reader of the record with the facts of `TODO/todo.toml` (T-1672) | `pod-todo` |
 | `crates/podvm-buildstate` | `podvm-buildstate` (build freshness), `podvm-release-licenses` (licence inventory) | none |
 | `crates/podvm-release` | `podvm-verify`, `podvm-size`, `podvm-prove-t0211`, `document-state`, `release-notes`, `podvm-reconcile`, `podvm-publish` | none |
-| `crates/podvm-measure` | `podvm-parity` (guest driver), `podvm-workload` (spread measurement) | none |
+| `crates/podvm-measure` | `podvm-parity` (guest driver), `podvm-workload` (spread measurement) | `pod-services` (the pinned guest image and kernel) |
 
 `pod-core` (failure type, dial traits) comes in under most of the crates above.
 COORD-001 (#194) and PodUtils/podcrates#1 list the hand-over of each crate.
@@ -42,7 +43,7 @@ A file that podcrates imported and podvm has not taken is frozen
 | `crates/podvm-gate/src/main.rs` | Independent task, citation, and document-state gate |
 | `crates/podvm-gate/src/count.rs` | Task status and count writer |
 | `crates/podvm-gate/src/plant.rs` | Gate failure tests |
-| `scripts/common/` | Maintained shell and PowerShell checks |
+| `scripts/common/` | Maintained shell checks (the PowerShell twins left in T-1683) |
 | `scripts/windows/run-in-base.sh` | Job transport of the parked Windows lane |
 | `scripts/windows/kvm-guest.py` | Windows driver for the KVM proof of the parked lane |
 | `.github/workflows/` | Hosted checks, the nightly build and the release workflow |

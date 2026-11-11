@@ -71,7 +71,8 @@ An absent object becomes an empty placeholder, and the runtime then refuses the 
 
 It supplies path, ownership, identity, device, and proc compatibility.
 It cannot cover every syscall or static payload.
-The embedded pair targets x86_64 on each release architecture.
+The pair targets x86_64. The build embeds it only into an x86_64 binary;
+the aarch64 binary embeds no object and refuses a dynamic payload by name (T-1721).
 The runtime checks payload and object architecture before use.
 
 ## Machine execution
@@ -119,12 +120,15 @@ The SSH handshake checks the far-end endpoint.
 ## Store and lifecycle
 
 The image store contains verified blobs, platform-specific image records,
-extracted rootfs trees, lifecycle records, configuration, and probe data.
+extracted rootfs trees, the own tree of each container (`trees/ID/`, T-1709),
+lifecycle records, configuration, and probe data.
 The store opens paths relative to trusted roots where name containment is required.
 A mutation commits complete data or preserves the prior usable state.
 
 The launcher holds a pidfd for each direct child.
 It does not claim that one pidfd contains descendants.
+The launcher is the child subreaper of the payload's tree, and it kills each
+descendant at the end of the payload (`pod-supervise`, T-1708).
 `exec` enters a fresh context over the stored rootfs.
 It does not join all namespaces of the original payload.
 

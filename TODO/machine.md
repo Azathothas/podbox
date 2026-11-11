@@ -1636,7 +1636,7 @@ virtiofs); an interactive stdin. They are T-1723.
 
 # T-1682: A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner
 
-**Source:** the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:138`
+**Source:** the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:139`
   (the KVM deferral lifted); `experiments/392-kvm-guest.sh:1`;
   `crates/podvm/src/tier.rs:105`;
   A-V-08 of PodUtils/podcrates#39
@@ -1663,7 +1663,7 @@ property, not measured here. The KVM guest experiment is
 `experiments/392-kvm-guest.sh`. The machine tier's entry point
 is `enter_machine` (`crates/podvm/src/tier.rs:105`). The
 owner lifted the KVM deferral of 2026-10-02 on 2026-11-09
-(`TODO/RULES.md:138`, `docs/decisions.md`).
+(`TODO/RULES.md:139`, `docs/decisions.md`).
 
 ## Approach
 

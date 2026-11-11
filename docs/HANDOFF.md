@@ -43,11 +43,14 @@ file when each step below is done.
   for T-1662 (T-1663 and T-1664 wait with it).
 * COORD-042 (#261): pod-extract and the root entry with an empty name
   (the lambda-al2023 clause of T-1659); the fix is in `v0.23.0`.
-* COORD-043 (#262, to all): podvm took `v0.22.0`.
 * COORD-044 (#263, to podcrates): `gcr.io`, `mirror.gcr.io` and the NIC
   module sums of the guest for `pod-services` (T-1679).
-* COORD-038, COORD-039 and the takes before them stay open until their
-  peer answers.
+* COORD-033 (#252, to podrunner): the aarch64 interposer, T-1721 (open).
+* COORD-039 (#258, to podrunner): T-1709 is on `main`, not in
+  `v0.2.0-beta.3`; it stays open until podrunner reads it.
+* COORD-024, COORD-025, COORD-028, COORD-031, COORD-032, COORD-034,
+  COORD-035, COORD-038 and COORD-043 are closed on 2026-11-11: each peer
+  closed the issue that they answer, and each mapped entry is done.
 
 ## Next steps, in order
 

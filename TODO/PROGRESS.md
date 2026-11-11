@@ -16,19 +16,20 @@ The state on 2026-11-11:
   (2026-11-10) is the first release with the name podvm (T-1671). A
   release starts from a dispatched
   `release.yml`. Dispatch `nightly.yml` with `trial=true` on `main` first.
-* podvm takes 12 crates of PodUtils/podcrates (`pod-core`, `pod-tls`,
-  `pod-proxy`, `pod-term`, `pod-hostprobe`, `pod-supervise`, `pod-guest`,
-  `pod-enter`, `pod-oci`, `pod-extract`, `pod-rootfs`, `pod-incus`) at the
-  tag `v0.21.0` (T-1675 to T-1677, T-1681, T-1716, T-1708, T-1655, T-1719,
-  T-1727). A change of moved code
-  goes to podcrates as a COORD issue.
-* The errand-host entries T-1643 to T-1650 are done. Their issues are
-  closed. Issue 114 is the dossier behind the open rungs T-1651 to T-1653.
+* podvm takes 15 crates of PodUtils/podcrates at the tag `v0.22.0`
+  (`93de04a`, T-1732): `pod-core`, `pod-tls`, `pod-proxy`, `pod-term`,
+  `pod-hostprobe`, `pod-supervise`, `pod-guest`, `pod-enter`, `pod-oci`,
+  `pod-extract`, `pod-rootfs`, `pod-incus`, `pod-broker`, `pod-services`
+  and `pod-todo`. A change of moved code goes to podcrates as a COORD
+  issue.
+* The errand-host entries T-1643 to T-1653 are done. Their issues are
+  closed, and issue 114, their dossier, is closed.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
   The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
   T-1682 gives them a hosted runner.
-* podcrates `v0.21.0` (2026-11-11, `ada3699`) is the last tag, and podvm
-  takes it (`pod-incus` of T-1727, PodUtils/podcrates#65).
+* podcrates `v0.22.0` (`93de04a`) is the last tag, and podvm takes it
+  (T-1732, PodUtils/podcrates#71). podvm waits for `v0.23.0`
+  (`pod-confine` and the fix of issue 261).
 * PodUtils/podrunner has a lead session since 2026-11-11 (the ruling
   "podrunner online"): DR-1 and DR-2 are yes. Its issues are under
   PodUtils/podrunner#1; podvm's part is T-1704 to T-1715 (issues 229 to

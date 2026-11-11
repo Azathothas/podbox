@@ -23,7 +23,10 @@ It builds the interposer before the CLI.
 It runs formatting, lint, workspace tests, interposer tests, and repository checks.
 It runs `podvm-smoke` and `podvm-gate` from the musl directory.
 `gate.yml` copies them to `./target/release/` and runs them there.
-`sh scripts/common/check-gate.sh --strict` also exercises the available PowerShell halves.
+`sh scripts/common/check-gate.sh --strict` makes a skipped check a failure.
+Check 35 of `podvm-gate` runs pod-todo's reader on the record (T-1680).
+`./target/x86_64-unknown-linux-musl/release/podvm-todo check` runs the same reader,
+and it also checks the citations that an edit left behind.
 On the parked Windows lane, `sh scripts/windows/run-in-base.sh` runs the Linux check;
 [containers](../containers.md) gives job transport and collection.
 

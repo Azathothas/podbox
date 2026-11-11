@@ -60,7 +60,9 @@ The probe measures this host. The banner reports the selected mechanism.
 A chroot changes path resolution. The namespace path creates a mount namespace
 and private temporary filesystem. It does not create user, PID, or network isolation.
 Where chroot is denied, the userland path enters a dynamic payload through the image loader.
-A static payload there needs `--unsafe-host-paths` and runs from a memfd.
+A static x86_64 payload there runs on the native-static path: podvm resolves each
+path of its system calls in the image (Syscall User Dispatch, TODO/enter.md T-1652).
+Under `--unsafe-host-paths` it runs from a memfd instead.
 Read the named refusal when a required mechanism is absent.
 
 ## Windows and DOS guests

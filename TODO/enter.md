@@ -788,7 +788,7 @@ podvm-probe 97 passed, 0 failed).
 
 # T-1339: Enter the namespace rung where the probe permits it
 
-**Source:** issue 59, beta.7 drive 2026-09-25 (`README.md:57-63`
+**Source:** issue 59, beta.7 drive 2026-09-25 (`README.md:57-66`
   promised it, `run` never did); `crates/podvm-enter/src/lib.rs:47-61`
   (`ENTERED_RUNG` is `Chroot` on every machine),
   `pod_hostprobe::select` (returns

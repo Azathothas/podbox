@@ -33,8 +33,9 @@ The workspace builds the target `x86_64-unknown-linux-musl`
 | `podvm-dev` `session`, `build`, `check` | Discover the host, build and check on Linux |
 | [record gate](../crates/podvm-gate/src/main.rs) | Check task and document consistency |
 | [count writer](../crates/podvm-gate/src/count.rs) | Derive task counts |
+| `podvm-todo check` | pod-todo's reader of the record, with the facts of `TODO/todo.toml` |
 | [plant](../crates/podvm-gate/src/plant.rs) | Demonstrate gate refusals |
-| [common checks](../scripts/common/) | Documents, markers, attribution, and paired checks. The [secrets workflow](../.github/workflows/secrets.yml) owns the credential scan |
+| [common checks](../scripts/common/) | Documents, markers, attribution, the changelog and the other shell checks of the tree. The [secrets workflow](../.github/workflows/secrets.yml) owns the credential scan |
 | [doctor](../scripts/doctor/) | Environment report |
 | [build state](../scripts/build-state.py) | An exec shim; the `podvm-buildstate` binary owns the logic |
 | [document state](../scripts/document-state.py) | An exec shim; the `document-state` binary owns the logic |
@@ -53,5 +54,5 @@ Dispatch a workflow of this repository with the GitHub tool
 For the parked Windows lane, use `wsl-toolkit --instance podvm` from
 PowerShell and `py` for Python.
 [Container procedures](containers.md) define the project wrapper.
-Read [shell rules](conventions/shell.md) before a payload crosses shells.
+Read [shell rules](development.md#shell) before a payload crosses shells.
 [Historical tool changes](history/upstream-tool-shape.md) are evidence, not current instructions.

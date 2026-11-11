@@ -57,7 +57,8 @@ Use `./target/x86_64-unknown-linux-musl/release/podvm-count --set T-NNNN
 STATUS` to set a status. Run `podvm-count` with no argument to derive the
 counts. It rewrites the Counts block of `TODO/INDEX.md`. Do not edit a
 count by hand. Copy the totals line that it prints into the State of
-`TODO/PROGRESS.md`, as `N entries: ...`; the gate compares the two.
+`TODO/PROGRESS.md`, as `N entries: ...`; pod-todo's reader compares the
+two (`podvm-todo check`, and check 35 of the gate).
 Run `./target/x86_64-unknown-linux-musl/release/podvm-gate` to check the
 result independently.
 

@@ -52,7 +52,7 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   `EROFS`, and `/dev` stays writable. A raw `syscall` instruction passes
   the layer. Each entry with no interposer table refuses both by name.
 - Interposition covers cooperative library calls, without a security boundary.
-- The embedded interposer pair is x86_64. Other payload architectures need another execution path.
+- The embedded interposer pair is x86_64, and only the x86_64 binary embeds it (T-1721). Other payload architectures need another execution path.
 - A foreign architecture needs the host interpreter support required by the selected path.
 - A pidfd addresses a direct child. The launcher, and podvm for a foreground
   run, is the child subreaper of the payload's tree and kills each
@@ -132,7 +132,7 @@ The server configuration controls exec and subsystem requests.
 ## Guests
 
 `run --podvm-tier=machine IMAGE CMD` boots a disposable guest from the
-image and gives the command's exit code (T-1656, in progress). The guest
+image and gives the command's exit code (T-1656). The guest
 runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
 `PODVM_MACHINE_ACCEL=kvm` asks for KVM and refuses by name without it.
 The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
@@ -169,8 +169,8 @@ socket. Each run pushes the podvm binary into the instance.
 The owner lifted the KVM deferral on 2026-11-09 ([decisions](decisions.md)).
 A session can start a KVM guest where `/dev/kvm` exists, with a timeout,
 and no emulator may stay after the run. The cloud host has no `/dev/kvm`,
-so a cloud session runs guests under TCG. T-1682 owns a hosted-runner
-workflow for the KVM leg.
+so a cloud session runs guests under TCG. `kvm.yml` (T-1682) runs the KVM
+leg on a hosted runner.
 
 The Windows guest has no network in the current driver.
 The operator supplies a licensed disk image.
