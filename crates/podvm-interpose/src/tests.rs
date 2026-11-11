@@ -313,3 +313,6 @@ mod readonly;
 
 // TODO/interpose.md T-1710.
 mod sock;
+
+// TODO/interpose.md T-1725.
+mod links;

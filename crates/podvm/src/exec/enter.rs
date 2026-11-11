@@ -137,6 +137,18 @@ pub(super) fn enter(
     {
         return code;
     }
+    // ⭐ TODO/cli.md T-1726: the read-only table of the container's run
+    // (`PODVM_RO`) is configuration too: each exec takes it, or refuses by
+    // name where its entry has no read-only layer. Before it, an exec wrote
+    // under a `:ro` volume (PodUtils/podrunner#62).
+    if let Err(code) = crate::lifecycle::volume::container_read_only(
+        "exec",
+        &container.env,
+        userland.as_ref(),
+        &mut env,
+    ) {
+        return code;
+    }
     // ⭐ T-0702 and T-0706, as in `run`: a fresh chroot re-entry is a fresh
     // payload, so it is classified and placed again rather than inheriting
     // the first entry's answer. After the decision, so a refusal writes

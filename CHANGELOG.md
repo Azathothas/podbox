@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: absolute links of the image, and exec under :ro, 2026-11-11
+
+Record: T-1725, T-1726 (partial); PodUtils/podrunner#61 and #62.
+Deployed: not deployed; no version change.
+
+- On the loader family, a path call resolves each link of the image in
+  guest names: an absolute link such as `/usr/bin/python3 ->
+  /usr/bin/python3.12` reads the file of the rootfs, not of the host.
+- `podvm exec` into a container with a `:ro` volume or `--read-only`
+  applies the read-only layer of its run; it wrote there before.
+
 ### Added: a native-static rung, 2026-11-11
 
 Record: T-1652, T-1724 (partial); issue 109.

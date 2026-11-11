@@ -36,7 +36,7 @@ pub mod head;
 mod launch;
 pub(crate) mod lookup;
 mod shell;
-mod walk;
+pub(crate) mod walk;
 
 pub(crate) mod calls;
 
@@ -403,7 +403,9 @@ unsafe fn dispatch_into(t: &Table, s: &mut Scratch) -> bool {
     let Some((p, n)) = (unsafe { crate::map::lookup_env(DISPATCH_SELF_VAR) }) else {
         return false;
     };
-    let root = t.pairs[..t.n].iter().find(|pr| pr.from_n == 1 && unsafe { *pr.from_p } == b'/');
+    let root = t.pairs[..t.n]
+        .iter()
+        .find(|pr| pr.from_n == 1 && unsafe { *pr.from_p } == b'/');
     let Some(root) = root else { return false };
     if n == 0 || n >= OUT || root.to_n == 0 || root.to_n >= OUT {
         return false;

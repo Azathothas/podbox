@@ -142,7 +142,7 @@ pub unsafe fn route_fd(
 /// # Safety
 /// `path` as the exec's own contract.
 pub unsafe fn is_link(dirfd: c_int, path: *const c_char, buf: &mut [u8; OUT]) -> bool {
-    let p = unsafe { crate::map::prepare(b"execveat", dirfd, path, buf) };
+    let p = unsafe { crate::map::prepare_follow(b"execveat", dirfd, path, false, false, buf) };
     let Some(readlinkat) = crate::next_readlinkat() else {
         return false;
     };

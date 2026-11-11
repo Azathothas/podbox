@@ -176,7 +176,17 @@ pub unsafe extern "C" fn fchownat(
     // call goes with an absolute path; where it did not, the original
     // descriptor and path go through untouched.
     let mut buf = [0u8; crate::map::OUT];
-    let p = unsafe { crate::map::prepare(b"fchownat", dirfd, path, &mut buf) };
+    // T-1725: AT_SYMLINK_NOFOLLOW keeps the last link.
+    let p = unsafe {
+        crate::map::prepare_follow(
+            b"fchownat",
+            dirfd,
+            path,
+            false,
+            flags & 0x100 == 0,
+            &mut buf,
+        )
+    };
     if p.is_null() {
         return -1;
     }
@@ -328,14 +338,15 @@ macro_rules! stat_at_entry {
                     return rc;
                 }
             }
+            let follow = $follow;
             let mut buf = [0u8; crate::map::OUT];
+            // T-1725: the walk follows the last link as the call does.
             let p = unsafe {
-                crate::map::prepare(stringify!($name).as_bytes(), $dirfd, $path, &mut buf)
+                crate::map::prepare_follow(stringify!($name).as_bytes(), $dirfd, $path, false, follow, &mut buf)
             };
             if p.is_null() {
                 return -1;
             }
-            let follow = $follow;
             let (guest_fd, guest) = ($dirfd, $path);
             let ($dirfd, $path) = if p == $path {
                 ($dirfd, $path)

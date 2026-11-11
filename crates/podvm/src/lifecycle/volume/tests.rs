@@ -216,3 +216,25 @@ fn the_read_only_table_names_each_volume() {
         Err(podvm_image::error::EXIT_RUNTIME_ERROR)
     );
 }
+
+/// TODO/cli.md T-1726. An exec of a container takes the read-only table
+/// of its run from the record, drops a caller's own value, and refuses it
+/// by name on an entry with no read-only layer.
+#[test]
+fn an_exec_takes_the_read_only_table_of_its_container() {
+    let record = vec!["A=1".to_string(), "PODVM_RO=ro:/e".to_string()];
+    let mut env = vec!["PODVM_RO=rw:/".to_string(), "B=2".to_string()];
+    let loader = userland(Family::Loader);
+    container_read_only("exec", &record, Some(&loader), &mut env).unwrap();
+    assert_eq!(env, ["B=2", "PODVM_RO=ro:/e"]);
+    let mut env = vec!["B=2".to_string()];
+    let memfd = userland(Family::Memfd);
+    assert!(container_read_only("exec", &record, Some(&memfd), &mut env).is_err());
+    assert!(container_read_only("exec", &record, None, &mut env).is_err());
+    let mut env = vec!["PODVM_RO=ro:/".to_string()];
+    container_read_only("exec", &["A=1".to_string()], None, &mut env).unwrap();
+    assert!(
+        env.is_empty(),
+        "a caller's own table goes, also with none in the record"
+    );
+}

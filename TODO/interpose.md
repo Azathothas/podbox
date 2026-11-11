@@ -2872,7 +2872,7 @@ Source:      PodUtils/podrunner#61 (COORD-007 of podrunner, a message from
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      partial
 
 Problem:     On the loader family of the userland rung, `cat /home/link` of
              the alpine image, where `/home/link -> /opt/abs/f` and the
@@ -2904,5 +2904,21 @@ Prove:       `RUSTFLAGS="-C target-feature=-crt-static" cargo test --manifest-pa
              exits 0 with a clause where `cat` of an absolute link of the
              image reads the rootfs file on the fixture, and a link whose
              target exists only on the host gives ENOENT.
+
+**Partial, 2026-11-11.** The funnel of each path call (`prepare_mode` in
+`crates/podvm-interpose/src/map/rewrite.rs`) resolves a path in the table
+with the walk of the exec routes (`map/links.rs`, `exec/walk.rs`): each
+directory, and the last component where the call follows it. The calls
+that do not follow their last link are named (`lstat`, `readlink`,
+`unlink`, `rename`, `mkdir` and the like), and `open` (`O_NOFOLLOW`,
+`O_CREAT|O_EXCL`), the `fstatat` family, `fchownat` and `statx`
+(`AT_SYMLINK_NOFOLLOW`) pass their flag (`prepare_follow`). The interposer's
+tests exit 0 (85) with the new test `tests/links.rs`: open of an absolute
+link as the last component and as a directory, `stat`, `access`, `lstat`
+keeps the link, and a target that only the host has gives ENOENT. On the
+fixture, `cat /home/link` of alpine reads the rootfs file. Limits:
+`utimensat` and `fchmodat` with `AT_SYMLINK_NOFOLLOW`, and `linkat` with
+`AT_SYMLINK_FOLLOW`, keep the default of their name. Remaining: the run of
+experiment 356 with clause 34.
 
 **Filed 2026-11-11.** From PodUtils/podrunner#61, reproduced the same day.

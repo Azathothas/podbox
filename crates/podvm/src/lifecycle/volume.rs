@@ -242,6 +242,34 @@ pub fn read_only_env(
     Ok(())
 }
 
+/// TODO/cli.md T-1726. The read-only table of a container's run, from its
+/// record, into the environment of an `exec`: as [`read_only_env`] does for
+/// `run`, a caller's own value goes first, and an entry with no read-only
+/// layer refuses by name.
+pub fn container_read_only(
+    verb: &str,
+    record_env: &[String],
+    userland: Option<&Userland>,
+    env: &mut Vec<String>,
+) -> Result<(), i32> {
+    env.retain(|e| !e.starts_with("PODVM_RO="));
+    let Some(table) = record_env.iter().find(|e| e.starts_with("PODVM_RO=")) else {
+        return Ok(());
+    };
+    if !matches!(userland.map(|u| u.family), Some(Family::Loader))
+        || userland.is_some_and(|u| u.dispatch_exe.is_some())
+    {
+        eprintln!(
+            "podvm {verb}: the container has a :ro volume or --read-only, which needs \
+             the read-only layer of the interposer, and this entry has none \
+             (TODO/cli.md T-1655, T-1726)"
+        );
+        return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
+    }
+    env.push(table.clone());
+    Ok(())
+}
+
 /// The value of `PODVM_RO`.
 pub fn read_only_table(read_only: bool, ro_guests: &[String], volumes: &[Volume]) -> String {
     let mut entries = Vec::new();

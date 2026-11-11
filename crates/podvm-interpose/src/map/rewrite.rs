@@ -388,6 +388,23 @@ pub unsafe fn prepare_mode(
     writes: bool,
     out: &mut [u8; OUT],
 ) -> *const c_char {
+    unsafe { prepare_follow(what, dirfd, path, writes, follows(what), out) }
+}
+
+/// [`prepare_mode`] where the caller says whether the call follows the
+/// link of its last component: `O_NOFOLLOW`, `AT_SYMLINK_NOFOLLOW` and
+/// `AT_SYMLINK_FOLLOW` are flags of the call (TODO/interpose.md T-1725).
+///
+/// # Safety
+/// As [`prepare`].
+pub unsafe fn prepare_follow(
+    what: &[u8],
+    dirfd: c_int,
+    path: *const c_char,
+    writes: bool,
+    follow: bool,
+    out: &mut [u8; OUT],
+) -> *const c_char {
     if path.is_null() {
         return path;
     }
@@ -430,48 +447,27 @@ pub unsafe fn prepare_mode(
             crate::set_errno(ENAMETOOLONG);
             core::ptr::null()
         }
+        // ⭐ T-1725: a path in the table resolves its links in guest
+        // names, so an absolute link target stays in the rootfs. Where the
+        // walk cannot run (no real `readlink`), the rewrite stands.
         // The NUL ends the name here: a buffer used again (the per-thread
         // buffer of `dlopen`, T-1645) holds the tail of a longer name.
-        n => {
-            out[n as usize] = 0;
-            out.as_ptr() as *const c_char
-        }
+        n => match unsafe { resolve_links(&t, &abs[..abs_n], follow, out) } {
+            Ok(m) => {
+                out[m] = 0;
+                out.as_ptr() as *const c_char
+            }
+            Err(EINVAL) => {
+                let n = unsafe { rewrite(&t, abs.as_ptr(), abs_n, out) }.max(n);
+                out[n as usize] = 0;
+                out.as_ptr() as *const c_char
+            }
+            Err(e) => {
+                crate::say::line(&[what, b": a link of the path does not resolve inside the rootfs, so the call fails (TODO/interpose.md T-1725)"]);
+                crate::set_errno(e);
+                core::ptr::null()
+            }
+        },
     }
 }
 
-/// Match and rewrite a path that is already absolute-or-literal, without any
-/// `dirfd` resolution. `symlink`'s target takes this shape: the content is
-/// resolved when the link is used, not when it is made, so resolving it now
-/// would answer about the wrong directory.
-///
-/// # Safety
-/// As [`absolutize`]: a readable path and a writable `OUT`-byte buffer.
-pub unsafe fn prepare_literal(
-    what: &[u8],
-    path: *const c_char,
-    out: &mut [u8; OUT],
-) -> *const c_char {
-    if path.is_null() {
-        return path;
-    }
-    let t = unsafe { table() };
-    if t.n == 0 {
-        return path;
-    }
-    let n = strnlen(path, OUT);
-    if n >= OUT {
-        return path;
-    }
-    match unsafe { rewrite(&t, path as *const u8, n, out) } {
-        -1 => path,
-        -2 => {
-            crate::say::line(&[what, b": the mapped path does not fit, so the call fails"]);
-            crate::set_errno(ENAMETOOLONG);
-            core::ptr::null()
-        }
-        n => {
-            out[n as usize] = 0;
-            out.as_ptr() as *const c_char
-        }
-    }
-}

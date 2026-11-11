@@ -37,7 +37,10 @@ pub unsafe extern "C" fn statx(
         }
     }
     let mut buf = [0u8; crate::map::OUT];
-    let p = unsafe { crate::map::prepare(b"statx", dirfd, path, &mut buf) };
+    // T-1725: AT_SYMLINK_NOFOLLOW keeps the last link.
+    let p = unsafe {
+        crate::map::prepare_follow(b"statx", dirfd, path, false, flags & 0x100 == 0, &mut buf)
+    };
     if p.is_null() {
         return -1;
     }

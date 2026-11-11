@@ -140,6 +140,13 @@
 #      with the output in the rootfs and nothing on the host; a static
 #      payload on the rung reads and writes a file of a -v volume, and its
 #      working directory in the volume reads back as the guest path.
+#   34. absolute links (T-1725): in alpine, `cat` of an absolute link of
+#      the image (`/home/l734 -> /opt/l734/f`) and of a path through an
+#      absolute directory link reads the file of the rootfs, `ls -l` still
+#      shows the link, and a link whose target only the host has gives
+#      ENOENT.
+#   35. exec and :ro (T-1726): `exec` into a container with a `:ro`
+#      volume fails a write there, and the host directory has no file.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -997,6 +1004,30 @@ if cp "$REPO/target/x86_64-unknown-linux-musl/debug/podvm-dispatch-probe" "$WORK
 else
 	echo "the probe image of clause 33 did not build" >>"$REPORT"; fail=1
 fi
+
+# Clause 34 (T-1725): an absolute link of the image resolves in the
+# rootfs. The links are planted in the alpine rootfs of the store.
+AR34=$("$PB" inspect --format '{{.RootfsPath}}' "$ALPINE" 2>/dev/null)
+if [ -n "$AR34" ] && [ -d "$AR34" ]; then
+	mkdir -p "$AR34/opt/l734" && echo in-rootfs >"$AR34/opt/l734/f"
+	ln -sfn /opt/l734/f "$AR34/home/l734"; ln -sfn /opt/l734 "$AR34/home/d734"
+	ln -sfn /etc/hostname-t1725-host "$AR34/home/h734"; echo host-only >/etc/hostname-t1725-host
+	step fx-abslink 0 $FX "$PB" run --rm "$ALPINE" sh -c 'cat /home/l734 /home/d734/f; ls -l /home/l734'
+	[ "$(grep -c '^in-rootfs$' "$WORK/out-fx-abslink.txt")" -eq 2 ] || { echo "an absolute link did not resolve in the rootfs" >>"$REPORT"; fail=1; }
+	grep -q "l734 -> /opt/l734/f" "$WORK/out-fx-abslink.txt" || { echo "ls -l did not show the link" >>"$REPORT"; fail=1; }
+	step fx-abslink-host 1 $FX "$PB" run --rm "$ALPINE" cat /home/h734
+	grep -q "host-only" "$WORK/out-fx-abslink-host.txt" && { echo "a link of the rootfs read a file of the host" >>"$REPORT"; fail=1; }
+	rm -f /etc/hostname-t1725-host "$AR34/home/l734" "$AR34/home/d734" "$AR34/home/h734"; rm -rf "$AR34/opt/l734"
+else
+	echo "the alpine rootfs of clause 34 is missing" >>"$REPORT"; fail=1
+fi
+
+# Clause 35 (T-1726): exec into a container with a :ro volume.
+V35="$WORK/vol735"; rm -rf "$V35"; mkdir -p "$V35"
+$FX "$PB" run -d --name ro735 -v "$V35:/e:ro" "$ALPINE" sleep 60 >/dev/null 2>&1
+step fx-exec-ro 1 $FX "$PB" exec ro735 sh -c 'echo x > /e/w.txt'
+[ -e "$V35/w.txt" ] && { echo "exec wrote under a :ro volume" >>"$REPORT"; fail=1; }
+$FX "$PB" rm -f ro735 >/dev/null 2>&1
 
 {
 echo ""

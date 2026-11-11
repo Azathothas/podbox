@@ -311,16 +311,39 @@ fn a_static_child_enters_the_native_static_rung_through_podvm() {
     unsafe { std::env::set_var("PODVM_DISPATCH_SELF", "/opt/podvm") };
     let (path, argv, _) = launch("/bin/static", &["static", "z"], &env).unwrap();
     assert_eq!(path, "/opt/podvm");
-    assert_eq!(argv, ["/opt/podvm", "--podvm-dispatch-enter", &root, "/bin/static", "static", "z"]);
+    assert_eq!(
+        argv,
+        [
+            "/opt/podvm",
+            "--podvm-dispatch-enter",
+            &root,
+            "/bin/static",
+            "static",
+            "z"
+        ]
+    );
     let (path, argv, _) = launch("/bin/scr", &["scr", "s1"], &env).unwrap();
     assert_eq!(path, "/opt/podvm");
     assert_eq!(
         argv,
-        ["/opt/podvm", "--podvm-dispatch-enter", &root, "/bin/static", "/bin/static", "-x", "/bin/scr", "s1"]
+        [
+            "/opt/podvm",
+            "--podvm-dispatch-enter",
+            &root,
+            "/bin/static",
+            "/bin/static",
+            "-x",
+            "/bin/scr",
+            "s1"
+        ]
     );
     unsafe { std::env::remove_var("PODVM_DISPATCH_SELF") };
     let (path, _, _) = launch("/bin/static", &["static"], &env).unwrap();
-    assert_eq!(path, format!("{root}/bin/static"), "with no podvm named, the kernel runs it");
+    assert_eq!(
+        path,
+        format!("{root}/bin/static"),
+        "with no podvm named, the kernel runs it"
+    );
     unsafe { std::env::remove_var("PODVM_MAPS") };
     let _ = std::fs::remove_dir_all(&d);
 }

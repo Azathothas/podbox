@@ -42,6 +42,7 @@ pub const OUT: usize = 4096;
 
 const ENOENT: c_int = 2;
 const ENAMETOOLONG: c_int = 36;
+const EINVAL: c_int = 22;
 
 pub const AT_FDCWD: c_int = -100;
 
@@ -259,6 +260,10 @@ mod rewrite;
 pub use rewrite::*;
 mod readonly;
 pub use readonly::*;
+mod links;
+pub use links::{follows, resolve_links};
+mod literal;
+pub use literal::prepare_literal;
 
 #[cfg(test)]
 mod tests;
