@@ -357,6 +357,9 @@ if [ "$code" -eq 0 ] && [ "$out" = "$(printf 'guest-42\nPLACED\n0')" ]; then
   ok "the guest ran the commands with exit 0, placed itself, and is root"
 else
   miss "the guest run FAILED (exit $code, out: $out, err: $(grep -v "^podvm machine ssh: accelerator" "$work/ssh.err" 2>/dev/null | head -1))"
+  # The whole stderr of the failed run: the first line is often ssh's
+  # host key note, and the reason comes after it.
+  sed 's/^/    | /' "$work/ssh.err" | tail -40 >>"$OUT"
 fi
 # TODO/machine.md T-1682: the accelerator the run took. PODVM_390_WANT_KVM=1
 # (kvm.yml) requires kvm; otherwise the line is a record.

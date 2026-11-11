@@ -63,6 +63,8 @@ jobs:
       - name: experiment 390 under KVM
         env:
           PODVM_390_WANT_KVM: "1"
+          # The client's diagnosis lands in the transcript of a failed run.
+          PODVM_MACHINE_SSH_LOG: DEBUG1
         run: |
           sudo ln -sfn "$GITHUB_WORKSPACE" /work
           sudo mkdir -p /out && sudo chmod 0777 /out

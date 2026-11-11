@@ -131,6 +131,14 @@ pub(super) fn ssh_argv(proxy: &Path, serial_sock: &Path, args: &Args) -> Vec<Str
         format!("ProxyCommand={proxy_cmd}"),
         "guest".to_string(),
     ];
+    // TODO/machine.md T-1682: `PODVM_MACHINE_SSH_LOG` (a LogLevel of ssh,
+    // such as DEBUG1) puts the client's diagnosis on stderr.
+    if let Ok(level) = std::env::var("PODVM_MACHINE_SSH_LOG")
+        && !level.is_empty()
+        && level.chars().all(|c| c.is_ascii_alphanumeric())
+    {
+        argv.splice(0..0, ["-o".to_string(), format!("LogLevel={level}")]);
+    }
     argv.extend(args.command.iter().cloned());
     argv
 }
