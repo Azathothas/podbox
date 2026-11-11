@@ -126,8 +126,8 @@
 234 issue open
 235 issue open
 236 issue open
-237 issue open
-238 issue open
+237 issue closed
+238 issue closed
 239 issue open
 240 issue open
 241 issue closed

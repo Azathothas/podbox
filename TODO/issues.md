@@ -131,8 +131,8 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #234 | [podrunner] image: all containers of one image share one mutable rootfs, so a write in one container is read by another and --rm is not a fresh start | open | T-1709 |
 | #235 | [podrunner] interpose: a Unix socket path in connect and bind passes the path table, so bind creates the socket on the host and a -v pair does not apply | open | T-1710 |
 | #236 | [podrunner] cli: drive the podvm calls of the four container-hook commands on the userland rung, with the runner's mount table | open | T-1711; T-1653 and T-1655 (amended) |
-| #237 | [podrunner] cli: --podvm-tier=chroot does nothing; it runs the ladder, and on a chroot-denied host it enters the userland rung with exit 0 | open | T-1712 |
-| #238 | [podrunner] system: .EnteredRung reads chroot where the probe selects supervise and chroot is denied, while run enters the userland rung | open | T-1713 |
+| #237 | [podrunner] cli: --podvm-tier=chroot does nothing; it runs the ladder, and on a chroot-denied host it enters the userland rung with exit 0 | closed | T-1712 |
+| #238 | [podrunner] system: .EnteredRung reads chroot where the probe selects supervise and chroot is denied, while run enters the userland rung | closed | T-1713 |
 | #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates T-107) | open | T-1714; T-1670 (amended) |
 | #240 | [podrunner] supervise: the container table keeps -e values in a file that the umask leaves readable to other users | open | T-1715; T-1696 (amended, then dropped 2026-11-11) |
 | #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | closed (podcrates#56: T-173) | T-1684 (amended), T-1696 |
