@@ -2955,3 +2955,38 @@ prints `namespace userland`.
 (the ruling "podrunner", 2026-11-10), M2 question Q1: "`system info`
 gives `.Rung`=`supervise`, `.EnteredRung`=`chroot`; the first `run`
 banner says `mode=userland`". A wrong answer is P1.
+
+---
+
+### T-1726 `exec` into a container ignores its `:ro` volumes and `--read-only`
+
+Source:      PodUtils/podrunner#62 (COORD-008 of podrunner, a message from
+             a peer session); measured on the cloud host, 2026-11-11
+Category:    cli
+Priority:    P1
+Effort:      S
+Status:      open
+
+Problem:     On the loader family, `podvm run --rm -v DIR:/e:ro IMAGE sh -c
+             'echo x > /e/r.txt'` fails the write (EROFS), but after `podvm
+             run -d --name c -v DIR:/e:ro IMAGE sleep 30`, `podvm exec c sh
+             -c 'echo x > /e/w.txt'` exits 0 and `DIR/w.txt` exists
+             (measured, 2026-11-11). podrunner mounts the externals of the
+             runner as `/__e:ro`, so one step can change the code of the
+             next.
+Premise:     `run` sets the read-only table `PODVM_RO` of the interposer
+             (`lifecycle::volume::read_only_env`, T-1655). An `exec` enters
+             the container's rootfs with the container's table of volumes.
+Approach:    Keep the read-only part of the run in the container record and
+             set `PODVM_RO` for each `exec` of the container as `run` does;
+             an entry that cannot serve it refuses by name, as `run` does.
+Decision:    No entry of a container serves a write under a `:ro` volume or
+             under `--read-only`.
+Prove:       `cargo test -p podvm` exits 0 with a test of the exec
+             environment of a container with a `:ro` volume, and
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a clause where `exec` into a container with a
+             `:ro` volume fails a write there with EROFS and leaves no file
+             in the host directory.
+
+**Filed 2026-11-11.** From PodUtils/podrunner#62, reproduced the same day.

@@ -1741,3 +1741,33 @@ Prove:       `cargo test -p podvm` exits 0, and `sh experiments/412-microvm-boot
              host after the run, and a command that reads a terminal.
 
 **Filed 2026-11-11.** From the rest of T-1656.
+
+---
+
+### T-1727 Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718
+
+Source:      PodUtils/podcrates#65 (COORD-040 of podcrates) and #63
+             (COORD-038), messages from a peer session; podvm#253
+Category:    machine
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     podvm keeps its own client of the incus REST API
+             (`crates/podvm/src/incus/client.rs`, T-1718). podcrates
+             `v0.21.0` (`ada3699`) has `pod-incus`, made from podvm's ask.
+Premise:     The README of `pod-incus` maps each call of podvm's client to a
+             call of the crate. The crate reads no variable of the
+             environment: `Settings::new(INCUS_DIR.join("unix.socket"))`.
+Approach:    Move each pin of `pod-*` to `v0.21.0`, replace `incus/client.rs`
+             with `pod-incus` (`server`, `alias`, `import_image`,
+             `create_alias`, `create_instance`, `start`, `put_file`,
+             `exec_recorded`, `stop`, `delete_instance`), keep the image
+             conversion and the run in podvm, and answer on podcrates#63
+             with the commit.
+Decision:    podvm keeps no second client of the incus API.
+Prove:       `cargo test -p podvm incus::` exits 0 against the stand-in
+             server, and `PODVM_434_MIRROR=1 sh experiments/434-incus-tier.sh`
+             exits 0 as root on the cloud host.
+
+**Filed 2026-11-11.** From PodUtils/podcrates#65.

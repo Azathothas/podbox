@@ -7,7 +7,7 @@ start.
 
 ## State
 
-334 entries: 28 open, 8 partial, 3 blocked, 295 done.
+336 entries: 30 open, 8 partial, 3 blocked, 295 done.
 
 The state on 2026-11-11:
 
@@ -60,9 +60,11 @@ that is not done. Read its Prove before you start. Set its status with
    incusd of route A ([incus without root](../docs/incus.md), experiment
    434). [T-1722](machine.md) (the other verbs of incus) comes after the
    scope entries of step 8.
-3. [T-1725](interpose.md) first (P1, PodUtils/podrunner#61): an absolute
-   symlink of the rootfs resolves on the host for each path call of the
-   loader family.
+3. [T-1726](cli.md) and [T-1725](interpose.md) first (P1, from
+   PodUtils/podrunner#62 and #61): `exec` ignores a `:ro` volume, and an
+   absolute symlink of the rootfs resolves on the host for each path call
+   of the loader family. Then [T-1727](machine.md): take podcrates
+   `v0.21.0` (`pod-incus`).
    [T-1652](enter.md) is done: a static x86_64 payload runs on the
    native-static rung (Syscall User Dispatch and `openat2(RESOLVE_IN_ROOT)`,
    experiment 356). Then [T-1724](enter.md): a static child of the loader

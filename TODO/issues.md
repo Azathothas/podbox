@@ -150,3 +150,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #253 | COORD-034: a client of the incus REST API as a podcrates crate (T-1718) (to podcrates) | open | T-1718 |
 | #254 | COORD-035: the answer to PodUtils/podrunner#53: podvm v0.2.0-beta.3 is released (to podrunner) | open | T-1706, T-1720, T-1710 |
 | #255 | COORD-036: the answer to PodUtils/podrunner#61: an absolute symlink of the rootfs resolves on the host; podvm T-1725 fixes it (to podrunner) | open | T-1725 |
+| #256 | COORD-037: the answer to PodUtils/podrunner#62: exec ignores a :ro volume; podvm T-1726 fixes it (to podrunner) | open | T-1726 |
