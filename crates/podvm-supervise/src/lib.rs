@@ -145,6 +145,13 @@ pub fn stop(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, bo
     Ok(pod_supervise::stop(&settings(store), want, timeout_ms)?)
 }
 
+/// Set the wall bound of a container before its start: at `wall_ms` after
+/// the start the launcher kills the payload and its tree (TODO/cli.md
+/// T-1655, `--timeout`).
+pub fn set_wall(store: &Store, want: &str, wall_ms: Option<u64>) -> Result<Container> {
+    Ok(pod_supervise::set_wall(&settings(store), want, wall_ms)?)
+}
+
 /// Wait for a container to end. `None` is the bound, never a guess.
 pub fn wait(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, Option<i32>)> {
     Ok(pod_supervise::wait(&settings(store), want, timeout_ms)?)

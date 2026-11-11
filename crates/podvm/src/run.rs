@@ -114,6 +114,9 @@ pub const RUN_OPTIONS: &str = "\
                    selects, under every name the binary answers to, and
                    `system info` names the entered rung (TODO/machine.md
                    T-1302, TODO/cli.md T-1712)
+  --timeout S      podman's: at S seconds the payload and its tree are
+                   killed with SIGKILL; `.End.Reason` reads wall
+                   (TODO/cli.md T-1655)
   --podvm-qemu-arg A
                    podvm's own, machine tier only and refused elsewhere: one
                    token for the emulator per occurrence. Repeatable, and never
@@ -148,6 +151,11 @@ pub(crate) use prepare::*;
 
 mod acquire;
 pub(crate) use acquire::*;
+
+mod wall;
+
+#[cfg(test)]
+mod timeout_tests;
 
 #[cfg(test)]
 mod tests;

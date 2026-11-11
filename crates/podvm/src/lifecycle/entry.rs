@@ -36,6 +36,9 @@ pub struct Prepared {
     pub rung: String,
     pub detach: bool,
     pub rm: bool,
+    /// `--timeout` in milliseconds: the wall bound of the run, or `None`.
+    /// TODO/cli.md T-1655.
+    pub wall_ms: Option<u64>,
     /// ⭐ T-0710: the host memo file this entry hands the payload, beside the
     /// container record once the container exists. For `prepare` itself this is
     /// an ephemeral file under staging; `create` and `run -d` move it to

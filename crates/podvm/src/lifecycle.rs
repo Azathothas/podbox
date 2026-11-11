@@ -122,6 +122,11 @@ pub fn create(args: &[String]) -> i32 {
                 detached_drive(p.userland.as_ref()),
             ) {
                 Ok(c) => {
+                    if let Err(e) = podvm_supervise::set_wall(&s, &c.id, p.wall_ms) {
+                        let _ = podvm_supervise::remove(&s, &c.id, true);
+                        let _ = std::fs::remove_file(&p.memo_host_path);
+                        return fail("create", e);
+                    }
                     // ⭐ T-0710: the ephemeral memo becomes the container's,
                     // beside its record. The stored environment already carries
                     // the constant descriptor number.

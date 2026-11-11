@@ -51,3 +51,5 @@ pub fn end_own_tree() -> crate::Residual {
         std::thread::sleep(Duration::from_millis(20));
     }
 }
+
+pub use pod_supervise::launcher::tree::descendants;

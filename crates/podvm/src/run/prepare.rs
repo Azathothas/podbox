@@ -476,6 +476,7 @@ pub(crate) fn prepare(
         rung: entered.word().to_string(),
         detach: o.detach,
         rm: o.rm,
+        wall_ms: o.timeout.map(|s| s * 1000),
         memo_host_path,
         ladder,
         findings,

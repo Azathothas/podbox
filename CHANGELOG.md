@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `--timeout`, 2026-11-11
+
+Record: T-1655 (partial).
+Deployed: not deployed; no version change.
+
+- `run --timeout SECONDS` (podman's spelling) kills the payload and its
+  tree with SIGKILL at the bound, in a detached run and in a foreground
+  run; `.End.Reason` reads `wall`.
+
 ### Fixed: the tree of a payload, 2026-11-11
 
 Record: T-1708; issue 233; call C15.

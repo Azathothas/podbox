@@ -1954,7 +1954,7 @@ Source:      issue 167; #193; the owner's ruling of 2026-11-06;
 Category:    cli
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      partial
 
 Problem:     sand-net ran podman and docker with one fixed hardening line.
              podvm refuses most of that line with status None, so the same
@@ -2064,6 +2064,22 @@ parse and the parity rows of each flag, the `--read-only` layer of the
 interposer with the `:ro` volumes, and `--tmpfs` as a store directory
 under a size check.
 
+
+**Partial, 2026-11-11.** `--timeout SECONDS` works (podman's spelling,
+whole seconds over 0): a detached run sets the wall bound of its launcher
+(`set_wall` of `pod-supervise` v0.16.0), and a foreground run arms a timer
+thread that kills each descendant of podvm with SIGKILL at the bound
+(`crates/podvm/src/run/wall.rs`); the end reads `wall`, and the parity row
+is Native. Drive on the cloud host, 2026-11-11, the pinned alpine digest:
+a foreground `run --rm --timeout 2` of `sh -c 'sleep N & sleep M & wait'`
+ends at 2 s with 137 and leaves no process; the same under `run -d` reads
+`exited wall 2001 0` in `inspect --format '{{.State}} {{.End.Reason}}
+{{.End.RunMs}} {{.End.Residual}}'`; `--timeout 0` exits 125.
+`cargo test -p podvm` exits 0 with `the_timeout_takes_whole_seconds_over_zero`.
+Remaining: `--ulimit` and `--security-opt no-new-privileges` (podcrates
+`v0.17.0` carries the child limits), `--read-only` with `:ro` volumes,
+`--tmpfs`, the refusals of `--memory`, `--cpus` and `--pids-limit` by name,
+the report of T-1695, and experiment 411.
 ---
 
 ### T-1659 Provider shapes and bare userlands as built-in profiles

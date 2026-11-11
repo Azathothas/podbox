@@ -60,6 +60,9 @@ pub(super) struct Opts {
     /// `-v`. Parsed now, so a shape podvm cannot serve is a flag error
     /// before anything is fetched. TODO/enter.md T-1653.
     pub(super) volumes: Vec<podvm_enter::userland::Volume>,
+    /// `--timeout SECONDS` (podman's spelling): the wall bound of the run,
+    /// after which the payload's tree is killed. TODO/cli.md T-1655.
+    pub(super) timeout: Option<u64>,
     /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
     /// launcher cannot each grow their own copy of the same three answers.
     pub(super) ask: crate::complete::Ask,
@@ -191,6 +194,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         devices: Vec::new(),
         unsafe_host_paths: false,
         volumes: Vec::new(),
+        timeout: None,
         ask: crate::complete::Ask::default(),
     };
     let mut expecting: Option<&'static str> = None;
@@ -249,6 +253,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                     }
                 },
                 "-v" => o.volumes.push(volume(verb, a)?),
+                "--timeout" => o.timeout = Some(timeout(verb, a)?),
                 "--device" => match podvm_enter::device::parse(a) {
                     Ok(_) => o.devices.push(a.clone()),
                     Err(why) => {
@@ -325,6 +330,10 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             "--podvm-tier" => expecting = Some("--podvm-tier"),
             "--podvm-qemu-arg" => expecting = Some("--podvm-qemu-arg"),
             "--podvm-mem" => expecting = Some("--podvm-mem"),
+            "--timeout" => expecting = Some("--timeout"),
+            other if other.starts_with("--timeout=") => {
+                o.timeout = Some(timeout(verb, &other["--timeout=".len()..])?)
+            }
             other if other.starts_with("--add-host=") => {
                 crate::complete::add_host(&mut o.ask, verb, &other[11..])?
             }
@@ -453,4 +462,15 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         return Err(EXIT_FLAG_ERROR);
     }
     Ok(o)
+}
+
+/// The seconds of `--timeout`: a whole number over 0. TODO/cli.md T-1655.
+pub(super) fn timeout(verb: &str, a: &str) -> Result<u64, i32> {
+    match a.parse::<u64>() {
+        Ok(n) if n > 0 && n <= u64::MAX / 1000 => Ok(n),
+        _ => {
+            eprintln!("podvm {verb}: --timeout takes whole seconds over 0, not {a:?}");
+            Err(EXIT_FLAG_ERROR)
+        }
+    }
 }
