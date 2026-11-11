@@ -684,7 +684,7 @@ all:
 
 ⚠ **And the operator's note that M2 made this worse was inherited from this
 entry rather than measured.** It said `extract` needs a pulled image so the
-acceptance spends quota on two. `220-extract-path-safety.sh` builds its store
+acceptance spends quota on two. 220-extract-path-safety.sh built its store
 **by hand** from crafted layers and pulls nothing, so extraction never cost a
 pull in the acceptance at all.
 

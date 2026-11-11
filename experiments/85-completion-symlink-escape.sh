@@ -17,7 +17,7 @@
 # ⛔ THE ASSERTION IS ON THE FILESYSTEM, NOT ON AN EXIT CODE. A canary file
 # outside the rootfs is written before the run and its bytes are compared after
 # it. `podvm run` exiting 0 says nothing about where its writes landed, which
-# is the mistake `experiments/220-extract-path-safety.sh` was built to avoid on
+# is the mistake experiment 220 (extract path safety, retired by T-1734) was built to avoid on
 # the extraction side.
 #
 # Six doors. Five must not be walked through, and the sixth MUST be:

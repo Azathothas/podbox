@@ -260,6 +260,13 @@ makes this wall reach five tools instead of one.
 
 `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podvm run --rm`
 
+
+## Correction
+
+**Corrected 2026-11-11.** The script experiments/220-extract-path-safety.sh
+is gone (T-1734); the Correction of [T-0304](extract.md) names the tests of
+`pod-extract` that hold its six checks.
+
 ## Done
 
 **Done 2026-09-09.** Every clause below ran and matched: the first four with
@@ -270,7 +277,7 @@ to T-0307 are all `done`.
 | clause | reading |
 | --- | --- |
 | `70-whiteout-contract.sh` | exits 0 |
-| `220-extract-path-safety.sh` | exits 0, six checks |
+| 220-extract-path-safety.sh (retired by T-1734) | exits 0, six checks |
 | `alpine` has `etc/shadow` | present, 515 entries, the one gid-42 row recorded |
 | `voidlinux` has no `var/cache/xbps` link | gone, whiteouted by layer 2; 543 other symlinks survive |
 

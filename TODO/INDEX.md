@@ -408,14 +408,14 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1731](enter.md) | P2 | L | none | enter | open | A dynamic program on the native-static rung: its loader under the handler |
 | [T-1732](enter.md) | P1 | S | none | enter | done | Take podcrates v0.22.0: a detached payload ends with its launcher |
 | [T-1733](podssh.md) | P3 | S | none | podssh | done | Retire the experiment 388-interactive-shell.sh for the tests of `session_interactive.rs` |
-| [T-1734](extract.md) | P3 | S | none | extract | open | Retire `experiments/220-extract-path-safety.sh`, and point its eight citations at the tests |
+| [T-1734](extract.md) | P3 | S | none | extract | done | Retire the experiment 220-extract-path-safety.sh, and point its eight citations at the tests |
 | [T-1735](complete.md) | P2 | M | none | complete | open | The dangling-directory-link test and the reachability test, then retire `85-completion-symlink-escape.sh` |
 | [T-1736](machine.md) | P3 | S | none | machine | done | A test of the refusal of `windows --dos` with no DOS base image |
 | [T-1737](packaging.md) | P3 | M | none | packaging | open | Decide where the SSH packaging scripts go, and port `scripts/package-ssh.sh` into `podvm-release` |
 
 ## Counts
 
-346 entries: 13 open, 10 partial, 6 blocked, 317 done.
+346 entries: 12 open, 10 partial, 6 blocked, 318 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -427,8 +427,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
 | P2 | 7 | 6 | 6 | 96 | 115 |
-| P3 | 5 | 0 | 0 | 11 | 16 |
-| **All** | 13 | 10 | 6 | 317 | 346 |
+| P3 | 4 | 0 | 0 | 12 | 16 |
+| **All** | 12 | 10 | 6 | 318 | 346 |
 
 ## Work order
 

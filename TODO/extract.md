@@ -63,6 +63,17 @@ offers.
 `./experiments/220-extract-path-safety.sh` exits 0, and
 `strace -f -e trace=execve -o /tmp/e.txt podvm extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
 
+
+## Correction
+
+**Corrected 2026-11-11.** The script experiments/220-extract-path-safety.sh
+is gone (T-1734): the tests of podcrates' `pod-extract` prove its six
+checks (A `an_entry_traversing_a_symlink_the_same_layer_made_is_refused`,
+which also asserts that nothing landed outside; B `a_dotdot_path_is_refused`;
+C `an_absolute_path_is_refused`; D `a_hard_link_out_of_the_destination_is_refused`;
+E `an_absolute_symlink_is_created_and_points_where_the_image_said`), which
+podcrates' CI runs at the tag that podvm pins (`v0.22.0`).
+
 ## Done
 
 **Done, 2026-09-08.** `src/apply.rs` of `pod-extract` (PodUtils/podcrates) drives
@@ -80,7 +91,7 @@ was `grep`'s and the clause could not fail the way it was written.
 write a member whose path contains `..` ("paths in archives must not have
 `..`"), and `tar::Archive`'s reader hands that same member straight to the
 caller. The writer's validation is not the reader's, so the hostile archives in
-`experiments/220-extract-path-safety.sh` and in the crate's own tests are built
+experiments/220-extract-path-safety.sh (retired by T-1734) and in the crate's own tests are built
 at the header level. Taking a Rust tar crate does not make this safe by itself,
 which is what [T-0304](extract.md) is for.
 
@@ -294,6 +305,17 @@ clean one.
 
 `./experiments/220-extract-path-safety.sh` exits 0
 
+
+## Correction
+
+**Corrected 2026-11-11.** The script experiments/220-extract-path-safety.sh
+is gone (T-1734): the tests of podcrates' `pod-extract` prove its six
+checks (A `an_entry_traversing_a_symlink_the_same_layer_made_is_refused`,
+which also asserts that nothing landed outside; B `a_dotdot_path_is_refused`;
+C `an_absolute_path_is_refused`; D `a_hard_link_out_of_the_destination_is_refused`;
+E `an_absolute_symlink_is_created_and_points_where_the_image_said`), which
+podcrates' CI runs at the tag that podvm pins (`v0.22.0`).
+
 ## Done
 
 **Done, 2026-09-08.** `src/safety.rs` of `pod-extract` (PodUtils/podcrates), and the script
@@ -380,7 +402,7 @@ predicted. **543 symlinks survive**, including `etc/mtab -> /proc/self/mounts`
 
 ⛔ **Rebasing decides whether a link is ALLOWED; it never decides what is
 stored.** The link on disk carries the target the image wrote, verbatim, and
-check E of `experiments/220-extract-path-safety.sh` asserts exactly that.
+check E of experiments/220-extract-path-safety.sh asserted exactly that, and the test `an_absolute_symlink_is_created_and_points_where_the_image_said` of `pod-extract` asserts it now.
 Storing the rebased form would bake this host's idea of the rootfs into the
 image, which is the same mistake as dereferencing and is what this entry's
 Decision refuses.
@@ -696,7 +718,7 @@ the layer digest for the refusal. `cargo test -p podvm-extract` exits 0
 the three fails, and the `..` case reached the directory above the
 destination ([the plant](../experiments/results/whiteout-escape-1698.txt)).
 
-# T-1734: Retire `experiments/220-extract-path-safety.sh`, and point its eight citations at the tests
+# T-1734: Retire the experiment 220-extract-path-safety.sh, and point its eight citations at the tests
 
 **Source:** row 1516 of the refactor plan (`refactor/recon-c.md` on the
   branch `archive/podbox-worktree`), filed by [T-1673](gate.md)
@@ -704,11 +726,11 @@ destination ([the plant](../experiments/results/whiteout-escape-1698.txt)).
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
-`experiments/220-extract-path-safety.sh` proves the path safety of
+The experiment 220-extract-path-safety.sh proves the path safety of
 extraction, and eight live lines of the record cite it
 (`TODO/extract.md`, `TODO/image.md`, `TODO/milestones.md`, and the
 header of `experiments/85-completion-symlink-escape.sh`). The code
@@ -734,5 +756,22 @@ to podcrates.
 ## Prove
 
 `cargo test -p podvm-extract` exits 0, and
-`git grep -n 220-extract-path-safety -- . ':!docs/history'` prints
-nothing.
+`git ls-files experiments | grep -c 220-extract-path-safety` prints 0.
+
+## Done
+
+**Done 2026-11-11.** Each of the six checks has its test in podcrates'
+`pod-extract` at `v0.22.0` (`src/drive.rs`): A, an entry that traverses a
+symlink of the same layer, `an_entry_traversing_a_symlink_the_same_layer_made_is_refused`,
+which also asserts that nothing was written through the link; B
+`a_dotdot_path_is_refused`; C `an_absolute_path_is_refused`; D
+`a_hard_link_out_of_the_destination_is_refused`; E
+`an_absolute_symlink_is_created_and_points_where_the_image_said`; F, nothing
+outside the destination, is the tree assertion of A, and B to D refuse
+before any write. The script is gone; T-0301, T-0304 and T-1103 name the
+tests in a Correction, and the prose mentions name the script as past
+text. The tests of `pod-extract` run in podcrates' CI at the tag that podvm
+pins; podvm's own `cargo test -p podvm-extract` exits 0, and `git ls-files
+experiments | grep -c 220-extract-path-safety` prints 0.
+
+
