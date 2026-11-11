@@ -125,7 +125,7 @@
 233 issue closed
 234 issue closed
 235 issue closed
-236 issue open
+236 issue closed
 237 issue closed
 238 issue closed
 239 issue open
