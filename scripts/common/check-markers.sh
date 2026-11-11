@@ -58,18 +58,9 @@
 # check and fails a review. prose.md says so in as many words, and the split is
 # the same one already true of every other rule a linter holds.
 #
-# ⚠ AND WHAT check-twins CANNOT SEE ABOUT THIS PAIR. It compares the two
-# halves' ANSWERS on the tree it runs against, not their rules. Measured on
-# 2026-08-28 with three deliberate divergences planted in the .ps1 half:
-#
-#   ceiling 30 changed to 20      -> caught, exit 1
-#   `md` dropped from the scope   -> caught, exit 1 (files 96 -> 38)
-#   ⛔ `py` dropped from the scope -> INVISIBLE, exit 0
-#
-# The third is invisible because this tree holds no .py file, so the smaller
-# scope produces an identical number. ⭐ Prove a scope rule with a fixture, not
-# by trusting the comparison to notice. scripts/README.md records the same
-# experiment against an older pair; it reproduces here unchanged.
+# ⭐ Prove a scope rule with a fixture: a scope that drops an extension the
+# tree does not hold gives an identical number (the PowerShell twin, retired
+# by TODO/gate.md T-1683, once dropped `py` and stayed green).
 #
 # -- THE TWO EXEMPTIONS, EACH FOR A REASON THAT WOULD OTHERWISE BREAK ---------
 #

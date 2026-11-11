@@ -2450,9 +2450,9 @@ Remove the check and replace it with a real scanner. Call
 sites, all of which must be unwired or the tree keeps a
 check nothing runs: `.github/workflows/gate.yml:89`;
 `scripts/common/check-gate.sh:112` and `:123`;
-`scripts/common/check-gate.ps1:111` and `:118`;
+scripts/common/check-gate.ps1 lines 111 and 118 at `c27d215923e5`;
 `crates/podvm-gate/src/smoke.rs:44`;
-`scripts/common/check-twins.sh:303` and `:304`. Delete
+scripts/common/check-twins.sh lines 303 and 304 at `c27d215923e5`. Delete
 the shell check and its PowerShell twin, which exist only
 to be twins of each other; both names are gone from the
 index as of 2026-10-02 and this paragraph keeps no citation
@@ -2486,6 +2486,14 @@ nothing; the new workflow appears in a CI run on the landed
 commit and reports a clean scan; a planted fake key in a
 tracked file makes that workflow fail (the plant this task
 owes, replacing what the deleted check planted).
+
+
+## Correction
+
+**Corrected 2026-11-11.** The script scripts/common/check-twins.sh is gone: T-1683
+retired the PowerShell twins and the check that compared them, after each
+`.sh` check exited 0 under Git Bash on Windows. The Prove above reads the
+tree of its time.
 
 ## Done
 
@@ -2614,6 +2622,14 @@ which when it opens the queue.
 shows every planned row now has an index row or a recorded
 decision naming where it went; `./target/release/podvm-gate`
 exits 0 with no row naming an id that is not an entry.
+
+
+## Correction
+
+**Corrected 2026-11-11.** The script scripts/common/check-twins.sh is gone: T-1683
+retired the PowerShell twins and the check that compared them, after each
+`.sh` check exited 0 under Git Bash on Windows. The Prove above reads the
+tree of its time.
 
 ## Done
 
@@ -3447,6 +3463,14 @@ and each of those rows reads `done`;
 `sh scripts/common/check-twins.sh` exits 0;
 `./target/x86_64-pc-windows-msvc/debug/podvm-count.exe`
 reports the same counts `TODO/INDEX.md` carries.
+
+
+## Correction
+
+**Corrected 2026-11-11.** The script scripts/common/check-twins.sh is gone: T-1683
+retired the PowerShell twins and the check that compared them, after each
+`.sh` check exited 0 under Git Bash on Windows. The Prove above reads the
+tree of its time.
 
 ## Done
 
@@ -4790,12 +4814,12 @@ Gate run 42214046548 at `586c921` is green in each job.
 
 # T-1683: Retire the PowerShell twins of `scripts/common/` and `check-twins.sh`
 
-**Source:** the migration of 2026-11-06; `scripts/common/check-twins.sh:12-21`
+**Source:** the migration of 2026-11-06; scripts/common/check-twins.sh lines 12-21 at `c27d215923e5`
 **Category:** gate
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4835,6 +4859,26 @@ moves to history with the twins.
 Linux, with the transcript saved under `experiments/results/`;
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with no `.ps1` file left
 in `scripts/common/`.
+
+## Done
+
+**Done 2026-11-11.** Under the Git Bash of a hosted Windows runner
+(workflow `windows-checks`, run 43052279622), each command word that the
+checks use resolves to `/usr/bin` (`sed`, `sort`, `grep`, `awk` and the
+rest), and each `.sh` check of `scripts/common/` exits 0: `check-docs`,
+`check-markers`, `check-one-home`, `check-placeholders`,
+`check-control-bytes`, `check-changelog`, `check-attribution`,
+`check-build-lane` and `mine-repo --selftest`
+(`experiments/results/windows-git-bash-checks.txt`). On Linux,
+`sh scripts/common/check-gate.sh` exits 0. The ten `.ps1` files of
+`scripts/common/` and `check-twins.sh` are gone, with their caller in
+`gate.yml`; `check-gate.sh` runs the checks once; the diagnostics drive of
+`podvm-smoke` takes a check that cannot run (`check-remote-items`) as its
+case of a skip. The measurement of 2026-08-25 is in
+`docs/history/twins-and-scripts.md`.
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with no
+`.ps1` file left in `scripts/common/`. `check-remote-items` needs `gh` and
+was not run on Windows; it exits 2 (a skip) where `gh` is absent.
 
 # T-1684: Fuzz the parsers that read untrusted input, and watch `vendor/` upstream
 

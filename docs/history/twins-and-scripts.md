@@ -103,3 +103,19 @@ a real defect and the reason it existed should not be lost with the row:
 
 ⚠ **That defect is the reason `scripts/README.md` asks every new check to be
 mutation-proved**, and that instruction is live. Only the comparison moved.
+
+## The retirement of the twins, 2026-11-11
+
+TODO/gate.md T-1683 retired the ten PowerShell twins of `scripts/common/`
+and `check-twins.sh`. The measurement behind the twins, from the header of
+`check-twins.sh`: on one Windows 11 machine on 2026-08-25, from a native
+PowerShell session with Git Bash off PATH, `sed` was not installed, and
+`sort` resolved to PowerShell's `Sort-Object` alias, which over the five
+values `b A a B a` returned `A b` where coreutils returns `A B a b`.
+
+The measurement that retired them: under the Git Bash of a hosted Windows
+runner, each command word of the checks resolves to `/usr/bin`, and each
+`.sh` check of `scripts/common/` exits 0
+(`experiments/results/windows-git-bash-checks.txt`, workflow
+`windows-checks`, run 43052279622). A Windows session runs the `.sh` checks
+under Git Bash.

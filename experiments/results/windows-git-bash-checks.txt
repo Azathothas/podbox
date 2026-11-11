@@ -1,0 +1,40 @@
+# The .sh checks of scripts/common/ under the Git Bash of a hosted Windows
+# runner (TODO/gate.md T-1683). Workflow windows-checks, run 43052279622,
+# job 130632348790, commit c27d2159, 2026-11-11.
+
+== the tools that the checks resolve
+MINGW64_NT-10.0-26100 3.6.10-5a1665c8.x86_64 2026-09-28 10:40 UTC x86_64 Msys
+GNU bash, version 5.3.15(2)-release (x86_64-pc-cygwin)
+sh     /usr/bin/sh
+sed    /usr/bin/sed
+sort   /usr/bin/sort
+grep   /usr/bin/grep
+awk    /usr/bin/awk
+find   /usr/bin/find
+tr     /usr/bin/tr
+cut    /usr/bin/cut
+wc     /usr/bin/wc
+head   /usr/bin/head
+tail   /usr/bin/tail
+xargs  /usr/bin/xargs
+git    /ucrt64/bin/git
+
+== each check, and its exit code
+== check-docs exit 0
+docs ok: 96 files, 1202 relative links, 21 shell blocks. Links and prose clean.
+== check-markers exit 0
+markers ok: 912 files, 4356 markers, densest 30 per 100 non-blank lines (docs/history/2026-09-11-reference-sweep.md), ceiling 30
+== check-one-home exit 0
+one fact one home: 65 documents, no sentence of 12+ words in two of them
+== check-placeholders exit 0
+no placeholders survived in 992 files (dotfiles is exempt; docs/templates is IN SCOPE because bootstrap/ has gone)
+== check-control-bytes exit 0
+no literal control bytes in 912 text files (tracked plus untracked-not-ignored)
+== check-changelog exit 0
+changelog ok: 34 entries, in order, each dated with a record and a deploy line
+== check-attribution exit 0
+(the commit-msg hook is not installed on the runner, so the check reports after the fact)
+== check-build-lane exit 0
+== mine-repo --selftest exit 0
+mine-repo --selftest: 4 cases, all pass.
+verdict: EACH CHECK EXITS 0

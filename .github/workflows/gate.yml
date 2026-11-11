@@ -92,7 +92,6 @@ jobs:
           # and went permanently red on it. The scanner workflow owns this
           # subject: .github/workflows/secrets.yml.
           sh scripts/common/mine-repo.sh --selftest
-          sh scripts/common/check-twins.sh
 
       - name: root licence is the selected canonical 0BSD text
         env:

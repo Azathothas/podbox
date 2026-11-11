@@ -71,8 +71,14 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
     println!("host={host} python={python}");
     println!("Inputs: fixed stub-v1 checks; late message after 20 control lines.");
     let shell = which("sh");
-    let powershell = which("pwsh");
-    if shell.is_none() || (with_powershell && powershell.is_none()) {
+    // TODO/gate.md T-1683: the PowerShell twins of scripts/common/ are
+    // retired; a Windows session runs the .sh checks under Git Bash.
+    if with_powershell {
+        println!(
+            "PowerShell profile: retired with the twins (TODO/gate.md T-1683); the sh profile runs"
+        );
+    }
+    if shell.is_none() {
         println!("cannot run: required interpreter is absent");
         return ExitCode::from(2);
     }
@@ -86,26 +92,14 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
         code
     };
     for name in DIAGNOSTIC_CHECKS {
-        if fs::write(work.join(format!("{name}.sh")), "exit 0\n").is_err()
-            || fs::write(work.join(format!("{name}.ps1")), "exit 0\n").is_err()
-        {
+        if fs::write(work.join(format!("{name}.sh")), "exit 0\n").is_err() {
             println!("cannot run: required interpreter is absent");
             return cleanup(ExitCode::from(2));
         }
     }
-    let profiles: &[(&str, bool)] = &[("sh", true), ("ps1", with_powershell)];
-    for (kind, enabled) in profiles {
-        if !enabled {
-            if *kind == "ps1" {
-                println!("PowerShell profile: not requested; Windows proof uses --powershell");
-            }
-            continue;
-        }
-        let interpreter = if *kind == "sh" {
-            shell.clone().unwrap()
-        } else {
-            powershell.clone().unwrap()
-        };
+    {
+        let kind = "sh";
+        let interpreter = shell.clone().unwrap();
         let source_path = root.join(format!("scripts/common/check-gate.{kind}"));
         let source = match fs::read_to_string(&source_path) {
             Ok(text) => text,
@@ -124,7 +118,7 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
         let stub = work.join(format!("check-docs.{kind}"));
         let noise = (0..20)
             .map(|_| {
-                if *kind == "sh" {
+                if kind == "sh" {
                     "echo control".to_string()
                 } else {
                     "Write-Output 'control'".to_string()
@@ -132,7 +126,7 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
             })
             .collect::<Vec<_>>()
             .join("\n");
-        let fail_body = if *kind == "sh" {
+        let fail_body = if kind == "sh" {
             format!("{noise}\necho {MARKER}\nexit 1\n")
         } else {
             format!("{noise}\nWrite-Output '{MARKER}'\nexit 1\n")
@@ -141,12 +135,12 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
             println!("cannot run: required interpreter is absent");
             return cleanup(ExitCode::from(2));
         }
-        let (flags, json_flag, strict) = if *kind == "sh" {
+        let (flags, json_flag, strict) = if kind == "sh" {
             ("--fast", "--json", "--strict")
         } else {
             ("-Fast", "-Json", "-Strict")
         };
-        let prefix: Vec<String> = if *kind == "sh" {
+        let prefix: Vec<String> = if kind == "sh" {
             vec![interpreter.to_string_lossy().into_owned()]
         } else {
             vec![
@@ -190,7 +184,7 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
         }
         // The lost-output mutation: truncate the failure log and the late
         // message must vanish while the run still fails.
-        let mutated = if *kind == "sh" {
+        let mutated = if kind == "sh" {
             let current = fs::read_to_string(&runner).unwrap_or_default();
             current.replacen(
                 "sed 's/^/          /' \"$OUT/log\" ;;",
@@ -237,8 +231,14 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
                 return cleanup(ExitCode::from(1));
             }
         }
-        if fs::write(work.join("check-twins.sh"), "echo unavailable\nexit 2\n").is_err() {
-            eprintln!("SMOKE-FAIL diagnostics: cannot write the twin on {kind}");
+        // A check that cannot run (exit 2) is a skip, not a failure.
+        if fs::write(
+            work.join("check-remote-items.sh"),
+            "echo unavailable\nexit 2\n",
+        )
+        .is_err()
+        {
+            eprintln!("SMOKE-FAIL diagnostics: cannot write the unavailable check on {kind}");
             return cleanup(ExitCode::from(1));
         }
         match run_with(&[json_flag]) {
@@ -247,7 +247,9 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
                     || extract_json_int(&run.stdout, "skipped") != Some(1)
                     || extract_json_int(&run.stdout, "failed") != Some(0)
                 {
-                    eprintln!("SMOKE-FAIL diagnostics: the twin did not skip on {kind}");
+                    eprintln!(
+                        "SMOKE-FAIL diagnostics: the unavailable check did not skip on {kind}"
+                    );
                     return cleanup(ExitCode::from(1));
                 }
             }
@@ -268,7 +270,7 @@ pub(super) fn do_diagnostics(root: &Path, with_powershell: bool) -> ExitCode {
                 return cleanup(ExitCode::from(1));
             }
         }
-        println!("ok: {kind} late failure, lost-output mutation, JSON, clean control, and unavailable twin");
+        println!("ok: {kind} late failure, lost-output mutation, JSON, clean control, and an unavailable check");
     }
     println!("verdict GATE-DIAGNOSTICS-OK");
     cleanup(ExitCode::from(0))
@@ -280,8 +282,6 @@ pub(super) fn print_help() {
     println!("  podvm-smoke BINARY TRIPLE [QEMU]   version, digests, static-ness,");
     println!("                                      embeds, and pull plus extract");
     println!("  podvm-smoke --diagnostics          the failed-gate diagnostic drive");
-    println!("  podvm-smoke --diagnostics --powershell");
-    println!("                                      the same, with the Windows runner too");
     println!();
     println!("Exit: 0 green, 1 something failed, 2 it could not run.");
 }

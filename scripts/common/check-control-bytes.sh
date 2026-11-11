@@ -73,10 +73,8 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT" || { printf 'check-control-bytes: cannot enter %s\n' "$REPO_ROOT" >&2; exit 2; }
 
 # Extensions asserted to be TEXT. Anything else is out of scope by construction.
-# ⛔ THE TWIN CARRIES THE SAME LIST, and for a while it did not: this half had
-# an entry the PowerShell half lacked. check-twins compares ANSWERS on the tree
-# it is run against, and nothing in this tree has that extension, so the
-# difference was invisible for as long as it existed.
+# One list: the PowerShell twin of this check is retired (TODO/gate.md
+# T-1683), and Windows runs this file under Git Bash.
 TEXT_RE='\.(ts|tsx|js|mjs|cjs|jsx|json|md|sql|css|scss|html|toml|yaml|yml|sh|ps1|py|rs|go|c|h|cpp|hpp|java|rb|php|txt|cfg|ini|conf)$'
 
 # ⛔ THE FILE LIST GOES THROUGH A FILE, LINE BY LINE, NEVER THROUGH WORD

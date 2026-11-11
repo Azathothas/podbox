@@ -230,9 +230,8 @@ fi
 # -- report ------------------------------------------------------------------
 # ⛔ THE TWO MODES REPORT THE SAME VERDICT. They differed once: text exited 1
 # whenever anything needed a reading and json exited 0 over the same tree, so a
-# gate runner saw green where a person saw red. Both twins carried it, so
-# check-twins compared them and passed. One exit expression, computed here,
-# is what stops that returning.
+# gate runner saw green where a person saw red. One exit expression, computed
+# here, is what stops that returning.
 printf '\n'
 if [ "$PROBLEMS" -gt 0 ]; then
   printf '⛔ %s claim(s) did not survive checking. Do not merge on the description.\n' "$PROBLEMS"

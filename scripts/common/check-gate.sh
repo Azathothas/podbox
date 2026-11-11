@@ -23,23 +23,9 @@
 # --strict to make a skip a failure, which is what a CI job should do, since
 # there the tools are installed on purpose and a skip means the install broke.
 #
-# -- ⛔ IT DOES NOT RUN ITSELF, AND THAT IS NOT THEORETICAL ------------------
-#
-# This runs check-twins.sh, which runs both halves of every pair. ⚠ A version
-# of this idea in another repository hit an unbounded recursion with
-# check-twins that left twenty stray shells holding their own files open. That
-# is the reported symptom; the mechanism here is plain enough that it does not
-# need re-deriving. A runner that appears in the pair list runs the comparison
-# that runs the runner.
-#
-# So check-gate is NOT in check-twins.sh's pair list, and check-twins is
-# invoked here directly rather than through anything that could re-enter.
-# ⚠ The two exclusions are a shared contract: removing one reintroduces the
-# hang.
-#
 # Usage:
 #   sh scripts/common/check-gate.sh
-#   sh scripts/common/check-gate.sh --fast     # skips check-twins
+#   sh scripts/common/check-gate.sh --fast     # the same; kept for its callers
 #   sh scripts/common/check-gate.sh --strict   # a skip is a failure
 #   sh scripts/common/check-gate.sh --json
 #
@@ -104,10 +90,7 @@ run() {   # name  command...
   esac
 }
 
-have_pwsh=0
-command -v pwsh >/dev/null 2>&1 && have_pwsh=1
-
-# The sh halves. Each is the authority on its own subject.
+# The checks. Each is the authority on its own subject.
 # ⚠ THE SECRET SHAPE SCAN IS NOT IN THIS LIST, and its absence is deliberate.
 # TODO/gate.md T-1603 retired it: a shape regex cannot tell a checksum from
 # a key, and it read a lane runner's default HOME as a credential. Credential
@@ -139,23 +122,9 @@ done
 # reads as a skip rather than a pass. That is correct: nothing was verified.
 [ -f "$HERE/check-remote-items.sh" ] && run "check-remote-items" sh "$HERE/check-remote-items.sh"
 
-# ⭐ THE SLOW ONE. Measured on one Windows 11 Pro 26200 machine, 2026-08-28:
-# check-twins alone is most of a full run's wall time, because it starts both
-# halves of every pair. --fast drops it and nothing else.
-if [ "$FAST" = "1" ]; then
-  row "SKIP  check-twins  (--fast)"
-  SKIP=$((SKIP + 1))
-elif [ -f "$HERE/check-twins.sh" ]; then
-  run "check-twins" sh "$HERE/check-twins.sh"
-else
-  row "SKIP  check-twins  (not present)"; SKIP=$((SKIP + 1))
-fi
-
-# ⚠ THE POWERSHELL HALVES ARE NOT RE-RUN HERE. check-twins already runs both
-# halves of every pair and compares them, so running them again would double
-# the slowest part of the gate to learn nothing. On a machine with no pwsh at
-# all, check-twins reports that itself.
-[ "$have_pwsh" = "1" ] || row "note  pwsh absent; the PowerShell halves were not exercised"
+# TODO/gate.md T-1683: the PowerShell twins and check-twins.sh are retired.
+# A Windows session runs these .sh checks under Git Bash, where each one
+# exits 0 (experiments/results/windows-git-bash-checks.txt).
 
 TOTAL=$((PASS + FAIL + SKIP))
 

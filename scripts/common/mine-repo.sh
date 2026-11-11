@@ -253,7 +253,7 @@ guard_nonempty() {   # outfile label page...
 # ⭐ THE INSTRUMENT SHIPS WITH THE SCRIPT. The page-join defect was found by a
 # consumer and reproduced by a one-off script in that consumer's tree. A
 # reproduction that lives somewhere else is one this repository cannot run, so
-# it lives here and check-twins runs both halves of it.
+# it lives here.
 #
 # ⛔ THE FIXTURE CARRIES THE SHAPE THAT BROKE IT: bracket characters inside
 # string values, unbalanced, spread over two pages. A fixture of well-formed
