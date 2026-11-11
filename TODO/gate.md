@@ -1163,7 +1163,7 @@ the difference is a finding, never a silent edit.
 `./experiments/320-cli-contract.sh` and `./experiments/330-exit-codes.sh`
 each exit 0 on host podman with the conditions block naming the
 driver; `./experiments/300-run.sh` exits 2 with zero FAILs and
-one SKIP (transcript at `TODO/gate.md:1225`), and
+one SKIP (transcript at `TODO/gate.md:1228-1239`), and
 `experiments/results/` carries the runs.
 
 ## Done
@@ -2630,6 +2630,34 @@ exits 0 with no row naming an id that is not an entry.
 retired the PowerShell twins and the check that compared them, after each
 `.sh` check exited 0 under Git Bash on Windows. The Prove above reads the
 tree of its time.
+
+**Amended 2026-11-11, by T-1673.** The 29 rows that the five batches and
+the named unbatched set leave out are the plan's rows 1501 to 1504, 1506,
+1507, 1509, 1512 to 1519, 1521, 1523, 1529, 1540, 1542, 1543, 1545 to
+1547, 1549, 1570, 1576, 1579 and 1580 (`refactor/recon-c.md` on the
+branch `archive/podbox-worktree`, section 1, against its batch section
+and section 9 of `refactor/INDEX.md`). Each was read against `main` at
+`bae236da`:
+
+* Done, 18: rows 1502 to 1504, 1507, 1509, 1513, 1514, 1517 to 1519, 1540,
+  1542, 1543, 1545 to 1547, 1549 and 1579. Each landed in commit
+  `996cb981` (2026-10-01), except row 1507 (commit `7b3c8522`). Rows 1501,
+  1506 and 1512 had landed too, and their text had gone stale again; it
+  is corrected in place: the count of the parity table is a dated reading
+  (287 rows on 2026-11-11, `TODO/cli.md`), the 17 names of the version
+  script are a reading of their time (`TODO/interpose.md`), and the Prove
+  of T-1212 points at its transcript at `TODO/gate.md:1228-1239`.
+* Obsolete, 2: row 1521 (the plan moved the clause out of the unit-test
+  wave, and the target file is in podcrates' `pod-rootfs` now) and row
+  1580 (the waves landed as one commit, and `gate.yml` runs on each push).
+* Filed, 6 rows as five entries: [T-1733](podssh.md) (row 1515),
+  [T-1734](extract.md) (row 1516), [T-1735](complete.md) (row 1523),
+  [T-1736](machine.md) (row 1529) and [T-1737](packaging.md) (rows 1570
+  and 1576).
+
+The claim above that 8 of the 29 are done scripts reads 7 on this tree
+(rows 1540, 1542, 1543, 1545 to 1547 and 1549); the count of 29 does not
+depend on it.
 
 ## Done
 
@@ -4694,7 +4722,7 @@ caught, 0 missed, 4 quiet controls.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4732,6 +4760,16 @@ removed is recorded as obsolete with the reason.
 exits 0 in the session that reads the plan, and
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with each of the 29 rows
 filed as an entry or named in T-1607 as done or obsolete.
+
+## Done
+
+**Done 2026-11-11.** `git show origin/archive/podbox-worktree:refactor/recon-c.md`
+exits 0 (975 lines). The 29 rows are named in the Correction of
+[T-1607](gate.md), each as done (18), obsolete (2) or filed (6 rows as
+[T-1733](podssh.md) to [T-1737](packaging.md)). Three rows that had
+landed and gone stale again are corrected in place.
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+
 
 # T-1674: Split every Rust source file to 500 lines, then hold the limit in the gate
 

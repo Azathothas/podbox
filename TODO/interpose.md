@@ -98,7 +98,7 @@ intercepted `open`.
 asserted rather than intended.
 
 ⭐ **`interpose.map` is the version script and check A compares the OBJECT with
-it**, in both directions and for both libcs: 17 declared, 17 exported, and 0
+it**, in both directions and for both libcs: 17 declared and 17 exported when this closed (137 names in the map on 2026-11-11), and 0
 `rust_eh_personality`. ⛔ Comparing the object with the script rather than
 counting exports is what makes it a check: a name in the script that `src/lib.rs`
 does not define is a silent non-interposition, and one the object exports that

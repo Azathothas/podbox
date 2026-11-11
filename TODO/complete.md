@@ -1743,3 +1743,45 @@ path: a character device, or the shim with its length.
 `cargo test -p podvm-complete --lib devices` passes 11 of 11 as uid 0,
 which permits `mknod`, and 11 of 11 as uid 65534 under `setpriv`, which
 does not; the library passes 53 of 53.
+
+# T-1735: The dangling-directory-link test and the reachability test, then retire `85-completion-symlink-escape.sh`
+
+**Source:** row 1523 of the refactor plan (`refactor/recon-c.md` on the
+  branch `archive/podbox-worktree`), filed by [T-1673](gate.md)
+**Category:** complete
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`experiments/85-completion-symlink-escape.sh` proves that a write of
+rootfs completion never leaves the rootfs through a link. Two of its
+clauses have no Rust test: a dangling directory link that the write
+must refuse and report, and the reach of the shipped binary.
+
+## Premise
+
+The write code is podcrates' `pod-rootfs`. Its tests at `v0.22.0` hold
+`a_write_replaces_an_out_link_with_a_regular_file` and
+`a_write_follows_a_directory_link_that_stays_inside`, and no test of a
+dangling directory link. `crates/podvm/tests/` has no test that drives
+the shipped binary through completion.
+
+## Approach
+
+Ask podcrates for the dangling-link test of `pod-rootfs` by a COORD
+issue. Write the reachability test in `crates/podvm/tests/`. Then
+delete the script and point its citations at the tests.
+
+## Decision
+
+The script stays until both tests exist.
+
+## Prove
+
+`cargo test -p podvm --test completion_reach` exits 0, the COORD issue
+names the test of `pod-rootfs`, and
+`git grep -n 85-completion-symlink-escape -- . ':!docs/history'`
+prints nothing.

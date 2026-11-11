@@ -1655,3 +1655,47 @@ exits 0. With `v0.1.0-beta.12` planted back into the README, the test
 fails: "README.md names v0.1.0-beta.12 as a podbox boundary". The failure
 line of `verify.rs` now names the asset prefix and the signing identity
 of the tag.
+
+# T-1737: Decide where the SSH packaging scripts go, and port `scripts/package-ssh.sh` into `podvm-release`
+
+**Source:** rows 1570 and 1576 of the refactor plan
+  (`refactor/recon-c.md` on the branch `archive/podbox-worktree`), filed
+  by [T-1673](gate.md)
+**Category:** packaging
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`experiments/394-ssh-package.sh`, `experiments/397-exported-build.py`
+and `scripts/package-ssh.sh` package the SSH release in shell and
+Python. `.github/workflows/nightly.yml` runs `scripts/package-ssh.sh`,
+and `crates/podvm-gate/src/dev.rs` runs the `394` script. No record
+says where these belong; the rest of the release tooling is Rust in
+`crates/podvm-release`.
+
+## Premise
+
+`crates/podvm-release` has no packaging binary today; its binaries are
+verify, size, prove-t0211, document-state, release-notes, reconcile
+and publish.
+
+## Approach
+
+Record the decision in `docs/decisions.md`. Then port
+`scripts/package-ssh.sh` into a binary of `crates/podvm-release`,
+point `nightly.yml` at it, and retire the scripts that the decision
+retires.
+
+## Decision
+
+One implementation of the packaging, in Rust, as for the rest of the
+release.
+
+## Prove
+
+`cargo test -p podvm-release` exits 0, a trial `nightly.yml` run with
+`trial=true` packages the SSH artefacts through the new binary, and
+`git grep -n package-ssh.sh -- .github` prints nothing.

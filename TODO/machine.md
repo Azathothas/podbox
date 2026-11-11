@@ -2182,3 +2182,40 @@ exits 0 under TCG on the cloud host, each of its ten clauses
 `out-pipe` and `err-pipe`, and clause 7 still reads stderr apart and exit
 4. The unit test `the_command_writes_to_fifos_not_to_a_terminal` checks
 the script.
+
+# T-1736: A test of the refusal of `windows --dos` with no DOS base image
+
+**Source:** row 1529 of the refactor plan (`refactor/recon-c.md` on the
+  branch `archive/podbox-worktree`), filed by [T-1673](gate.md)
+**Category:** machine
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The DOS flavor of the Windows verbs refuses by name where no DOS base
+image exists (`crates/podvm/src/windows/dos.rs:58-66`). No test proves
+the refusal, so a change can turn it into a boot with no base, or a
+fetch.
+
+## Premise
+
+The other refusals of the Windows verbs have tests
+(`crates/podvm/src/lifecycle/tests/fields_and_copy.rs`, and the test of a
+missing named image in `crates/podvm/src/windows/mod.rs`).
+
+## Approach
+
+Point the base cache at an empty directory and run the DOS path. Assert
+the exit code 125, the name of the missing base in the message, and
+that no file is fetched or written.
+
+## Decision
+
+The test needs no QEMU and no network.
+
+## Prove
+
+`cargo test -p podvm a_dos_run_with_no_base_is_refused_by_name` exits 0.

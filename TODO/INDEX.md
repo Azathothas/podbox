@@ -347,7 +347,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1670](probe.md) | P1 | M | none | probe | done | The first cloud session measures its host and saves the result |
 | [T-1671](packaging.md) | P2 | M | none | packaging | done | Release the first podvm beta with `## Breaking` notes, from a dispatched `release.yml` |
 | [T-1672](gate.md) | P2 | L | none | gate | done | Move the record to the format of `pod-todo`, with a `podvm-todo` wrapper and a todo.toml |
-| [T-1673](gate.md) | P2 | M | none | gate | open | File the 29 plan rows that T-1607 owns, read from the archive branch |
+| [T-1673](gate.md) | P2 | M | none | gate | done | File the 29 plan rows that T-1607 owns, read from the archive branch |
 | [T-1674](gate.md) | P1 | L | none | gate | done | Split every Rust source file to 500 lines, then hold the limit in the gate |
 | [T-1675](deps.md) | P2 | M | none | deps | done | Take `pod-term` for the SSH line discipline |
 | [T-1676](deps.md) | P2 | M | none | deps | done | Take `pod-tls` for both TLS stacks, with its synchronous face |
@@ -407,10 +407,15 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1730](enter.md) | P1 | S | none | enter | done | A detached thread of a static payload ends with SIGSEGV on the native-static rung |
 | [T-1731](enter.md) | P2 | L | none | enter | open | A dynamic program on the native-static rung: its loader under the handler |
 | [T-1732](enter.md) | P1 | S | none | enter | done | Take podcrates v0.22.0: a detached payload ends with its launcher |
+| [T-1733](podssh.md) | P3 | S | none | podssh | open | Retire `experiments/388-interactive-shell.sh` for the tests of `session_interactive.rs` |
+| [T-1734](extract.md) | P3 | S | none | extract | open | Retire `experiments/220-extract-path-safety.sh`, and point its eight citations at the tests |
+| [T-1735](complete.md) | P2 | M | none | complete | open | The dangling-directory-link test and the reachability test, then retire `85-completion-symlink-escape.sh` |
+| [T-1736](machine.md) | P3 | S | none | machine | open | A test of the refusal of `windows --dos` with no DOS base image |
+| [T-1737](packaging.md) | P3 | M | none | packaging | open | Decide where the SSH packaging scripts go, and port `scripts/package-ssh.sh` into `podvm-release` |
 
 ## Counts
 
-341 entries: 11 open, 10 partial, 6 blocked, 314 done.
+346 entries: 15 open, 10 partial, 6 blocked, 315 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -421,9 +426,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
-| P2 | 7 | 6 | 6 | 95 | 114 |
-| P3 | 3 | 0 | 0 | 9 | 12 |
-| **All** | 11 | 10 | 6 | 314 | 341 |
+| P2 | 7 | 6 | 6 | 96 | 115 |
+| P3 | 7 | 0 | 0 | 9 | 16 |
+| **All** | 15 | 10 | 6 | 315 | 346 |
 
 ## Work order
 

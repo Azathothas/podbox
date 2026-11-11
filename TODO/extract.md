@@ -695,3 +695,44 @@ the layer digest for the refusal. `cargo test -p podvm-extract` exits 0
 `a_whiteout_of_dot_refuses_the_layer`. With the check turned off, each of
 the three fails, and the `..` case reached the directory above the
 destination ([the plant](../experiments/results/whiteout-escape-1698.txt)).
+
+# T-1734: Retire `experiments/220-extract-path-safety.sh`, and point its eight citations at the tests
+
+**Source:** row 1516 of the refactor plan (`refactor/recon-c.md` on the
+  branch `archive/podbox-worktree`), filed by [T-1673](gate.md)
+**Category:** extract
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`experiments/220-extract-path-safety.sh` proves the path safety of
+extraction, and eight live lines of the record cite it
+(`TODO/extract.md`, `TODO/image.md`, `TODO/milestones.md`, and the
+header of `experiments/85-completion-symlink-escape.sh`). The code
+that it proves now lives in podcrates' `pod-extract`, whose own tests
+prove the same rules.
+
+## Premise
+
+`pod-extract` at podcrates `v0.22.0` carries the containment and the
+link rules with their tests; podvm takes it by tag.
+
+## Approach
+
+Map each clause of the script to a test of `pod-extract` or of
+`crates/podvm-extract`. Point each of the eight citations at the test
+or at the crate, then delete the script.
+
+## Decision
+
+A clause with no test keeps the script, and the clause becomes an ask
+to podcrates.
+
+## Prove
+
+`cargo test -p podvm-extract` exits 0, and
+`git grep -n 220-extract-path-safety -- . ':!docs/history'` prints
+nothing.

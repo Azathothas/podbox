@@ -106,7 +106,7 @@ against the shipped binary.
 
 | | |
 | --- | --- |
-| rows | **265**. ⚠ 131 when this closed; the table grows with the flags, and this row is the CURRENT count so the two cannot drift apart |
+| rows | 287 on 2026-11-11 (`awk '/^pub const TABLE/,/^\];/' crates/podvm/src/parity.rs \| grep -c '^\s*Row {'`). ⚠ 131 when this closed and 265 on 2026-10-01: the table grows with the flags, so a count here is a reading with its date |
 | of which verbs | **69** |
 | statuses used | Native, Degraded, Stub, None, and no fifth |
 | rows with no reason | **0** |

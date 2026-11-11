@@ -320,3 +320,43 @@ socket mid-session and the node redials the same name, the second
 operator session pairs, both sessions complete, no residue. Reconnect
 is proven on the loopback fake relay; pairing against the live relay
 stays open.
+
+# T-1733: Retire `experiments/388-interactive-shell.sh` for the tests of `session_interactive.rs`
+
+**Source:** row 1515 of the refactor plan (`refactor/recon-c.md` on the
+  branch `archive/podbox-worktree`), filed by [T-1673](gate.md)
+**Category:** podssh
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`experiments/388-interactive-shell.sh` and the Rust tests of
+`crates/podvm-ssh/tests/session_interactive.rs` prove the same
+interactive shell. Two proofs of one claim can drift apart, and the
+Prove of T-1405 (`TODO/podssh.md`) still runs the script.
+
+## Premise
+
+The plan says that the conversion is complete: the test file holds the
+tests that replace the script. That claim is not checked clause by
+clause on this tree.
+
+## Approach
+
+Read each clause of the script and find the test that proves it. Where
+each clause has a test, delete the script, and point each citation at
+the test. Where a clause has none, write the test first.
+
+## Decision
+
+The Rust tests are the proof; the script goes. A clause with no test
+keeps the script until it has one.
+
+## Prove
+
+`cargo test -p podvm-ssh --test session_interactive` exits 0, and
+`git grep -n 388-interactive-shell -- . ':!docs/history'` prints
+nothing.

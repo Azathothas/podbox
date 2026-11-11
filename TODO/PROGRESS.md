@@ -7,7 +7,7 @@ start.
 
 ## State
 
-341 entries: 11 open, 10 partial, 6 blocked, 314 done.
+346 entries: 15 open, 10 partial, 6 blocked, 315 done.
 
 The state on 2026-11-11:
 
@@ -65,7 +65,8 @@ that is not done. Read its Prove before you start. Set its status with
 3. The record and the tree: [T-1679](deps.md) (`pod-services`; partial:
    COORD-044, issue 263), [T-1680](deps.md) (partial: `podvm-todo check` finds 0
    problems; the record checks of `podvm-gate` move to pod-todo next),
-   [T-1673](gate.md) (the 29 plan rows), [T-1684](gate.md) (fuzzing and the
+   the plan rows [T-1733](podssh.md) to [T-1737](packaging.md),
+   [T-1684](gate.md) (fuzzing and the
    vendor watch) and [T-1685](gate.md) (the two pages in the sibling
    form).
 4. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
