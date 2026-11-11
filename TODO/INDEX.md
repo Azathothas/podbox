@@ -329,7 +329,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1653](enter.md) | P2 | enter | done | `-v` volumes on a host with no /dev/fuse and no mount |
 | [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
 | [T-1655](cli.md) | P2 | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
-| [T-1656](machine.md) | P2 | machine | open | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
+| [T-1656](machine.md) | P2 | machine | partial | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
 | [T-1657](enter.md) | P2 | enter | open | A syscall-interpreting tier: the gVisor capability without user namespaces |
 | [T-1658](enter.md) | P2 | enter | open | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
 | [T-1659](cli.md) | P2 | cli | open | Provider shapes and bare userlands as built-in profiles |
@@ -397,7 +397,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-329 items: 28 open, 7 partial, 5 blocked, 289 done.
+329 items: 27 open, 8 partial, 5 blocked, 289 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -408,9 +408,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 26 | 0 | 5 | 78 | 109 |
+| P2 | 25 | 1 | 5 | 78 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **28** | **7** | **5** | **289** | **329** |
+| **All** | **27** | **8** | **5** | **289** | **329** |
 
 ## Work order
 

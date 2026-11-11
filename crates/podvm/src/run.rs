@@ -168,6 +168,9 @@ pub(crate) use acquire::*;
 
 mod wall;
 
+// TODO/machine.md T-1656: a guest from an OCI image.
+mod machine;
+
 // TODO/cli.md T-1706: the reason of a SIGXFSZ death.
 mod exit_note;
 

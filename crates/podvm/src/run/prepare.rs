@@ -78,7 +78,9 @@ pub(crate) fn prepare(
     // and the fetch: a platform no tier can enter refuses naming it.
     crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
     if tier == crate::tier::Tier::Machine {
-        return Err(crate::tier::enter_machine(verb, o.mem));
+        return Err(super::machine::machine_tier(
+            verb, store, &o, &platform, &policy,
+        ));
     }
     if !o.qemu_args.is_empty() {
         // ⛔ Refused rather than silently dropped. An emulator argument the

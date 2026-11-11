@@ -80,9 +80,12 @@ With no flag the ladder selects, under every name the binary answers to.
 `podvm system info --format '{{.EnteredRung}}'` names the rung that a run enters (T-1713).
 `crates/podvm/src/tier.rs` owns the flag.
 
-For an OCI image, the machine tier assesses the machine legs and exits 125.
-The message names the profile it found (KVM or TCG) or each missing leg.
-`run` does not boot a Linux guest yet; T-1656 in [the machine tasks](../TODO/machine.md) owns that work.
+For an OCI image, `run` with the machine tier boots a guest
+(`crates/podvm/src/machine/guest.rs`, T-1656): the image's rootfs is a
+cached `newc` base archive, a run archive adds `/podvm-init`, QEMU boots
+the pinned kernel, and the exit code comes back through console markers
+with a per-run nonce. `create` and `exec` assess the machine legs and
+exit 125.
 
 Three commands boot a guest now:
 

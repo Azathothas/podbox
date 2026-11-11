@@ -15,6 +15,7 @@
 //! there is no Windows or DOS flavor here, only the Linux guest the flags
 //! describe.
 
+pub(crate) mod guest;
 pub(crate) mod ssh;
 
 use podvm_image::error::EXIT_RUNTIME_ERROR;

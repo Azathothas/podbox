@@ -193,3 +193,9 @@ pub use qemu::*;
 
 #[cfg(test)]
 mod tests;
+
+/// Does `/dev/kvm` open for this user? TODO/machine.md T-1656 shares the
+/// rule of the `ssh` member.
+pub(crate) fn kvm_opens() -> bool {
+    qemu::kvm_present(KVM_NODE)
+}

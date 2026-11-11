@@ -91,9 +91,15 @@ The server configuration controls exec and subsystem requests.
 
 ## Guests
 
-`run --podvm-tier=machine` with an OCI image boots no guest. It reports
-the machine profile or the missing legs and exits 125. T-1656 in
-[the machine tasks](../TODO/machine.md) owns the Linux guest from `run`.
+`run --podvm-tier=machine IMAGE CMD` boots a disposable guest from the
+image and gives the command's exit code (T-1656, in progress). The guest
+runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
+`PODVM_MACHINE_ACCEL=kvm` asks for KVM and refuses by name without it.
+The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
+podvm fetches into the store. The image needs `/bin/sh`. Not yet: the
+guest network (the kernel modules are not in the initrd), volumes and
+`/workspace`, stdin, and a stderr apart from stdout. `create` and `exec`
+with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).
 

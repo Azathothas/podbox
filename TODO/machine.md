@@ -1216,7 +1216,7 @@ Source:      issue 168; #193; the owner's ruling of 2026-11-06;
 Category:    machine
 Priority:    P2
 Effort:      XL
-Status:      open
+Status:      partial
 
 Problem:     The owner's scope says podvm will "quickly create full on
              microvms". `podvm run --podvm-tier=machine` probes the tier and
@@ -1263,6 +1263,30 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the archive cache
              file written to `/workspace` is on the host or the run says it
              is a copy. A run that asks for KVM, with `/dev/kvm` closed to the user,
              refuses by name and does not boot under TCG.
+
+**Partial, 2026-11-11.** `run --podvm-tier=machine IMAGE CMD` boots a
+guest (`crates/podvm/src/machine/guest.rs`, `crates/podvm/src/run/machine.rs`).
+The rootfs becomes a `newc` base archive, cached in the store by the
+manifest digest and a format number; each run copies it and appends a run
+archive with `/podvm-init` and the console nodes. QEMU (`-M pc,acpi=off`,
+`-no-reboot`, user-mode NIC) boots the pinned `vmlinuz-virt` of Alpine
+3.22.6, which podvm fetches and checks against its SHA-256
+(`crates/podvm/src/machine/guest/kernel.rs`). The exit code comes back
+through markers with a nonce of 128 bits. KVM where `/dev/kvm` opens, TCG
+elsewhere; `PODVM_MACHINE_ACCEL=kvm` refuses by name with no fall back
+(call C16). `cargo test -p podvm` passes with the tests of the cache key,
+the archive bytes, the accelerator rule, the marker parse and the init
+quoting. `PODVM_412_MIRROR=1 sh experiments/412-microvm-boot.sh` exits 0
+on the cloud host under TCG ([the run](../experiments/results/microvm-boot.txt)):
+`uname -r; exit 7` prints `6.12.110-0-virt` and exits 7, a second run takes
+the base archive from the cache, 20 of 20 boots reach the command (48 s,
+about 2.4 s for each), and the KVM ask refuses with 125.
+
+Remaining: the guest fetches a URL through the host's loopback proxy (the
+initrd has no kernel modules, so the virtio NIC has no driver yet: the
+modloop of the pin, as experiment 361 takes it); `/workspace` and volumes
+(refused by name now); a second channel for stderr; the cold and warm
+times under KVM (on the runner of T-1682); the `microvm` machine type.
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:

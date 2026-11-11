@@ -19,6 +19,9 @@ name = "podvm"
 path = "src/main.rs"
 
 [dependencies]
+# TODO/machine.md T-1656: the pinned guest kernel (a .tar.gz, by SHA-256).
+flate2.workspace = true
+sha2.workspace = true
 podvm-probe = { path = "../podvm-probe" }
 podvm-image = { path = "../podvm-image" }
 serde_json.workspace = true

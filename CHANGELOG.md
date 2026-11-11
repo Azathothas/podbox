@@ -8,6 +8,21 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a microVM from an OCI image, 2026-11-11
+
+Record: T-1656 (partial), T-1682 (in progress); issue 168.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=machine IMAGE CMD` boots a disposable guest from the
+  image and exits with the command's code: under KVM where `/dev/kvm`
+  opens, under TCG elsewhere (about 2.4 s for each boot under TCG on the
+  cloud host). `PODVM_MACHINE_ACCEL=kvm` refuses by name without KVM.
+  The guest kernel is pinned and fetched into the store. No guest network,
+  volume or stdin yet.
+- `podvm machine ssh` prints the accelerator that it took.
+- `.github/workflows/kvm.yml` runs the guest of experiment 390 on a hosted
+  runner with `/dev/kvm`, dispatched by hand.
+
 ### Fixed: a relative program runs from `-w`, and SIGXFSZ has a reason, 2026-11-11
 
 Record: T-1707, T-1706; issues 232 and 231.

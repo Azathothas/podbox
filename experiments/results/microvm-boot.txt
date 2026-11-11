@@ -1,0 +1,40 @@
+== conditions
+date              2026-11-11T05:46:37Z
+host kernel       Linux 6.18.44-fc-v378
+input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+boots             20
+/dev/kvm          does not open
+qemu              QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+build             ok
+podvm             podvm 0.2.0-beta.2
+3.20: Pulling from library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podvm: probed this machine rather than using the cache: /workspace/podvm/experiments/.sweep412-work/store/probe.json does not exist yet
+
+== 1. one command
+exit              7
+seconds           4 (with the kernel fetch and the base archive)
+  6.12.110-0-virt
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep412-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+    extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep412-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm run: machine tier: a guest under TCG (the emulator process is the boundary, not hardware isolation), base archive built now (TODO/machine.md T-1656)
+
+== 2. the cache
+exit              0
+  podvm run: machine tier: a guest under TCG (the emulator process is the boundary, not hardware isolation), base archive from the cache (TODO/machine.md T-1656)
+
+== 3. boots in a row
+reached           20 of 20
+seconds           48
+
+== 4. KVM asked
+exit              125
+  podvm run: machine tier: PODVM_MACHINE_ACCEL=kvm asks for KVM, and /dev/kvm does not open for this user: podvm does not fall back to TCG (TODO/machine.md T-1656)
+
+verdict           THE GUEST RUNS THE COMMAND

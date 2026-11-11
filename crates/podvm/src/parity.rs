@@ -243,7 +243,7 @@ pub const TABLE: &[Row] = &[
     // ⭐ TODO/machine.md T-1302. Two flags podvm's own tools do not have, and
     // the prefix is the rule: neither docker nor podman uses `--podvm-`, so
     // no flag here can mean one thing here and another there.
-    Row { verb: "run", flag: Some("--podvm-tier"), status: Native, note: "podvm's own: machine selects the machine tier, and each other value is a flag error. With no flag the ladder selects, under every name the binary answers to, and `system info` names the entered rung (T-1302, T-1712)" },
+    Row { verb: "run", flag: Some("--podvm-tier"), status: Native, note: "podvm's own: machine selects the machine tier: run boots a guest from the image (T-1656), and each other value is a flag error. With no flag the ladder selects, under every name the binary answers to, and `system info` names the entered rung (T-1302, T-1712)" },
     Row { verb: "run", flag: Some("--timeout"), status: Native, note: "podman's: whole seconds over 0. At the bound the launcher of a detached run, or podvm for a foreground run, kills the payload and its tree with SIGKILL, and .End.Reason reads wall (T-1655)" },
     Row { verb: "run", flag: Some("--podvm-qemu-arg"), status: Native, note: "podvm's own, machine tier only and refused elsewhere: one token for the emulator per occurrence, repeatable, never split on whitespace (T-1302)" },
     Row { verb: "run", flag: Some("--podvm-mem"), status: Native, note: "podvm's own, machine tier only and refused elsewhere: the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)" },

@@ -1,0 +1,115 @@
+#!/bin/sh
+# Question: does `podvm run --podvm-tier=machine IMAGE CMD` boot a guest from
+# the OCI image, run the command, and return its exit code, again and
+# again, and refuse KVM by name where /dev/kvm does not open?
+#
+# TODO/machine.md T-1656. The guest kernel is the pinned vmlinuz-virt of the
+# Alpine netboot archive 3.22.6 (podvm fetches it into the store); the
+# initrd is the cached base archive of the image plus a run archive with
+# /podvm-init. The pinned input is the alpine digest of experiment 356.
+#
+# Clauses:
+#   1. `sh -c 'uname -r; exit 7'` prints a kernel release and exits 7; the
+#      banner names the accelerator.
+#   2. a second run says that the base archive came from the cache.
+#   3. PODVM_412_BOOTS runs in a row (20 by default) each reach the command
+#      and give its code.
+#   4. PODVM_MACHINE_ACCEL=kvm where /dev/kvm does not open exits 125 by
+#      name and boots nothing (where /dev/kvm opens, the clause records
+#      that it ran under KVM).
+#   5. no emulator stays after the runs.
+# Not here yet (T-1656 keeps them): the guest network through the host's
+# loopback proxy, /workspace, and a second channel for stderr.
+#
+# Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
+# run (no build, no pull, no qemu).
+set -u
+
+REPO="$(pwd)"
+WORK="$REPO/experiments/.sweep412-work"
+rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
+REPORT="$WORK/out-412.txt"
+BOOTS=${PODVM_412_BOOTS:-20}
+ALPINE='public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+# ⚠ PODVM_412_MIRROR=1 takes the same digest from mirror.gcr.io, as
+# PODVM_356_MIRROR does.
+if [ "${PODVM_412_MIRROR:-0}" = 1 ]; then
+	ALPINE='mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+fi
+{
+echo "== conditions"
+echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "host kernel       $(uname -sr)"
+echo "input             $ALPINE"
+echo "boots             $BOOTS"
+echo "/dev/kvm          $([ -r /dev/kvm ] && [ -w /dev/kvm ] && echo opens || echo 'does not open')"
+} >"$REPORT"
+
+command -v cargo >/dev/null 2>&1 || { echo "cargo missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+command -v qemu-system-x86_64 >/dev/null 2>&1 || { echo "qemu-system-x86_64 missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+echo "qemu              $(qemu-system-x86_64 --version | head -1)" >>"$REPORT"
+if timeout 1800 cargo build >"$WORK/build.log" 2>&1; then
+	echo "build             ok" >>"$REPORT"
+else
+	echo "build             FAILED" | tee -a "$REPORT"; tail -15 "$WORK/build.log"; exit 2
+fi
+PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
+echo "podvm             $("$PB" version)" >>"$REPORT"
+export PODVM_STORE="$WORK/store"
+timeout 600 "$PB" pull "$ALPINE" >>"$REPORT" 2>&1 || { echo "pull FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+fail=0
+note() { echo "$*" >>"$REPORT"; }
+
+# Clause 1.
+start=$(date +%s)
+timeout 900 "$PB" run --podvm-tier=machine "$ALPINE" sh -c 'uname -r; exit 7' >"$WORK/c1.out" 2>"$WORK/c1.err"
+rc=$?
+took=$(( $(date +%s) - start ))
+{ echo ""; echo "== 1. one command"; echo "exit              $rc"; echo "seconds           $took (with the kernel fetch and the base archive)"; sed 's/^/  /' "$WORK/c1.out" "$WORK/c1.err"; } >>"$REPORT"
+[ "$rc" -eq 7 ] || { note "1: wanted exit 7, got $rc"; fail=1; }
+grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+' "$WORK/c1.out" || { note "1: no kernel release printed"; fail=1; }
+grep -q "a guest under \(KVM\|TCG\)" "$WORK/c1.err" || { note "1: the banner names no accelerator"; fail=1; }
+
+# Clause 2.
+timeout 900 "$PB" run --podvm-tier=machine "$ALPINE" true >/dev/null 2>"$WORK/c2.err"
+rc=$?
+{ echo ""; echo "== 2. the cache"; echo "exit              $rc"; sed 's/^/  /' "$WORK/c2.err"; } >>"$REPORT"
+[ "$rc" -eq 0 ] || { note "2: wanted exit 0, got $rc"; fail=1; }
+grep -q "base archive from the cache" "$WORK/c2.err" || { note "2: the base archive was not reused"; fail=1; }
+
+# Clause 3.
+ok=0; i=0; start=$(date +%s)
+while [ "$i" -lt "$BOOTS" ]; do
+	i=$((i + 1))
+	want=$((i % 100))
+	out=$(timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" sh -c "echo boot-$i; exit $want" 2>>"$WORK/c3.err")
+	rc=$?
+	if [ "$rc" -eq "$want" ] && [ "$out" = "boot-$i" ]; then ok=$((ok + 1)); else note "3: boot $i gave exit $rc, out '$out'"; fi
+done
+took=$(( $(date +%s) - start ))
+{ echo ""; echo "== 3. boots in a row"; echo "reached           $ok of $BOOTS"; echo "seconds           $took"; } >>"$REPORT"
+[ "$ok" -eq "$BOOTS" ] || fail=1
+
+# Clause 4.
+PODVM_MACHINE_ACCEL=kvm timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" echo booted >"$WORK/c4.out" 2>"$WORK/c4.err"
+rc=$?
+{ echo ""; echo "== 4. KVM asked"; echo "exit              $rc"; sed 's/^/  /' "$WORK/c4.out" "$WORK/c4.err"; } >>"$REPORT"
+if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+	[ "$rc" -eq 0 ] && grep -q "a guest under KVM" "$WORK/c4.err" || { note "4: KVM opens, and the run did not boot under KVM"; fail=1; }
+else
+	[ "$rc" -eq 125 ] || { note "4: wanted exit 125, got $rc"; fail=1; }
+	grep -q "does not fall back to TCG" "$WORK/c4.err" || { note "4: the refusal does not name KVM"; fail=1; }
+	grep -q "booted" "$WORK/c4.out" && { note "4: a guest booted"; fail=1; }
+fi
+
+# Clause 5.
+if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "5: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
+ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "5: a run directory stayed"; fail=1; }
+
+{
+echo ""
+if [ "$fail" -eq 0 ]; then echo "verdict           THE GUEST RUNS THE COMMAND"; else echo "verdict           A CLAUSE DISAGREED"; fi
+} >>"$REPORT"
+cp "$REPORT" "$REPO/experiments/results/microvm-boot.txt"
+cat "$REPORT"
+[ "$fail" -eq 0 ]

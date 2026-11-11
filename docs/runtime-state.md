@@ -51,6 +51,7 @@ Separate crate: `crates/podvm-interpose`.
 | Dependency | Locked versions |
 | --- | --- |
 | `base64` | `0.23.1` |
+| `flate2` | `1.1.10` |
 | `pod-core` | `0.17.0` |
 | `pod-enter` | `0.17.0` |
 | `pod-extract` | `0.17.0` |
