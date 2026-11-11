@@ -2878,7 +2878,14 @@ so a rename after the record would leave stale paths. The record names the
 tree. The fallback where FICLONE fails is a kernel copy of the bytes
 (`copy_file_range` through `std::io::copy`), not a fresh extraction: the
 source is verified and complete, and the copy decompresses nothing.
-`docs/limits.md` names what the copy does not keep. The tree of `rmi` after a new
+`docs/limits.md` names what the copy does not keep.
+
+The copy makes a detached start slower: `run -d` of the archlinux image
+of `crates/podvm/tests/detached_stdio.rs` (529 MiB, 23762 files) took
+1.4 s, 4.4 s and 6.6 s for three copies in a row on ext4, slower each time
+as the disk wrote back. The test's bound was 5 s for a start that only
+forked; it is now 30 s with a payload of 60 s, so it still asks that
+`run -d` returns before the payload ends (4 of 4 pass, 2026-11-11). The tree of `rmi` after a new
 pull (M2, Unverified) is not changed by this entry.
 
 **Filed 2026-11-10.** From issue 234 and the podrunner design review

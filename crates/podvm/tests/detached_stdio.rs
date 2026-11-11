@@ -59,13 +59,19 @@ fn a_planted_panic_with_the_lock_held_poisons_no_neighbour() {
 /// Counter beside the pid so two tests never share a store or a name.
 static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
-/// 340 PROMPT_SECONDS: a detached start does a fork and two table writes,
-/// so anything near the payload's own duration is the defect.
-const PROMPT_SECONDS: u64 = 5;
+/// 340 PROMPT_SECONDS: a detached start copies the image into the
+/// container's own tree (TODO/image.md T-1709), forks, and writes the table
+/// twice, so anything near the payload's own duration is the defect. The
+/// copy of the archlinux image (529 MiB, 23762 files) took 1.4 s to 6.6 s
+/// on ext4 on 2026-11-11, slower each time as the disk wrote back; the
+/// bound leaves room for it and stays at half the payload.
+const PROMPT_SECONDS: u64 = 30;
 
 /// 340 PAYLOAD_SECONDS: long enough that a blocking `run -d` is
-/// unmistakable, short enough that a reproduction stays cheap.
-const PAYLOAD_SECONDS: &str = "20";
+/// unmistakable, short enough that a reproduction stays cheap. The test
+/// removes each container at its end, so the payload's length costs no
+/// time.
+const PAYLOAD_SECONDS: &str = "60";
 
 /// 340 loops 40 times. This file runs 3 starts: enough to catch a handoff
 /// that fails sometimes, cheap enough for a suite.
