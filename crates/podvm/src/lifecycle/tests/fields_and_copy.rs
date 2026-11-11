@@ -153,6 +153,7 @@ fn the_record_carries_the_loader_drive_and_nothing_else() {
         gaps: Vec::new(),
         maps: Maps::of_root("/r"),
         dispatch_exe: None,
+        emulator: None,
     };
     assert_eq!(
         detached_drive(Some(&loader)),

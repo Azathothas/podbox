@@ -1531,7 +1531,7 @@ Source:      issue 94; issue 114 section 3.1 and section 4;
 Category:    enter
 Priority:    P2
 Effort:      XL
-Status:      open
+Status:      partial
 
 Problem:     On a host that denies chroot, user namespaces, mount and
              ptrace, a static payload has no rung that keeps it inside
@@ -1573,6 +1573,31 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the tier
              absent from the rootfs is refused and not read from the
              host, and `podvm probe` under the tier reports
              `measured_by.emulated` true.
+
+**Partial, 2026-11-11.** The design changes, and the Decision holds: qemu
+needs no patch. The emulator runs on the native-static rung (T-1652), so
+each of its system calls comes to podvm's handler, which resolves each path
+in the image with `openat2(RESOLVE_IN_ROOT)`; podvm passes no `-L`, so a miss
+is ENOENT in the image, never the host's file (the second leak), and an
+absolute link resolves in the image (the third). The loader of the rung puts
+the emulator in front of an ELF that it serves (`-0 ARGV0 GUEST ARGS`), and
+the `execve` of a guest re-executes podvm with the emulator
+(`PODVM_DISPATCH_EMU`), so a child stays in the image (the first leak).
+`--podvm-tier=emulate` (`crates/podvm/src/lifecycle/emulate.rs`) finds a
+static `qemu-ARCH-static` or `qemu-ARCH` on `PATH`, as the machine tier finds
+`qemu-system-*`, and serves a foreign image (its ELF machine) or an image of
+this machine (each ELF); `exec` and `create` refuse the tier. The task's
+name is the emulator's, so `podvm probe` under the tier reports
+`measured_by.emulated` true. A defect found on the way: qemu's host signal
+handler writes a full mask into the frame, so the wrapper of the rung
+clears SIGSYS there after each handler (Go under qemu-x86_64 died on signal
+31). `cargo test -p podvm` and `cargo test -p podvm-dispatch` exit 0 with
+tests of the tier value, the emulator on `PATH` and the emulator's route
+through an exec and a spawn. On the chroot-denied fixture: `go version` of
+the golang image under qemu-x86_64-static, `uname -m; cat
+/etc/alpine-release | tr . -` of an arm64 alpine under qemu-aarch64-static,
+a host-only path gives ENOENT, and the probe reports `emulated: true`.
+Remaining: the run of experiment 356 with clause 36.
 
 **Filed 2026-11-06.** Quoted from issue 94 and its comments, measured
 with `qemu-x86_64` 11.1.1 (static-pie) on the errand host:

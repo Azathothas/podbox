@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the emulate tier, 2026-11-11
+
+Record: T-1651 (partial); issue 94.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=emulate` runs the payload under a static qemu-user of
+  `PATH` on the native-static rung: each path stays in the image (a path
+  absent from it is ENOENT), and an exec of the guest enters the emulator
+  again. With `--platform`, an image of another architecture runs on it.
+  qemu needs no patch and no `-L`.
+
 ### Changed: podcrates v0.21.0, and pod-incus for the incus tier, 2026-11-11
 
 Record: T-1727; PodUtils/podcrates#63 and #65.

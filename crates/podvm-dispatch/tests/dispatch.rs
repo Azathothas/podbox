@@ -154,3 +154,41 @@ fn exec_loads_the_next_program_in_the_root() {
         "ERR Permission denied (os error 13)"
     );
 }
+
+/// TODO/enter.md T-1651: the emulator serves each ELF (machine 0) where
+/// `qemu-x86_64-static` is on the host; the program, an exec and a spawn
+/// run under it, in the root.
+#[test]
+fn the_emulator_runs_the_program_and_its_children_in_the_root() {
+    let Some(r) = root("emu") else { return };
+    let Some(qemu) = [
+        "/usr/bin/qemu-x86_64-static",
+        "/usr/local/bin/qemu-x86_64-static",
+    ]
+    .into_iter()
+    .find(|p| std::path::Path::new(p).exists()) else {
+        eprintln!("SKIP: no qemu-x86_64-static on this host");
+        return;
+    };
+    let run = |args: &[&str]| {
+        let out = Command::new(env!("CARGO_BIN_EXE_podvm-dispatch-run"))
+            .arg(&r.0)
+            .arg("/bin/probe")
+            .arg("probe")
+            .args(args)
+            .env("PODVM_DISPATCH_EMU", format!("0:{qemu}"))
+            .current_dir(&r.0)
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).trim_end().to_string()
+    };
+    assert_eq!(run(&["cat", "/etc/podvm-marker"]), "inroot");
+    assert_eq!(
+        run(&["exec", "/bin/probe", "cat", "/etc/podvm-marker"]),
+        "inroot"
+    );
+    assert_eq!(
+        run(&["spawn", "/bin/probe", "cat", "/etc/podvm-marker"]),
+        "spawn 0 inroot"
+    );
+}

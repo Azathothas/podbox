@@ -78,6 +78,7 @@ The runtime checks payload and object architecture before use.
 
 `--podvm-tier=machine` selects the machine tier.
 `--podvm-tier=incus` runs the image in an incusd ([incus](incus.md), T-1718).
+`--podvm-tier=emulate` runs the image under a static qemu-user on the native-static rung (T-1651).
 Each other value is a flag error (T-1712).
 With no flag the ladder selects, under every name the binary answers to.
 `podvm system info --format '{{.EnteredRung}}'` names the rung that a run enters (T-1713).

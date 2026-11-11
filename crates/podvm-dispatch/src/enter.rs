@@ -120,6 +120,49 @@ fn resolve(mut exe: Vec<u8>, mut argv: Vec<Vec<u8>>) -> Result<Resolved, String>
     Err("too many levels of #! interpreters".into())
 }
 
+/// The program to map: its descriptor, its head and its argv.
+type Loaded = (i64, [u8; 256], Vec<Vec<u8>>);
+
+/// TODO/enter.md T-1651. An ELF that the emulator serves runs under it:
+/// the emulator (a static program of the host) is the image, with
+/// `-0 ARGV0 GUEST ARGS...`. Each of its own paths resolves in the root,
+/// so it needs no `-L`, and a miss is ENOENT.
+fn emulated(prog: &[u8], pfd: i64, head: [u8; 256], argv: Vec<Vec<u8>>) -> Result<Loaded, String> {
+    if head.get(..4) != Some(b"\x7fELF".as_slice()) {
+        return Ok((pfd, head, argv));
+    }
+    let Some(emu) = state::emulator_for(u16::from_le_bytes([head[18], head[19]])) else {
+        return Ok((pfd, head, argv));
+    };
+    sys::close(pfd);
+    let mut z = emu.to_vec();
+    z.push(0);
+    let efd = sys::openat2(sys::AT_FDCWD, &z, sys::O_RDONLY | sys::O_CLOEXEC, 0, 0);
+    if efd < 0 {
+        return Err(format!(
+            "the emulator {}: errno {}",
+            String::from_utf8_lossy(emu),
+            -efd
+        ));
+    }
+    let base = emu.rsplit(|&c| c == b'/').next().unwrap_or(emu).to_vec();
+    // The task's name is the emulator's, as a kernel's binfmt handler
+    // gives it: the probe reads it (T-0506).
+    let mut name = [0u8; 16];
+    let n = base.len().min(15);
+    name[..n].copy_from_slice(&base[..n]);
+    // SAFETY: PR_SET_NAME reads 16 bytes of name.
+    unsafe { sc(nr::PRCTL, 15, name.as_ptr() as i64, 0) };
+    let mut out = vec![
+        base,
+        b"-0".to_vec(),
+        argv.first().cloned().unwrap_or_else(|| prog.to_vec()),
+        prog.to_vec(),
+    ];
+    out.extend(argv.into_iter().skip(1));
+    Ok((efd, read_head(efd), out))
+}
+
 /// The auxiliary vector of podvm itself, as pairs.
 fn own_auxv() -> Vec<(u64, u64)> {
     let b = std::fs::read("/proc/self/auxv").unwrap_or_default();
@@ -240,7 +283,21 @@ fn region() -> Result<(usize, usize), String> {
 
 /// Become the payload: `exe` is its guest path, `argv` and `envp` its own.
 /// Returns only an error, before anything of the payload ran.
-pub fn enter(root: &Path, exe: &[u8], argv: Vec<OsString>, envp: Vec<OsString>) -> String {
+pub fn enter(
+    root: &Path,
+    exe: &[u8],
+    emu: Option<&[u8]>,
+    argv: Vec<OsString>,
+    envp: Vec<OsString>,
+) -> String {
+    if let Some(spec) = emu
+        && !state::set_emulator(spec)
+    {
+        return format!(
+            "the emulator {:?} is not MACHINE:HOSTPATH",
+            String::from_utf8_lossy(spec)
+        );
+    }
     match try_enter(root, exe, argv, envp) {
         Ok(never) => match never {},
         Err(e) => e,
@@ -286,6 +343,7 @@ fn try_enter(
     let argv: Vec<Vec<u8>> = argv.into_iter().map(OsStringExt::into_vec).collect();
     let (prog, pfd, head, argv) = resolve(exe.to_vec(), argv)?;
     EXE.set(&prog);
+    let (pfd, head, argv) = emulated(&prog, pfd, head, argv)?;
     let img =
         elf::load(pfd, &head).map_err(|e| format!("{}: {e}", String::from_utf8_lossy(&prog)))?;
     sys::close(pfd);

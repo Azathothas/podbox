@@ -111,7 +111,9 @@ pub const RUN_OPTIONS: &str = "\
                    than silently degraded (TODO/enter.md T-0503)
   --podvm-tier T  podvm's own: machine selects the machine tier, incus runs
                    the image in an incusd that answers on INCUS_DIR's
-                   socket (run only, TODO/machine.md T-1718), and each
+                   socket (run only, TODO/machine.md T-1718), emulate runs
+                   it under a static qemu-user of PATH on the native-static
+                   rung (run only, TODO/enter.md T-1651), and each
                    other value is a flag error. With no flag the ladder
                    selects, under every name the binary answers to, and
                    `system info` names the entered rung (TODO/machine.md
@@ -171,6 +173,7 @@ pub(crate) use acquire::*;
 mod wall;
 
 // TODO/machine.md T-1656: a guest from an OCI image.
+mod foreign;
 mod machine;
 
 // TODO/cli.md T-1706: the reason of a SIGXFSZ death.

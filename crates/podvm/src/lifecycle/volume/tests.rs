@@ -127,6 +127,7 @@ fn userland(family: Family) -> Userland {
         gaps: Vec::new(),
         maps: podvm_enter::userland::Maps::of_root("/r"),
         dispatch_exe: None,
+        emulator: None,
     }
 }
 

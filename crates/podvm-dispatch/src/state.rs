@@ -97,3 +97,32 @@ pub static NVOLS: AtomicUsize = AtomicUsize::new(0);
 pub fn vols() -> &'static [Vol] {
     &VOLS[..NVOLS.load(Ordering::Acquire).min(MAX_VOLS)]
 }
+
+/// TODO/enter.md T-1651. The emulator of the emulate tier: the host path of
+/// a static qemu-user, and the ELF machine that it serves (0: each ELF).
+/// No path: no emulator.
+pub static EMU: Fixed = Fixed::new();
+pub static EMU_MACHINE: AtomicUsize = AtomicUsize::new(0);
+
+/// The emulator for an ELF of `machine`, where one is set and serves it.
+pub fn emulator_for(machine: u16) -> Option<&'static [u8]> {
+    let p = EMU.get();
+    let m = EMU_MACHINE.load(Ordering::Relaxed);
+    (!p.is_empty() && (m == 0 || m == machine as usize)).then_some(p)
+}
+
+/// Set the emulator from `MACHINE:HOSTPATH`. False where the spec does not
+/// parse.
+pub fn set_emulator(spec: &[u8]) -> bool {
+    let Some(cut) = spec.iter().position(|&c| c == b':') else {
+        return false;
+    };
+    let Some(m) = std::str::from_utf8(&spec[..cut])
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+    else {
+        return false;
+    };
+    EMU_MACHINE.store(m as usize, Ordering::Relaxed);
+    EMU.set(&spec[cut + 1..])
+}

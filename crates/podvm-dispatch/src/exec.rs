@@ -12,6 +12,7 @@ use crate::sys::{self, nr, sc, sc6, AT_EMPTY_PATH, AT_FDCWD};
 
 pub const ROOT_VAR: &[u8] = b"PODVM_DISPATCH_ROOT=";
 pub const EXE_VAR: &[u8] = b"PODVM_DISPATCH_EXE=";
+pub const EMU_VAR: &[u8] = b"PODVM_DISPATCH_EMU=";
 const X_OK: i64 = 1;
 const MAP_PRIVATE_ANON: i64 = 0x22;
 
@@ -65,6 +66,12 @@ fn check(buf: &[u8; PATH_MAX], n: usize) -> i64 {
     let mut verdict = -sys::ENOEXEC;
     if got >= 2 && head[0] == b'#' && head[1] == b'!' {
         verdict = 0;
+    } else if got >= 64
+        && crate::state::emulator_for(u16::from_le_bytes([head[18], head[19]])).is_some()
+        && head[..4] == *b"\x7fELF"
+    {
+        // T-1651: the emulator runs an ELF that it serves.
+        verdict = 0;
     } else if got >= 64 {
         verdict = match crate::elf::static_x86_64(&head, |off, out| {
             // SAFETY: out lives for the call.
@@ -111,8 +118,14 @@ pub fn execveat(dirfd: i64, p: i64, argv: i64, envp: i64, flags: i64) -> i64 {
         }
     }
     let root = ROOT.get();
-    let strings = ROOT_VAR.len() + root.len() + 1 + EXE_VAR.len() + n + 1;
-    let size = ((count + 3) * 8 + strings + 4095) & !4095;
+    let emu = crate::state::EMU.get();
+    let emu_spec_len = if emu.is_empty() {
+        0
+    } else {
+        EMU_VAR.len() + 6 + emu.len() + 1
+    };
+    let strings = ROOT_VAR.len() + root.len() + 1 + EXE_VAR.len() + n + 1 + emu_spec_len;
+    let size = ((count + 4) * 8 + strings + 4095) & !4095;
     // SAFETY: an anonymous map for the new array; it ends with the exec.
     let mem = unsafe { sc6(nr::MMAP, 0, size as i64, 3, MAP_PRIVATE_ANON, -1, 0) };
     if mem < 0 {
@@ -125,14 +138,14 @@ pub fn execveat(dirfd: i64, p: i64, argv: i64, envp: i64, flags: i64) -> i64 {
         for i in 0..count {
             let e = *(envp as *const i64).add(i);
             let s = sys::cstr(e, 1 << 20).unwrap_or(&[]);
-            if s.starts_with(ROOT_VAR) || s.starts_with(EXE_VAR) {
+            if s.starts_with(ROOT_VAR) || s.starts_with(EXE_VAR) || s.starts_with(EMU_VAR) {
                 continue;
             }
             *arr.add(k) = e;
             k += 1;
         }
         let mut at = mem as *mut u8;
-        at = at.add((count + 3) * 8);
+        at = at.add((count + 4) * 8);
         for (name, value) in [(ROOT_VAR, root), (EXE_VAR, &buf[..n])] {
             *arr.add(k) = at as i64;
             k += 1;
@@ -142,6 +155,34 @@ pub fn execveat(dirfd: i64, p: i64, argv: i64, envp: i64, flags: i64) -> i64 {
             at = at.add(value.len());
             *at = 0;
             at = at.add(1);
+        }
+        if !emu.is_empty() {
+            // MACHINE:HOSTPATH, with the machine in decimal.
+            let mut digits = [0u8; 5];
+            let mut m = crate::state::EMU_MACHINE.load(core::sync::atomic::Ordering::Relaxed);
+            let mut d = 0usize;
+            loop {
+                digits[d] = b'0' + (m % 10) as u8;
+                d += 1;
+                m /= 10;
+                if m == 0 || d == digits.len() {
+                    break;
+                }
+            }
+            *arr.add(k) = at as i64;
+            k += 1;
+            core::ptr::copy_nonoverlapping(EMU_VAR.as_ptr(), at, EMU_VAR.len());
+            at = at.add(EMU_VAR.len());
+            while d > 0 {
+                d -= 1;
+                *at = digits[d];
+                at = at.add(1);
+            }
+            *at = b':';
+            at = at.add(1);
+            core::ptr::copy_nonoverlapping(emu.as_ptr(), at, emu.len());
+            at = at.add(emu.len());
+            *at = 0;
         }
         *arr.add(k) = 0;
         let r = sc(nr::EXECVE, SELF.get_z().as_ptr() as i64, argv, mem);

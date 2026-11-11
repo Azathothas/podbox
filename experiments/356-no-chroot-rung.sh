@@ -147,6 +147,11 @@
 #      ENOENT.
 #   35. exec and :ro (T-1726): `exec` into a container with a `:ro`
 #      volume fails a write there, and the host directory has no file.
+#   36. the emulate tier (T-1651): with a static qemu-user of the host on
+#      the native-static rung, `go version` of the golang image and an
+#      arm64 alpine pipeline exit 0, a path absent from the rootfs is
+#      ENOENT and not the host's file, and `podvm probe --json` as the
+#      payload reports `measured_by.emulated` true.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -866,7 +871,7 @@ grep -q "is on a noexec mount" "$WORK/out-fx-vol-noexec.txt" || { echo "the bann
 # Clause 27 (T-1712, T-1713, T-1716): the entered rung, as a caller
 # reads it before a run, and the volume rules of pod-enter v0.15.0.
 step fx-tier-chroot "$FLAG" $FX "$PB" run --rm --podvm-tier=chroot "$ALPINE" true
-grep -q 'takes machine or incus, not "chroot"' "$WORK/out-fx-tier-chroot.txt" || { echo "--podvm-tier=chroot was not refused by name" >>"$REPORT"; fail=1; }
+grep -q 'takes machine, incus or emulate, not "chroot"' "$WORK/out-fx-tier-chroot.txt" || { echo "--podvm-tier=chroot was not refused by name" >>"$REPORT"; fail=1; }
 step fx-entered 0 $FX "$PB" system info --format '{{.Rung}} {{.EnteredRung}}'
 grep -qE '^[a-z]+ userland$' "$WORK/out-fx-entered.txt" || { echo ".EnteredRung did not read userland under the fixture" >>"$REPORT"; fail=1; }
 echo "fixture rungs     $(tail -1 "$WORK/out-fx-entered.txt")" >>"$REPORT"
@@ -1032,6 +1037,32 @@ $FX "$PB" run -d --name ro735 -v "$V35:/e:ro" "$ALPINE" sleep 60 >/dev/null 2>&1
 step fx-exec-ro 1 $FX "$PB" exec ro735 sh -c 'echo x > /e/w.txt'
 [ -e "$V35/w.txt" ] && { echo "exec wrote under a :ro volume" >>"$REPORT"; fail=1; }
 $FX "$PB" rm -f ro735 >/dev/null 2>&1
+
+# Clause 36 (T-1651): the emulate tier. qemu-user-static of the host is
+# the emulator (Ubuntu's qemu-user, static-pie).
+if command -v qemu-x86_64-static >/dev/null && command -v qemu-aarch64-static >/dev/null; then
+	echo "emulator          $(qemu-x86_64-static --version | head -1)" >>"$REPORT"
+	step fx-emu-go 0 $FX "$PB" run --rm --verbose --podvm-tier=emulate "$GOLANG" go version
+	grep -q "^go version go1\.24\.7 linux/amd64$" "$WORK/out-fx-emu-go.txt" || { echo "go version did not answer under the emulate tier" >>"$REPORT"; fail=1; }
+	grep -q "entering on the emulate tier" "$WORK/out-fx-emu-go.txt" || { echo "the emulate banner is missing" >>"$REPORT"; fail=1; }
+	# The pin of ALPINE is an index digest: it names the arm64 image too.
+	ARM36="$ALPINE"
+	echo leak736 >/tmp/hostonly-t1651-356.txt
+	step fx-emu-arm 0 $FX "$PB" run --rm --platform linux/arm64 --podvm-tier=emulate "$ARM36" sh -c 'uname -m; cat /etc/alpine-release | tr . -; ! cat /tmp/hostonly-t1651-356.txt'
+	grep -qx "aarch64" "$WORK/out-fx-emu-arm.txt" || { echo "the arm64 pipeline did not run under the emulator" >>"$REPORT"; fail=1; }
+	grep -q "^3-20" "$WORK/out-fx-emu-arm.txt" || { echo "the pipeline of the emulate tier did not run" >>"$REPORT"; fail=1; }
+	grep -q "leak736" "$WORK/out-fx-emu-arm.txt" && { echo "the emulate tier read a file of the host" >>"$REPORT"; fail=1; }
+	rm -f /tmp/hostonly-t1651-356.txt
+	rm -rf "$WORK/img736"; mkdir -p "$WORK/img736/tmp" "$WORK/img736/etc"
+	if cp "$PB" "$WORK/img736/podvm" && (cd "$WORK/img736" && tar -cf "$WORK/img736.tar" .) && "$PB" import "$WORK/img736.tar" podvm736:1 >/dev/null 2>>"$REPORT"; then
+		step fx-emu-probe 0 $FX "$PB" run --rm --podvm-tier=emulate podvm736:1 /podvm probe --json
+		grep -q '"emulated":true' "$WORK/out-fx-emu-probe.txt" || { echo "the probe under the emulate tier did not report emulated" >>"$REPORT"; fail=1; }
+	else
+		echo "the probe image of clause 36 did not build" >>"$REPORT"; fail=1
+	fi
+else
+	echo "clause 36: no qemu-x86_64-static and qemu-aarch64-static on PATH" >>"$REPORT"; fail=1
+fi
 
 {
 echo ""

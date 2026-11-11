@@ -67,6 +67,7 @@ pub(super) fn decide(
         gaps: Vec::new(),
         maps: maps.clone(),
         dispatch_exe: Some(guest.to_string()),
+        emulator: None,
     })
 }
 
@@ -91,9 +92,19 @@ pub(super) fn enter(
             };
         }
     };
-    let mut argv = vec![me, ENTER.to_string(), root.path.clone(), exe.to_string()];
+    let mut argv = vec![me, ENTER.to_string()];
+    // T-1651: the emulator of the emulate tier comes before the root.
+    if let Some(spec) = &userland.emulator {
+        argv.push(format!("{}{spec}", podvm_dispatch::EMU_ARG));
+    }
+    argv.extend([root.path.clone(), exe.to_string()]);
     argv.extend(userland.guest_argv.iter().cloned());
-    match podvm_enter::run_userland(root, plan, &userland.maps, argv, WORD, None, err) {
+    let word = if userland.emulator.is_some() {
+        super::emulate::WORD
+    } else {
+        WORD
+    };
+    match podvm_enter::run_userland(root, plan, &userland.maps, argv, word, None, err) {
         Ok(c) => UserlandOutcome {
             code: c,
             entered: true,

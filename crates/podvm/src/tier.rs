@@ -20,6 +20,8 @@ pub enum Want {
     Machine,
     /// TODO/machine.md T-1718: an incusd, over its REST API.
     Incus,
+    /// TODO/enter.md T-1651: a static qemu-user on the native-static rung.
+    Emulate,
 }
 
 /// The validated value of one `--podvm-tier` spelling, or `None` where the
@@ -28,6 +30,7 @@ pub fn want(s: &str) -> Option<Want> {
     match s {
         "machine" => Some(Want::Machine),
         "incus" => Some(Want::Incus),
+        "emulate" => Some(Want::Emulate),
         _ => None,
     }
 }
@@ -38,7 +41,7 @@ pub fn want(s: &str) -> Option<Want> {
 /// value that selected nothing gave a caller another mechanism with exit 0.
 pub fn refusal(verb: &str, value: &str) -> String {
     format!(
-        "podvm {verb}: --podvm-tier takes machine or incus, not {value:?}: with no flag the \
+        "podvm {verb}: --podvm-tier takes machine, incus or emulate, not {value:?}: with no flag the \
          ladder selects the rung, and `podvm system info --format \
          '{{{{.EnteredRung}}}}'` names the rung that a run enters (TODO/cli.md T-1712)"
     )
@@ -89,6 +92,9 @@ pub enum Tier {
     Machine,
     /// `--podvm-tier=incus`: `run` drives an incusd (T-1718).
     Incus,
+    /// `--podvm-tier=emulate`: `run` runs the payload under a static
+    /// qemu-user on the native-static rung (T-1651).
+    Emulate,
 }
 
 /// Resolve the flag to the tier that runs.
@@ -101,6 +107,7 @@ pub fn resolve(flag: Option<Want>) -> Tier {
         None => Tier::Ladder,
         Some(Want::Machine) => Tier::Machine,
         Some(Want::Incus) => Tier::Incus,
+        Some(Want::Emulate) => Tier::Emulate,
     }
 }
 
@@ -215,12 +222,15 @@ mod tests {
     fn the_flag_spells_machine_or_incus_and_nothing_else() {
         assert_eq!(want("machine"), Some(Want::Machine));
         assert_eq!(want("incus"), Some(Want::Incus));
+        assert_eq!(want("emulate"), Some(Want::Emulate));
         assert_eq!(want("chroot"), None);
         assert_eq!(want("sandbox"), None);
         assert_eq!(want(""), None);
         let r = refusal("run", "chroot");
         assert!(
-            r.starts_with("podvm run: --podvm-tier takes machine or incus, not \"chroot\""),
+            r.starts_with(
+                "podvm run: --podvm-tier takes machine, incus or emulate, not \"chroot\""
+            ),
             "{r}"
         );
         assert!(r.contains("{{.EnteredRung}}"), "{r}");

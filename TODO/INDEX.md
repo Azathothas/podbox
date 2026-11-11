@@ -324,7 +324,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1648](enter.md) | P0 | enter | done | A static Go payload runs into a GOROOT error instead of a named refusal |
 | [T-1649](cli.md) | P2 | cli | done | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
 | [T-1650](cli.md) | P1 | cli | done | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
-| [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
+| [T-1651](enter.md) | P2 | enter | partial | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
 | [T-1652](enter.md) | P2 | enter | done | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
 | [T-1653](enter.md) | P2 | enter | done | `-v` volumes on a host with no /dev/fuse and no mount |
 | [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
@@ -404,7 +404,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-336 items: 27 open, 7 partial, 3 blocked, 299 done.
+336 items: 26 open, 8 partial, 3 blocked, 299 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -415,9 +415,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 140 | 148 |
-| P2 | 23 | 0 | 3 | 86 | 112 |
+| P2 | 22 | 1 | 3 | 86 | 112 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **27** | **7** | **3** | **299** | **336** |
+| **All** | **26** | **8** | **3** | **299** | **336** |
 
 ## Work order
 

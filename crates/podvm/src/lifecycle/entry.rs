@@ -265,6 +265,9 @@ pub struct Userland {
     /// TODO/enter.md T-1652. The guest path of the program on the
     /// native-static rung; None on each other entry.
     pub dispatch_exe: Option<String>,
+    /// TODO/enter.md T-1651. The emulator of the emulate tier
+    /// (`MACHINE:HOSTPATH`); None on each other entry.
+    pub emulator: Option<String>,
 }
 
 /// TODO/cli.md T-1650. The capability gaps that `--strict` reads: those of
@@ -404,6 +407,7 @@ pub fn decide_entry(
             gaps: Vec::new(),
             maps: maps.clone(),
             dispatch_exe: None,
+            emulator: None,
         }));
     };
     // Dynamic: the loader family, where the tier reaches the payload.
@@ -489,5 +493,6 @@ pub fn decide_entry(
         guest_argv: f.argv,
         maps: maps.clone(),
         dispatch_exe: None,
+        emulator: None,
     }))
 }

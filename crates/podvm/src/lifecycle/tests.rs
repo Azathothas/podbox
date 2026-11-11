@@ -256,6 +256,7 @@ fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
     assert_eq!(signal_number("999"), None);
 }
 
+mod emulate;
 mod fields_and_copy;
 mod native;
 mod residual;

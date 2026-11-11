@@ -97,6 +97,12 @@ unsafe extern "C" fn wrap(sig: i32, info: *mut u8, uc: *mut u8) {
             let f: extern "C" fn(i32) = core::mem::transmute(h as usize);
             f(sig);
         }
+        // ⛔ A handler may write the mask of its return into the frame:
+        // qemu-user blocks each host signal there (measured: Go under
+        // qemu-x86_64 died on signal 31, T-1651). SIGSYS stays unblocked,
+        // or the next trap kills the process.
+        let mask = uc.add(296) as *mut u64;
+        *mask &= !SYS_BIT;
     }
 }
 

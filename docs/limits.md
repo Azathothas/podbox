@@ -116,6 +116,16 @@ with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).
 
+`run --podvm-tier=emulate IMAGE CMD` runs the command under a static
+qemu-user of `PATH` (`qemu-ARCH-static`, else `qemu-ARCH`), and the
+emulator itself runs on the native-static rung (T-1651). So each path of
+the guest resolves in the image: a path absent from the image is ENOENT
+and never a file of the host, an absolute link stays in the image, and an
+exec of the guest enters the emulator again. An image of another
+architecture runs the same way, with `--platform`. The cost is that of
+qemu's TCG (`go version` of the golang image: about 50 s, with the
+extraction). `exec` and `create` refuse the tier.
+
 `run --podvm-tier=incus IMAGE CMD` runs the command in a disposable
 instance of an incusd that answers on its socket (`PODVM_INCUS_SOCKET`, or
 `INCUS_DIR/unix.socket`), and gives its stdout, stderr and exit code

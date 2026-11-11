@@ -50,6 +50,12 @@ use std::os::unix::ffi::OsStrExt;
 pub const ROOT_VAR: &str = "PODVM_DISPATCH_ROOT";
 /// The variable that names the program (its guest path).
 pub const EXE_VAR: &str = "PODVM_DISPATCH_EXE";
+/// The variable that carries the emulator of the emulate tier across an
+/// `execve` (`MACHINE:HOSTPATH`, TODO/enter.md T-1651).
+pub const EMU_VAR: &str = "PODVM_DISPATCH_EMU";
+/// The argument after [`ENTER_ARG`] that names the emulator.
+pub const EMU_ARG: &str = "--podvm-dispatch-emu=";
+
 /// The variable that names podvm itself (its host path) for the
 /// interposer: a static child of the loader family enters this rung
 /// through it (TODO/enter.md T-1724). podvm sets it where [`available`]
@@ -70,6 +76,26 @@ pub fn available() -> Result<(), String> {
             "the native-static rung is x86_64 only, and this build is {}",
             std::env::consts::ARCH
         ))
+    }
+}
+
+/// Whether `path` is a static program of this machine that the rung can
+/// load (TODO/enter.md T-1651: the emulator of the emulate tier).
+pub fn static_host_program(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let b = std::fs::read(path).map_err(|e| e.to_string())?;
+        let read = |off: u64, out: &mut [u8]| {
+            let s = b.get(off as usize..off as usize + out.len()).unwrap_or(&[]);
+            out[..s.len()].copy_from_slice(s);
+            s.len() as i64
+        };
+        elf::static_x86_64(b.get(..64).unwrap_or(&[]), read).map_err(str::to_string)
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        let _ = path;
+        available()
     }
 }
 
@@ -106,6 +132,15 @@ pub const ENTER_ARG: &str = "--podvm-dispatch-enter";
 /// the program cannot be loaded. Call it first in `main`.
 pub fn main_if_entered(product: &str) {
     let mut args: Vec<OsString> = std::env::args_os().collect();
+    let mut emu: Option<OsString> = std::env::var_os(EMU_VAR);
+    if args.get(1).is_some_and(|a| a == ENTER_ARG)
+        && let Some(spec) = args
+            .get(2)
+            .and_then(|a| a.as_bytes().strip_prefix(EMU_ARG.as_bytes()))
+    {
+        emu = Some(OsString::from(std::ffi::OsStr::from_bytes(spec)));
+        args.remove(2);
+    }
     let (root, exe, argv) = if args.get(1).is_some_and(|a| a == ENTER_ARG) && args.len() >= 5 {
         let rest = args.split_off(4);
         (args[2].clone(), args[3].clone(), rest)
@@ -118,6 +153,7 @@ pub fn main_if_entered(product: &str) {
     unsafe {
         std::env::remove_var(ROOT_VAR);
         std::env::remove_var(EXE_VAR);
+        std::env::remove_var(EMU_VAR);
     }
     let envp: Vec<OsString> = std::env::vars_os()
         .map(|(k, v)| {
@@ -127,17 +163,35 @@ pub fn main_if_entered(product: &str) {
             s
         })
         .collect();
-    let why = run(std::path::Path::new(&root), exe.as_bytes(), argv, envp);
+    let why = run(
+        std::path::Path::new(&root),
+        exe.as_bytes(),
+        emu.as_ref().map(|e| e.as_bytes()),
+        argv,
+        envp,
+    );
     eprintln!("{product}: native-static rung: {why} (TODO/enter.md T-1652)");
     std::process::exit(127);
 }
 
 #[cfg(target_arch = "x86_64")]
-fn run(root: &std::path::Path, exe: &[u8], argv: Vec<OsString>, envp: Vec<OsString>) -> String {
-    enter::enter(root, exe, argv, envp)
+fn run(
+    root: &std::path::Path,
+    exe: &[u8],
+    emu: Option<&[u8]>,
+    argv: Vec<OsString>,
+    envp: Vec<OsString>,
+) -> String {
+    enter::enter(root, exe, emu, argv, envp)
 }
 
 #[cfg(not(target_arch = "x86_64"))]
-fn run(_: &std::path::Path, _: &[u8], _: Vec<OsString>, _: Vec<OsString>) -> String {
+fn run(
+    _: &std::path::Path,
+    _: &[u8],
+    _: Option<&[u8]>,
+    _: Vec<OsString>,
+    _: Vec<OsString>,
+) -> String {
     available().err().unwrap_or_default()
 }

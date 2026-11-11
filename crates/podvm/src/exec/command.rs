@@ -42,8 +42,8 @@ pub fn exec(args: &[String]) -> i32 {
     if tier == crate::tier::Tier::Machine {
         return crate::tier::enter_machine("exec", o.mem);
     }
-    if tier == crate::tier::Tier::Incus {
-        eprintln!("podvm exec: --podvm-tier=incus serves run only (TODO/machine.md T-1718)");
+    if tier == crate::tier::Tier::Incus || tier == crate::tier::Tier::Emulate {
+        eprintln!("podvm exec: --podvm-tier=incus and --podvm-tier=emulate serve run only (TODO/machine.md T-1718, TODO/enter.md T-1651)");
         return EXIT_FLAG_ERROR;
     }
     if !o.qemu_args.is_empty() {
