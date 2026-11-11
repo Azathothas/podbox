@@ -132,3 +132,46 @@ fn a_file_and_a_directory_of_mode_0000_are_copied_with_their_modes() {
     fs::set_permissions(rootfs.join("secret"), fs::Permissions::from_mode(0o700)).unwrap();
     clean(&s);
 }
+
+/// A hard link of the image stays one inode inside the container's tree,
+/// and that inode is the tree's own: not the image's, not another tree's.
+#[test]
+fn a_hard_link_of_the_image_is_one_inode_of_the_tree() {
+    let s = store("links");
+    let (src, _) = crate::paths(&s, DIGEST);
+    fs::create_dir_all(src.join("bin")).unwrap();
+    fs::write(src.join("bin/busybox"), "applet").unwrap();
+    for n in ["ls", "sh", "wget"] {
+        fs::hard_link(src.join("bin/busybox"), src.join("bin").join(n)).unwrap();
+    }
+    let a = fill(&s, DIGEST).unwrap();
+    let b = fill(&s, DIGEST).unwrap();
+    assert_eq!(a.linked, 3);
+    let ino = |p: &Path| fs::metadata(p).unwrap().ino();
+    let first = ino(&a.rootfs.join("bin/busybox"));
+    for n in ["ls", "sh", "wget"] {
+        assert_eq!(ino(&a.rootfs.join("bin").join(n)), first, "{n}");
+    }
+    assert_ne!(first, ino(&src.join("bin/busybox")));
+    assert_ne!(first, ino(&b.rootfs.join("bin/busybox")));
+    clean(&s);
+}
+
+/// CI run 391 (a user that is not root): the removal of a tree opens each
+/// read-only directory first, and never through a link out of the tree.
+#[test]
+fn a_tree_with_read_only_directories_is_removed_and_no_link_is_followed() {
+    let s = store("rodirs");
+    let f = fill(&s, DIGEST).unwrap();
+    let outside = s.root().join("outside");
+    fs::create_dir_all(&outside).unwrap();
+    fs::set_permissions(&outside, fs::Permissions::from_mode(0o500)).unwrap();
+    std::os::unix::fs::symlink(&outside, f.rootfs.join("ro-link")).unwrap();
+    fs::set_permissions(f.rootfs.join("etc"), fs::Permissions::from_mode(0o555)).unwrap();
+    assert!(remove(&s, &f.rootfs.to_string_lossy()).unwrap());
+    assert!(!f.dir.exists());
+    let mode = fs::metadata(&outside).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode, 0o500, "the walk followed the link out of the tree");
+    fs::set_permissions(&outside, fs::Permissions::from_mode(0o700)).unwrap();
+    clean(&s);
+}

@@ -9,7 +9,14 @@
 //! Device nodes, sockets and FIFOs of the rootfs are left out: the kernel
 //! makes the console nodes from the run archive, and `devtmpfs` serves the
 //! rest. A file that does not read fails the archive, by name.
+//!
+//! A hard link of the tree is a hard link of the archive: the first name
+//! carries the data, each other name the same inode number and no data,
+//! and the kernel links it. Without that, the applets of busybox:musl (one
+//! binary under about 400 names) filled 500 MB and the guest ran out of
+//! memory while it unpacked them.
 
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -24,6 +31,9 @@ pub struct Newc<W: Write> {
     out: W,
     ino: u32,
     written: u64,
+    /// The archive inode of each `(dev, ino)` of the tree with more than
+    /// one link.
+    links: HashMap<(u64, u64), u32>,
 }
 
 impl<W: Write> Newc<W> {
@@ -32,6 +42,7 @@ impl<W: Write> Newc<W> {
             out,
             ino: 1,
             written: 0,
+            links: HashMap::new(),
         }
     }
 
@@ -55,10 +66,23 @@ impl<W: Write> Newc<W> {
         data: &[u8],
         rdev: (u32, u32),
     ) -> io::Result<()> {
-        let name = name.trim_start_matches('/');
         let nlink = if mode & 0o170_000 == DIR { 2 } else { 1 };
         let ino = if name == "TRAILER!!!" { 0 } else { self.ino };
         self.ino += 1;
+        self.raw(name, mode, data, rdev, ino, nlink)
+    }
+
+    /// One entry with its inode number and its link count.
+    fn raw(
+        &mut self,
+        name: &str,
+        mode: u32,
+        data: &[u8],
+        rdev: (u32, u32),
+        ino: u32,
+        nlink: u32,
+    ) -> io::Result<()> {
+        let name = name.trim_start_matches('/');
         let head = format!(
             "070701{ino:08x}{mode:08x}{:08x}{:08x}{nlink:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}",
             0,
@@ -119,7 +143,7 @@ impl<W: Write> Newc<W> {
     }
 
     fn walk(&mut self, root: &Path, dir: &Path, prefix: &str) -> io::Result<()> {
-        use std::os::unix::fs::PermissionsExt;
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
         let mut names: Vec<_> = std::fs::read_dir(dir)?.collect::<Result<Vec<_>, _>>()?;
         names.sort_by_key(|e| e.file_name());
         for e in names {
@@ -148,6 +172,19 @@ impl<W: Write> Newc<W> {
                     target.to_string_lossy().as_bytes(),
                     (0, 0),
                 )?;
+            } else if ft.is_file() && md.nlink() > 1 {
+                let key = (md.dev(), md.ino());
+                if let Some(&ino) = self.links.get(&key) {
+                    self.raw(&rel, REG | perm, &[], (0, 0), ino, 2)?;
+                    continue;
+                }
+                let data = std::fs::read(&path).map_err(|err| {
+                    io::Error::new(err.kind(), format!("{}: {err}", path.display()))
+                })?;
+                let ino = self.ino;
+                self.ino += 1;
+                self.links.insert(key, ino);
+                self.raw(&rel, REG | perm, &data, (0, 0), ino, 2)?;
             } else if ft.is_file() {
                 let data = std::fs::read(&path).map_err(|err| {
                     io::Error::new(err.kind(), format!("{}: {err}", path.display()))

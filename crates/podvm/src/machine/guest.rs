@@ -29,8 +29,8 @@ use podvm_image::error::EXIT_RUNTIME_ERROR;
 use podvm_windows::plan::Accel;
 
 /// The version of the base archive format; a change of [`cpio`] bumps it,
-/// so an old cached archive is not reused.
-pub const BASE_FORMAT: u32 = 1;
+/// so an old cached archive is not reused. 2 keeps the hard links.
+pub const BASE_FORMAT: u32 = 2;
 const DEFAULT_MEM: u64 = 512 << 20;
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(600);
 

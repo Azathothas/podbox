@@ -225,14 +225,16 @@ pub(super) fn continue_run(
 
     plant.case_plant(
         "26a a done Prove naming a refused flag",
-        "Prove names `--network`",
+        // `--network` is accepted since `--network broker` (T-1665), so the
+        // plant names a flag that the table still refuses.
+        "Prove names `--privileged`",
         scratch,
         &|| {
             let text = read_file(root, "TODO/probe.md");
             let out = sub_first_per_line(
                 &text,
                 "`! podvm run --network=none --rm",
-                "`podvm run --network=none --rm",
+                "`podvm run --privileged --rm",
             );
             write_file(root, "TODO/probe.md", &out);
             true

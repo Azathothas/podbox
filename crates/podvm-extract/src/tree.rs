@@ -12,15 +12,19 @@
 //! link: a hard link shares the inode, so a write in one container would be
 //! read by the other.
 //!
-//! ⚠ What the copy does not keep: the extended attributes, the times of the
-//! directories, and a hard link inside the image (each name gets its own
-//! inode). A FIFO, a socket and a device node are not copied; the
+//! A hard link inside the image stays a hard link inside the tree: the
+//! names share one inode of this container's own tree, never an inode of
+//! the image's tree or of another container. busybox:musl holds one binary
+//! under about 400 names; a copy of each name took 500 MB.
+//!
+//! ⚠ What the copy does not keep: the extended attributes and the times of
+//! the directories. A FIFO, a socket and a device node are not copied; the
 //! extraction of a rootless store makes none of them as such.
 
 use std::fs;
 use std::io;
 use std::os::fd::AsRawFd;
-use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -44,8 +48,13 @@ pub struct Fill {
     pub bytes: u64,
     /// Entries that are not a directory, a regular file or a link.
     pub skipped: u64,
+    /// Names that are a hard link to a file of the tree copied before.
+    pub linked: u64,
     /// The wall time of the fill.
     pub ms: u128,
+    /// The first copy of each `(dev, ino)` of the image with more than one
+    /// link.
+    links: std::collections::HashMap<(u64, u64), PathBuf>,
 }
 
 impl Fill {
@@ -135,9 +144,52 @@ pub fn tree_of(store: &Store, rootfs: &str) -> Option<PathBuf> {
 /// from a hostile archive, and the payload wrote in it.
 pub fn remove(store: &Store, rootfs: &str) -> io::Result<bool> {
     match tree_of(store, rootfs) {
-        Some(dir) => pod_extract::remove_tree(&dir).map_err(|e| io::Error::other(e.to_string())),
+        Some(dir) => {
+            // A directory of the image without the owner's write bit (0555
+            // is common) refuses the removal of its entries to a user that
+            // is not root (CI run 391).
+            open_dirs(&dir)?;
+            pod_extract::remove_tree(&dir).map_err(|e| io::Error::other(e.to_string()))
+        }
         None => Ok(false),
     }
+}
+
+/// `O_PATH | O_NOFOLLOW | O_DIRECTORY`: a handle of the directory itself
+/// that never follows a link.
+#[cfg(target_arch = "x86_64")]
+const DIR_HANDLE: i32 = 0o10_000_000 | 0o400_000 | 0o200_000;
+#[cfg(not(target_arch = "x86_64"))]
+const DIR_HANDLE: i32 = 0o10_000_000 | 0o100_000 | 0o40_000; // aarch64, the generic table
+
+/// Add the owner's `rwx` to `dir` and to each directory under it. Each
+/// step goes through `/proc/self/fd/N` of an `O_PATH` handle opened with
+/// `O_NOFOLLOW`, so a link that the payload put in the tree is never
+/// followed out of it, also when it takes the place of a directory during
+/// the walk.
+fn open_dirs(dir: &Path) -> io::Result<()> {
+    let h = match fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(DIR_HANDLE)
+        .open(dir)
+    {
+        Ok(h) => h,
+        // A link, or an entry that is gone: nothing to open.
+        Err(e) if matches!(e.raw_os_error(), Some(20 | 40 | 2)) => return Ok(()),
+        Err(e) => return Err(e),
+    };
+    let at = PathBuf::from(format!("/proc/self/fd/{}", h.as_raw_fd()));
+    let mode = fs::metadata(&at)?.permissions().mode() & 0o7777;
+    if mode & 0o700 != 0o700 {
+        fs::set_permissions(&at, fs::Permissions::from_mode(mode | 0o700))?;
+    }
+    for entry in fs::read_dir(&at)? {
+        let entry = entry?;
+        if entry.file_type()?.is_dir() {
+            open_dirs(&at.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
 }
 
 /// Run `f` with the owner's bits `bits` added to the mode of `path` where
@@ -177,6 +229,15 @@ fn copy_dir_readable(src: &Path, dst: &Path, fill: &mut Fill, mode: u32) -> io::
             copy_dir(&from, &to, fill)?;
         } else if kind.is_symlink() {
             std::os::unix::fs::symlink(fs::read_link(&from)?, &to)?;
+        } else if kind.is_file() && meta.nlink() > 1 {
+            let key = (meta.dev(), meta.ino());
+            if let Some(first) = fill.links.get(&key) {
+                fs::hard_link(first, &to)?;
+                fill.linked += 1;
+            } else {
+                with_owner_bits(&from, 0o400, || copy_file(&from, &to, &meta, fill))?;
+                fill.links.insert(key, to);
+            }
         } else if kind.is_file() {
             with_owner_bits(&from, 0o400, || copy_file(&from, &to, &meta, fill))?;
         } else {

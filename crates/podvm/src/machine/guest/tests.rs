@@ -212,3 +212,42 @@ fn stdin_rides_in_the_run_archive() {
     let s = init::script("n", &["cat".into()], &[], "/", false);
     assert!(s.contains("exec 0</podvm/stdin") && s.contains("exec 0</dev/null"));
 }
+
+/// A hard link of the tree is one inode of the archive with the data once:
+/// busybox:musl (one binary under about 400 names) filled 500 MB before,
+/// and the guest ran out of memory while it unpacked them.
+#[test]
+fn a_hard_link_of_the_tree_carries_its_data_once() {
+    let root = std::env::temp_dir().join(format!("podvm-cpio-links-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("bin")).unwrap();
+    std::fs::write(root.join("bin/busybox"), vec![7u8; 100_000]).unwrap();
+    for n in ["ls", "sh", "wget"] {
+        std::fs::hard_link(root.join("bin/busybox"), root.join("bin").join(n)).unwrap();
+    }
+    let mut w = cpio::Newc::new(Vec::new());
+    w.tree(&root).unwrap();
+    let a = w.finish().unwrap();
+    let _ = std::fs::remove_dir_all(&root);
+    assert!(a.len() < 110_000, "the data went in {} bytes", a.len());
+    // Each name of the link has the inode of the first, and a link count
+    // above one, so the kernel links it.
+    let heads: Vec<&[u8]> = a
+        .windows(6)
+        .enumerate()
+        .filter(|(_, w)| *w == b"070701")
+        .map(|(i, _)| &a[i..i + 110])
+        .collect();
+    let field = |h: &[u8], n: usize| {
+        u32::from_str_radix(std::str::from_utf8(&h[6 + 8 * n..14 + 8 * n]).unwrap(), 16).unwrap()
+    };
+    let regs: Vec<&&[u8]> = heads
+        .iter()
+        .filter(|h| field(h, 1) & 0o170_000 == cpio::REG)
+        .collect();
+    assert_eq!(regs.len(), 4);
+    assert!(regs
+        .iter()
+        .all(|h| field(h, 0) == field(regs[0], 0) && field(h, 4) == 2));
+    assert_eq!(regs.iter().filter(|h| field(h, 6) > 0).count(), 1);
+}
