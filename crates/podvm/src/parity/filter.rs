@@ -18,7 +18,7 @@ pub fn refuse_member(verb: &str, member: &str, usage: &str) -> i32 {
 ///
 /// TODO/cli.md T-1331: caller-side, no new query language. `name=`
 /// matches a substring; `label=` matches the labels of a container record
-/// (T-1695) and nothing on an image, whose record keeps none. Anything else is the caller's mistake and refuses
+/// or of an image's OCI config (T-1695). Anything else is the caller's mistake and refuses
 /// naming the two keys that exist.
 pub struct Filter {
     pub key: String,

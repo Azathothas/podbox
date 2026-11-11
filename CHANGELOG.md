@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a JSON report of each run, and image labels, 2026-11-11
+
+Record: T-1695.
+Deployed: not deployed; no version change.
+
+- `run --report PATH` writes one JSON document of the run to PATH, also
+  when podvm refuses: the rung, the exit code or the signal, the times,
+  the CPU time, the peak resident set, the limits and the labels.
+- `images --filter label=KEY[=VALUE]` matches the labels of the image's
+  OCI config.
+
 ### Added: labels on container records, 2026-11-11
 
 Record: T-1695.

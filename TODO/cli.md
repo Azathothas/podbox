@@ -2271,7 +2271,7 @@ each command line ran unchanged in every shape.
 ## Premise
 
 The parity table is the only description of what `run`
-accepts (`crates/podvm/src/parity.rs:209-276`). `--podvm-tier`
+accepts (`crates/podvm/src/parity.rs:209-277`). `--podvm-tier`
 takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
 Resource flags refuse by name (`parity.rs:341`, T-0804). The
 identity calls are virtualised (T-0711, `parity.rs:338`). No
@@ -2406,11 +2406,11 @@ an unprivileged equivalent that podvm does not use.
 The parity table refuses `--read-only`
 (`crates/podvm/src/parity.rs:257`), `--tmpfs`
 (`crates/podvm/src/parity.rs:259`), `--ulimit`
-(`crates/podvm/src/parity.rs:273`), `--cap-add, --cap-drop`
+(`crates/podvm/src/parity.rs:274`), `--cap-add, --cap-drop`
 (`crates/podvm/src/parity.rs:227`), `--security-opt`
-(`crates/podvm/src/parity.rs:277`), `--runtime`
-(`crates/podvm/src/parity.rs:276`) and `--userns`
-(`crates/podvm/src/parity.rs:274`). `-u, --user` is Degraded
+(`crates/podvm/src/parity.rs:278`), `--runtime`
+(`crates/podvm/src/parity.rs:277`) and `--userns`
+(`crates/podvm/src/parity.rs:275`). `-u, --user` is Degraded
 through the interposer identity
 (`crates/podvm/src/parity.rs:225`). `setrlimit`,
 `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
@@ -3018,7 +3018,7 @@ broken, so the priority is P2.
 **Milestone:** none
 **Priority:** P1
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3037,11 +3037,11 @@ The `--label` flag is accepted and dropped
 marks it Stub (`crates/podvm/src/parity.rs` line 278 at `9962ba77`). The help
 of `ps` says that a label filter matches nothing
 (`crates/podvm/src/lifecycle.rs` line 41 at `9962ba77`), and so does the help of
-`images` (`crates/podvm/src/images.rs:106`). The only JSON
+`images` (`crates/podvm/src/images.rs` line 106 at `9962ba77`). The only JSON
 that podvm writes for a caller today is `probe --json`
 (`crates/podvm/src/main.rs:352`). The foreground run knows
-the exit code at its end (`crates/podvm/src/run/foreground.rs:184`)
-and its start is `crates/podvm/src/run/foreground.rs:213`.
+the exit code at its end (`crates/podvm/src/run/foreground.rs:204`)
+and its start is `crates/podvm/src/run/foreground.rs:233`.
 The record that `run` prepares is
 `crates/podvm/src/lifecycle/entry.rs:24`.
 
@@ -3107,6 +3107,29 @@ measure; the report does not carry them.
 
 ## Done
 
+**Done 2026-11-11.** `run --report PATH` writes one JSON document of the
+run with a rename, also when podvm refuses before the start
+(`crates/podvm/src/run/report.rs`): the schema, the podvm version, the
+image and its digest, the rung and how podvm knows it, argv, the
+container, the exit code and the signal (128 + N), the refusal, the start,
+the end and the wall time, the CPU time and the peak resident set of the
+reaped children of the run (`getrusage(RUSAGE_CHILDREN)`), the timeout,
+the limits, no_new_privs, the confine SPEC, the labels and the fixups. An
+unknown value is null; no value of an environment variable is in it.
+`--report` is a flag of `run` only: `create` refuses it by name. `images
+--filter label=KEY[=VALUE]` reads the `config.Labels` of the image's OCI
+config blob; by hand, `public.ecr.aws/lambda/provided:al2023` matches
+`label=com.amazonaws.lambda.platform.kernel=k510ga` and not another value.
+`cargo test -p podvm` exits 0 with `report_has_every_field`,
+`report_written_on_refusal` and the image-label test.
+`sh experiments/426-run-report.sh` exits 0 on the cloud host: a run with
+`--label job=7 --report R.json` of `sh -c 'exit 3'` exits 3 and leaves one
+valid document with rung `namespace`, exit_code 3, signal null,
+max_rss_kib 26972 and the label; `ps -a --filter label=job=7` lists the
+run and `label=job=8` does not; a refused run leaves its report (refused
+125, exit_code null, no temporary file); the value of `-e SECRET=` is not
+in the report.
+
 **Partial 2026-11-11.** Labels are real for containers: each `--label
 KEY[=VALUE]` of `run` and `create` joins the record (`Hardening.labels` of
 `crates/podvm-supervise/src/table.rs`; the foreground record now stores
@@ -3118,9 +3141,6 @@ flag error (125). The parity row of `--label` moves from Stub to Native.
 and `label_reaches_inspect`, on an image that `podvm import` records and a
 container that `create` writes, with no registry.
 
-Remaining: the labels of an image from its OCI config for `images --filter
-label=`, and `run --report PATH` (`report_has_every_field`,
-`report_written_on_refusal`, experiment 426).
 
 
 # T-1696: `--secret` places a file with no argv and no env, and a read-once mode
@@ -3146,12 +3166,12 @@ the first process only.
 
 `--env-file` reads a file at parse time
 (`crates/podvm/src/run/parse.rs:91`, used at
-`crates/podvm/src/run/parse.rs:205`) and the values go into
+`crates/podvm/src/run/parse.rs:207`) and the values go into
 the environment (`crates/podvm/src/run/prepare.rs:242`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
 A foreground run removes its files at the end
-(`crates/podvm/src/run/foreground.rs:184`). The parity table
+(`crates/podvm/src/run/foreground.rs:204`). The parity table
 has no `--secret` row. The interposer is not a boundary, so
 a claim about "only the runner process" has a limit that the
 banner must state.
@@ -3551,8 +3571,8 @@ which call fails first.
 `crates/podvm/src/parity.rs:235`); `-v` is Degraded and
 refuses `:ro` (`crates/podvm/src/parity.rs:222`); `exec -e`
 and `-w` are Native, `exec -d` is None
-(`crates/podvm/src/parity.rs:290` to
-`crates/podvm/src/parity.rs:296`); `logs` is one interleaved
+(`crates/podvm/src/parity.rs:291` to
+`crates/podvm/src/parity.rs:297`); `logs` is one interleaved
 file (`crates/podvm/src/parity.rs:153`); `network` and `-p`
 are None. `exec` checks its workdir through the container's
 volume table (`crates/podvm/src/exec/enter.rs:203`), not yet

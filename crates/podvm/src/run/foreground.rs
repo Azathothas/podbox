@@ -113,7 +113,24 @@ fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
     });
 }
 
+/// `run`. With `--report PATH`, one JSON document of the run goes to PATH
+/// at its end, also where podvm refuses (TODO/cli.md T-1695).
 pub fn run(args: &[String]) -> i32 {
+    let path = super::report::path_in(args);
+    let mut r = super::report::Report::begin(args);
+    let code = run_inner(args, &mut r);
+    if let Some(path) = path {
+        r.end(code);
+        if let Err(e) = r.write(&path) {
+            eprintln!(
+                "podvm run: --report: the report could not be written: {e} (TODO/cli.md T-1695)"
+            );
+        }
+    }
+    code
+}
+
+fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
     let store = match podvm_image::open_store() {
         Ok(s) => s,
         Err(e) => {
@@ -125,6 +142,7 @@ pub fn run(args: &[String]) -> i32 {
         Ok(p) => p,
         Err(code) => return code,
     };
+    r.prepared(&p);
     let mut err = std::io::stderr().lock();
 
     // ⭐ M4. `-d` hands the container to a detached launcher and returns as soon
@@ -174,6 +192,8 @@ pub fn run(args: &[String]) -> i32 {
         return match podvm_supervise::start(&store, &c.id, &p.record) {
             Ok(c) => {
                 println!("{}", c.id);
+                r.ran = true;
+                r.container = Some(c.id.clone());
                 0
             }
             Err(e) => {
@@ -282,6 +302,9 @@ pub fn run(args: &[String]) -> i32 {
     // ⭐ TODO/packaging.md T-1003. A forced launch rung drives through the
     // ladder; unset means the chroot by path below, untouched. The banner
     // names the entered rung, so a forced run says where it went.
+    // From here the payload is entered: its code is its own (T-1695).
+    r.ran = true;
+    r.container = Some(fg.id.clone());
     let code = match p.ladder {
         Some(mode) => {
             let _ = writeln!(
@@ -319,6 +342,7 @@ pub fn run(args: &[String]) -> i32 {
             if let Some(u) = &p.userland {
                 let outcome = crate::lifecycle::enter_userland("run", &root, &plan, u, &mut err);
                 if !outcome.entered {
+                    r.ran = false;
                     fg_end(&store, fg, outcome.code);
                     drop(memo);
                     let _ = std::fs::remove_file(&p.memo_host_path);
@@ -346,6 +370,7 @@ pub fn run(args: &[String]) -> i32 {
         }
     };
     if wall.is_some_and(super::wall::Wall::disarm) {
+        r.timed_out = true;
         let _ = writeln!(
             err,
             "podvm run: --timeout {} s came: the payload's tree was killed (TODO/cli.md T-1655)",

@@ -130,6 +130,8 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                     }
                 },
                 "--podvm-cpus" => o.cpus = Some(cpus(verb, a)?),
+                // TODO/cli.md T-1695: `run` reads the path before the parse.
+                "--report" => report(verb)?,
                 "--podvm-confine" => {
                     let c = confine(verb, a)?;
                     o.hardening.confine = Some(podvm_enter::confine::render(&c));
@@ -238,6 +240,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--podvm-mem" => expecting = Some("--podvm-mem"),
             "--podvm-cpus" => expecting = Some("--podvm-cpus"),
             "--podvm-confine" => expecting = Some("--podvm-confine"),
+            "--report" => expecting = Some("--report"),
             "--profile" => expecting = Some("--profile"),
             "--network" | "--net" => expecting = Some("--network"),
             "--ports" => expecting = Some("--ports"),
@@ -351,6 +354,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             other if other.starts_with("--set=") => {
                 o.sets.push(other["--set=".len()..].to_string())
             }
+            other if other.starts_with("--report=") => report(verb)?,
             other if other.starts_with("--podvm-confine=") => {
                 let c = confine(verb, &other["--podvm-confine=".len()..])?;
                 o.hardening.confine = Some(podvm_enter::confine::render(&c));

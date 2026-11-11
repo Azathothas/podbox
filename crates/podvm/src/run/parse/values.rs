@@ -171,6 +171,17 @@ pub(super) fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<S
     Ok(out)
 }
 
+/// `--report` is a flag of `run` only (TODO/cli.md T-1695).
+pub(super) fn report(verb: &str) -> std::result::Result<(), i32> {
+    if verb == "run" {
+        return Ok(());
+    }
+    eprintln!(
+        "podvm {verb}: --report is a flag of `run`: one report for each run (TODO/cli.md T-1695)"
+    );
+    Err(EXIT_FLAG_ERROR)
+}
+
 /// `--label KEY[=VALUE]` as `KEY=VALUE` (TODO/cli.md T-1695).
 pub(super) fn label(verb: &str, a: &str) -> std::result::Result<String, i32> {
     let (k, v) = a.split_once('=').unwrap_or((a, ""));

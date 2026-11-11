@@ -103,8 +103,8 @@ usage: podvm images [options] [image]
       --format T   a Go-template-shaped string of {{.Field}} placeholders
       --filter key=value
                    name=<substring> matches the repository or tag;
-                   label=<key>[=<value>] matches nothing, because image
-                   records carry no labels. Repeatable.
+                   label=<key>[=<value>] matches the labels of the image's
+                   OCI config (TODO/cli.md T-1695). Repeatable.
 
   Fields: .Repository .Tag .ID .Digest .CreatedSince .CreatedAt .Size
           .Platform .Store

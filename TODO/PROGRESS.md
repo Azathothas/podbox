@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 7 open, 8 partial, 5 blocked, 326 done.
+346 entries: 7 open, 7 partial, 5 blocked, 327 done.
 
 The state on 2026-11-11:
 
@@ -54,8 +54,8 @@ that is not done. Read its Prove before you start. Set its status with
    scope entries of step 2.
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1658](enter.md) (partial: the native-static, syscall and
-   emulate rungs, `/tmp` on the namespace rung (COORD-048, issue 267) and the report of
-   T-1695 remain); [T-1667](cli.md) (partial:
+   emulate rungs and `/tmp` on the namespace rung (COORD-048, issue 267)
+   remain); [T-1667](cli.md) (partial:
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
@@ -68,7 +68,7 @@ that is not done. Read its Prove before you start. Set its status with
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.
 5. After podvm's own order (the owner's ruling "Priority",
    2026-11-09): the asks of cfb, [T-1694](cli.md); the podrunner part
-   (issues 229 to 240), [T-1695](cli.md); then [T-1711](cli.md) (the
+   (issues 229 to 240); then [T-1711](cli.md) (the
    container-hook calls); and the clauses of PodUtils/podcrates#39.
 
 The entries done since the resume of 2026-11-11 are in the record; the

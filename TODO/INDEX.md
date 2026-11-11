@@ -369,7 +369,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1692](milestones.md) | P2 | S | none | windows | done | The `windows --podvm-mem` row says what the verb does about `RLIMIT_FSIZE` |
 | [T-1693](packaging.md) | P2 | S | none | packaging | done | README and SECURITY name the last podbox tag that the verifier uses |
 | [T-1694](cli.md) | P2 | L | none | cli | open | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
-| [T-1695](cli.md) | P1 | L | none | cli | partial | One JSON report for each run, and real labels on records |
+| [T-1695](cli.md) | P1 | L | none | cli | done | One JSON report for each run, and real labels on records |
 | [T-1696](cli.md) | P2 | M | none | cli | done | `--secret` places a file with no argv and no env, and a read-once mode |
 | [T-1697](interpose.md) | P1 | L | none | interpose | done | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 | [T-1698](extract.md) | P0 | S | none | extract | done | A whiteout of `..` deletes outside the destination |
@@ -415,7 +415,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-346 entries: 7 open, 8 partial, 5 blocked, 326 done.
+346 entries: 7 open, 7 partial, 5 blocked, 327 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -425,10 +425,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 0 | 4 | 0 | 146 | 150 |
+| P1 | 0 | 3 | 0 | 147 | 150 |
 | P2 | 4 | 3 | 5 | 103 | 115 |
 | P3 | 3 | 0 | 0 | 13 | 16 |
-| **All** | 7 | 8 | 5 | 326 | 346 |
+| **All** | 7 | 7 | 5 | 327 | 346 |
 
 ## Work order
 

@@ -148,6 +148,14 @@ pub const RUN_OPTIONS: &str = "\
                    starts, naming both numbers (TODO/machine.md T-1305)
   --podvm-cpus N  podvm's own, machine tier only and refused elsewhere: the
                    guest's vCPUs, 1 to 64 (TODO/cli.md T-1654)
+  --report PATH    podvm's own: one JSON document of the run at PATH,
+                   written with a rename at its end, also when podvm refuses
+                   before the start: the image and its digest, the rung,
+                   argv, the exit code or the signal, the times, the CPU
+                   time and the peak resident set, the timeout, the limits,
+                   the labels and the fixups. Never stdout, which is the
+                   payload's, and no value of an environment variable
+                   (TODO/cli.md T-1695)
   --podvm-confine SPEC
                    podvm's own: read=P,...;write=P,...;exec=P,...;connect=
                    PORT,... confines the payload with Landlock, the seccomp
@@ -178,6 +186,8 @@ mod parse;
 pub use parse::*;
 
 mod foreground;
+/// `run --report PATH` (TODO/cli.md T-1695).
+mod report;
 pub use foreground::*;
 
 mod prepare;

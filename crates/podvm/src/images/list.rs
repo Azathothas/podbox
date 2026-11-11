@@ -115,7 +115,7 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
     };
     // ⭐ TODO/cli.md T-1331. Caller-side predicate over the listed
     // records: `name=` matches the repository or tag substring, `label=`
-    // matches nothing (records carry no labels), every filter must match.
+    // the labels of the image's OCI config (T-1695), every filter must match.
     let records: Vec<_> = records
         .into_iter()
         .filter(|r| {
@@ -124,6 +124,7 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
                     r.repository.contains(&f.value)
                         || r.tag.as_deref().is_some_and(|t| t.contains(&f.value))
                 }
+                "label" => label_matches(&labels_of(&store, r), &f.value),
                 _ => false,
             })
         })
@@ -424,4 +425,51 @@ pub(super) fn read_password(
         return Err(EXIT_CLI_ERROR);
     }
     Ok(password)
+}
+
+/// The labels of an image: the `config.Labels` object of its OCI config
+/// blob, as `KEY=VALUE` (TODO/cli.md T-1695). None where the blob is gone
+/// or holds none.
+pub(super) fn labels_of(store: &podvm_image::Store, r: &podvm_image::Record) -> Vec<String> {
+    let Ok(d) = podvm_image::digest::Digest::parse(&r.config_digest) else {
+        return Vec::new();
+    };
+    let Ok(bytes) = store.read_blob(&d) else {
+        return Vec::new();
+    };
+    let Ok(v) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
+        return Vec::new();
+    };
+    v.get("config")
+        .and_then(|c| c.get("Labels"))
+        .and_then(|l| l.as_object())
+        .map(|m| {
+            m.iter()
+                .map(|(k, v)| format!("{k}={}", v.as_str().unwrap_or_default()))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// docker's rule: `KEY` matches a label with that key, `KEY=VALUE` the
+/// label exactly.
+pub(super) fn label_matches(labels: &[String], want: &str) -> bool {
+    labels.iter().any(|l| match want.split_once('=') {
+        Some(_) => l == want,
+        None => l.split('=').next() == Some(want),
+    })
+}
+
+#[cfg(test)]
+mod label_tests {
+    use super::label_matches;
+
+    #[test]
+    fn an_image_label_matches_by_key_or_by_key_and_value() {
+        let l = vec!["org.opencontainers.image.version=3.20".to_string()];
+        assert!(label_matches(&l, "org.opencontainers.image.version"));
+        assert!(label_matches(&l, "org.opencontainers.image.version=3.20"));
+        assert!(!label_matches(&l, "org.opencontainers.image.version=3.21"));
+        assert!(!label_matches(&[], "a"));
+    }
 }

@@ -1037,7 +1037,7 @@ image (clause 19), both recorded with their pulled digests.
 
 **Source:** issue 74; `crates/podvm-interpose/src/path_calls.rs:63`;
   `src/ladder.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/foreground.rs:287`
+  `crates/podvm/src/run/foreground.rs:310`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -1241,7 +1241,7 @@ against the chroot control at 0.
 # T-1412: A missing workdir refuses naming the path
 
 **Source:** issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/parse.rs:207`
+  `crates/podvm/src/run/parse.rs:209`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -2546,8 +2546,8 @@ is denied `/etc/shadow` and `/tmp`, and reads and writes a `-v` volume at
 
 Remaining: the userland rung with podvm's dispatcher or an emulator (the
 native-static rung, the syscall and the emulate tier: each refuses by
-name), the write of `/tmp` on the namespace rung (COORD-048), the Landlock ABI in the
-report of T-1695. The ABI is in `podvm probe` already (the
+name), and the write of `/tmp` on the namespace rung (COORD-048). The report of
+T-1695 (`run --report`) names the confine SPEC of the run. The ABI is in `podvm probe` already (the
 probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
 the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs
 with no TCP rule (`crates/podvm/src/doctor/scope.rs`).

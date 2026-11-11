@@ -953,8 +953,8 @@ experiment: a waiter that stops forwarding fails its clauses.
 
 # T-1421: A foreground run leaves a container record
 
-**Source:** issue 84; `crates/podvm/src/run/parse.rs:173`;
-  `crates/podvm/src/run/foreground.rs:250`;
+**Source:** issue 84; `crates/podvm/src/run/parse.rs:175`;
+  `crates/podvm/src/run/foreground.rs:270`;
   [T-0607](supervise.md)
 **Category:** supervise
 **Milestone:** none
@@ -1040,7 +1040,7 @@ which also multiplies with no overflow check. The early error
 is in `launcher::wait`. The mapping is `wait_or_gone`, and the
 comment above it is false. Both are `pod_supervise::launcher`
 and `pod_supervise` of PodUtils/podcrates since podcrates@T-060. The
-parity row is `crates/podvm/src/parity.rs:390`. The files of
+parity row is `crates/podvm/src/parity.rs:391`. The files of
 `podvm-supervise` go to `pod-supervise` (podcrates podcrates@T-060), which
 podcrates imports after this fix.
 
@@ -1096,7 +1096,7 @@ because Docker Hub and `public.ecr.aws` answered HTTP 429 that day.
   A-V-07 of PodUtils/podcrates#39; ask 2.3 of COORD-021 (issue
   227); T-0601 (the pidfd decision); T-1655 (`--timeout`);
   `src/launcher.rs` of `pod-supervise` (PodUtils/podcrates);
-  `crates/podvm/src/parity.rs:288`
+  `crates/podvm/src/parity.rs:289`
 **Category:** supervise
 **Milestone:** none
 **Priority:** P1
@@ -1119,7 +1119,7 @@ The launcher signals one pid (`kill(pid, sig)` in
 `src/launcher.rs` of `pod-supervise` v0.12.0, line 351).
 T-0601 states that a pidfd does not contain descendants. The
 `--init` row says that orphans reparent to the host init
-(`crates/podvm/src/parity.rs:288`). No code sets
+(`crates/podvm/src/parity.rs:289`). No code sets
 `PR_SET_CHILD_SUBREAPER` (grep of the tree and of podcrates
 v0.12.0). The launcher is double-forked: its parent is pid 1
 before a stop (M2). A subreaper needs no privilege.
