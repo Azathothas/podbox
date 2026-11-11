@@ -351,3 +351,30 @@ fn a_cwd_inside_the_target_gets_the_prefix_once() {
     host.extend_from_slice(b"/src/x");
     assert_eq!(resolve(&t, fd, c"x"), host);
 }
+
+/// TODO/interpose.md T-1705. A rewrite is idempotent: a host path under the
+/// root pair or under the host side of a volume passes unchanged, and a
+/// guest path still gets the prefix. A host side of `/` is not a reason to
+/// pass: each path is under it.
+#[test]
+fn a_host_path_under_a_host_side_is_not_prefixed_again() {
+    let env = env_of([b"PODVM_MAPS=/:/store/rootfs,/data:/srv/vol,/hostroot:/\0"]);
+    let t = unsafe { parse(env.as_ptr()) };
+    assert_eq!(t.n, 3);
+    let mut out = [0u8; OUT];
+    // The loader's answer for a library of the image: a host path.
+    assert_eq!(rw(&t, b"/store/rootfs/usr/lib/libcoreclr.so", &mut out), -1);
+    assert_eq!(rw(&t, b"/store/rootfs", &mut out), -1);
+    // A file of a volume, by its host path.
+    assert_eq!(rw(&t, b"/srv/vol/x", &mut out), -1);
+    // The boundary: a sibling of the rootfs is a guest path.
+    let n = rw(&t, b"/store/rootfs2/x", &mut out);
+    assert_eq!(&out[..n as usize], b"/store/rootfs/store/rootfs2/x");
+    // A guest path still gets the prefix.
+    let n = rw(&t, b"/usr/lib/libcoreclr.so", &mut out);
+    assert_eq!(&out[..n as usize], b"/store/rootfs/usr/lib/libcoreclr.so");
+    let n = rw(&t, b"/data/x", &mut out);
+    assert_eq!(&out[..n as usize], b"/srv/vol/x");
+    let n = rw(&t, b"/hostroot/etc/hostname", &mut out);
+    assert_eq!(&out[..n as usize], b"/etc/hostname");
+}

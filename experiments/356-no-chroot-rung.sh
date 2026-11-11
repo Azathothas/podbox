@@ -117,6 +117,9 @@
 #      debian prints /usr/bin/realpath, not the loader; a program built
 #      with _FORTIFY_SOURCE=2 (it calls __realpath_chk and __readlink_chk)
 #      prints its own guest path from realpath and from readlink.
+#   29. the loader's paths (T-1705): a program of a debian image opens the
+#      path that dladdr gives for its own library (a host path under the
+#      rootfs, from the loader) at 0, and the path is not prefixed again.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -852,6 +855,38 @@ if cc -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -o "$WORK/fort/fort" "$WORK/fort
 	grep -qx "readlink /fort/fort" "$WORK/out-fx-fortified.txt" || { echo "a fortified readlink did not name the program" >>"$REPORT"; fail=1; }
 else
 	echo "fortified program COMPILE FAILED" | tee -a "$REPORT"; fail=1
+fi
+
+# Clause 29 (T-1705): a path that the loader gives is a host path under
+# the rootfs, and an open of it is not prefixed a second time.
+timeout 600 "$PB" extract "$DEBIAN" >>"$REPORT" 2>&1 || { echo "debian extract FAILED" | tee -a "$REPORT"; fail=1; }
+DROOT=$("$PB" inspect --format '{{.RootfsPath}}' "$DEBIAN" 2>/dev/null) || DROOT=""
+mkdir -p "$WORK/dl-root/usr/lib/x86_64-linux-gnu" "$WORK/dl-root/usr/bin" || exit 2
+printf 'int x356(void) { return 7; }\n' >"$WORK/x356.c"
+cat >"$WORK/dl356.c" <<'DL356'
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#include <fcntl.h>
+#include <stdio.h>
+int x356(void);
+int main(void) {
+	Dl_info info;
+	if (!dladdr((void *)x356, &info)) { puts("dladdr failed"); return 2; }
+	int fd = open(info.dli_fname, O_RDONLY);
+	printf("dladdr %s\nopen %s\n", info.dli_fname, fd >= 0 ? "ok" : "failed");
+	return fd >= 0 ? 0 : 1;
+}
+DL356
+if [ -d "$DROOT" ] &&
+	cc -shared -fPIC -o "$WORK/dl-root/usr/lib/x86_64-linux-gnu/libx356.so" "$WORK/x356.c" 2>>"$REPORT" &&
+	cc -o "$WORK/dl-root/usr/bin/dl356" "$WORK/dl356.c" -L"$WORK/dl-root/usr/lib/x86_64-linux-gnu" -lx356 2>>"$REPORT" &&
+	tar -cf "$WORK/dl-debian.tar" -C "$DROOT" . -C "$WORK/dl-root" usr/lib/x86_64-linux-gnu/libx356.so usr/bin/dl356 2>>"$REPORT" &&
+	timeout 300 "$PB" import "$WORK/dl-debian.tar" dl-debian:356 >>"$REPORT" 2>&1; then
+	step fx-dladdr 0 $FX "$PB" run --rm dl-debian:356 /usr/bin/dl356
+	grep -qx "open ok" "$WORK/out-fx-dladdr.txt" || { echo "the path from dladdr did not open" >>"$REPORT"; fail=1; }
+	grep -q "^dladdr .*/rootfs/.*lib/x86_64-linux-gnu/libx356.so$" "$WORK/out-fx-dladdr.txt" || { echo "dladdr did not name the library" >>"$REPORT"; fail=1; }
+else
+	echo "dladdr image     BUILD FAILED" | tee -a "$REPORT"; fail=1
 fi
 
 {

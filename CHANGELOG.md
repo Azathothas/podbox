@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the paths that the loader gives, 2026-11-11
+
+Record: T-1705; issue 230.
+Deployed: not deployed; no version change.
+
+- On the userland rung, a path that the loader gives (`dladdr`, the link
+  map, `/proc/self/maps`) is a host path under the rootfs, and the
+  interposer added the rootfs prefix to it a second time, so an open of it
+  failed with `ENOENT` (CoreCLR of the official runner exited 137). A path
+  under the host side of the table now passes unchanged.
+
 ### Fixed: realpath of the exe on the userland rung, 2026-11-11
 
 Record: T-1704; issue 229.

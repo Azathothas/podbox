@@ -2625,7 +2625,7 @@ Source:      issue 230; the podrunner design review (the owner's design
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     A runtime that opens a file by a path that the loader gave
              it (`dladdr`, the link map, `/proc/self/maps`) gets a host
@@ -2663,6 +2663,32 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
              exits 0 with a new clause: the `dladdr` test program in a
              glibc image opens its own object at 0.
+
+**Done 2026-11-11, form (a).** Measured first, on the cloud host: a
+program that opens the path `dladdr` gives for its own library, started as
+podvm starts it (the loader with `--library-path` of a host directory,
+under the gnu object and a table `/:ROOT`), got the host path
+`ROOT/usr/lib/libx.so` and its `open` failed (exit 1): the rewrite added
+the prefix a second time. Form (a) covers each source of such a path
+(`dladdr`, the link map, `/proc/self/maps`) at once, so this entry takes
+it. `rewrite` returns "no match" for a path under the host side of a pair
+(`under_host_side` in `crates/podvm-interpose/src/map/rewrite.rs`), so the
+path passes unchanged; a host side of `/` is left out, because each path
+is under it. The same program then opens its library (exit 0). The limit,
+in the comment of the function: a guest path that names the host source
+of a volume under another guest name reaches that source. The Prove, on
+the cloud host, 2026-11-11: `cargo test --manifest-path
+crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --
+--test-threads=1` exits 0 (72 tests), with
+`a_host_path_under_a_host_side_is_not_prefixed_again` (a host path under
+the root pair and under a volume passes; a sibling of the rootfs, a guest
+path and a path under a volume of `/` still get the prefix).
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 with
+clause 29 ([the run](../experiments/results/no-chroot-rung.txt)): in an
+image of debian with a library in `/usr/lib/x86_64-linux-gnu`, the
+program prints its `dladdr` path (a host path under the rootfs, through
+the image's `/lib` link) and `open ok` at 0. T-1719 records that
+`lib_dirs` has no `/usr/local/lib`, found on the way.
 
 **Filed 2026-11-10.** From issue 230 and the podrunner design review
 (the ruling "podrunner", 2026-11-10): blocker 2 of the official runner on

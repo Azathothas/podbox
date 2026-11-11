@@ -2157,3 +2157,44 @@ Clears when: a podcrates tag (planned `v0.15.0`) carries podcrates T-155.
 
 **Filed 2026-11-10.** From COORD-027 (PodUtils/podcrates#52), the answer
 of podcrates to the two asks of issue 226 (T-1653).
+
+---
+
+### T-1719 The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf`
+
+Source:      the work of T-1705, 2026-11-11; `src/userland.rs` of
+             `pod-enter` (PodUtils/podcrates), `lib_dirs`
+Category:    enter
+Priority:    P2
+Effort:      S
+Status:      open
+
+Problem:     On the userland rung podvm starts the image's loader with
+             `--library-path` and the standard library directories of the
+             image. A library that the image keeps in `/usr/local/lib`, or
+             in a directory that only its `/etc/ld.so.conf` names, is not
+             found by that path. The loader runs on the host, so it reads
+             the host's `/etc/ld.so.cache`, not the image's (Inferred, not
+             run).
+Premise:     `lib_dirs` of `pod-enter` v0.15.0 pushes the loader's own
+             directory, then `/lib`, `/lib64`, `/usr/lib`, `/usr/lib64` and
+             the multiarch directories of five machines; it reads no
+             `ld.so.conf` and no `/usr/local/lib`. An image that builds a
+             program from source with `make install` and `ldconfig` keeps
+             its libraries in `/usr/local/lib`. A program with an
+             `$ORIGIN` run path is not affected.
+Approach:    Measure first: an image with a library in `/usr/local/lib`
+             and an `ld.so.conf.d` entry for it, and a program with no run
+             path that links it, on the chroot-denied fixture of
+             experiment 356. If it fails, ask podcrates by a COORD issue to
+             add `/usr/local/lib`, `/usr/local/lib64` and each directory of
+             the image's `/etc/ld.so.conf` (with its `include` lines, read
+             through the table, bounded) to `lib_dirs`, and take the tag.
+Decision:    The loader searches the directories that the image's own
+             `ldconfig` would search; the host's cache plays no part.
+Prove:       `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a clause: the program of that image runs at 0.
+
+**Filed 2026-11-11.** Found during T-1705, which put its test library in
+`/usr/lib/x86_64-linux-gnu` because `lib_dirs` has no `/usr/local/lib`.
+

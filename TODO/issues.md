@@ -123,7 +123,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #226 | COORD-020: podvm took v0.12.0, the Maps API of pod-enter (to podcrates) | closed (the asks are podcrates T-155) | T-1653 |
 | #227 | COORD-021: podrunner: the design review of #47, what the crates must give before podrunner starts (to podcrates) | closed (podcrates#51: T-160 to T-165) | none: the hand-off of the podrunner plan to podcrates ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
 | #228 | COORD-022: podrunner: podnet pod with the official runner, and the pod-hold hand-off (to podnet) | closed (podnet#422) | none: the asks of the podrunner plan to podnet ([decisions](../docs/decisions.md), 2026-11-10, "podrunner") |
-| #229 | [podrunner] interpose: realpath of /proc/self/exe names the image's loader, while readlink names the program, so the .NET runner exits 154 | open | T-1704 |
+| #229 | [podrunner] interpose: realpath of /proc/self/exe names the image's loader, while readlink names the program, so the .NET runner exits 154 | closed | T-1704 |
 | #230 | [podrunner] interpose: a host path that a loaded object reports gets the rootfs prefix a second time, so CoreCLR exits 137 | open | T-1705 |
 | #231 | [podrunner] the userland rung runs the unmodified actions/runner: it exits 154, then 137, and it dies on SIGXFSZ under a finite RLIMIT_FSIZE | open | T-1706; T-1655 (amended) |
 | #232 | [podrunner] enter: a relative first program resolves against the image root, not against -w, so -w /opt/runner ./run.sh exits 127 | open | T-1707 |

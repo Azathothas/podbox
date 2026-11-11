@@ -378,7 +378,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1702](machine.md) | P2 | machine | done | The TCG guest of `podvm-workload` prints no console byte in 600 s on the cloud host |
 | [T-1703](interpose.md) | P2 | interpose | open | The exec routes that T-1646 does not take still enter through the host |
 | [T-1704](interpose.md) | P1 | interpose | done | `realpath` of `/proc/self/exe` names the image's loader, while `readlink` names the program |
-| [T-1705](interpose.md) | P1 | interpose | open | A host path that a loaded object reports gets the rootfs prefix a second time |
+| [T-1705](interpose.md) | P1 | interpose | done | A host path that a loaded object reports gets the rootfs prefix a second time |
 | [T-1706](cli.md) | P2 | cli | open | The unmodified official `actions/runner` starts on the userland rung |
 | [T-1707](enter.md) | P1 | enter | open | A relative first program resolves against the image root, not against `-w` |
 | [T-1708](supervise.md) | P1 | supervise | blocked | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
@@ -392,10 +392,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1716](enter.md) | P2 | enter | done | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 | [T-1717](machine.md) | P2 | machine | open | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
 | [T-1718](machine.md) | P2 | machine | blocked | An incus back end: podvm drives incus over its REST API |
+| [T-1719](enter.md) | P2 | enter | open | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
 
 ## Counts
 
-327 items: 34 open, 9 partial, 5 blocked, 279 done.
+328 items: 34 open, 9 partial, 5 blocked, 280 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -405,10 +406,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 5 | 6 | 1 | 133 | 145 |
-| P2 | 29 | 2 | 4 | 73 | 108 |
+| P1 | 4 | 6 | 1 | 134 | 145 |
+| P2 | 30 | 2 | 4 | 73 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **34** | **9** | **5** | **279** | **327** |
+| **All** | **34** | **9** | **5** | **280** | **328** |
 
 ## Work order
 

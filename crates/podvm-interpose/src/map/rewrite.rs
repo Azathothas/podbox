@@ -109,6 +109,9 @@ pub unsafe fn longest(t: &Table, path: *const u8, path_n: usize) -> Option<(usiz
 /// # Safety
 /// `path` must be readable for `path_n` bytes.
 pub unsafe fn rewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; OUT]) -> isize {
+    if unsafe { under_host_side(t, path, path_n) } {
+        return -1;
+    }
     let Some((idx, from_n)) = (unsafe { longest(t, path, path_n) }) else {
         return -1;
     };
@@ -146,6 +149,39 @@ pub unsafe fn rewrite(t: &Table, path: *const u8, path_n: usize, out: &mut [u8; 
         );
         (at + rest_n - skip) as isize
     }
+}
+
+/// True where `path` already names a place under the host side of a pair
+/// (the rootfs, or the source of a volume), so a rewrite would add the
+/// prefix a second time.
+///
+/// ⛔ TODO/interpose.md T-1705. A runtime opens files by the paths that the
+/// loader gives it (`dladdr`, the link map, `/proc/self/maps`), and podvm
+/// starts the image's loader with host library directories, so those paths
+/// are host paths under the rootfs. CoreCLR of the official runner opened
+/// one with the prefix twice and failed (`ENOENT`, exit 137). A rewrite is
+/// idempotent: such a path passes unchanged. Only a path under a host side
+/// passes, so the rule gives no reach outside the rootfs and the volumes.
+/// A host side of `/` (a volume of the host root) is left out: each path
+/// is under it. A guest path that names the host source of a volume under
+/// another guest name reaches that source: the limit of this rule.
+///
+/// # Safety
+/// `path` must be readable for `path_n` bytes.
+pub unsafe fn under_host_side(t: &Table, path: *const u8, path_n: usize) -> bool {
+    let mut i = 0usize;
+    while i < t.n {
+        let p = &t.pairs[i];
+        let mut to_n = p.to_n;
+        if to_n > 1 && unsafe { *p.to_p.add(to_n - 1) } == b'/' {
+            to_n -= 1;
+        }
+        if to_n > 1 && prefix(p.to_p, to_n, path, path_n) {
+            return true;
+        }
+        i += 1;
+    }
+    false
 }
 
 /// The longest matching pair for a real `path`, matched on the TO side, or
