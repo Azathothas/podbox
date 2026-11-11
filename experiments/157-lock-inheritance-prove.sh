@@ -2,8 +2,9 @@
 # Compat shim for the port (T-1563). The lock-inheritance proof lives in the
 # podvm-prove-t0211 binary in crates/podvm-release; this file only execs
 # it with the matching subcommand, so TODO/image.md T-0211 keeps its path.
-# The binary encodes the current anchors: the guard in `Lock::try_acquire`
-# and the one flag in `Lock::open`. A stale anchor passes vacuously.
+# The binary encodes the current anchors: the guard in `Lock::try_acquire_noting`
+# and the one flag in `Lock::open`, both in a copy of the podcrates checkout
+# of pod-supervise. A mutation that does not land fails the proof.
 #
 #   ./157-lock-inheritance-prove.sh
 #   PODVM_PROVE_RUNS=30 ./157-lock-inheritance-prove.sh

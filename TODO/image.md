@@ -1083,7 +1083,7 @@ Source:      Found by `cargo test --workspace` failing intermittently at the clo
 Category:    image
 Priority:    P1
 Effort:      S
-Status:      partial 2026-10-01
+Status:      done 2026-11-11
 
 Problem:     `Store::hold` opens the image lock **without** `O_CLOEXEC`, which
              is [T-0204](image.md)'s mechanism and is right: the guard has to
@@ -1184,6 +1184,36 @@ Decision:    Fix the inheritance, not the test. Marking the test `#[serial]` or
              test waits on a **fact**, a byte through a pipe from the forked
              child, a line of stdout from the spawned one, and not on a delay.
 Prove:       `cargo test -p podvm-image a_fork_while_the_lock_is_held_does_not_extend_it` and `cargo test -p podvm-image a_spawned_process_does_not_inherit_the_lock` both pass; the mutation half is re-proven by the retargeted `./experiments/157-lock-inheritance-prove.sh` (see the 2026-10-01 note below), and neither mutation may fail both
+
+**Done 2026-11-11.** `PODVM_PROVE_RUNS=30
+./experiments/157-lock-inheritance-prove.sh` exits 0
+(`experiments/results/lock-inheritance-prove.txt`).
+
+| what was run | result |
+| --- | --- |
+| `a_fork_while_the_lock_is_held_does_not_extend_it`, alone, 30 attempts | 30 of 30 |
+| `a_spawned_process_does_not_inherit_the_lock`, alone, 30 attempts | 30 of 30 |
+| clause 2: the fork defence removed from `Lock::try_acquire_noting` | the fork test exits 101, the exec test exits 0 |
+| clause 3: `O_CLOEXEC` removed from `Lock::open` | the exec test exits 101, the fork test exits 0 |
+
+The three remaining clauses of the note of 2026-10-01 are closed this way:
+
+* The two defences are in `pod_supervise::lock` (podcrates T-060), not in
+  this tree. The proof copies the podcrates checkout that cargo builds,
+  plants each mutation in the copy, and points each podcrates package of
+  `Cargo.lock` at the copy with `--config patch`
+  (`crates/podvm-release/src/prove_t0211/plant.rs`). Each package moves
+  together, so that `pod-supervise` and `clone_fork` use one fork-close
+  registry. The proof restores `Cargo.lock` after each mutation.
+* Clause 2 does not move to
+  `the_seventeenth_concurrent_registration_is_refused_by_name`: that test
+  calls `sys::close_in_children` directly, and the mutation does not touch
+  it. Each of the two tests gets an fd-presence oracle before the drop
+  instead. The forked child reads the lock fd with `fcntl(F_GETFD)`, and
+  the spawned shell reads `/proc/$$/fd/N` after its exec. The `LOCK_UN` of
+  `Lock::drop` cannot hide either reading.
+* The independence comment at
+  `crates/podvm-image/src/store/tests/locks.rs` now cites this run.
 
 **Done, 2026-09-12.** `./experiments/157-lock-inheritance-prove.sh` with
 `PODVM_PROVE_RUNS=30`, recorded in

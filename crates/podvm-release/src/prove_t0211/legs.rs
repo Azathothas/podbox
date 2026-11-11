@@ -136,12 +136,14 @@ fn result_lines(log: &Path) -> Vec<String> {
     lines
 }
 
-fn one(root: &Path, test: &str, log: &Path) -> Option<i32> {
+fn one(root: &Path, test: &str, log: &Path, patch: &[String]) -> Option<i32> {
     // Read the exit code from the process that produced it, without a pipe.
     let (tx, rx) = mpsc::channel();
     let mut command = Command::new("cargo");
     command
-        .args(["test", "-p", "podvm-image", test])
+        .args(["test", "-p", "podvm-image"])
+        .args(patch)
+        .arg(test)
         .current_dir(root)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -167,46 +169,51 @@ pub(super) fn lock_inheritance(root: &Path) -> i32 {
         .ok()
         .and_then(|text| text.parse().ok())
         .unwrap_or(30);
-    let subject = root.join(SUBJECT);
     if !command_exists("cargo") {
         eprintln!("SKIP: no cargo on PATH.");
         return 2;
     }
-    if !subject.is_file() {
-        eprintln!("SKIP: {SUBJECT} is not here, so this is not the podvm tree.");
+    if !root.join("crates/podvm-image/src/store.rs").is_file() {
+        eprintln!("SKIP: this is not the podvm tree.");
         return 2;
     }
-    // Refuse to start on a dirty subject: the mutations own this one file
-    // while they run, and restoring over an uncommitted change would restore
-    // a state nobody asked for.
-    let clean = run_to_string("git", &["diff", "--quiet", "--", SUBJECT], root, &[], 60).is_some()
-        && run_to_string(
+    // Refuse to start on a dirty lock file: the patched builds can change
+    // it, and restoring over an uncommitted change would restore a state
+    // nobody asked for.
+    let clean = run_status("git", &["diff", "--quiet", "--", LOCKFILE], root, &[], 60)
+        == Some(true)
+        && run_status(
             "git",
-            &["diff", "--cached", "--quiet", "--", SUBJECT],
+            &["diff", "--cached", "--quiet", "--", LOCKFILE],
             root,
             &[],
             60,
-        )
-        .is_some();
+        ) == Some(true);
     if !clean {
-        eprintln!("SKIP: {SUBJECT} has uncommitted changes. This proof must own it.");
+        eprintln!("SKIP: {LOCKFILE} has uncommitted changes. This proof must own it.");
         return 2;
     }
     let Some(work) = Guard::temp("podvm-prove") else {
         return 2;
     };
-    let backup = work.dir.join(SUBJECT);
-    if fs::create_dir_all(backup.parent().unwrap_or_else(|| Path::new("."))).is_err() {
+    // The mutations go into a copy of the podcrates checkout, never into
+    // cargo's own checkout (`prove_t0211/plant.rs`).
+    let Some((copy, patch)) = podcrates_copy(root, &work.dir) else {
+        eprintln!("SKIP: no copy of the podcrates checkout of pod-supervise.");
         return 2;
-    }
-    if fs::copy(&subject, &backup).is_err() {
+    };
+    let subject = copy.join(SUBJECT);
+    let lockfile = root.join(LOCKFILE);
+    let backup = work.dir.join("lock.rs");
+    let lock_backup = work.dir.join("Cargo.lock");
+    if fs::copy(&subject, &backup).is_err() || fs::copy(&lockfile, &lock_backup).is_err() {
         return 2;
     }
     let restore = || {
         fs::copy(&backup, &subject).ok();
+        fs::copy(&lock_backup, &lockfile).ok();
     };
-    // Guard the restore on every exit path: with a mutation staged, a plain
-    // checkout would restore the index, which is the mutation.
+    // Guard the restore on every exit path.
     struct Restore<'a> {
         restore: &'a dyn Fn(),
     }
@@ -258,7 +265,7 @@ pub(super) fn lock_inheritance(root: &Path) -> i32 {
         let mut summaries = BTreeSet::new();
         for i in 1..=runs {
             eprintln!("clause 1 {test} attempt {i} of {runs}");
-            match one(root, test, &work.dir.join("one.log")) {
+            match one(root, test, &work.dir.join("one.log"), &[]) {
                 Some(0) => passed += 1,
                 Some(_) => {
                     fs::copy(
@@ -340,9 +347,9 @@ pub(super) fn lock_inheritance(root: &Path) -> i32 {
                 say("");
                 return;
             }
-            let red = one(root, must_red, &work.dir.join("one.log"));
+            let red = one(root, must_red, &work.dir.join("one.log"), &patch);
             let red_summaries = result_lines(&work.dir.join("one.log"));
-            let green = one(root, must_green, &work.dir.join("one.log"));
+            let green = one(root, must_green, &work.dir.join("one.log"), &patch);
             let green_summaries = result_lines(&work.dir.join("one.log"));
             say(&format!(
                 "  {must_red} exited {}  (want non-zero)",
@@ -381,11 +388,11 @@ pub(super) fn lock_inheritance(root: &Path) -> i32 {
             say("");
         };
 
-    // The fork defence is the guard in `Lock::try_acquire`. Deleting the
+    // The fork defence is the guard in `Lock::try_acquire_noting`. Deleting the
     // call would leave an unbalanced block, so the call is turned into one
     // that registers nothing and still returns true.
     mutate(
-        "clause 2  the fork defence removed from Lock::try_acquire",
+        "clause 2  the fork defence removed from Lock::try_acquire_noting",
         FORK_PATTERN,
         FORK_REPLACE,
         FORK_TEST,
@@ -402,10 +409,10 @@ pub(super) fn lock_inheritance(root: &Path) -> i32 {
 
     say("== the tree afterwards");
     restore();
-    match run_to_string("git", &["diff", "--quiet", "--", SUBJECT], root, &[], 60) {
-        Some(_) => say(&format!("  {SUBJECT} is back as it was")),
-        None => {
-            say(&format!("  {SUBJECT} IS NOT BACK AS IT WAS"));
+    match run_status("git", &["diff", "--quiet", "--", LOCKFILE], root, &[], 60) {
+        Some(true) => say(&format!("  {LOCKFILE} is back as it was")),
+        _ => {
+            say(&format!("  {LOCKFILE} IS NOT BACK AS IT WAS"));
             fail = 1;
         }
     }

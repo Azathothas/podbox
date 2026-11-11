@@ -7,7 +7,7 @@ start.
 
 ## State
 
-336 entries: 26 open, 6 partial, 3 blocked, 301 done.
+336 entries: 26 open, 5 partial, 3 blocked, 302 done.
 
 The state on 2026-11-11:
 
@@ -74,8 +74,8 @@ that is not done. Read its Prove before you start. Set its status with
    another architecture (experiment 356, clause 36).
 5. [T-1604](enter.md) is done: the plant, two lane runs and the saved
    lane log of `detached_stdio`.
-6. [T-0211](image.md), partial: retarget the mutations of experiment 157
-   so that each one turns one test red.
+6. [T-0211](image.md) is done: experiment 157 plants each mutation in a
+   copy of `pod_supervise::lock`, and each one turns exactly one test red.
 7. [T-0204](image.md), partial: a Prove that reads the lock skip
    (`is in use by a running container`) with podvm as the holder. Then
    [T-1709](image.md) (a rootfs for each container), on the same code.

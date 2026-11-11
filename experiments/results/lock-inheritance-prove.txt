@@ -1,24 +1,54 @@
 == conditions
-date              2026-09-12T03:29:05Z
-host kernel       Linux 7.2.0-WSL2-STABLE
-nproc             20
-cargo             cargo 1.98.1 (797e8a9bc 2026-08-05)
-commit            17a022f
+date              2026-11-11T11:09:18Z
+host kernel       Linux 6.18.44-fc-v378
+cargo             cargo 1.99.1 (5f94df478 2026-08-27)
+commit            1941c73
 attempts          30 per test
 
 == clause 1  each test alone, 30 attempts each
   a_fork_while_the_lock_is_held_does_not_extend_it
     passed           30 of 30
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.40s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.41s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.42s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.47s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.51s
   a_spawned_process_does_not_inherit_the_lock
     passed           30 of 30
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.01s
 
-== clause 2  the fork defence removed from Store::hold
+== clause 2  the fork defence removed from Lock::try_acquire_noting
   a_fork_while_the_lock_is_held_does_not_extend_it exited 101  (want non-zero)
+    cargo reported   test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.46s
   a_spawned_process_does_not_inherit_the_lock exited 0  (want 0)
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == clause 3  O_CLOEXEC removed from Lock::open
   a_spawned_process_does_not_inherit_the_lock exited 101  (want non-zero)
+    cargo reported   test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.04s
   a_fork_while_the_lock_is_held_does_not_extend_it exited 0  (want 0)
+    cargo reported   test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.40s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+    cargo reported   test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
 == the tree afterwards
-  crates/podbox-image/src/store.rs is back as it was
+  Cargo.lock is back as it was

@@ -34,10 +34,20 @@ fn a_fork_while_the_lock_is_held_does_not_extend_it() {
     // ⚠ `clone_fork` and not `std::process::Command`: the defect is about
     // what a bare `fork` inherits, and spawning a process would exec and so
     // hide it behind the `FD_CLOEXEC` the other test covers.
+    //
+    // ⛔ The oracle reads the descriptor itself, before the drop. The
+    // `LOCK_UN` of `Lock::drop` releases the lock in each process that
+    // shares the open file description, so an `in_use` after the drop is
+    // false with or without the shed, and it cannot see this defect
+    // (TODO/image.md T-0211, the note of 2026-10-01).
+    let lock_fd = fd_of(&s.image_lock_path(&r).unwrap());
     let pid = unsafe { sys::clone_fork(sys::SIGCHLD) }.unwrap();
     if pid == 0 {
-        // ---- child. It has already shed; say so, then outlive the drop.
-        let _ = sys::write(w_fd, b"x");
+        // ---- child. It has already shed; say whether the lock fd is
+        // still open here, then outlive the drop. One system call and one
+        // write: no allocation between the fork and the exit.
+        let open = sys::fcntl(lock_fd, sys::F_GETFD, 0).is_ok();
+        let _ = sys::write(w_fd, if open { b"o" } else { b"c" });
         std::thread::sleep(std::time::Duration::from_millis(400));
         // ⛔ Never returns into the test harness: exits without unwinding.
         sys::exit_group(0);
@@ -45,6 +55,7 @@ fn a_fork_while_the_lock_is_held_does_not_extend_it() {
     let _ = sys::close(w_fd);
     let mut ack = [0u8; 1];
     assert_eq!(sys::read(r_fd, &mut ack).unwrap(), 1, "the child never ran");
+    let shed = ack[0] == b'c';
 
     drop(held);
     let free = s.in_use(&r).map(|u| !u);
@@ -52,6 +63,12 @@ fn a_fork_while_the_lock_is_held_does_not_extend_it() {
     let mut status = 0;
     let _ = sys::close(r_fd);
     let _ = sys::wait4(pid, &mut status);
+    assert!(
+        shed,
+        "a forked child holds the lock fd {lock_fd} while its parent holds the \
+             lock: clone_fork did not shed it, which is the fork half of \
+             TODO/image.md T-0211"
+    );
     assert!(
         free.unwrap(),
         "the holder released the lock and it is still held: a forked child \
@@ -102,9 +119,12 @@ pub(super) static STORE_TESTS: std::sync::Mutex<()> = std::sync::Mutex::new(());
 /// `clone_fork` sheds registered fds, so nothing podvm forks itself can
 /// carry a lock away. ⛔ `std::process::Command` forks inside libstd and
 /// never passes through `clone_fork`, so the shed list cannot reach it and
-/// `O_CLOEXEC` on the descriptor is the only thing that does. Reverting
-/// either defence turns exactly one of these two tests red, which is how it
-/// was confirmed they are independent.
+/// `O_CLOEXEC` on the descriptor is the only thing that does.
+/// `experiments/157-lock-inheritance-prove.sh` removes each defence in a
+/// copy of `pod_supervise::lock` and reads both tests: each removal turns
+/// exactly one of them red, so the two defences are independent. The
+/// oracles read the descriptor before the drop, because the `LOCK_UN` of
+/// `Lock::drop` hides both defects after it (T-0211, 2026-11-11).
 #[test]
 fn a_spawned_process_does_not_inherit_the_lock() {
     let _serialised = STORE_TESTS.lock().unwrap_or_else(|e| e.into_inner());
@@ -113,18 +133,22 @@ fn a_spawned_process_does_not_inherit_the_lock() {
     s.put_record(r.clone()).unwrap();
 
     let held = s.hold(&r).unwrap();
-    // ⛔ The child announces itself on stdout and the parent reads that
-    // before asserting. `O_CLOEXEC` takes the fd away at the **exec**, so a
-    // parent that asserts while the child is still between `fork` and
-    // `execve` measures the fork window instead, which is the other test's
-    // subject, and would make this one fail for the wrong reason.
+    // ⛔ The child reports whether the lock fd survived its exec, and the
+    // parent reads that report before the drop. `O_CLOEXEC` takes the fd
+    // away at the **exec**, so the report comes from after it, and a fork
+    // window cannot make this test fail. The `LOCK_UN` of `Lock::drop`
+    // releases the lock in the child too, so an `in_use` after the drop
+    // cannot see this defect (TODO/image.md T-0211, the note of 2026-10-01).
+    let lock_fd = fd_of(&s.image_lock_path(&r).unwrap());
     let mut child = std::process::Command::new("/bin/sh")
         .arg("-c")
-        .arg("echo ready; sleep 2")
+        .arg(format!(
+            "if [ -e /proc/$$/fd/{lock_fd} ]; then echo held; else echo ready; fi; sleep 2"
+        ))
         .stdout(std::process::Stdio::piped())
         .spawn()
         .expect("/bin/sh");
-    let mut line = [0u8; 6];
+    let mut line = [0u8; 5];
     {
         use std::io::Read;
         child
@@ -134,7 +158,12 @@ fn a_spawned_process_does_not_inherit_the_lock() {
             .read_exact(&mut line)
             .expect("the child never reached its exec");
     }
-    assert_eq!(&line, b"ready\n");
+    assert_eq!(
+        &line, b"ready",
+        "a spawned process holds the lock fd {lock_fd} after its exec: the \
+             lock fd was not O_CLOEXEC, which is the exec half of TODO/image.md \
+             T-0211"
+    );
 
     drop(held);
     let free = s.in_use(&r).map(|u| !u);
@@ -415,4 +444,26 @@ fn two_holders_of_one_image_both_have_to_go_before_it_is_free() {
         who_holds(&s.image_lock_path(&r).unwrap())
     );
     let _ = std::fs::remove_dir_all(s.root());
+}
+
+/// The one descriptor of this process that names `path`. The two T-0211
+/// oracles read this descriptor number in a child.
+fn fd_of(path: &Path) -> i64 {
+    let want = std::fs::canonicalize(path).expect("the lock file");
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir("/proc/self/fd").expect("/proc/self/fd") {
+        let entry = entry.expect("an fd entry");
+        if std::fs::read_link(entry.path()).ok().as_deref() == Some(want.as_path())
+            && let Some(n) = entry.file_name().to_str().and_then(|t| t.parse().ok())
+        {
+            found.push(n);
+        }
+    }
+    assert_eq!(
+        found.len(),
+        1,
+        "want one fd of {}, found {found:?}",
+        path.display()
+    );
+    found[0]
 }

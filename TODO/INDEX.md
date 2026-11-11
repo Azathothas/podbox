@@ -86,7 +86,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0208](image.md) | P2 | image | done | `--platform`, and a store that can hold two variants of one tag |
 | [T-0209](image.md) | P2 | image | done | Registry authentication, without a credential ever entering this tree |
 | [T-0210](image.md) | P1 | image | done | The store's concurrency contract, written down and driven |
-| [T-0211](image.md) | P1 | image | partial | An image lock outlives its holder whenever anything forks |
+| [T-0211](image.md) | P1 | image | done | An image lock outlives its holder whenever anything forks |
 | [T-0212](image.md) | P0 | image | done | The platform is decided at run time, and the store holds more than one |
 | [T-0213](image.md) | P0 | image | done | A registry with no certificate, or one nothing trusts, and the refusal kept |
 | [T-0214](image.md) | P2 | image | done | A blob body cut off mid-stream is not retried, and the bounded retry is around the wrong thing |
@@ -404,7 +404,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-336 items: 26 open, 6 partial, 3 blocked, 301 done.
+336 items: 26 open, 5 partial, 3 blocked, 302 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -414,10 +414,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 2 | 5 | 0 | 141 | 148 |
+| P1 | 2 | 4 | 0 | 142 | 148 |
 | P2 | 22 | 0 | 3 | 87 | 112 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **26** | **6** | **3** | **301** | **336** |
+| **All** | **26** | **5** | **3** | **302** | **336** |
 
 ## Work order
 

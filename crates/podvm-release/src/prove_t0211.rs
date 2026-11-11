@@ -21,10 +21,15 @@ use std::time::Duration;
 // 157's subjects, exactly as the entry names them.
 const FORK_TEST: &str = "a_fork_while_the_lock_is_held_does_not_extend_it";
 const EXEC_TEST: &str = "a_spawned_process_does_not_inherit_the_lock";
-const SUBJECT: &str = "crates/podvm-image/src/store.rs";
-// The current anchors, re-anchored IIUC T-1508: the guard in
-// `Lock::try_acquire` and the one flag in `Lock::open`. The binary encodes
-// the current source text; a stale anchor passes vacuously.
+// The mutated file, relative to the copy of the podcrates checkout
+// (`prove_t0211/plant.rs`). `Lock` moved there with podcrates T-060.
+const SUBJECT: &str = "crates/pod-supervise/src/lock.rs";
+// The file of this tree that the patched builds can change. The proof
+// restores it after each mutation.
+const LOCKFILE: &str = "Cargo.lock";
+// The current anchors: the guard in `Lock::try_acquire_noting` and the one
+// flag in `Lock::open`. The binary encodes the current source text, and it
+// refuses a mutation that does not land.
 const FORK_PATTERN: &str = "if !sys::close_in_children(fd) {";
 const FORK_REPLACE: &str = "if !true {";
 const EXEC_PATTERN: &str = "let flags = sys::O_RDWR | sys::O_CREAT | sys::O_CLOEXEC;";
@@ -123,6 +128,9 @@ impl Drop for Guard {
 #[path = "prove_t0211/legs.rs"]
 mod legs;
 use legs::*;
+#[path = "prove_t0211/plant.rs"]
+mod plant;
+use plant::*;
 
 fn main() {
     let mut argv = std::env::args().skip(1);
