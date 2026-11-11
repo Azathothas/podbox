@@ -70,7 +70,13 @@ ok() { say "  ok: $1"; }
   echo
 } >"$OUT"
 
-bash scripts/common/bootstrap-env.sh rust cc zig openssh tools qemu vmtools >"$work/bootstrap.log" 2>&1 || { echo "SKIP: bootstrap failed" >&2; exit 2; }
+# The qemu component also installs qemu-user-static, which 390 does not
+# need and a hosted runner did not install (kvm.yml run 42969440082):
+# it is asked for only where qemu-system-x86_64 is missing.
+comps="rust cc zig openssh tools vmtools"
+command -v qemu-system-x86_64 >/dev/null 2>&1 || comps="$comps qemu"
+# shellcheck disable=SC2086
+bash scripts/common/bootstrap-env.sh $comps >"$work/bootstrap.log" 2>&1 || { echo "SKIP: bootstrap failed" >&2; tail -5 "$work/bootstrap.log" >&2; exit 2; }
 for t in qemu-system-x86_64 cpio python3 curl sha256sum timeout ssh ssh-keygen file make cc zig git; do
   command -v "$t" >/dev/null 2>&1 || { echo "SKIP: $t is not on PATH" >&2; exit 2; }
 done
