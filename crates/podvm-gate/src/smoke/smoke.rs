@@ -91,9 +91,16 @@ pub(super) fn do_smoke(bin: &str, triple: &str, qemu: &str, root: &Path) -> Exit
         );
     }
 
-    // Groups 3: both interposer digests are 64 lowercase hex digits.
+    // Groups 3: both interposer digests are 64 lowercase hex digits. Off
+    // x86_64 a binary embeds no interposer since TODO/interpose.md T-1721
+    // (the objects are x86_64 only), so `absent` is the decided value there.
+    let native = triple.starts_with("x86_64-");
     for key in ["interpose-gnu", "interpose-musl"] {
         let value = doc_line(&doc, key);
+        if !native && value == "absent" {
+            println!("SMOKE-EMBED {triple} {key} absent (TODO/interpose.md T-1721)");
+            continue;
+        }
         if value.len() != 64 {
             return smoke_fail(
                 triple,
@@ -139,9 +146,9 @@ pub(super) fn do_smoke(bin: &str, triple: &str, qemu: &str, root: &Path) -> Exit
 
     // Group 6: the embedded pair's e_machine beside the artefact's own. A
     // present object with no machine is a build that did not record; an
-    // x86_64 artefact embedding anything but 0x3e is the wrong-arch embed
-    // this group exists to catch. Off x86_64 the mismatch is the decided
-    // decline, printed with both values and expected, never silent.
+    // artefact embedding an object of another machine is the wrong-arch
+    // embed this group exists to catch. Off x86_64 the decided form is no
+    // embed at all (TODO/interpose.md T-1721, PodUtils/podrunner#52).
     if which("od").is_none() {
         return smoke_unrun(triple, "od is not installed, so e_machine is unchecked");
     }
@@ -181,8 +188,13 @@ pub(super) fn do_smoke(bin: &str, triple: &str, qemu: &str, root: &Path) -> Exit
         }
     } else if gnu_m == format!("0x{outer}") && musl_m == format!("0x{outer}") {
         println!("SMOKE-EMBED-MACHINE {triple} embeds match the artefact");
+    } else if gnu_m == "absent" && musl_m == "absent" {
+        println!("SMOKE-EMBED-MACHINE {triple} embeds none (TODO/interpose.md T-1721)");
     } else {
-        println!("SMOKE-EMBED-MACHINE {triple} embeds differ (expected: x86_64-only pair, honest decline stands)");
+        return smoke_fail(
+            triple,
+            &format!("embeds gnu={gnu_m} musl={musl_m}, not the artefact 0x{outer} and not none"),
+        );
     }
 
     // Group 5: the binary pulls and extracts for its actual job, not only

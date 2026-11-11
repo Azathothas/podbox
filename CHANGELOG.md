@@ -18,7 +18,9 @@ Deployed: version 0.2.0-beta.3.
 - `podvm-aarch64` embedded the two x86_64 interposer objects, so the
   userland rung declined each arm64 payload with a machine mismatch. A
   binary for another target now embeds none and says so; the aarch64 port
-  of the interposer is T-1721.
+  of the interposer is T-1721. The smoke of each binary (`podvm-smoke`, in
+  `nightly.yml` and `gate.yml`) takes `absent` off x86_64 and fails an
+  embed of another machine.
 
 ### Fixed: the loader finds the image's library directories, 2026-11-11
 
