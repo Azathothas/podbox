@@ -24,7 +24,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #127 | [Recovered #95] a dynamic grandchild re-enters through the host loader: the loader substitution must cover children | closed | T-1646 |
 | #128 | [Recovered #96] the absolute lib64/ld-linux-x86-64.so.2 symlink resolves on the host and decides the libc | closed | T-1644 |
 | #129 | [Recovered #97] the libc ABI union omits ld-linux-x86-64.so.2 and libdl.so.2, so every glibc payload is refused | closed | T-1644 |
-| #130 | [Recovered #104] no -v volumes on a host with no /dev/fuse and no mount: a two-root view, not an overlay | open | T-1653 |
+| #130 | [Recovered #104] no -v volumes on a host with no /dev/fuse and no mount: a two-root view, not an overlay | closed | T-1653 |
 | #131 | [Recovered #105] a relative path gets the rootfs prefix twice when the cwd is already inside the rootfs | closed | T-1643 |
 | #132 | [Reference] 89luca89/lilipod @ 872755a: precheck and exec lessons; refused as seed | closed (lesson taken in T-0502, T-0603, T-0806) | none: a reference (references/README.md) |
 | #133 | [Reference] Azathothas/TEMPLATE @ 6206166: methodology docs, notice retained | closed (lesson taken: docs/ methodology; notice in THIRD_PARTY.md (T-1606)) | none: a reference (references/README.md) |
