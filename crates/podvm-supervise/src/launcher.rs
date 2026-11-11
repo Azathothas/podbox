@@ -92,7 +92,8 @@ fn enter_in_launcher(
         // when this launcher dies, so it never outlives a killed
         // supervisor. The launcher forks from its one thread.
         die_with_parent: true,
-        confine: None,
+        // TODO/enter.md T-1658: the confine layer of `run -d`.
+        confine: container.of.hardening.confine_spec(&container.rootfs)?,
     };
 
     // ⭐ TODO/image.md T-0204 and T-0211. The image lock is taken here and

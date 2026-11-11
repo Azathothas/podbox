@@ -23,7 +23,10 @@
 #   3. probe-inside with a profile `confine = true`: NoNewPrivs 1 and
 #      Seccomp 2; with no profile: 0 and 0.
 #   4. on the userland rung (chroot denied, the fixture of experiment 356)
-#      the run refuses by name with exit 125; `run -d` refuses too.
+#      the run refuses by name with exit 125.
+#   5. `run -d` with the layer: the detached payload cannot read
+#      /etc/shadow, and `exec` into the container takes the same layer from
+#      the record.
 #   The refusal on a kernel with no Landlock is a test:
 #   `cargo test -p podvm --bin podvm confine` (each_case_with_no_mechanism_
 #   refuses_by_name).
@@ -134,10 +137,21 @@ rc=$?
 note "  userland: exit $rc: $(grep -m1 -- '--podvm-confine' "$WORK/c4.out" | cut -c1-150)"
 [ "$rc" -eq 125 ] || bad "the userland run exited $rc"
 grep -q "userland rung" "$WORK/c4.out" || bad "the refusal does not name the rung"
-timeout 120 "$PB" run -d --podvm-confine="read=/etc/passwd" "$IMG" sleep 1 >"$WORK/c4b.out" 2>&1
+note ""
+
+note "== clause 5  run -d and exec take the layer of the record"
+"$PB" rm -f c414 >/dev/null 2>&1
+timeout 120 "$PB" run -d --name c414 --podvm-confine="read=/etc/passwd" "$IMG" sh -c 'cat /etc/shadow >/dev/null; echo "d-shadow=$?"; sleep 30' >"$WORK/c5.out" 2>&1
 rc=$?
-note "  run -d: exit $rc: $(grep -m1 -- '--podvm-confine' "$WORK/c4b.out" | cut -c1-150)"
-[ "$rc" -eq 125 ] || bad "run -d exited $rc"
+sleep 2
+timeout 60 "$PB" logs c414 >"$WORK/c5l.out" 2>&1
+timeout 60 "$PB" exec c414 sh -c 'cat /etc/shadow >/dev/null; echo "e-shadow=$?"; head -1 /etc/passwd' >"$WORK/c5e.out" 2>&1
+"$PB" rm -f c414 >/dev/null 2>&1
+note "  run -d: exit $rc; $(grep -h 'shadow=' "$WORK/c5l.out" "$WORK/c5e.out" | tr '\n' ' ')"
+[ "$rc" -eq 0 ] || bad "run -d exited $rc"
+grep -q "^d-shadow=1" "$WORK/c5l.out" || bad "the detached payload read /etc/shadow"
+grep -q "^e-shadow=1" "$WORK/c5e.out" || bad "exec read /etc/shadow"
+grep -q "^root:" "$WORK/c5e.out" || bad "exec could not read /etc/passwd"
 note ""
 
 if [ "$fail" -eq 0 ]; then

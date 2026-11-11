@@ -141,6 +141,14 @@ pub fn abi() -> Option<u32> {
 pub const MIN_ABI: u32 = pod_confine::MIN_ABI;
 pub const NET_ABI: u32 = pod_confine::NET_ABI;
 
+/// [`spec`] for the image tree at `rootfs` (a host path): a system path
+/// gets its rule where the tree has it.
+pub fn spec_in(ask: &Ask, rootfs: &std::path::Path) -> Spec {
+    let exists =
+        |guest: &str| std::fs::symlink_metadata(rootfs.join(guest.trim_start_matches('/'))).is_ok();
+    spec(ask, &exists)
+}
+
 /// Whether a rung can carry the layer: a rung with a chroot, where the
 /// paths of the spec are guest paths. Elsewhere `run` refuses by name and
 /// never runs unconfined (the Decision of T-1658).

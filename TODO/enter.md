@@ -1241,7 +1241,7 @@ against the chroot control at 0.
 # T-1412: A missing workdir refuses naming the path
 
 **Source:** issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/parse.rs:206`
+  `crates/podvm/src/run/parse.rs:210`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -2513,9 +2513,17 @@ with which it read the environment of its unconfined ancestors past the
 domain. Experiment 414 exits 0 again at that tag; `cargo test --workspace`
 exits 0.
 
+`run -d` and `exec` take the layer too (later the same day): the record
+keeps the SPEC (`Hardening.confine` of
+`crates/podvm-supervise/src/table.rs`), the launcher of `run -d` builds the
+spec against the container's tree, and `exec` applies it on a rung with a
+chroot and refuses it by name elsewhere. Experiment 414 clause 5 (exit 0):
+the detached payload and an `exec` into it both fail to read
+`/etc/shadow`, and the `exec` reads `/etc/passwd`.
+
 Remaining: the layer on the rungs with no chroot (the loader family and
-the syscall tier, with host paths through the path map and `-v`), `run
--d` and `exec`, the Landlock ABI in the report of T-1695, and the built-in
+the syscall tier, with host paths through the path map and `-v`), the
+Landlock ABI in the report of T-1695, and the built-in
 profile `errand` of issue 170. The ABI is in `podvm probe` already (the
 probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
 the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs

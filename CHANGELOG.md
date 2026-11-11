@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the confine layer for run -d and exec, 2026-11-11
+
+Record: T-1658; issue 170.
+Deployed: not deployed; no version change.
+
+- The container record keeps the SPEC of `--podvm-confine`, so a
+  detached payload and each `exec` into its container run under the same
+  layer.
+
 ### Changed: podcrates v0.25.0, 2026-11-11
 
 Record: T-1658; PodUtils/podcrates#76.

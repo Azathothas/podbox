@@ -447,8 +447,7 @@ pub(crate) fn prepare(
     // TODO/enter.md T-1658: the confine layer, on a rung with a chroot,
     // after the fixups: a node that the completion layer made (`/dev/null`)
     // gets its rule.
-    let confine =
-        crate::lifecycle::confine::decide(verb, o.confine.as_ref(), o.detach, entered, &rootfs)?;
+    let confine = crate::lifecycle::confine::decide(verb, o.confine.as_ref(), entered, &rootfs)?;
     let _ = path_dirs;
     // ⚠ The lock this function took goes here. It existed to keep the rootfs
     // from being deleted between the extraction check and now; the process that

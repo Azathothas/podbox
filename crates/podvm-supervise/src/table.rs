@@ -72,9 +72,27 @@ pub struct Hardening {
     /// `--security-opt no-new-privileges`.
     #[serde(default)]
     pub no_new_privs: bool,
+    /// The SPEC of `--podvm-confine` (TODO/enter.md T-1658): the launcher of
+    /// `run -d` and each `exec` apply the same layer.
+    #[serde(default)]
+    pub confine: Option<String>,
 }
 
 impl Hardening {
+    /// The confine layer of the record for the tree at `rootfs`, or None.
+    /// A SPEC that no longer parses is an error: the layer is never dropped.
+    pub fn confine_spec(&self, rootfs: &str) -> Result<Option<podvm_enter::confine::Spec>, String> {
+        let Some(s) = &self.confine else {
+            return Ok(None);
+        };
+        let ask = podvm_enter::confine::parse(s)
+            .map_err(|e| format!("the confine layer of the record ({s:?}): {e}"))?;
+        Ok(Some(podvm_enter::confine::spec_in(
+            &ask,
+            std::path::Path::new(rootfs),
+        )))
+    }
+
     /// The limits of the specs. A spec that no longer parses (a record of
     /// another podvm) is left out: the parse at `run` refused each bad one.
     pub fn limits(&self) -> Vec<podvm_enter::Limit> {

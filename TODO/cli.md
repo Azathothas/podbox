@@ -3033,7 +3033,7 @@ find its own jobs.
 ## Premise
 
 The `--label` flag is accepted and dropped
-(`crates/podvm/src/run/parse.rs:223`). The parity table
+(`crates/podvm/src/run/parse.rs:227`). The parity table
 marks it Stub (`crates/podvm/src/parity.rs:254`). The help
 of `ps` says that a label filter matches nothing
 (`crates/podvm/src/lifecycle.rs:41`), and so does the help of
@@ -3128,7 +3128,7 @@ the first process only.
 
 `--env-file` reads a file at parse time
 (`crates/podvm/src/run/parse.rs:91`, used at
-`crates/podvm/src/run/parse.rs:204`) and the values go into
+`crates/podvm/src/run/parse.rs:208`) and the values go into
 the environment (`crates/podvm/src/run/prepare.rs:242`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.

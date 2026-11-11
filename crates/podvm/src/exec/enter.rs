@@ -326,6 +326,26 @@ pub(super) fn enter(
             return podvm_image::error::EXIT_RUNTIME_ERROR;
         }
     };
+    // TODO/enter.md T-1658: the confine layer of the container's run. A
+    // rung with no chroot refuses it by name, as `run` does.
+    let confine = match container.of.hardening.confine.as_deref() {
+        None => None,
+        Some(spec) => {
+            let ask = podvm_enter::confine::parse(spec).ok();
+            match crate::lifecycle::confine::decide("exec", ask.as_ref(), entered, rootfs) {
+                Ok(c) if ask.is_some() => c,
+                Ok(_) => {
+                    let _ = writeln!(
+                        err,
+                        "podvm exec: the confine layer of the record ({spec:?}) does not parse \
+                         (TODO/enter.md T-1658)"
+                    );
+                    return podvm_image::error::EXIT_RUNTIME_ERROR;
+                }
+                Err(code) => return code,
+            }
+        }
+    };
     use std::os::fd::AsRawFd;
     let memo_host = memo.as_raw_fd() as i64;
     let mut plan = Plan {
@@ -342,7 +362,7 @@ pub(super) fn enter(
         limits: Vec::new(),
         no_new_privs: false,
         die_with_parent: false,
-        confine: None,
+        confine,
     };
     if let Err(c) = serve_devices(&mut plan, &mut err) {
         return c;
