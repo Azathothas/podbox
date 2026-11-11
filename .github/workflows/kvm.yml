@@ -46,8 +46,17 @@ jobs:
             exit 2
           fi
 
+      # 390 needs qemu-system-x86_64 only; the bootstrap's qemu component
+      # also asks for qemu-user-static, which the runner image did not
+      # install (run 42968325558).
+      - name: qemu
+        run: |
+          sudo apt-get -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq qemu-system-x86 >/dev/null
+          qemu-system-x86_64 --version | head -1
+
       - name: bootstrap
-        run: ./scripts/common/bootstrap-env.sh rust cc zig openssh tools qemu vmtools
+        run: ./scripts/common/bootstrap-env.sh rust cc zig openssh tools vmtools
 
       # 390 runs from /work and copies its partial evidence to /out, as in
       # the lane that it was written for.
