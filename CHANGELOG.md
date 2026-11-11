@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a loopback proxy reaches a guest of the machine tier, 2026-11-11
+
+Record: T-1665; issue 184.
+Deployed: not deployed; no version change.
+
+- On the machine tier, a proxy variable of the payload that names the
+  host's loopback (`127.0.0.1`, `localhost`, `::1`) names the gateway
+  10.0.2.2 in the guest, with the scheme, the credentials and the port
+  byte for byte. A proxy URL with no scheme or no port refuses the run by
+  the name of the variable.
+
 ### Added: the scope group of the doctor, and the asset rule, 2026-11-11
 
 Record: T-1667; issue 188.

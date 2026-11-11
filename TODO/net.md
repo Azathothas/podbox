@@ -215,7 +215,7 @@ Source:      issue 184; #193; the owner's ruling of 2026-11-06;
 Category:    net
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      partial 2026-11-11
 
 Problem:     The target host's only way out is an HTTP CONNECT proxy, often
              on the host loopback. A machine-tier guest cannot reach a
@@ -255,6 +255,35 @@ Prove:       `cargo test -p podvm` exits 0 with rewrite tests: a password
              that ignores the variables cannot reach the network directly. A `connect` to a named upstream
              reaches the broker on its Unix socket, the name resolves to a fake
              address, and with no holding mechanism the run refuses by name.
+
+**Partial 2026-11-11.** The rewrite half is done. `cargo test -p podvm`
+exits 0 with `a_loopback_proxy_moves_to_the_gateway_byte_for_byte` (a
+password with `@` survives, a percent escape is not decoded) and
+`a_url_with_no_port_or_no_scheme_is_refused_without_its_value`
+(`crates/podvm/src/machine/proxy.rs`). On the machine tier, each proxy
+variable of the payload whose host is `127.0.0.1`, `localhost` or `::1`
+names the gateway 10.0.2.2, and a proxy URL with no scheme or no port
+refuses the run, naming the variable and never its value.
+`PODVM_421_MIRROR=1 sh experiments/421-egress-broker.sh` exits 0
+(`experiments/results/egress-broker.txt`): with a loopback proxy of the
+script that wants a Basic credential with an `@` in its password, a
+rootfs-tier payload fetches through the unchanged variable (200), a TCG
+guest sees `http://CRED@10.0.2.2:PORT` and fetches (200), the proxy
+answers 407 without the credential, and a URL with no port refuses the
+guest by name with no password in the message.
+
+Measured beside it: the guest reached this host's own loopback proxy at
+10.0.2.2, and its HTTPS through that proxy failed the certificate check,
+because that proxy presents its own CA and the guest has no host CA
+completion (the completion of T-0407 runs on the rootfs tiers).
+
+Remaining clauses: the broker. `--net broker` with `--ports` and
+`--allow`, hosted on `pod-broker` (podcrates v0.21.0 has it: jobs, the
+policy, the fixed denies, the audit, the upstream) and chained to the host
+proxy; the holding mechanism (a `connect` that the handler of the
+native-static rung refuses for each address but the broker's, or a guest
+network with `restrict=on`); and the clauses of experiment 421 for 403,
+407, 200 and a payload that ignores the variables.
 
 **Filed 2026-11-06.** Quoted from issue 184:
 

@@ -1,0 +1,22 @@
+== conditions
+date              2026-11-11T12:36:01Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+proxy             http://u421:CRED@127.0.0.1:PORT (a password of this run with an @)
+
+== clause 1  a rootfs-tier payload, the variable unchanged
+    proxied-421
+    proxy-seen=http://CRED@127.0.0.1:PORT
+
+== clause 2  a machine-tier guest, the proxy at the gateway
+    proxied-421
+    proxy-seen=http://CRED@10.0.2.2:PORT
+
+== clause 3  the credential is what passed
+    without it: wget: server returned error: HTTP/1.0 407 Proxy Authentication Required
+    200 answers of the proxy: 2
+
+== clause 4  a URL with no port refuses the guest by name
+  exit 125: podvm run: machine tier: http_proxy cannot be given to the guest: it has no port (as http://HOST:PORT). podvm rewrites a loopback proxy to the gateway 10.0.2.2 and needs the scheme and the port for it (TODO/net.md T-1665)
+
+verdict: A LOOPBACK PROXY REACHES THE PAYLOAD ON EACH TIER WITH ITS CREDENTIAL

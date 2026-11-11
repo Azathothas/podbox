@@ -16,6 +16,7 @@
 //! describe.
 
 pub(crate) mod guest;
+pub(crate) mod proxy;
 pub(crate) mod ssh;
 
 use podvm_image::error::EXIT_RUNTIME_ERROR;

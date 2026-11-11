@@ -127,7 +127,14 @@ pub(super) fn machine_tier(
     // TODO/probe.md T-1666: the probe of probe-inside, at /.podvm.
     let probe = crate::sandprobe::guest_copy(store.root());
     copies.extend(probe.clone().map(|d| (d, "/.podvm".to_string())));
-    let mut env = p.env;
+    // TODO/net.md T-1665: a loopback proxy is the gateway in the guest.
+    let mut env = match crate::machine::proxy::rewrite_env(&p.env) {
+        Ok(e) => e,
+        Err(why) => {
+            eprintln!("podvm {verb}: machine tier: {why}");
+            return EXIT_FLAG_ERROR;
+        }
+    };
     env.extend(crate::sandprobe::host_env(store.root()));
     let code = crate::machine::guest::boot(&crate::machine::guest::Request {
         verb,
