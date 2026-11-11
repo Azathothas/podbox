@@ -2862,3 +2862,47 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
 podvm --target aarch64-unknown-linux-musl` warns "the gnu interposer is
 x86_64 and this binary is aarch64: it embeds none (TODO/interpose.md
 T-1721)".
+
+---
+
+### T-1725 An absolute symlink in the rootfs resolves on the host for each path call
+
+Source:      PodUtils/podrunner#61 (COORD-007 of podrunner, a message from
+             a peer session); measured on the cloud host, 2026-11-11
+Category:    interpose
+Priority:    P1
+Effort:      M
+Status:      open
+
+Problem:     On the loader family of the userland rung, `cat /home/link` of
+             the alpine image, where `/home/link -> /opt/abs/f` and the
+             file is in the rootfs, fails with ENOENT on the chroot-denied
+             fixture (measured, 2026-11-11). The interposer rewrites the
+             path string by its table; the kernel then follows an absolute
+             link target from the host's root. A link such as
+             `/usr/bin/python3 -> /usr/bin/python3.12` or
+             `/etc/alternatives/*` can so open a file of the host. podrunner
+             met it with the official runner's `.credentials` link.
+Premise:     The exec routes resolve each link in guest names already
+             (`exec/walk.rs`, T-1646). The other path calls take only the
+             prefix rewrite (`map::rewrite`). `openat2` with
+             `RESOLVE_IN_ROOT` (Linux 5.6) resolves a whole path inside a
+             directory, and the native-static rung serves its paths that
+             way (T-1652).
+Approach:    Resolve each path of a path call inside the rootfs before the
+             real call: the directories with `openat2(ROOTFD, DIR, O_PATH,
+             RESOLVE_IN_ROOT)` (or the walk of T-1646), and a final link
+             that the call follows in guest names, up to the 40 links of
+             Linux. A call that does not follow its last link keeps it. A
+             path under a volume resolves in the volume.
+Decision:    No path call of the loader family resolves a link of the
+             rootfs on the host root.
+Prove:       `RUSTFLAGS="-C target-feature=-crt-static" cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu -- --test-threads=1`
+             exits 0 with tests of an absolute link in a directory and as
+             the last component, for open, stat and access, and
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a clause where `cat` of an absolute link of the
+             image reads the rootfs file on the fixture, and a link whose
+             target exists only on the host gives ENOENT.
+
+**Filed 2026-11-11.** From PodUtils/podrunner#61, reproduced the same day.

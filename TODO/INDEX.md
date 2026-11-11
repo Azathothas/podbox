@@ -398,10 +398,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1722](machine.md) | P3 | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 | [T-1723](machine.md) | P3 | machine | open | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
 | [T-1724](enter.md) | P2 | enter | partial | A static child of the loader family, and a volume, on the native-static rung |
+| [T-1725](interpose.md) | P1 | interpose | open | An absolute symlink in the rootfs resolves on the host for each path call |
 
 ## Counts
 
-333 items: 27 open, 8 partial, 3 blocked, 295 done.
+334 items: 28 open, 8 partial, 3 blocked, 295 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -411,10 +412,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 2 | 6 | 0 | 138 | 146 |
+| P1 | 3 | 6 | 0 | 138 | 147 |
 | P2 | 23 | 1 | 3 | 84 | 111 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **27** | **8** | **3** | **295** | **333** |
+| **All** | **28** | **8** | **3** | **295** | **334** |
 
 ## Work order
 
