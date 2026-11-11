@@ -3955,7 +3955,7 @@ vacuous-pass risk, and the entry that changes it.
 ## Done
 
 **Done.** The line is recorded as it stands, at
-`.github/workflows/gate.yml:218` in the `count scripts compile` step of
+`.github/workflows/gate.yml:219` in the `count scripts compile` step of
 the `lint` job, and each argument is listed with what it matches: the two
 globs resolve to 3 files in `scripts/` and 2 in `scripts/windows/`, and the
 five named `experiments/` paths all exist. The record refutes the
@@ -3968,8 +3968,8 @@ new id is written here. `grep -n "py_compile" TODO/gate.md` returns 9
 lines, exit 0, two of which are the three mentions in this paragraph.
 
 **The line, read on this tree 2026-10-02.** It is
-`.github/workflows/gate.yml:218`, inside the `lint` job, in the step
-named `count scripts compile` at `:217`:
+`.github/workflows/gate.yml:219`, inside the `lint` job, in the step
+named `count scripts compile` at `:218`:
 
 ```yaml
 run: python3 -m py_compile scripts/*.py scripts/windows/*.py experiments/393-build-freshness.py experiments/395-reconcile-repository.py experiments/397-exported-build.py experiments/399-publication.py experiments/400-kvm-cleanup.py
@@ -4929,7 +4929,7 @@ was not run on Windows; it exits 2 (a skip) where `gh` is absent.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4983,6 +4983,27 @@ interposer, which T-1646 added: `kind`, `interp_entry` and `shebang` in
 -max_total_time=60` and `cargo fuzz run interpose_shebang --
 -max_total_time=60` in place of the four targets, and `fuzz.yml` and the
 upstream watch as written.
+
+## Done
+
+**Partial 2026-11-11.** The pure parsers of the head left
+`crates/podvm-interpose/src/exec/head.rs` for
+`crates/podvm-interpose/src/exec/parse.rs`, which calls no libc and uses
+no crate item; `head.rs` re-exports them, and the 86 tests of the
+interposer pass. `crates/podvm-interpose/fuzz/` is a cargo-fuzz crate
+outside each workspace that includes `parse.rs` by path, so the fuzzer
+never links the exports of the interposer. Its targets are
+`interpose_head` (`kind`, `interp_entry`, `basename` and the two loader
+readers) and `interpose_shebang` (`shebang`), each with assertions on the
+ranges and kinds it gets back. On the cloud host, `cargo +nightly fuzz run
+interpose_head -- -max_total_time=60` exits 0 after 17,492,561 runs, and
+`interpose_shebang` exits 0 after 17,382,202 runs, with no crash.
+`.github/workflows/fuzz.yml` runs each target for 300 s each Monday and on
+dispatch, and keeps a crash input as an artefact; its job `vendor-watch`
+fails with the list of new commits when io12/userland-execve-rust moves
+past `02ef0e0`. On 2026-11-11 the default branch of upstream is
+`02ef0e02f0c4`, the pinned revision. Remaining: a dispatched run of
+`fuzz.yml` that exits green.
 
 # T-1685: A maintenance page and a development page in the sibling form
 

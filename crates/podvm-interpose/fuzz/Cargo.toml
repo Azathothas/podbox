@@ -1,0 +1,33 @@
+[package]
+name = "podvm-interpose-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "0BSD"
+
+# TODO/gate.md T-1684: fuzz targets of the head parsers of the interposer.
+# Not a member of any workspace, and no dependency on podvm-interpose: the
+# targets include `src/exec/parse.rs` by path, because the interposer's
+# exports would replace libc in the fuzzer. Run with a nightly toolchain:
+#   cargo +nightly fuzz run interpose_head -- -max_total_time=60
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "interpose_head"
+path = "fuzz_targets/interpose_head.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "interpose_shebang"
+path = "fuzz_targets/interpose_shebang.rs"
+test = false
+doc = false
+bench = false

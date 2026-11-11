@@ -1544,7 +1544,7 @@ decision to not weaken it stands and was not traded away.
 
 The CI half is decided and done. The `workspace and interposer tests`
 job builds the interposer before `cargo test --workspace`
-(`.github/workflows/gate.yml:230-243`), mirroring the static-build job.
+(`.github/workflows/gate.yml:231-244`), mirroring the static-build job.
 The premise is verified in source, not assumed: `crates/podvm/
 build.rs:86-91` writes an empty placeholder object when the real one is
 absent and `:101-122` records that it is empty so the runtime refuses,

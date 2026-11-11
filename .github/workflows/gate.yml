@@ -185,6 +185,7 @@ jobs:
         run: |
           cargo fmt --all -- --check
           cargo fmt --manifest-path crates/podvm-interpose/Cargo.toml -- --check
+          cargo fmt --manifest-path crates/podvm-interpose/fuzz/Cargo.toml -- --check
 
       - name: clippy
         run: cargo clippy --workspace --all-targets -- -D warnings

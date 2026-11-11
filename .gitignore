@@ -154,3 +154,9 @@ dist/
 # Agent scratch: the org watcher state, cloud-setup downloads, parallel worktrees.
 .work/
 .claude/worktrees/
+
+# TODO/gate.md T-1684: the output of cargo fuzz.
+/crates/podvm-interpose/fuzz/target/
+/crates/podvm-interpose/fuzz/corpus/
+/crates/podvm-interpose/fuzz/artifacts/
+/crates/podvm-interpose/fuzz/coverage/

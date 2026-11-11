@@ -1,0 +1,74 @@
+# Fuzz the head parsers of the interposer, and watch the upstream of
+# vendor/ (TODO/gate.md T-1684).
+#
+# The parsers of pod-oci, pod-extract and pod-enter are fuzzed in
+# PodUtils/podcrates (COORD-023). The watch opens nothing: it fails and
+# lists the new upstream commits; a person decides by
+# docs/methodology/vendoring.md.
+
+name: fuzz
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: fuzz ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [interpose_head, interpose_shebang]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools
+
+      # cargo-fuzz needs a nightly toolchain for the sanitizer flags.
+      - name: nightly and cargo-fuzz
+        run: |
+          rustup toolchain install nightly --profile minimal
+          cargo +nightly install cargo-fuzz --locked
+
+      - name: run the target for 300 s
+        working-directory: crates/podvm-interpose/fuzz
+        run: cargo +nightly fuzz run ${{ matrix.target }} -- -max_total_time=300
+
+      # A crash input becomes a regression test in the crate before the fix.
+      - name: keep a crash input
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: crash-${{ matrix.target }}
+          path: crates/podvm-interpose/fuzz/artifacts/
+          if-no-files-found: ignore
+
+  vendor-watch:
+    name: upstream of vendor/userland-execve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      UPSTREAM: https://github.com/io12/userland-execve-rust
+      PINNED: 02ef0e0
+    steps:
+      - name: compare the pinned revision with the default branch
+        run: |
+          git clone --quiet --filter=blob:none --bare "$UPSTREAM" up.git
+          pinned=$(git -C up.git rev-parse --verify "$PINNED^{commit}")
+          head=$(git -C up.git rev-parse HEAD)
+          echo "pinned $pinned"
+          echo "head   $head"
+          if [ "$pinned" = "$head" ]; then
+            echo "vendor/userland-execve is at the head of upstream"
+            exit 0
+          fi
+          echo "upstream has commits after the pinned revision:"
+          git -C up.git log --oneline "$pinned..$head"
+          exit 1
