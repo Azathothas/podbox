@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.21.0, and pod-incus for the incus tier, 2026-11-11
+
+Record: T-1727; PodUtils/podcrates#63 and #65.
+Deployed: not deployed; no version change.
+
+- Each `pod-*` crate is at podcrates `v0.21.0`. The incus tier calls the
+  REST API through `pod-incus`; podvm's own client is gone.
+  Experiment 434 runs again against the rootless incusd.
+
 ### Fixed: absolute links of the image, and exec under :ro, 2026-11-11
 
 Record: T-1725, T-1726; PodUtils/podrunner#61 and #62.

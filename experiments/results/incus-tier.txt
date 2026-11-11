@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T07:03:18Z
+date              2026-11-11T10:20:43Z
 host kernel       Linux 6.18.44-fc-v378
 cgroup            tmpfs
 incus package     6.0.0-1ubuntu0.3
@@ -9,7 +9,7 @@ runs              5
 == 1. a run
   stdout  hello
   exit    0
-  ms      1854 (with the import)
+  ms      2363 (with the import)
   stderr  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   stderr  podvm: 517 of 517 entries carry an id this machine cannot apply; what the image intended is in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   stderr  podvm: restore ownership with chown of bin (uid 0, gid 0): EINVAL
@@ -39,7 +39,7 @@ runs              5
   stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
 
 == 7. the cached image
-  run true ms  1338 (median of 5)
+  run true ms  1375 (median of 5)
   stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
 
 == 8. the other verbs

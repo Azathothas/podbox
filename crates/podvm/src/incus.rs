@@ -2,7 +2,6 @@
 //! `docs/incus.md`: podvm drives an incusd over its REST API on a unix
 //! socket. `--podvm-tier=incus` selects it for `run`.
 
-pub(crate) mod client;
 pub(crate) mod image;
 pub(crate) mod run;
 

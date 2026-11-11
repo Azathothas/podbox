@@ -31,6 +31,10 @@ podvm-extract = { path = "../podvm-extract" }
 podvm-complete = { path = "../podvm-complete" }
 podvm-enter = { path = "../podvm-enter" }
 podvm-dispatch = { path = "../podvm-dispatch" }
+# TODO/machine.md T-1727: the client of the incus REST API (T-1718), shared
+# through PodUtils/podcrates; a runtime of one thread drives it.
+pod-incus = { git = "https://github.com/PodUtils/podcrates", tag = "v0.21.0" }
+tokio = { version = "1", default-features = false, features = ["rt", "fs"] }
 podvm-supervise = { path = "../podvm-supervise" }
 # ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate
 # because the whole guest side is `cmd.exe` and a FAT mailbox and none of it

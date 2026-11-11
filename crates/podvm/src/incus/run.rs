@@ -1,5 +1,6 @@
 //! `run --podvm-tier=incus`: one command in an incus system container,
-//! TODO/machine.md T-1718, in the form of `docs/incus.md`.
+//! TODO/machine.md T-1718, in the form of `docs/incus.md`. The calls of the
+//! incus REST API are `pod-incus` of PodUtils/podcrates (T-1727).
 //!
 //! 1. The image: podvm's extracted rootfs as an incus unified tarball
 //!    ([`super::image`]), imported one time for each manifest digest under
@@ -14,14 +15,16 @@
 //!
 //! The command is not PID 1 here (the hold is); the parity note says so.
 
+use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
-
-use super::client::{metadata, Client};
-use super::image::{alias, unified_tarball};
+use pod_incus::{
+    Client, Exec, FileWrite, ImageData, ImageImport, NewInstance, Payload, Settings, Source,
+};
 use podvm_image::error::EXIT_RUNTIME_ERROR;
+
+use super::image::{alias, unified_tarball};
 
 pub struct Job<'a> {
     pub verb: &'a str,
@@ -34,71 +37,54 @@ pub struct Job<'a> {
     pub stdin: Option<Vec<u8>>,
 }
 
+/// The socket of an incusd: `PODVM_INCUS_SOCKET`, else `INCUS_DIR`'s, else
+/// the system daemon's.
+pub fn socket_path() -> PathBuf {
+    if let Some(p) = std::env::var_os("PODVM_INCUS_SOCKET") {
+        return PathBuf::from(p);
+    }
+    if let Some(d) = std::env::var_os("INCUS_DIR") {
+        return PathBuf::from(d).join("unix.socket");
+    }
+    PathBuf::from("/var/lib/incus/unix.socket")
+}
+
 /// The alias of the image in incus: imported now where it is not there.
-fn ensure_image(c: &Client, job: &Job) -> Result<(String, bool), String> {
+async fn ensure_image(c: &Client, job: &Job<'_>) -> Result<(String, bool), String> {
     let name = alias(job.digest);
-    if c.get(&format!("/1.0/images/aliases/{name}")).is_ok() {
+    if c.alias(&name).await.map_err(|e| e.to_string())?.is_some() {
         return Ok((name, true));
     }
     let dir = job.store_root.join("incus");
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let tarball: PathBuf = dir.join(format!("{name}.tar"));
     unified_tarball(job.rootfs, &tarball)?;
-    let bytes = std::fs::read(&tarball).map_err(|e| format!("{}: {e}", tarball.display()))?;
-    let r = c.call(
-        "POST",
-        "/1.0/images",
-        Some(("application/octet-stream", &bytes)),
-        &[],
-    )?;
-    let done = c.finish(&r);
+    let file = tokio::fs::File::open(&tarball)
+        .await
+        .map_err(|e| format!("{}: {e}", tarball.display()))?;
+    let length = file.metadata().await.map(|m| m.len()).ok();
+    let mut import = ImageImport::new(ImageData::Unified(Payload::new(file, length)));
+    import.aliases = vec![name.clone()];
+    let done = c.import_image(import).await;
     let _ = std::fs::remove_file(&tarball);
-    let fp = done?
-        .get("fingerprint")
-        .and_then(Value::as_str)
-        .ok_or("incus: the image import gave no fingerprint")?
-        .to_string();
-    c.send(
-        "POST",
-        "/1.0/images/aliases",
-        &json!({ "name": name, "target": fp }),
-    )?;
+    done.map_err(|e| e.to_string())?;
     Ok((name, false))
 }
 
-/// Push `bytes` to `path` in the instance, owned by 0 with `mode`.
-fn push(
-    c: &Client,
-    inst: &str,
-    path: &str,
-    bytes: &[u8],
-    mode: &str,
-    kind: &str,
-) -> Result<(), String> {
-    let headers = [
-        "X-Incus-uid: 0".to_string(),
-        "X-Incus-gid: 0".to_string(),
-        format!("X-Incus-mode: {mode}"),
-        format!("X-Incus-type: {kind}"),
-    ];
-    let r = c.call(
-        "POST",
-        &format!("/1.0/instances/{inst}/files?path={path}"),
-        Some(("application/octet-stream", bytes)),
-        &headers,
-    )?;
-    metadata(&r).map(|_| ())
+/// A file or a directory in the instance, owned by 0 with `mode`.
+fn owned(mut w: FileWrite, mode: u32) -> FileWrite {
+    w.uid = Some(0);
+    w.gid = Some(0);
+    w.mode = Some(mode);
+    w
 }
 
 /// The environment as incus takes it.
-pub fn env_map(env: &[String]) -> Value {
-    let mut m = serde_json::Map::new();
-    for e in env {
-        if let Some((k, v)) = e.split_once('=') {
-            m.insert(k.to_string(), Value::String(v.to_string()));
-        }
-    }
-    Value::Object(m)
+pub fn env_map(env: &[String]) -> BTreeMap<String, String> {
+    env.iter()
+        .filter_map(|e| e.split_once('='))
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect()
 }
 
 /// The command as it runs: the argv, or, with stdin, through `/bin/sh`
@@ -118,11 +104,11 @@ pub fn command(argv: &[String], stdin: bool) -> Vec<String> {
 }
 
 pub fn run(job: &Job) -> i32 {
-    let sock = super::client::socket_path();
     let fail = |e: String| {
         eprintln!("podvm {}: incus tier: {e}", job.verb);
         EXIT_RUNTIME_ERROR
     };
+    let sock = socket_path();
     if !sock.exists() {
         return fail(format!(
             "no incusd answers at {}: set PODVM_INCUS_SOCKET or INCUS_DIR, or start one \
@@ -130,100 +116,101 @@ pub fn run(job: &Job) -> i32 {
             sock.display()
         ));
     }
-    let c = Client::new(&sock);
-    let server = match c.get("/1.0") {
-        Ok(s) => s,
-        Err(e) => return fail(e),
+    let rt = match tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(rt) => rt,
+        Err(e) => return fail(format!("the runtime: {e}")),
     };
-    let version = server
-        .pointer("/environment/server_version")
-        .and_then(Value::as_str)
-        .unwrap_or("-")
-        .to_string();
-    let (image, cached) = match ensure_image(&c, job) {
+    rt.block_on(run_async(job, sock))
+}
+
+async fn run_async(job: &Job<'_>, sock: PathBuf) -> i32 {
+    let fail = |e: String| {
+        eprintln!("podvm {}: incus tier: {e}", job.verb);
+        EXIT_RUNTIME_ERROR
+    };
+    let mut settings = Settings::new(sock.clone());
+    settings.user_agent = format!("podvm/{}", env!("CARGO_PKG_VERSION"));
+    let c = Client::new(settings);
+    let server = match c.server().await {
+        Ok(s) => s,
+        Err(e) => return fail(e.to_string()),
+    };
+    if let Err(e) = server.check() {
+        return fail(e.to_string());
+    }
+    let (image, cached) = match ensure_image(&c, job).await {
         Ok(a) => a,
         Err(e) => return fail(e),
     };
     eprintln!(
-        "podvm {}: incus tier: incusd {version} at {}, image {image} {} (TODO/machine.md T-1718)",
+        "podvm {}: incus tier: incusd {} at {}, image {image} {} (TODO/machine.md T-1718)",
         job.verb,
+        server.environment.server_version,
         sock.display(),
         if cached { "from incus" } else { "imported now" }
     );
     let nonce =
         crate::machine::guest::init::nonce().unwrap_or_else(|_| format!("{}", std::process::id()));
     let inst = format!("podvm-{}", &nonce[..nonce.len().min(12)]);
-    let code = run_in(&c, job, &image, &inst);
+    let code = run_in(&c, job, &image, &inst).await;
     // As under --rm: the instance goes, whatever the command gave.
-    let _ = c.send(
-        "PUT",
-        &format!("/1.0/instances/{inst}/state"),
-        &json!({ "action": "stop", "force": true, "timeout": 10 }),
-    );
-    let _ = c.finish(
-        &match c.call("DELETE", &format!("/1.0/instances/{inst}"), None, &[]) {
-            Ok(r) => r,
-            Err(_) => return code,
-        },
-    );
+    let _ = c
+        .stop(&inst, true, Some(std::time::Duration::from_secs(10)))
+        .await;
+    let _ = c.delete_instance(&inst).await;
     code
 }
 
-fn run_in(c: &Client, job: &Job, image: &str, inst: &str) -> i32 {
+async fn run_in(c: &Client, job: &Job<'_>, image: &str, inst: &str) -> i32 {
     let fail = |e: String| {
         eprintln!("podvm {}: incus tier: {e}", job.verb);
         EXIT_RUNTIME_ERROR
     };
-    let create = json!({
-        "name": inst,
-        "source": { "type": "image", "alias": image },
-        "config": { "raw.lxc": "lxc.init.cmd = /.podvm/podvm guest-hold" },
-    });
-    if let Err(e) = c.send("POST", "/1.0/instances", &create) {
-        return fail(e);
+    let mut new = NewInstance::container(inst, Source::Alias(image.to_string()));
+    new.config.insert(
+        "raw.lxc".into(),
+        "lxc.init.cmd = /.podvm/podvm guest-hold".into(),
+    );
+    if let Err(e) = c.create_instance(&new).await {
+        return fail(e.to_string());
     }
     let me = match std::fs::read("/proc/self/exe") {
         Ok(b) => b,
         Err(e) => return fail(format!("/proc/self/exe: {e}")),
     };
-    let pushed = push(c, inst, "/.podvm", &[], "0755", "directory")
-        .and_then(|()| push(c, inst, "/.podvm/podvm", &me, "0755", "file"))
-        .and_then(|()| match &job.stdin {
-            Some(b) => push(c, inst, "/.podvm/stdin", b, "0600", "file"),
-            None => Ok(()),
-        });
-    if let Err(e) = pushed {
-        return fail(e);
+    let mut pushes = vec![
+        ("/.podvm", owned(FileWrite::directory(), 0o755)),
+        (
+            "/.podvm/podvm",
+            owned(FileWrite::file(Payload::bytes(me)), 0o755),
+        ),
+    ];
+    if let Some(b) = &job.stdin {
+        pushes.push((
+            "/.podvm/stdin",
+            owned(FileWrite::file(Payload::bytes(b.clone())), 0o600),
+        ));
     }
-    let start = json!({ "action": "start", "timeout": 30 });
-    if let Err(e) = c.send("PUT", &format!("/1.0/instances/{inst}/state"), &start) {
-        return fail(e);
-    }
-    let exec = json!({
-        "command": command(&job.argv, job.stdin.is_some()),
-        "environment": env_map(&job.env),
-        "cwd": job.workdir,
-        "wait-for-websocket": false,
-        "record-output": true,
-        "interactive": false,
-    });
-    let m = match c.send("POST", &format!("/1.0/instances/{inst}/exec"), &exec) {
-        Ok(m) => m,
-        Err(e) => return fail(e),
-    };
-    for (fd, mut out) in [
-        ("1", Box::new(std::io::stdout()) as Box<dyn Write>),
-        ("2", Box::new(std::io::stderr()) as Box<dyn Write>),
-    ] {
-        if let Some(path) = m.pointer(&format!("/output/{fd}")).and_then(Value::as_str)
-            && let Ok(r) = c.call("GET", path, None, &[])
-        {
-            let _ = out.write_all(&r.body);
-            let _ = out.flush();
+    for (path, w) in pushes {
+        if let Err(e) = c.put_file(inst, path, w).await {
+            return fail(e.to_string());
         }
     }
-    m.get("return")
-        .and_then(Value::as_i64)
-        .map(|c| c as i32)
-        .unwrap_or(EXIT_RUNTIME_ERROR)
+    if let Err(e) = c.start(inst).await {
+        return fail(e.to_string());
+    }
+    let mut exec = Exec::new(command(&job.argv, job.stdin.is_some()));
+    exec.environment = env_map(&job.env);
+    exec.cwd = job.workdir.clone();
+    let out = match c.exec_recorded(inst, &exec).await {
+        Ok(o) => o,
+        Err(e) => return fail(e.to_string()),
+    };
+    let _ = std::io::stdout().write_all(&out.stdout);
+    let _ = std::io::stdout().flush();
+    let _ = std::io::stderr().write_all(&out.stderr);
+    out.exit_code
 }

@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
 
-use super::client::{metadata, parse};
 use super::image::{alias, intended, unified_tarball, IMAGE_FORMAT};
 use super::run::{command, env_map, Job};
 
@@ -17,31 +16,6 @@ fn scratch(name: &str) -> PathBuf {
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d
-}
-
-#[test]
-fn a_plain_and_a_chunked_answer_parse() {
-    let r = parse(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nhi").unwrap();
-    assert_eq!((r.status, r.body.as_slice()), (200, b"hi".as_slice()));
-    let raw = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n3\r\nabc\r\n2;x=y\r\nde\r\n0\r\n\r\n";
-    assert_eq!(parse(raw).unwrap().body, b"abcde");
-    assert!(parse(b"HTTP/1.1 200 OK\r\n").is_err(), "no end of headers");
-    let cut = b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n9\r\nabc";
-    assert!(parse(cut).is_err(), "a cut chunk");
-}
-
-#[test]
-fn an_error_envelope_gives_the_text_of_incus() {
-    let body = br#"{"type":"error","error":"not found","error_code":404}"#;
-    let mut raw = b"HTTP/1.1 404 Not Found\r\n\r\n".to_vec();
-    raw.extend_from_slice(body);
-    let e = metadata(&parse(&raw).unwrap()).unwrap_err();
-    assert!(e.contains("not found") && e.contains("404"), "{e}");
-    let ok = "HTTP/1.1 200 OK\r\n\r\n{\"type\":\"sync\",\"metadata\":{\"a\":1}}";
-    assert_eq!(
-        metadata(&parse(ok.as_bytes()).unwrap()).unwrap(),
-        json!({"a": 1})
-    );
 }
 
 #[test]
@@ -63,7 +37,10 @@ fn the_command_and_the_environment_take_the_incus_form() {
         "the argv stays apart, unquoted"
     );
     let env = env_map(&["A=1".into(), "B=x=y".into(), "NOEQ".into()]);
-    assert_eq!(env, json!({"A": "1", "B": "x=y"}));
+    let want: std::collections::BTreeMap<String, String> = [("A", "1"), ("B", "x=y")]
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .into();
+    assert_eq!(env, want);
 }
 
 #[test]
@@ -148,6 +125,37 @@ fn read_request(s: &mut std::os::unix::net::UnixStream) -> (String, String, Vec<
         .find_map(|l| l.strip_prefix("Content-Length: "))
         .map(|v| v.trim().parse::<usize>().unwrap())
         .unwrap_or(0);
+    if head
+        .to_ascii_lowercase()
+        .contains("transfer-encoding: chunked")
+    {
+        while !raw[end + 4..].ends_with(b"0\r\n\r\n") {
+            let n = s.read(&mut b).unwrap();
+            assert!(n > 0, "the client ended inside a chunked body");
+            raw.extend_from_slice(&b[..n]);
+        }
+        let mut body = Vec::new();
+        let mut rest = &raw[end + 4..];
+        loop {
+            let eol = rest.windows(2).position(|w| w == b"\r\n").unwrap();
+            let size = usize::from_str_radix(std::str::from_utf8(&rest[..eol]).unwrap().trim(), 16)
+                .unwrap();
+            rest = &rest[eol + 2..];
+            if size == 0 {
+                break;
+            }
+            body.extend_from_slice(&rest[..size]);
+            rest = &rest[size + 2..];
+        }
+        let mut first = head.split(' ');
+        let method = first.next().unwrap().to_string();
+        let path = first
+            .next()
+            .unwrap()
+            .replace("%2F", "/")
+            .replace("%2f", "/");
+        return (method, path, body);
+    }
     while raw.len() < end + 4 + len {
         let n = s.read(&mut b).unwrap();
         assert!(n > 0, "the client ended inside the body");
@@ -155,13 +163,18 @@ fn read_request(s: &mut std::os::unix::net::UnixStream) -> (String, String, Vec<
     }
     let mut first = head.split(' ');
     let method = first.next().unwrap().to_string();
-    let path = first.next().unwrap().to_string();
+    // A query of the crate escapes the slashes of a path.
+    let path = first
+        .next()
+        .unwrap()
+        .replace("%2F", "/")
+        .replace("%2f", "/");
     (method, path, raw[end + 4..end + 4 + len].to_vec())
 }
 
 /// The answer of the stand-in: a sync envelope, an async one, an error,
 /// or raw bytes (chunked, as incus sends a log).
-fn answer(method: &str, path: &str) -> (u16, Vec<u8>, bool) {
+fn answer(method: &str, path: &str, inst: &str) -> (u16, Vec<u8>, bool) {
     let sync = |m: Value| {
         (
             200,
@@ -177,23 +190,37 @@ fn answer(method: &str, path: &str) -> (u16, Vec<u8>, bool) {
         (202, v.to_string().into_bytes(), false)
     };
     let done = |m: Value| sync(json!({"status_code": 200, "metadata": m}));
+    let log = format!("/1.0/instances/{inst}/logs/exec-output/exec_1");
     match (method, path) {
-        ("GET", "/1.0") => sync(json!({"environment": {"server_version": "6.0.0"}})),
+        ("GET", "/1.0") => sync(json!({
+            "api_extensions": pod_incus::NEEDED,
+            "api_status": "stable",
+            "api_version": "1.0",
+            "auth": "trusted",
+            "public": false,
+            "auth_methods": [],
+            "config": {},
+            "environment": {"server_version": "6.0.0", "driver": "lxc", "server": "incus"},
+        })),
         ("GET", p) if p.starts_with("/1.0/images/aliases/") => (
             404,
             br#"{"type":"error","error":"not found","error_code":404}"#.to_vec(),
             false,
         ),
+        ("POST", p) if p.starts_with("/1.0/images/aliases") => sync(json!({})),
         ("POST", "/1.0/images") => op("import"),
-        ("GET", "/1.0/operations/import/wait?timeout=600") => done(json!({"fingerprint": "f00d"})),
+        ("GET", p) if p.starts_with("/1.0/operations/import/wait") => {
+            done(json!({"fingerprint": "f00d", "size": 1}))
+        }
         ("POST", "/1.0/instances") => op("create"),
         ("POST", p) if p.ends_with("/exec") => op("exec"),
-        ("GET", "/1.0/operations/exec/wait?timeout=600") => done(json!({
+        ("GET", p) if p.starts_with("/1.0/operations/exec/wait") => done(json!({
             "return": 7,
-            "output": {"1": "/1.0/logs/out", "2": "/1.0/logs/err"},
+            "output": {"1": format!("{log}.stdout"), "2": format!("{log}.stderr")},
         })),
-        ("GET", "/1.0/logs/out") => (200, b"5\r\nhello\r\n0\r\n\r\n".to_vec(), true),
-        ("GET", "/1.0/logs/err") => (200, b"0\r\n\r\n".to_vec(), true),
+        ("GET", p) if p.ends_with(".stdout") => (200, b"5\r\nhello\r\n0\r\n\r\n".to_vec(), true),
+        ("GET", p) if p.ends_with(".stderr") => (200, b"0\r\n\r\n".to_vec(), true),
+        ("DELETE", p) if p.contains("/logs/") => sync(json!({})),
         ("GET", p) if p.starts_with("/1.0/operations/") => done(json!({})),
         ("PUT", _) | ("DELETE", _) => op("state"),
         _ => sync(json!({})),
@@ -205,10 +232,17 @@ fn stand_in(sock: &std::path::Path) -> Seen {
     let seen: Seen = Arc::default();
     let log = seen.clone();
     std::thread::spawn(move || {
+        let mut inst = String::new();
         for s in l.incoming() {
             let mut s = s.unwrap();
             let (m, p, body) = read_request(&mut s);
-            let (status, out, chunked) = answer(&m, &p);
+            if m == "POST" && p.ends_with("/exec") {
+                inst = p
+                    .trim_start_matches("/1.0/instances/")
+                    .trim_end_matches("/exec")
+                    .to_string();
+            }
+            let (status, out, chunked) = answer(&m, &p, &inst);
             log.lock().unwrap().push((m, p, body));
             let te = if chunked {
                 "Transfer-Encoding: chunked\r\n"

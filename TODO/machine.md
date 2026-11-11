@@ -1751,7 +1751,7 @@ Source:      PodUtils/podcrates#65 (COORD-040 of podcrates) and #63
 Category:    machine
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     podvm keeps its own client of the incus REST API
              (`crates/podvm/src/incus/client.rs`, T-1718). podcrates
@@ -1769,5 +1769,17 @@ Decision:    podvm keeps no second client of the incus API.
 Prove:       `cargo test -p podvm incus::` exits 0 against the stand-in
              server, and `PODVM_434_MIRROR=1 sh experiments/434-incus-tier.sh`
              exits 0 as root on the cloud host.
+
+**Done 2026-11-11.** Each `pod-*` pin is at `v0.21.0`; the incus tier calls
+`pod-incus` (`server` and `Server::check`, `alias`, `import_image`,
+`create_instance`, `put_file`, `start`, `exec_recorded`, `stop`,
+`delete_instance`) on a runtime of one thread (`crates/podvm/src/incus/run.rs`),
+and `incus/client.rs` is gone. `cargo test -p podvm incus::` exits 0 against
+the stand-in server (which answers as incus does: the extensions of
+`NEEDED`, the logs under `logs/exec-output/` of the instance), and
+`PODVM_434_MIRROR=1 sh experiments/434-incus-tier.sh` exits 0 as root on the
+cloud host ([the run](../experiments/results/incus-tier.txt), each of its
+ten clauses). The `--strict` gap of the loader family names T-1651 now: a
+static child takes the native-static rung where it arms (T-1724).
 
 **Filed 2026-11-11.** From PodUtils/podcrates#65.

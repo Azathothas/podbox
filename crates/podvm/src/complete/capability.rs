@@ -38,14 +38,13 @@ pub struct GapDef {
 
 /// The open gaps of the loader family, as of the entries they name.
 pub const LOADER_GAPS: &[GapDef] = &[GapDef {
-    entry: "T-1724",
-    text: "a statically linked child enters the native-static rung where \
-               Syscall User Dispatch arms, and keeps the direct exec where it does \
-               not; a dynamic program can issue the syscall instruction itself \
-               (Go with cgo, liburing) instead of a call of libc: those raw \
-               syscalls pass the interposer, so their absolute paths resolve on \
-               the host and a write lands on the host tree (TODO/enter.md T-1724, \
-               T-1651)",
+    entry: "T-1651",
+    text: "a dynamic program can issue the syscall instruction itself (Go \
+               with cgo, liburing) instead of a call of libc: those raw syscalls \
+               pass the interposer, so their absolute paths resolve on the host and \
+               a write lands on the host tree; a statically linked child enters the \
+               native-static rung where Syscall User Dispatch arms, and keeps the \
+               direct exec where it does not (TODO/enter.md T-1651, T-1724)",
     probe: Probe::StaticChild,
 }];
 
@@ -75,6 +74,10 @@ pub fn loader_gaps<G: podvm_enter::abi::GuestRoot + ?Sized>(
             entry: g.entry,
             text: g.text,
             hit: match g.probe {
+                // T-1724: a static child takes the native-static rung where
+                // Syscall User Dispatch arms, so it hits the gap only where
+                // it does not.
+                Probe::StaticChild if podvm_dispatch::available().is_ok() => None,
                 Probe::StaticChild => static_hit(root, &cmds, path_dirs),
             },
         })

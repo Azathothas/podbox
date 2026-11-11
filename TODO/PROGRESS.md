@@ -7,7 +7,7 @@ start.
 
 ## State
 
-336 entries: 28 open, 7 partial, 3 blocked, 298 done.
+336 entries: 27 open, 7 partial, 3 blocked, 299 done.
 
 The state on 2026-11-11:
 
@@ -16,18 +16,19 @@ The state on 2026-11-11:
   (2026-11-10) is the first release with the name podvm (T-1671). A
   release starts from a dispatched
   `release.yml`. Dispatch `nightly.yml` with `trial=true` on `main` first.
-* podvm takes 11 crates of PodUtils/podcrates (`pod-core`, `pod-tls`,
+* podvm takes 12 crates of PodUtils/podcrates (`pod-core`, `pod-tls`,
   `pod-proxy`, `pod-term`, `pod-hostprobe`, `pod-supervise`, `pod-guest`,
-  `pod-enter`, `pod-oci`, `pod-extract`, `pod-rootfs`) at the tag
-  `v0.19.0` (T-1675 to T-1677, T-1681, T-1716, T-1708, T-1655, T-1719). A change of moved code
+  `pod-enter`, `pod-oci`, `pod-extract`, `pod-rootfs`, `pod-incus`) at the
+  tag `v0.21.0` (T-1675 to T-1677, T-1681, T-1716, T-1708, T-1655, T-1719,
+  T-1727). A change of moved code
   goes to podcrates as a COORD issue.
 * The errand-host entries T-1643 to T-1650 are done. Their issues are
   closed. Issue 114 is the dossier behind the open rungs T-1651 to T-1653.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
   The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
   T-1682 gives them a hosted runner.
-* podcrates `v0.19.0` (2026-11-11) is the last tag, and podvm takes it
-  (the library directories of T-1719, PodUtils/podcrates#62).
+* podcrates `v0.21.0` (2026-11-11, `ada3699`) is the last tag, and podvm
+  takes it (`pod-incus` of T-1727, PodUtils/podcrates#65).
 * PodUtils/podrunner has a lead session since 2026-11-11 (the ruling
   "podrunner online"): DR-1 and DR-2 are yes. Its issues are under
   PodUtils/podrunner#1; podvm's part is T-1704 to T-1715 (issues 229 to
@@ -63,8 +64,8 @@ that is not done. Read its Prove before you start. Set its status with
 3. [T-1726](cli.md), [T-1725](interpose.md) and [T-1724](enter.md) are
    done (experiment 356): `exec` keeps a `:ro` volume, an absolute link of
    the image resolves in the rootfs, and a static child and a volume take
-   the native-static rung. Next [T-1727](machine.md): take podcrates
-   `v0.21.0` (`pod-incus`).
+   the native-static rung. [T-1727](machine.md) is done: podvm takes
+   podcrates `v0.21.0`, and the incus tier calls `pod-incus`.
    [T-1652](enter.md) is done: a static x86_64 payload runs on the
    native-static rung (Syscall User Dispatch and `openat2(RESOLVE_IN_ROOT)`,
    experiment 356).
