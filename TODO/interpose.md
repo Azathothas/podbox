@@ -2816,3 +2816,49 @@ from a listener of the host.
 and the visibility of a host socket inside the unit, are Unverified". A
 path call that misses the table is P1; the first measurement confirms or
 corrects the premise.
+
+### T-1721 An interposer for aarch64: the userland rung runs no arm64 payload
+
+Source:      PodUtils/podrunner#52 (COORD-005 of podrunner, a message from
+             a peer session); `crates/podvm-interpose/src/lib.rs:56`;
+             `crates/podvm/build.rs`
+Category:    interpose
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     On an arm64 host with no root and no user namespace, the
+             released `podvm-aarch64` declines each arm64 payload on the
+             userland rung: "/bin/sh is ELF machine 0xb7 and the glibc
+             object is 0x3e, so the tier cannot serve it". podrunner's
+             aarch64 runner cannot run there.
+Premise:     The interposer is x86_64 only by design: `lib.rs` refuses to
+             compile for another architecture, because its `stat`
+             offsets, its system call numbers (`raw_calls`) and its
+             `syscall` instruction are x86_64's. `build.rs` embedded the
+             two x86_64 objects in each binary, also in `podvm-aarch64`.
+             Since 2026-11-11 a binary for another target embeds none and
+             says so, so the decline names the missing object, not a
+             machine mismatch.
+Approach:    Port the interposer to aarch64: the `stat`, `stat64` and
+             `statx` offsets of aarch64 under glibc and musl (measured as
+             experiment 105 measures x86_64's), the system call numbers of
+             the generic table, `svc #0` in `raw_calls::forward`, the ELF
+             machine of the exec routes (`EM_AARCH64`), and the loader
+             names. Build the two aarch64 objects in
+             `scripts/build-interpose.sh` and the release, and embed each
+             object only into a binary of its machine. Prove it on a
+             hosted `ubuntu-24.04-arm` runner, as `kvm.yml` proves KVM.
+Decision:    No binary embeds an object of another machine; the release
+             checks each embedded machine against the target.
+Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target aarch64-unknown-linux-gnu`
+             exits 0 on an arm64 runner, and
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 there with the pinned image of 356 for arm64 on the
+             chroot-denied fixture.
+
+**Filed 2026-11-11.** From PodUtils/podrunner#52. The guard of `build.rs`
+(an aarch64 binary embeds no x86_64 object) is in place: `cargo check -p
+podvm --target aarch64-unknown-linux-musl` warns "the gnu interposer is
+x86_64 and this binary is aarch64: it embeds none (TODO/interpose.md
+T-1721)".

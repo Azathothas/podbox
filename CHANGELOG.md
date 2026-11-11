@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: a binary embeds no interposer of another machine, 2026-11-11
+
+Record: T-1721; PodUtils/podrunner#52.
+Deployed: not deployed; no version change.
+
+- `podvm-aarch64` embedded the two x86_64 interposer objects, so the
+  userland rung declined each arm64 payload with a machine mismatch. A
+  binary for another target now embeds none and says so; the aarch64 port
+  of the interposer is T-1721.
+
 ### Fixed: the loader finds the image's library directories, 2026-11-11
 
 Record: T-1719; issue 247.

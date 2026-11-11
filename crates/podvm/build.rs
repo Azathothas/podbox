@@ -82,8 +82,22 @@ fn main() {
         // `scripts/build-interpose.sh` reach a binary that was built without it.
         println!("cargo::rerun-if-changed={}", from.display());
         let to = out.join(format!("interpose-{name}.so"));
-        let bytes = match std::fs::read(&from) {
-            Ok(bytes) if !bytes.is_empty() => bytes,
+        // TODO/interpose.md T-1721: the objects are x86_64 (EM_X86_64,
+        // 0x3e); a binary for another target embeds none and says so,
+        // rather than one that each payload of its own machine declines.
+        let target = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+        let read = std::fs::read(&from).ok().filter(|b| {
+            let ok = target == "x86_64" || machine_of(b) != "0x3e";
+            if !ok {
+                println!(
+                    "cargo::warning=the {name} interposer is x86_64 and this binary is {target}: \
+                     it embeds none (TODO/interpose.md T-1721)"
+                );
+            }
+            ok
+        });
+        let bytes = match read {
+            Some(bytes) if !bytes.is_empty() => bytes,
             _ => {
                 // ⚠ Zero bytes, and the run-time path reads that as absent.
                 // Not a stub object: a stub that loads and does nothing is the

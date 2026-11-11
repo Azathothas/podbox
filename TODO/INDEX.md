@@ -394,10 +394,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1718](machine.md) | P2 | machine | open | An incus back end: podvm drives incus over its REST API |
 | [T-1719](enter.md) | P2 | enter | done | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
 | [T-1720](supervise.md) | P1 | supervise | done | `wait` gives no exit code for a payload that ends at once |
+| [T-1721](interpose.md) | P2 | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
 
 ## Counts
 
-329 items: 26 open, 8 partial, 3 blocked, 292 done.
+330 items: 27 open, 8 partial, 3 blocked, 292 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -408,9 +409,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 24 | 1 | 3 | 81 | 109 |
+| P2 | 25 | 1 | 3 | 81 | 110 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **26** | **8** | **3** | **292** | **329** |
+| **All** | **27** | **8** | **3** | **292** | **330** |
 
 ## Work order
 

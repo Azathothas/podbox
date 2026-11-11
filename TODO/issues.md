@@ -146,3 +146,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #249 | COORD-031: podvm takes podcrates v0.19.0 (to podcrates) | open | T-1719 |
 | #250 | COORD-032: the answer to PodUtils/podrunner#51: a unix socket path takes the table on main (T-1710) (to podrunner) | open | T-1710 |
 | #251 | [reference] Azathothas/errand-box: incus without root (route A) and its costs | open | T-1717, T-1718 (open while T-1718 is open) |
+| #252 | COORD-033: the answer to PodUtils/podrunner#52: no aarch64 interposer yet; podvm T-1721 (to podrunner) | open | T-1721 |
