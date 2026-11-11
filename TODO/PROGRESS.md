@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 9 open, 8 partial, 5 blocked, 324 done.
+346 entries: 9 open, 7 partial, 5 blocked, 325 done.
 
 The state on 2026-11-11:
 
@@ -61,9 +61,7 @@ that is not done. Read its Prove before you start. Set its status with
    wait with T-1662); the profile entry
    [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset
    record, workerd-test for T-1658).
-3. The record and the tree: the plan row [T-1737](packaging.md) (partial: a trial nightly run),
-   [T-1684](gate.md) (fuzzing and the vendor watch; partial: a
-   dispatched run of `fuzz.yml`).
+3. The record and the tree: the plan row [T-1737](packaging.md) (partial: a trial nightly run).
 4. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
    release. [T-1406](podssh.md), partial, proves live-relay pairing
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.

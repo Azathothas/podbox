@@ -4929,7 +4929,7 @@ was not run on Windows; it exits 2 (a skip) where `gh` is absent.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4986,6 +4986,11 @@ upstream watch as written.
 
 ## Done
 
+**Done 2026-11-11.** The dispatched run 43060659056 of `fuzz.yml`
+(commit c2b1c9b7) ends green: `interpose_head` and `interpose_shebang` each
+run for 300 s with no crash, and `vendor-watch` finds
+`vendor/userland-execve` at the head of upstream.
+
 **Partial 2026-11-11.** The pure parsers of the head left
 `crates/podvm-interpose/src/exec/head.rs` for
 `crates/podvm-interpose/src/exec/parse.rs`, which calls no libc and uses
@@ -5002,8 +5007,7 @@ interpose_head -- -max_total_time=60` exits 0 after 17,492,561 runs, and
 dispatch, and keeps a crash input as an artefact; its job `vendor-watch`
 fails with the list of new commits when io12/userland-execve-rust moves
 past `02ef0e0`. On 2026-11-11 the default branch of upstream is
-`02ef0e02f0c4`, the pinned revision. Remaining: a dispatched run of
-`fuzz.yml` that exits green.
+`02ef0e02f0c4`, the pinned revision.
 
 # T-1685: A maintenance page and a development page in the sibling form
 
