@@ -2010,11 +2010,19 @@ agrees: 341 entries"), from 356 after the move of T-1672:
 
 `cargo test -p podvm-todo` exits 0 with
 `pod_todo_finds_no_problem_in_the_record`, so CI runs pod-todo's whole
-reader on each push.
+reader on each push. Check 35 of `podvm-gate`
+(`crates/podvm-gate/src/gate/podtodo.rs`) runs the same reader, and each
+of its problems is a problem of the gate: a status `doen` gave three, among
+them "the entry says Status doen, the index says blocked", measured.
+`./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 (64 caught).
 
-Remaining: the record checks of `podvm-gate` move to the wrapper, with
-their plants, and each check that pod-todo does not hold is kept in the
-wrapper or retired with its reason.
+Remaining: the record checks of `podvm-gate` that pod-todo holds go (the
+duplicate row, the words of a status and a priority, a row and its entry,
+the link and the title of a row, the fields, the agreement of a status, a
+category and a priority, the counts), and their plants expect pod-todo's
+words. The checks that pod-todo does not hold stay in `podvm-gate`: the
+first line of a Prove is a command, the prove registry, the Prove flags
+against the parity table, the parity notes, and the checks of the tree.
 
 # T-1681: Hand the seven generic crates to podcrates and freeze their files
 
