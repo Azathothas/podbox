@@ -850,7 +850,7 @@ grep -q "is on a noexec mount" "$WORK/out-fx-vol-noexec.txt" || { echo "the bann
 # Clause 27 (T-1712, T-1713, T-1716): the entered rung, as a caller
 # reads it before a run, and the volume rules of pod-enter v0.15.0.
 step fx-tier-chroot "$FLAG" $FX "$PB" run --rm --podvm-tier=chroot "$ALPINE" true
-grep -q 'takes machine, not "chroot"' "$WORK/out-fx-tier-chroot.txt" || { echo "--podvm-tier=chroot was not refused by name" >>"$REPORT"; fail=1; }
+grep -q 'takes machine or incus, not "chroot"' "$WORK/out-fx-tier-chroot.txt" || { echo "--podvm-tier=chroot was not refused by name" >>"$REPORT"; fail=1; }
 step fx-entered 0 $FX "$PB" system info --format '{{.Rung}} {{.EnteredRung}}'
 grep -qE '^[a-z]+ userland$' "$WORK/out-fx-entered.txt" || { echo ".EnteredRung did not read userland under the fixture" >>"$REPORT"; fail=1; }
 echo "fixture rungs     $(tail -1 "$WORK/out-fx-entered.txt")" >>"$REPORT"
