@@ -50,7 +50,10 @@ reconstructed from `/proc`.
 
 ⛔ **Said, not implied**, and `podvm inspect --format '{{.Contains}}'` prints it:
 a pidfd addresses ONE process. It does not contain descendants and it is not a
-PID namespace, so a grandchild that reparents is outside podvm's reach.
+PID namespace. Since T-1708 the launcher (and podvm itself for a foreground
+run) is the child subreaper of the payload's tree, so a grandchild that
+reparents comes to it and is killed at the end; a process that reparents
+above it stays outside podvm's reach.
 
 ⚠ **A defect the `waitid` path cost, and it is a fixed offset rather than a
 race:** `si_status` was read at byte 20 of the `siginfo_t`, which is `si_uid`. A
@@ -912,7 +915,7 @@ Source:      issue 233; the podrunner design review (the owner's design
 Category:    supervise
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     `stop`, `kill` and `rm -f` signal the payload only. A
              grandchild that the payload's exit orphaned, or that left the
@@ -960,6 +963,35 @@ Prove:       `cargo test -p podvm` exits 0 with tests
              that calls `setsid`, after `rm -f`, and for a foreground run
              that gets SIGTERM; under an outer subreaper the launcher's
              parent is that subreaper.
+
+**Done 2026-11-11.** The mechanism is `pod-supervise` of podcrates
+`v0.16.0` (its T-162; the record below). podvm's part: `inspect` gives the
+end of the last run (`End.Reason`, `End.RunMs`, `End.UserMs`,
+`End.SystemMs`, `End.MaxRssKiB`, `End.Residual`; a dash where no run
+ended) and `.Contains` says what the launcher reaches; `rm -f` of a running
+container stops it with SIGKILL through its launcher and, where processes
+stayed, keeps the record and exits 125 with their count (call C15: the end
+carries a count, not pids); a foreground `run` makes podvm the child
+subreaper and kills the descendants that stay after the payload
+(`crates/podvm-supervise/src/tree.rs`). The `--init` row and the text of
+T-0601 say the same. Found on the way and fixed: a foreground `run` that
+got SIGTERM ended with 143 and did not forward it, because the tee thread of
+the log left SIGINT and SIGTERM unblocked (a mask is per thread); the pump
+thread now blocks both, so the waiter's signalfd takes them. The Prove, on
+the cloud host, 2026-11-11: `cargo test -p podvm` exits 0 with
+`rm_of_a_stopped_record_with_a_residual_removes_it` and
+`an_unknown_residual_reads_unknown_and_a_record_with_no_end_reads_dashes`
+(the Prove's `stop_ends_an_orphaned_grandchild` and `rm_force_counts_the_tree`
+are the crate's tests `a_grandchild_that_left_and_ignores_sigterm_is_killed`
+and `with_no_kill_the_grandchild_is_counted`, and the drive below).
+`PODVM_429_MIRROR=1 sh experiments/429-tree-kill.sh` exits 0
+([the run](../experiments/results/tree-kill.txt)): on the namespace rung and
+on the chroot-denied fixture (userland), the M2 payload under `run -d`
+then `stop -t 1` leaves no process in 20 of 20 rounds, with
+`.End.Residual` 0; a grandchild that called `setsid` is gone after
+`rm -f`; a foreground run that gets SIGTERM leaves no process; under an
+outer subreaper the launcher's parent is that subreaper. `--timeout` is
+T-1655's flag over `set_wall`.
 
 **Blocked 2026-11-11.** podcrates did the mechanism as its T-162 (on its
 `main`, after `v0.15.0`): the launcher is the subreaper of the payload's

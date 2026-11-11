@@ -1,0 +1,38 @@
+== conditions
+date              2026-11-11T03:21:22Z
+host kernel       Linux 6.18.44-fc-v378
+input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+rounds            20
+build             ok
+podvm             podvm 0.2.0-beta.2
+3.20: Pulling from library/alpine
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+podvm: probed this machine rather than using the cache: /workspace/podvm/experiments/.sweep429-work/store/probe.json does not exist yet
+capable rung      namespace
+capable inspect     exited signal residual=0
+capable stop        20 of 20 left no process
+capable setsid rm -f  no process
+capable foreground SIGTERM  no process
+fixture rung      userland
+fixture inspect     exited signal residual=0
+fixture stop        20 of 20 left no process
+fixture setsid rm -f  no process
+fixture foreground SIGTERM  no process
+25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep429-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+  the id has no mapping in this user namespace, which reads as a bad argument
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+  extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep429-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+launcher 11409 parent 11334 outer 11334
+outer subreaper   the launcher's parent is the outer subreaper
+
+== errors of the runs
+forwarded SIGTERM to the payload (pid 9383)
+the payload died on SIGTERM: exit 143
+forwarded SIGTERM to the payload (pid 11328)
+the payload died on SIGTERM: exit 143
+
+verdict           THE TREE ENDS

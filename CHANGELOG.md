@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the tree of a payload, 2026-11-11
+
+Record: T-1708; issue 233; call C15.
+Deployed: not deployed; no version change.
+
+- `stop`, `kill`, `rm -f` and the end of a foreground `run` end each
+  process of the payload's tree, also a grandchild that called `setsid`.
+  `inspect` gives the end of the last run (`.End.Reason`, `.End.RunMs`,
+  `.End.UserMs`, `.End.SystemMs`, `.End.MaxRssKiB`, `.End.Residual`).
+  `rm -f` exits 125 and keeps the record where processes stayed after
+  SIGKILL.
+- A foreground `run` that got SIGTERM ended with 143 and did not forward
+  the signal to the payload. It forwards it now.
+
 ### Changed: podcrates v0.16.0, 2026-11-11
 
 Record: T-1708 (partial), T-1715; PodUtils/podcrates#57.

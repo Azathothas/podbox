@@ -29,6 +29,9 @@ pub mod table;
 use podvm_image::Store;
 use table::{Container, Detail};
 
+pub use pod_supervise::end::{End, Reason, Residual};
+
+pub mod tree;
 pub use pod_supervise::{new_id, tail_offset};
 
 /// Everything this crate can fail with, as one sentence for the caller.

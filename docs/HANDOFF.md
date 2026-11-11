@@ -41,8 +41,7 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`. Item 1: T-1708 (partial: its
-   `inspect`, `rm -f` and experiment 429), then T-1655 (its limits wait
-   for podcrates `v0.17.0`). Item 2 is next: T-1703,
+1. The work order of `TODO/PROGRESS.md`. Item 1: T-1655 (its limits
+   wait for podcrates `v0.17.0`; its own parts go on). T-1708 is done. Item 2 is next: T-1703,
    then T-1710, T-1707 and T-1719. T-1716, T-1712, T-1713, T-1704 and
    T-1705 are done on 2026-11-11.

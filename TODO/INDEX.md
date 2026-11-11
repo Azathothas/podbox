@@ -381,7 +381,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1705](interpose.md) | P1 | interpose | done | A host path that a loaded object reports gets the rootfs prefix a second time |
 | [T-1706](cli.md) | P2 | cli | open | The unmodified official `actions/runner` starts on the userland rung |
 | [T-1707](enter.md) | P1 | enter | open | A relative first program resolves against the image root, not against `-w` |
-| [T-1708](supervise.md) | P1 | supervise | partial | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
+| [T-1708](supervise.md) | P1 | supervise | done | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
 | [T-1709](image.md) | P1 | image | open | Each container gets its own rootfs: a write in one container is not read by another |
 | [T-1710](interpose.md) | P1 | interpose | open | A Unix socket path in `connect` and `bind` passes the path table |
 | [T-1711](cli.md) | P2 | cli | open | The calls of the four container-hook commands run through podvm verbs on the userland rung |
@@ -396,7 +396,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-328 items: 34 open, 9 partial, 4 blocked, 281 done.
+328 items: 34 open, 8 partial, 4 blocked, 282 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -406,10 +406,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 4 | 7 | 0 | 134 | 145 |
+| P1 | 4 | 6 | 0 | 135 | 145 |
 | P2 | 30 | 1 | 4 | 74 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **34** | **9** | **4** | **281** | **328** |
+| **All** | **34** | **8** | **4** | **282** | **328** |
 
 ## Work order
 

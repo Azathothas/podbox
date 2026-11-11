@@ -134,12 +134,57 @@ pub fn rm(args: &[String]) -> i32 {
     };
     let mut code = 0;
     for want in &names {
-        match podvm_supervise::remove(&s, want, force) {
-            Ok(c) => println!("{}", c.name),
-            Err(e) => code = fail("rm", e),
-        }
+        code = match remove_tree(&s, want, force) {
+            Ok(None) => code,
+            Ok(Some(c)) => c,
+            Err(e) => fail("rm", e),
+        };
     }
     code
+}
+
+/// `rm` of one container. ⛔ TODO/supervise.md T-1708: `rm -f` of a running
+/// container stops it with SIGKILL through its launcher, which kills the
+/// payload's tree and writes the end. Where processes of the tree stayed
+/// after the kill, the record stays and the verb exits 125 naming the
+/// count: removing it would forget processes that still run in the rootfs.
+/// A later `rm` of that record removes it and names the count again.
+pub(super) fn remove_tree(
+    s: &podvm_image::Store,
+    want: &str,
+    force: bool,
+) -> Result<Option<i32>, podvm_supervise::Error> {
+    let c = podvm_supervise::get(s, want)?;
+    let killed_now = force && c.state == podvm_supervise::table::State::Running;
+    let c = if killed_now {
+        podvm_supervise::stop(s, &c.id, 0)?;
+        podvm_supervise::get(s, &c.id)?
+    } else {
+        c
+    };
+    let stayed = match c.end.as_ref().map(|e| e.residual_processes) {
+        Some(podvm_supervise::Residual::Count(n)) if n > 0 => Some(n),
+        _ => None,
+    };
+    if let Some(n) = stayed {
+        if killed_now {
+            eprintln!(
+                "podvm rm: {}: {n} process(es) of its tree stayed after SIGKILL, so \
+                 podvm keeps the record (`podvm inspect --format '{{{{.End.Residual}}}}' \
+                 {}`); a later rm removes it (TODO/supervise.md T-1708)",
+                c.name, c.name
+            );
+            return Ok(Some(EXIT_RUNTIME_ERROR));
+        }
+        eprintln!(
+            "podvm rm: {}: {n} process(es) of its tree stayed after its end, and podvm \
+             no longer tracks them (TODO/supervise.md T-1708)",
+            c.name
+        );
+    }
+    let c = podvm_supervise::remove(s, &c.id, force)?;
+    println!("{}", c.name);
+    Ok(None)
 }
 
 /// `podvm cp <src> <dest>`, where one side is `<name>:<path>` and the

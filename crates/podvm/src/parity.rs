@@ -284,7 +284,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--stop-timeout"), status: NoneStatus, note: "the stop grace is `stop -t` (default 10); `run` carries no per-container timeout" },
     Row { verb: "run", flag: Some("--sysctl"), status: NoneStatus, note: "the payload shares the host's namespaces, so a per-container sysctl would be a host sysctl; none is applied" },
     Row { verb: "run", flag: Some("--disable-content-trust"), status: NoneStatus, note: "podvm always verifies digests (TODO/extract.md T-1315); disabling trust is refused rather than honored" },
-    Row { verb: "run", flag: Some("--init"), status: NoneStatus, note: "no PID namespace and no init to run: orphaned grandchildren reparent to the host init, and no flag changes that" },
+    Row { verb: "run", flag: Some("--init"), status: NoneStatus, note: "no PID namespace and no init to run. The launcher (or podvm, for a foreground run) is the child subreaper of the payload's tree and kills each descendant at the end (T-1708), so no flag is needed" },
     // ------------------------------------------------------ exec's own flags
     Row { verb: "exec", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
     Row { verb: "exec", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },

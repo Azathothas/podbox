@@ -257,6 +257,7 @@ fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
 }
 
 mod fields_and_copy;
+mod residual;
 mod script;
 
 /// T-1691 (issue 215, call C12): `stop -t` takes whole seconds; zero is a

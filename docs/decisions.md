@@ -66,6 +66,7 @@ Each call stays in force until the owner rules otherwise.
 | 2026-11-09 | C12 | `podvm stop -t 0` sends SIGKILL at once, as docker does (T-1691, issue 215). A negative value stays refused. |
 | 2026-11-09 | C13 | On an open row of the probe JSON, the non-goal `remedy` is an empty string; the key stays (T-1689, issue 213). |
 | 2026-11-11 | C14 | `--podvm-tier` takes `machine` only (T-1712, form a, issue 237). The value `chroot` had no effect since C2: a caller that asked for chroot got the rung of the ladder with exit 0. It is a flag error now, and the refusal names the value and `.EnteredRung`. A caller reads the entered rung from `system info` (T-1713) and needs no force. Form b (a forced chroot that refuses where chroot is denied) waits for a caller that needs it. |
+| 2026-11-11 | C15 | `rm -f` names the count of the processes of a tree that stayed after SIGKILL, not their pids: the end that `pod-supervise` writes (`Container::end`) carries a count only (T-1708). Where the count is not 0 on the `rm -f` that killed the tree, the record stays and the verb exits 125; a later `rm` removes it and names the count again, so no record is stuck. |
 
 ## Questions for the owner
 

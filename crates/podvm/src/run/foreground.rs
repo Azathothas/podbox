@@ -76,7 +76,15 @@ fn tee_fd_to(fd: i64, log_path: &std::path::Path) -> Result<Tee, String> {
     // reused descriptor with it). ⛔ TODO/enter.md T-1700: the restore
     // closes it only after the pump ends.
     let out = unsafe { std::mem::ManuallyDrop::new(std::fs::File::from_raw_fd(saved as i32)) };
-    let handle = std::thread::spawn(move || pump(reader, out, log));
+    // ⛔ TODO/supervise.md T-1708: a signal mask is per thread, and the
+    // waiter of `pod-enter` blocks SIGINT and SIGTERM in its own thread to
+    // read them from a signalfd. A thread that leaves them unblocked takes
+    // the signal with the default action: podvm ended 143, and the tree ran on.
+    let handle = std::thread::spawn(move || {
+        let mut old = 0u64;
+        let _ = podvm_probe::sys::sigblock_shutdown(&mut old);
+        pump(reader, out, log)
+    });
     Ok(Tee { fd, saved, handle })
 }
 
@@ -352,6 +360,9 @@ pub fn run(args: &[String]) -> i32 {
         let _ = std::fs::remove_file(&p.memo_host_path);
         return podvm_image::error::EXIT_RUNTIME_ERROR;
     }
+    // ⛔ TODO/supervise.md T-1708: podvm is the child subreaper of the
+    // payload's tree, so an orphan of the payload is reached at the end.
+    let reaper = podvm_supervise::tree::become_subreaper();
     // ⭐ TODO/packaging.md T-1003. A forced launch rung drives through the
     // ladder; unset means the chroot by path below, untouched. The banner
     // names the entered rung, so a forced run says where it went.
@@ -416,6 +427,7 @@ pub fn run(args: &[String]) -> i32 {
             }
         }
     };
+    end_tree(reaper, &mut err);
     drop(err);
     // ⭐ TODO/supervise.md T-1421. The record lands `Exited` with the code
     // and the times (or is removed under `--rm`), after stdout is

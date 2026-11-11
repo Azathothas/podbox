@@ -6,9 +6,13 @@ pub(super) fn container_json(s: &podvm_image::Store, c: &Container) -> String {
     for (k, v) in &fields {
         // ⚠ The nested pair is nested here too, so a caller reading the
         // document and one reading `--format` do not find two shapes.
-        if let Some(rest) = k.strip_prefix("Exec.") {
+        if let Some((group, rest)) = k
+            .strip_prefix("Exec.")
+            .map(|r| ("Exec", r))
+            .or_else(|| k.strip_prefix("End.").map(|r| ("End", r)))
+        {
             let e = o
-                .entry("Exec".to_string())
+                .entry(group.to_string())
                 .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
             if let Some(m) = e.as_object_mut() {
                 m.insert(rest.to_string(), serde_json::Value::String(v.clone()));

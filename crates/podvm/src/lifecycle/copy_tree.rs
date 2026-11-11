@@ -267,6 +267,29 @@ pub fn inspect_container(want: &str, template: Option<&str>) -> Option<i32> {
     }
 }
 
+/// One field of the end of the last run, or a dash where no run ended.
+fn end_field(c: &Container, f: impl Fn(&podvm_supervise::End) -> String) -> String {
+    c.end.as_ref().map(f).unwrap_or_else(|| "-".into())
+}
+
+/// The word of an end reason, as the record writes it.
+pub(super) fn reason_word(r: podvm_supervise::Reason) -> &'static str {
+    match r {
+        podvm_supervise::Reason::Exit => "exit",
+        podvm_supervise::Reason::Signal => "signal",
+        podvm_supervise::Reason::Wall => "wall",
+    }
+}
+
+/// The count of the processes that stayed after the kill of the tree, or
+/// `unknown`, never a zero for an unknown count.
+pub(super) fn residual_word(r: podvm_supervise::Residual) -> String {
+    match r {
+        podvm_supervise::Residual::Count(n) => n.to_string(),
+        podvm_supervise::Residual::Unknown => "unknown".to_string(),
+    }
+}
+
 pub(super) fn container_fields(
     s: &podvm_image::Store,
     c: &Container,
@@ -337,17 +360,33 @@ pub(super) fn container_fields(
         ("Command", c.argv.join(" ")),
         ("Exec.Mode", crate::images::EXEC_MODE.to_string()),
         ("Exec.Shares", crate::images::EXEC_SHARES.to_string()),
-        // ⛔ SAID, NOT IMPLIED. TODO/supervise.md T-0601: a pidfd addresses one
-        // process. podvm has no PID namespace, so a grandchild that reparents
-        // is outside its reach, and a caller reads this rather than assuming
-        // docker's containment.
+        // ⛔ SAID, NOT IMPLIED. TODO/supervise.md T-1708: the launcher is the
+        // child subreaper of the payload's tree and kills each descendant at
+        // the end. podvm has no PID namespace, so a process that reparents
+        // above the launcher stays out of reach, and a caller reads this
+        // rather than assuming docker's containment.
         (
             "Contains",
-            "the payload process only; podvm has no PID namespace, so a grandchild \
-             that reparents is outside its reach"
+            "the payload's tree: the launcher is its child subreaper and kills each \
+             descendant at the end; a process that reparents above the launcher is \
+             outside its reach"
                 .to_string(),
         ),
         ("Noticed", c.noticed.clone().unwrap_or_else(|| "-".into())),
+        // TODO/supervise.md T-1708: the end of the last run, as the launcher
+        // measured it. A dash where no run ended, never a zero.
+        (
+            "End.Reason",
+            end_field(c, |e| reason_word(e.reason).to_string()),
+        ),
+        ("End.RunMs", end_field(c, |e| e.run_ms.to_string())),
+        ("End.UserMs", end_field(c, |e| e.user_ms.to_string())),
+        ("End.SystemMs", end_field(c, |e| e.system_ms.to_string())),
+        ("End.MaxRssKiB", end_field(c, |e| e.max_rss_kib.to_string())),
+        (
+            "End.Residual",
+            end_field(c, |e| residual_word(e.residual_processes)),
+        ),
         // T-0708: how many times the preloaded tier emulated an operation
         // rather than running the kernel's answer. A dash where the tier
         // never ran; `inspect --format` reads these names, `ps` does not.

@@ -110,6 +110,33 @@ pub(super) fn store_note(store: &podvm_image::Store) -> String {
     }
 }
 
+/// ⛔ TODO/supervise.md T-1708: kill each process of the payload's tree that
+/// stayed after the payload, and name a count that is not 0.
+pub(super) fn end_tree(reaper: bool, err: &mut dyn std::io::Write) {
+    match podvm_supervise::tree::end_own_tree() {
+        podvm_supervise::Residual::Count(0) => {}
+        podvm_supervise::Residual::Count(n) => {
+            let _ = writeln!(
+                err,
+                "podvm run: {n} process(es) of the payload's tree stayed after SIGKILL \
+                 (TODO/supervise.md T-1708)"
+            );
+        }
+        podvm_supervise::Residual::Unknown => {
+            let why = if reaper {
+                "/proc cannot list them"
+            } else {
+                "the kernel refused PR_SET_CHILD_SUBREAPER"
+            };
+            let _ = writeln!(
+                err,
+                "podvm run: podvm cannot count the processes of the payload's tree that \
+                 stayed: {why} (TODO/supervise.md T-1708)"
+            );
+        }
+    }
+}
+
 /// Make sure the store holds the image, honouring `--pull`.
 pub(super) fn acquire(
     verb: &str,
