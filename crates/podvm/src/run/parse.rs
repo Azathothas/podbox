@@ -22,86 +22,6 @@ pub fn usage(verb: &str) -> String {
     s
 }
 
-#[derive(Debug)]
-pub(super) struct Opts {
-    pub(super) rm: bool,
-    pub(super) detach: bool,
-    pub(super) name: Option<String>,
-    pub(super) env: Vec<String>,
-    pub(super) workdir: Option<String>,
-    pub(super) entrypoint: Option<String>,
-    pub(super) platform: Option<String>,
-    pub(super) pull: String,
-    pub(super) insecure: Vec<String>,
-    pub(super) tls_verify: Option<bool>,
-    pub(super) tty: bool,
-    pub(super) image: Option<String>,
-    pub(super) command: Vec<String>,
-    /// `--user`. Carried raw here and resolved against the image once its
-    /// rootfs exists, because a name means the image's own passwd entry.
-    pub(super) user: Option<String>,
-    /// `--podvm-tier`. Carried raw here and resolved in `prepare`.
-    /// TODO/machine.md T-1302.
-    pub(super) tier: Option<crate::tier::Want>,
-    /// `--podvm-qemu-arg`. One emulator token per occurrence, carried for
-    /// the machine tier's driver (T-1303); refused on every other tier
-    /// rather than silently dropped.
-    pub(super) qemu_args: Vec<String>,
-    /// `--podvm-mem`. The validated guest memory in bytes, carried for the
-    /// machine tier's ceiling check in `prepare`; refused on every other
-    /// tier rather than silently dropped. TODO/machine.md T-1305.
-    pub(super) mem: Option<u64>,
-    /// `--podvm-cpus`. The guest's vCPUs, machine tier only and refused on
-    /// every other tier. TODO/cli.md T-1654 (`limits.cpus` of a profile).
-    pub(super) cpus: Option<u32>,
-    /// `--profile` and `-s`: the profile of the run and its overrides.
-    /// TODO/cli.md T-1654.
-    pub(super) profile: Option<String>,
-    pub(super) sets: Vec<String>,
-    /// `fs.wrap` of the profile: a prefix of the command.
-    pub(super) wrap: Vec<String>,
-    /// `--device`. Carried raw here and parsed now: a malformed shape is a
-    /// flag error, before anything is fetched. TODO/enter.md T-0501.
-    pub(super) devices: Vec<String>,
-    /// `--unsafe-host-paths`. Opts into the userland pass-through with no
-    /// `PODVM_MAPS` anchoring. TODO/enter.md T-1407.
-    pub(super) unsafe_host_paths: bool,
-    /// `-v`. Parsed now, so a shape podvm cannot serve is a flag error
-    /// before anything is fetched. TODO/enter.md T-1653.
-    pub(super) volumes: Vec<podvm_enter::userland::Volume>,
-    /// `--timeout SECONDS` (podman's spelling): the wall bound of the run,
-    /// after which the payload's tree is killed. TODO/cli.md T-1655.
-    pub(super) timeout: Option<u64>,
-    /// `--read-only` and the guest paths of the `:ro` volumes. TODO/cli.md
-    /// T-1655: the interposer's read-only layer serves them with `EROFS`.
-    pub(super) read_only: bool,
-    pub(super) ro_volumes: Vec<String>,
-    /// The guest paths of `--tmpfs`, made writable directories of the run.
-    pub(super) tmpfs: Vec<String>,
-    /// `size=` of `--tmpfs /tmp`: the cap of `/tmp` on the syscall tier
-    /// (TODO/enter.md T-1657); no other tier enforces it.
-    pub(super) tmp_size: Option<u64>,
-    /// `--ulimit` and `--security-opt no-new-privileges`. TODO/cli.md T-1655.
-    pub(super) hardening: podvm_supervise::table::Hardening,
-    /// M5 and T-0804. ⚠ Carried in one struct so `run`, `create` and the
-    /// launcher cannot each grow their own copy of the same three answers.
-    pub(super) ask: crate::complete::Ask,
-}
-
-impl Opts {
-    /// TODO/cli.md T-1649. The first word of the caller where `argv[0]`
-    /// is the Entrypoint of the image and the caller gave a command: the
-    /// word that a refusal of that script names after `--entrypoint`.
-    /// `None` under `--entrypoint`, with no command, or with no
-    /// Entrypoint (the command is then `argv` itself).
-    pub(super) fn retry_word(&self, image_entrypoint: Option<&[String]>) -> Option<&str> {
-        if self.entrypoint.is_some() || image_entrypoint.is_none_or(<[String]>::is_empty) {
-            return None;
-        }
-        self.command.first().map(String::as_str)
-    }
-}
-
 /// The options of `run` and `create`, with `--profile` applied: the
 /// profile's flags go first, so that a flag of the command line wins over
 /// the profile where a flag takes one value. TODO/cli.md T-1654.
@@ -140,39 +60,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         }
         Err(member) => return Err(crate::parity::refuse_member(verb, &member, &usage(verb))),
     };
-    let mut o = Opts {
-        rm: false,
-        detach: false,
-        name: None,
-        env: Vec::new(),
-        workdir: None,
-        entrypoint: None,
-        platform: None,
-        pull: "missing".into(),
-        insecure: Vec::new(),
-        tls_verify: None,
-        tty: false,
-        image: None,
-        command: Vec::new(),
-        user: None,
-        tier: None,
-        qemu_args: Vec::new(),
-        mem: None,
-        cpus: None,
-        profile: None,
-        sets: Vec::new(),
-        wrap: Vec::new(),
-        devices: Vec::new(),
-        unsafe_host_paths: false,
-        volumes: Vec::new(),
-        timeout: None,
-        read_only: false,
-        ro_volumes: Vec::new(),
-        tmpfs: Vec::new(),
-        tmp_size: None,
-        hardening: Default::default(),
-        ask: crate::complete::Ask::default(),
-    };
+    let mut o = Opts::new();
     let mut expecting: Option<&'static str> = None;
     let mut i = 0;
     while i < args.len() {
@@ -230,6 +118,11 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 },
                 "--podvm-cpus" => o.cpus = Some(cpus(verb, a)?),
                 "--profile" => o.profile = Some(a.clone()),
+                "--network" => network(verb, a, &mut o)?,
+                "--ports" => o.ports.extend(ports(verb, a)?),
+                "--allow" => o
+                    .allow
+                    .extend(a.split(',').filter(|h| !h.is_empty()).map(String::from)),
                 "-s" => o.sets.push(a.clone()),
                 "-v" => volume(verb, a, &mut o)?,
                 "--timeout" => o.timeout = Some(timeout(verb, a)?),
@@ -315,6 +208,9 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             "--podvm-mem" => expecting = Some("--podvm-mem"),
             "--podvm-cpus" => expecting = Some("--podvm-cpus"),
             "--profile" => expecting = Some("--profile"),
+            "--network" | "--net" => expecting = Some("--network"),
+            "--ports" => expecting = Some("--ports"),
+            "--allow" => expecting = Some("--allow"),
             "-s" | "--set" => expecting = Some("-s"),
             "--timeout" => expecting = Some("--timeout"),
             "--read-only" => o.read_only = true,
@@ -407,6 +303,16 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
             other if other.starts_with("--podvm-qemu-arg=") => o
                 .qemu_args
                 .push(other["--podvm-qemu-arg=".len()..].to_string()),
+            other if other.starts_with("--network=") || other.starts_with("--net=") => {
+                network(verb, other.split_once('=').map_or("", |(_, v)| v), &mut o)?
+            }
+            other if other.starts_with("--ports=") => o.ports.extend(ports(verb, &other[8..])?),
+            other if other.starts_with("--allow=") => o.allow.extend(
+                other[8..]
+                    .split(',')
+                    .filter(|h| !h.is_empty())
+                    .map(String::from),
+            ),
             other if other.starts_with("--profile=") => {
                 o.profile = Some(other["--profile=".len()..].to_string())
             }
@@ -479,3 +385,6 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
 
 mod values;
 use values::*;
+
+mod opts;
+pub(super) use opts::Opts;

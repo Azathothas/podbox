@@ -182,3 +182,32 @@ pub(super) fn cpus(verb: &str, a: &str) -> std::result::Result<u32, i32> {
         }
     }
 }
+
+/// `--network`: `broker` only (TODO/net.md T-1665). podvm has no network
+/// namespace to select, so each other value is refused by name.
+pub(super) fn network(verb: &str, a: &str, o: &mut Opts) -> Result<(), i32> {
+    if a == "broker" {
+        o.broker = true;
+        return Ok(());
+    }
+    eprintln!(
+        "podvm {verb}: --network takes broker only, not {a:?}: podvm has no network \
+         namespace to select; `--network broker` holds the payload to an egress \
+         broker (TODO/net.md T-1665)"
+    );
+    Err(EXIT_FLAG_ERROR)
+}
+
+/// `--ports`: a list of ports, 1 to 65535, for the broker.
+pub(super) fn ports(verb: &str, a: &str) -> Result<Vec<u16>, i32> {
+    a.split(',')
+        .filter(|p| !p.is_empty())
+        .map(|p| match p.parse::<u16>() {
+            Ok(n) if n > 0 => Ok(n),
+            _ => {
+                eprintln!("podvm {verb}: --ports takes ports from 1 to 65535, not {p:?}");
+                Err(EXIT_FLAG_ERROR)
+            }
+        })
+        .collect()
+}

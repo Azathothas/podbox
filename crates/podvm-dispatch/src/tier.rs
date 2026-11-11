@@ -95,11 +95,19 @@ pub fn fill_uname(u: &mut [u8; 390]) {
 /// a count that an earlier process of the payload made). False where the
 /// spec does not parse or the count cannot be mapped.
 pub fn set(spec: &[u8]) -> bool {
-    let mut parts = spec.splitn(2, |&c| c == b':');
+    let mut parts = spec.splitn(3, |&c| c == b':');
     let Some(cap) = parts.next().and_then(num) else {
         return false;
     };
-    let fd = match parts.next() {
+    let fd_part = parts.next().filter(|f| *f != b"-");
+    // T-1665: the third field is the port of the egress broker.
+    if let Some(p) = parts.next() {
+        match num(p) {
+            Some(port) if port < 65536 => crate::hold::set_port(port),
+            _ => return false,
+        }
+    }
+    let fd = match fd_part {
         Some(f) => match num(f) {
             Some(n) => n,
             None => return false,
@@ -131,12 +139,15 @@ pub fn set(spec: &[u8]) -> bool {
     true
 }
 
-/// `CAP:FD` for the next `execve`, into `out`; its length.
+/// `CAP:FD:PORT` for the next `execve`, into `out`; its length.
 pub fn spec(out: &mut [u8; 48]) -> usize {
     let mut n = put(out, 0, cap());
     out[n] = b':';
     n += 1;
-    put(out, n, FD.load(Ordering::Relaxed))
+    n = put(out, n, FD.load(Ordering::Relaxed));
+    out[n] = b':';
+    n += 1;
+    put(out, n, crate::hold::port())
 }
 
 fn put(out: &mut [u8; 48], at: usize, mut v: i64) -> usize {
@@ -213,6 +224,9 @@ fn iov_len(iov: i64, n: i64) -> i64 {
 pub fn call(n: i64, a: [i64; 6]) -> Option<i64> {
     if !on() {
         return None;
+    }
+    if let Some(r) = crate::hold::call(n, a) {
+        return Some(r);
     }
     match n {
         UNAME => Some(uname(a[0])),

@@ -60,6 +60,11 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   out of reach.
 - A denied terminal operation produces a named refusal.
 - Host CA completion changes payload trust data and can be disabled.
+- `--network broker` (T-1665) holds a payload to an egress broker of the
+  run: on the syscall tier the handler refuses each `connect` but the
+  broker's, and on the machine tier the guest network is restricted to a
+  forward to the broker. Each other rung refuses it. A payload that
+  ignores the proxy variables is refused, not served through the broker.
 - `--podvm-tier=syscall` (T-1657) runs a static x86_64 program on the
   native-static rung, and the handler also answers `uname` with the
   release `6.1.0-podvm-syscall`, gives `/tmp` as a directory of the run

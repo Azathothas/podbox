@@ -28,6 +28,8 @@ mod exec;
 #[cfg(target_arch = "x86_64")]
 mod handler;
 #[cfg(target_arch = "x86_64")]
+mod hold;
+#[cfg(target_arch = "x86_64")]
 mod path;
 #[cfg(target_arch = "x86_64")]
 mod pool;
@@ -59,7 +61,9 @@ pub const EMU_VAR: &str = "PODVM_DISPATCH_EMU";
 pub const EMU_ARG: &str = "--podvm-dispatch-emu=";
 /// The variable that turns on the syscall tier (TODO/enter.md T-1657):
 /// `CAP` (the bytes of `/tmp`) at the first entry, `CAP:FD` across an
-/// `execve`.
+/// `execve`, and a third field `:PORT` where the payload is held to an
+/// egress broker on `127.0.0.1:PORT` (`CAP:-:PORT` at the first entry;
+/// TODO/net.md T-1665).
 pub const TIER_VAR: &str = "PODVM_DISPATCH_TIER";
 /// The release that `uname` gives on the syscall tier (T-1657).
 pub const TIER_RELEASE: &str = "6.1.0-podvm-syscall";

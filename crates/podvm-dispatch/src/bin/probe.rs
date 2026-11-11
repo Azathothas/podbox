@@ -126,6 +126,11 @@ fn main() {
             std::thread::sleep(std::time::Duration::from_millis(300));
             println!("detached ok");
         }
+        // T-1665: a TCP connect; ok, or the errno.
+        "connect" => match std::net::TcpStream::connect(arg(2)) {
+            Ok(_) => println!("connect ok"),
+            Err(e) => println!("connect {}", e.raw_os_error().unwrap_or(-1)),
+        },
         // T-1657: the release of uname(2).
         "uname" => {
             let mut u = [0u8; 390];

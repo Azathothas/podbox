@@ -87,8 +87,9 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1666](probe.md) is done (`probe-inside` and `compare`, experiment
    422); [T-1667](cli.md) is partial (the scope group of the doctor and
    the asset rule are done; the `gh` fallback waits for an installer),
-   the network entries [T-1665](net.md) (partial: the proxy rewrite of
-   the guest is done, the broker remains), [T-1662](net.md),
+   the network entries [T-1665](net.md) (partial: the proxy rewrite and
+   the broker on the syscall and machine tiers are done; the fake address
+   of a named upstream remains), [T-1662](net.md),
    [T-1663](net.md) and [T-1664](net.md) (on T-1656), the profiles
    [T-1659](cli.md), [T-1661](cli.md) and [T-1660](cli.md), and
    [T-1668](gate.md) beside them.

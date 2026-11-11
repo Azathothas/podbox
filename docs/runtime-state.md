@@ -53,6 +53,7 @@ Separate crate: `crates/podvm-interpose`.
 | --- | --- |
 | `base64` | `0.23.1` |
 | `flate2` | `1.1.10` |
+| `pod-broker` | `0.21.0` |
 | `pod-core` | `0.21.0` |
 | `pod-enter` | `0.21.0` |
 | `pod-extract` | `0.21.0` |

@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the egress broker, 2026-11-11
+
+Record: T-1665; issue 184.
+Deployed: not deployed; no version change.
+
+- `run --network broker --ports P --allow HOST` holds the payload to an
+  egress broker of the run (`pod-broker`), chained to the host's proxy:
+  407 without the run's credential, 403 for a port, a host or an address
+  off the lists, 200 through it. The syscall tier and the machine tier
+  hold the payload to it; each other rung refuses the flag by name.
+
 ### Added: a loopback proxy reaches a guest of the machine tier, 2026-11-11
 
 Record: T-1665; issue 184.

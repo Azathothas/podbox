@@ -11,6 +11,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 mod assets;
+mod broker;
 mod complete;
 mod diagnose;
 mod doctor;
@@ -121,6 +122,10 @@ fn main() -> std::process::ExitCode {
     podvm_dispatch::main_if_entered("podvm"); // T-1652, the native-static rung
     let argv: Vec<String> = std::env::args().collect();
 
+    // TODO/net.md T-1665: one connection of a guest, relayed to the broker.
+    if argv.get(1).map(String::as_str) == Some(broker::RELAY_ARG) {
+        return exit(broker::relay(argv.get(2).map_or("", String::as_str)));
+    }
     // TODO/probe.md T-1666: the probe inside a payload prints its report.
     if argv.get(1).map(String::as_str) == Some(podvm_probe::inside::ARG) {
         print!("{}", podvm_probe::inside::run("podvm"));

@@ -46,6 +46,10 @@ pub struct Request<'a> {
     pub mem: Option<u64>,
     /// `--podvm-cpus`: the `-smp` of the guest; one where it is `None`.
     pub cpus: Option<u32>,
+    /// `--network broker` (TODO/net.md T-1665): the port of the broker on
+    /// the host's loopback. The guest network is restricted, and its one
+    /// way out is a forward to the broker.
+    pub broker: Option<u16>,
     pub timeout: Option<Duration>,
     pub qemu_args: Vec<String>,
     /// `-v HOST:GUEST`: each host path, copied into the guest at GUEST.
@@ -328,6 +332,22 @@ pub fn boot(r: &Request) -> i32 {
         &initrd,
         &extra,
     );
+    if let Some(port) = r.broker {
+        let (h, p) = crate::broker::GUEST_FORWARD;
+        if let Some(nic) = argv
+            .iter_mut()
+            .find(|a| a.starts_with("user,model=virtio-net-pci"))
+        {
+            // One relay of podvm for each connection of the guest: a
+            // `tcp:` chardev would be one connection for the whole run.
+            let me = std::env::current_exe().unwrap_or_default();
+            *nic = format!(
+                "{nic},restrict=on,guestfwd=tcp:{h}:{p}-cmd:{} {} 127.0.0.1:{port}",
+                me.display(),
+                crate::broker::RELAY_ARG
+            );
+        }
+    }
     // TODO/cli.md T-1654 (`limits.cpus`). With `acpi=off` the kernel reads
     // the MP table, which names one CPU, so a guest of more CPUs keeps ACPI
     // (measured on 2026-11-11: `nproc` 1 with `acpi=off`, 2 without it).

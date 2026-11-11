@@ -251,3 +251,31 @@ fn a_detached_thread_ends_and_the_process_goes_on() {
     let Some(r) = root("detached") else { return };
     assert_eq!(probe(&r, &["detached"]), ("detached ok".into(), 0));
 }
+
+/// T-1665: with the hold of the syscall tier, the payload reaches the
+/// broker's port on the loopback and nothing else (EACCES, 13); with no
+/// hold, the other port answers as the kernel does (ECONNREFUSED, 111).
+#[test]
+fn the_hold_lets_the_payload_reach_the_broker_only() {
+    let Some(r) = root("hold") else { return };
+    let broker = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = broker.local_addr().unwrap().port();
+    let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let other_port = other.local_addr().unwrap().port();
+    drop(other);
+    let spec = format!("1048576:-:{port}");
+    let to = |p: u16| format!("127.0.0.1:{p}");
+    assert_eq!(
+        probe_with(&r, &["connect", &to(port)], Some(&spec)).0,
+        "connect ok"
+    );
+    assert_eq!(
+        probe_with(&r, &["connect", &to(other_port)], Some(&spec)).0,
+        "connect 13"
+    );
+    assert_eq!(
+        probe_with(&r, &["connect", "1.1.1.1:443"], Some(&spec)).0,
+        "connect 13"
+    );
+    assert_eq!(probe(&r, &["connect", &to(other_port)]).0, "connect 111");
+}

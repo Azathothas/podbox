@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 
 use toml::{Table, Value};
 
+use super::values::*;
+
 /// The keys of each table. A key outside these is an error that names it.
 const TOP: &[&str] = &["extends", "description", "fs", "limits", "net", "env"];
 const FS: &[&str] = &[
@@ -18,7 +20,7 @@ const FS: &[&str] = &[
     "tmpfs",
 ];
 const LIMITS: &[&str] = &["file_max", "memory", "cpus", "timeout"];
-const NET: &[&str] = &["mode"];
+const NET: &[&str] = &["mode", "ports", "allow"];
 const ENV: &[&str] = &["set"];
 const BACKENDS: &[&str] = &["auto", "machine", "incus", "emulate"];
 /// The deepest chain of `extends`: a longer one is a cycle or a mistake.
@@ -41,6 +43,8 @@ pub struct Checked {
     pub cpus: Option<u32>,
     pub timeout: Option<u64>,
     pub net_mode: Option<String>,
+    pub net_ports: Vec<u16>,
+    pub net_allow: Vec<String>,
     pub env: Vec<(String, String)>,
 }
 
@@ -204,118 +208,6 @@ pub fn set(table: &mut Table, spec: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// The type of `v` with its article, as an error names it.
-fn article(v: &Value) -> String {
-    let t = v.type_str();
-    if t.starts_with(['a', 'e', 'i', 'o', 'u']) {
-        format!("an {t}")
-    } else {
-        format!("a {t}")
-    }
-}
-
-fn want_table<'a>(t: &'a Table, key: &str) -> Result<Option<&'a Table>, String> {
-    match t.get(key) {
-        None => Ok(None),
-        Some(Value::Table(x)) => Ok(Some(x)),
-        Some(other) => Err(format!("`{key}` must be a table, not {}", article(other))),
-    }
-}
-
-fn only(t: &Table, prefix: &str, allowed: &[&str]) -> Result<(), String> {
-    for k in t.keys() {
-        if !allowed.contains(&k.as_str()) {
-            let full = if prefix.is_empty() {
-                k.clone()
-            } else {
-                format!("{prefix}.{k}")
-            };
-            let scope = if prefix.is_empty() {
-                "a profile".to_string()
-            } else {
-                format!("`{prefix}`")
-            };
-            return Err(format!(
-                "unknown key `{full}`: {scope} takes {}. A misspelt key that is silently \
-                 ignored leaves a cage looser than the recipe says",
-                allowed.join(", ")
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn string(t: &Table, table: &str, key: &str) -> Result<Option<String>, String> {
-    match t.get(key) {
-        None => Ok(None),
-        Some(Value::String(s)) => Ok(Some(s.clone())),
-        Some(other) => Err(format!(
-            "`{table}.{key}` must be a string, not {}",
-            article(other)
-        )),
-    }
-}
-
-fn boolean(t: &Table, table: &str, key: &str) -> Result<Option<bool>, String> {
-    match t.get(key) {
-        None => Ok(None),
-        Some(Value::Boolean(b)) => Ok(Some(*b)),
-        Some(other) => Err(format!(
-            "`{table}.{key}` must be a boolean, not {}",
-            article(other)
-        )),
-    }
-}
-
-fn strings(t: &Table, table: &str, key: &str) -> Result<Vec<String>, String> {
-    match t.get(key) {
-        None => Ok(Vec::new()),
-        Some(Value::Array(a)) => a
-            .iter()
-            .map(|v| match v {
-                Value::String(s) => Ok(s.clone()),
-                other => Err(format!(
-                    "`{table}.{key}` must be an array of strings; it holds {}",
-                    article(other)
-                )),
-            })
-            .collect(),
-        Some(other) => Err(format!(
-            "`{table}.{key}` must be an array of strings, not {}",
-            article(other)
-        )),
-    }
-}
-
-fn integer(t: &Table, table: &str, key: &str, min: i64, max: i64) -> Result<Option<i64>, String> {
-    match t.get(key) {
-        None => Ok(None),
-        Some(Value::Integer(n)) if (min..=max).contains(n) => Ok(Some(*n)),
-        Some(Value::Integer(n)) => Err(format!(
-            "`{table}.{key}` must be from {min} to {max}, not {n}"
-        )),
-        Some(other) => Err(format!(
-            "`{table}.{key}` must be an integer, not {}",
-            article(other)
-        )),
-    }
-}
-
-/// A size: an integer of bytes, or a string with a K, M, G or T suffix.
-fn size(t: &Table, table: &str, key: &str) -> Result<Option<u64>, String> {
-    match t.get(key) {
-        None => Ok(None),
-        Some(Value::Integer(n)) if *n > 0 => Ok(Some(*n as u64)),
-        Some(Value::String(s)) => crate::tier::parse_mem(s).map(Some).ok_or_else(|| {
-            format!("`{table}.{key}` takes bytes with an optional K/M/G/T suffix, not {s:?}")
-        }),
-        Some(other) => Err(format!(
-            "`{table}.{key}` must be a size (an integer of bytes or a string as \"1g\"), not {}",
-            other.to_string().trim()
-        )),
-    }
-}
-
 /// The strict check of a merged table.
 pub fn check(t: &Table) -> Result<Checked, String> {
     only(t, "", TOP)?;
@@ -365,6 +257,25 @@ pub fn check(t: &Table) -> Result<Checked, String> {
     if let Some(n) = want_table(t, "net")? {
         only(n, "net", NET)?;
         c.net_mode = string(n, "net", "mode")?;
+        c.net_allow = strings(n, "net", "allow")?;
+        c.net_ports = match n.get("ports") {
+            None => Vec::new(),
+            Some(Value::Array(a)) => a
+                .iter()
+                .map(|v| match v {
+                    Value::Integer(p) if (1..=65535).contains(p) => Ok(*p as u16),
+                    other => Err(format!(
+                        "`net.ports` holds ports from 1 to 65535, not {other}"
+                    )),
+                })
+                .collect::<Result<_, _>>()?,
+            Some(other) => {
+                return Err(format!(
+                    "`net.ports` must be an array of ports, not {}",
+                    article(other)
+                ))
+            }
+        };
     }
     if let Some(e) = want_table(t, "env")? {
         only(e, "env", ENV)?;
@@ -454,11 +365,23 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
     }
     match c.net_mode.as_deref() {
         None | Some("host") => {}
+        // TODO/net.md T-1665: the egress broker; the run refuses it where
+        // no mechanism holds the payload to it.
+        Some("broker") => {
+            a.push("--network=broker".into());
+            if !c.net_ports.is_empty() {
+                let p: Vec<String> = c.net_ports.iter().map(u16::to_string).collect();
+                a.push(format!("--ports={}", p.join(",")));
+            }
+            for h in &c.net_allow {
+                a.push(format!("--allow={h}"));
+            }
+        }
         Some(m) => {
             return Err(format!(
-                "`net.mode` {m:?} has no mechanism yet: podvm shares the host's network \
-                 on each tier, so `net.mode` takes \"host\" only. The network entries \
-                 T-1662 to T-1665 of TODO/net.md add the other modes"
+                "`net.mode` {m:?} has no mechanism yet: `net.mode` takes \"host\" (the \
+                 host's network) or \"broker\" (TODO/net.md T-1665). The network entries \
+                 T-1662 to T-1664 add the other modes"
             ))
         }
     }

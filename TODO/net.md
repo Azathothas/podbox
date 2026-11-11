@@ -277,13 +277,38 @@ Measured beside it: the guest reached this host's own loopback proxy at
 because that proxy presents its own CA and the guest has no host CA
 completion (the completion of T-0407 runs on the rootfs tiers).
 
-Remaining clauses: the broker. `--net broker` with `--ports` and
-`--allow`, hosted on `pod-broker` (podcrates v0.21.0 has it: jobs, the
-policy, the fixed denies, the audit, the upstream) and chained to the host
-proxy; the holding mechanism (a `connect` that the handler of the
-native-static rung refuses for each address but the broker's, or a guest
-network with `restrict=on`); and the clauses of experiment 421 for 403,
-407, 200 and a payload that ignores the variables.
+The broker half, 2026-11-11: `run --network broker --ports P --allow HOST`
+hosts `pod-broker` for the run (`crates/podvm/src/broker.rs`): one job with
+a token of 32 random bytes, a policy that allows each host of `--allow` on
+the ports of `--ports` (443 by default), and the host's proxy as the way
+out (the target's name goes to it). The payload's proxy variables name the
+broker with the token as the password; the token is in no argv and in no
+line that podvm prints. Two holding mechanisms:
+
+* the syscall tier (T-1657): the handler lets `connect` reach the broker's
+  port on the loopback and Unix sockets only, and refuses a datagram with
+  an address and `io_uring_setup`, with EACCES
+  (`crates/podvm-dispatch/src/hold.rs`, the test
+  `the_hold_lets_the_payload_reach_the_broker_only`);
+* the machine tier: the guest network is `restrict=on`, and its one way
+  out is `guestfwd` at 10.0.2.100:3128 to a relay of podvm for each
+  connection (`--podvm-relay`; a `tcp:` chardev is one connection for the
+  whole run, and the first try hung on it).
+
+Each other rung refuses `--network broker` by name: a payload that ignores
+the variables would reach the network there. A profile takes `net.mode =
+"broker"`, `net.ports` and `net.allow`. Experiment 421 clauses 5 to 7 (exit
+0): on the syscall tier (the static busybox, on the fixture) and in a TCG
+guest, the allowed host answers 200, port 22 and 127.0.0.1 answer 403, no
+credential answers 407, and a direct connect fails (EACCES; refused in the
+guest); with no holding mechanism the run refuses (exit 125). busybox:musl
+has no TLS client, so the clauses allow port 80 beside 443 and fetch the
+allowed host over plain HTTP.
+
+Remaining clause: a `connect` of a payload that ignores the variables to a
+named upstream reaches the broker (its Unix socket), the name resolving
+to a fake address that maps to the name. Today such a payload is refused,
+not served.
 
 **Filed 2026-11-06.** Quoted from issue 184:
 

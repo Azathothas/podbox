@@ -227,10 +227,8 @@ pub(crate) fn prepare(
     }
     env.retain(|e| e.split('=').next().unwrap_or("") != crate::interpose::MEMO_FD_VAR);
     env.push(crate::interpose::memo_fd_env());
-    env.retain(|e| e.split('=').next().unwrap_or("") != podvm_dispatch::TIER_VAR);
-    if syscall {
-        env.push(format!("{}={tmp_cap}", podvm_dispatch::TIER_VAR));
-    }
+    let broker = crate::broker::for_run(verb, o.broker, syscall, &o.allow, &o.ports)?; // T-1665
+    crate::lifecycle::syscall::tier_env(&mut env, syscall, tmp_cap, broker.as_ref());
     // ⭐ TODO/enter.md T-1411. The exact rung, decided here: the rootfs
     // exists and nothing has been written into it yet (`place` and the
     // fixups run below). This reverses T-1317's last-resort decision for

@@ -136,6 +136,23 @@ pub(super) fn machine_tier(
         }
     };
     env.extend(crate::sandprobe::host_env(store.root()));
+    // TODO/net.md T-1665: the guest reaches the broker alone, at a forward
+    // of its restricted network.
+    let broker = if o.broker {
+        match crate::broker::start(&o.allow, &o.ports) {
+            Ok(b) => {
+                let (h, p) = crate::broker::GUEST_FORWARD;
+                crate::broker::replace_proxy_env(&mut env, b.env(h, p));
+                Some(b.port)
+            }
+            Err(e) => {
+                eprintln!("podvm {verb}: --network broker: {e} (TODO/net.md T-1665)");
+                return podvm_image::error::EXIT_RUNTIME_ERROR;
+            }
+        }
+    } else {
+        None
+    };
     let code = crate::machine::guest::boot(&crate::machine::guest::Request {
         verb,
         store_root: store.root(),
@@ -146,6 +163,7 @@ pub(super) fn machine_tier(
         workdir: p.workdir,
         mem: o.mem,
         cpus: o.cpus,
+        broker,
         timeout: o.timeout.map(std::time::Duration::from_secs),
         qemu_args: o.qemu_args.clone(),
         copies,
@@ -172,10 +190,15 @@ pub(super) fn incus_tier(
         );
         return EXIT_FLAG_ERROR;
     }
-    if !o.volumes.is_empty() || o.mem.is_some() || o.cpus.is_some() || !o.qemu_args.is_empty() {
+    if !o.volumes.is_empty()
+        || o.mem.is_some()
+        || o.cpus.is_some()
+        || !o.qemu_args.is_empty()
+        || o.broker
+    {
         eprintln!(
-            "podvm {verb}: --podvm-tier=incus takes no -v, --podvm-mem, --podvm-cpus or \
-             --podvm-qemu-arg yet (TODO/machine.md T-1718)"
+            "podvm {verb}: --podvm-tier=incus takes no -v, --podvm-mem, --podvm-cpus, \
+             --podvm-qemu-arg or --network broker yet (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;
     }

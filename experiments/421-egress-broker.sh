@@ -11,8 +11,13 @@
 # Pinned input: ALPINE of experiment 356 (alpine 3.20 by digest).
 # PODVM_421_MIRROR=1 takes the same digest from mirror.gcr.io.
 #
-# Clauses (the rewrite half of T-1665; the broker clauses of its Prove
-# come with the broker):
+# The broker clauses run the static busybox of busybox:musl on the syscall
+# tier (T-1657) on the chroot-denying fixture of experiment 356, and alpine
+# in a TCG guest of the machine tier. busybox:musl has no TLS client, so the
+# broker allows port 80 beside 443 and the fetch of the allowed host is
+# plain HTTP. PODVM_421_MIRROR=1 takes busybox:musl from mirror.gcr.io too.
+#
+# Clauses:
 #   1. a rootfs-tier payload (the ladder's rung) fetches through the
 #      unchanged variable: 200, `proxied-421`.
 #   2. a machine-tier guest sees the proxy at 10.0.2.2 with the scheme,
@@ -21,6 +26,14 @@
 #      prove the credential arrived.
 #   4. a proxy URL with no port refuses the machine-tier run by name,
 #      and the refusal does not hold the password.
+#   5. `--network broker --ports 80,443 --allow example.com` on the syscall
+#      tier: 200 for the allowed host, 403 for port 22 and for 127.0.0.1,
+#      407 without the run's credential, and a payload that ignores the
+#      variables cannot connect (EACCES).
+#   6. the same on the machine tier: 200, 403 for port 22, and a direct
+#      connect is refused (the guest network is restricted).
+#   7. with no holding mechanism (the ladder's rung) `--network broker`
+#      refuses by name (exit 125).
 #
 # Exit: 0 each clause matched, 1 a clause disagreed, 2 the lane could not
 # run.
@@ -120,8 +133,61 @@ grep -q "http_proxy cannot be given to the guest" "$WORK/c4.out" || bad "the ref
 grep -q "$SECRET" "$WORK/c4.out" && bad "the refusal holds the password"
 note ""
 
+BUSYBOX='public.ecr.aws/docker/library/busybox:musl'
+[ "${PODVM_421_MIRROR:-0}" = 1 ] && BUSYBOX='mirror.gcr.io/library/busybox:musl'
+timeout 600 "$PB" pull -q "$BUSYBOX" >"$WORK/pull2.log" 2>&1 ||
+	{ note "pull of $BUSYBOX FAILED: COULD NOT RUN"; exit 2; }
+command -v cc >/dev/null 2>&1 || { note "cc missing: COULD NOT RUN"; exit 2; }
+cc -O2 -Wall -Werror -static -o "$WORK/deny-chroot" "$REPO/experiments/deny-chroot.c" 2>/dev/null ||
+	cc -O2 -Wall -Werror -o "$WORK/deny-chroot" "$REPO/experiments/deny-chroot.c" ||
+	{ note "fixture COMPILE FAILED: COULD NOT RUN"; exit 2; }
+cat >"$WORK/wrap.sh" <<'EOF2'
+#!/bin/sh
+mount -t tmpfs tmpfs /dev/pts || exit 2
+MNT="$1"; shift
+exec "$MNT/deny-chroot" "$@"
+EOF2
+BROKER='
+echo "proxy-seen=$(echo "$http_proxy" | sed "s#//.*@#//CRED@#")"
+echo "allowed: $(wget -q -T 10 -O - http://example.com/ 2>&1 | grep -o "<title>[^<]*</title>" | head -1)"
+echo "port22: $(wget -q -T 10 -O - http://example.com:22/ 2>&1 | head -1)"
+echo "loopback: $(wget -q -T 10 -O - http://127.0.0.1:80/ 2>&1 | head -1)"
+echo "nocred: $(http_proxy=$(echo "$http_proxy" | sed "s#//.*@#//#") wget -q -T 10 -O - http://example.com/ 2>&1 | head -1)"
+echo "direct: $(http_proxy= wget -q -T 5 -O - http://1.1.1.1/ 2>&1 | head -1)"'
+
+note "== clause 5  the broker on the syscall tier"
+unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm --podvm-tier=syscall --network broker --ports 80,443 --allow example.com "$BUSYBOX" sh -c "$BROKER" >"$WORK/c5.out" 2>"$WORK/c5.err"
+rc=$?
+sed "s#$PORT#PORT#g" "$WORK/c5.out" | sed 's/^/    /' | tee -a "$OUT"
+[ "$rc" -eq 0 ] || { bad "the run exited $rc"; tail -3 "$WORK/c5.err" | sed 's/^/      /' | tee -a "$OUT"; }
+grep -q "^allowed: <title>Example Domain</title>" "$WORK/c5.out" || bad "the allowed host did not answer 200"
+grep -q "^port22: .*403" "$WORK/c5.out" || bad "port 22 is not 403"
+grep -q "^loopback: .*403" "$WORK/c5.out" || bad "127.0.0.1 is not 403"
+grep -q "^nocred: .*407" "$WORK/c5.out" || bad "no credential is not 407"
+grep -q "^direct: .*Permission denied" "$WORK/c5.out" || bad "a direct connect was not refused"
+note ""
+
+note "== clause 6  the broker on the machine tier"
+timeout 600 "$PB" run --rm --podvm-tier=machine --timeout 300 --network broker --ports 80,443 --allow example.com "$ALPINE" sh -c "$BROKER" >"$WORK/c6.out" 2>"$WORK/c6.err"
+rc=$?
+sed 's/^/    /' "$WORK/c6.out" | tee -a "$OUT"
+[ "$rc" -eq 0 ] || { bad "the guest run exited $rc"; tail -3 "$WORK/c6.err" | sed 's/^/      /' | tee -a "$OUT"; }
+grep -q "^proxy-seen=http://CRED@10.0.2.100:3128" "$WORK/c6.out" || bad "the guest does not see the broker at its forward"
+grep -q "^allowed: <title>Example Domain</title>" "$WORK/c6.out" || bad "the allowed host did not answer 200 in the guest"
+grep -q "^port22: .*403" "$WORK/c6.out" || bad "port 22 is not 403 in the guest"
+grep -q "^direct: .*refused" "$WORK/c6.out" || bad "a direct connect of the guest was not refused"
+note ""
+
+note "== clause 7  no holding mechanism"
+timeout 300 "$PB" run --rm --network broker --allow example.com "$ALPINE" true >"$WORK/c7.out" 2>&1
+rc=$?
+note "  exit $rc: $(grep -m1 'network broker' "$WORK/c7.out" | cut -c1-160)"
+[ "$rc" -eq 125 ] || bad "the run exited $rc"
+grep -q "needs a mechanism that holds the payload" "$WORK/c7.out" || bad "the refusal does not name the holding mechanism"
+note ""
+
 if [ "$fail" -eq 0 ]; then
-	note "verdict: A LOOPBACK PROXY REACHES THE PAYLOAD ON EACH TIER WITH ITS CREDENTIAL"
+	note "verdict: A LOOPBACK PROXY REACHES THE PAYLOAD ON EACH TIER WITH ITS CREDENTIAL, AND THE BROKER HOLDS IT"
 else
 	note "verdict: A CLAUSE DISAGREED"
 fi

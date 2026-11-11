@@ -479,6 +479,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
+name = "pod-broker"
+version = "0.21.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.21.0#ada3699ba5331516a93a56d8d42fbc94e7508280"
+dependencies = [
+ "base64",
+ "libc",
+ "pod-core",
+ "pod-proxy",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "toml",
+ "tracing",
+ "zeroize",
+]
+
+[[package]]
 name = "pod-core"
 version = "0.21.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.21.0#ada3699ba5331516a93a56d8d42fbc94e7508280"
@@ -649,7 +667,10 @@ name = "podvm"
 version = "0.2.0-beta.3"
 dependencies = [
  "flate2",
+ "pod-broker",
+ "pod-core",
  "pod-incus",
+ "pod-proxy",
  "podvm-complete",
  "podvm-dispatch",
  "podvm-enter",

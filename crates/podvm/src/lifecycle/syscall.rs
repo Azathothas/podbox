@@ -69,3 +69,25 @@ pub fn decide(
     );
     Ok(u)
 }
+
+/// The variables of the tier in the payload's environment: the tier's own
+/// (the cap of /tmp, and the port of the broker that holds the payload),
+/// and the proxy variables that name the broker (TODO/net.md T-1665).
+pub fn tier_env(
+    env: &mut Vec<String>,
+    syscall: bool,
+    cap: u64,
+    broker: Option<&crate::broker::Started>,
+) {
+    let tier = podvm_dispatch::TIER_VAR;
+    env.retain(|e| e.split('=').next().unwrap_or("") != tier);
+    if let Some(b) = broker {
+        crate::broker::replace_proxy_env(env, b.env("127.0.0.1", b.port));
+    }
+    if syscall {
+        match broker {
+            Some(b) => env.push(format!("{tier}={cap}:-:{}", b.port)),
+            None => env.push(format!("{tier}={cap}")),
+        }
+    }
+}
