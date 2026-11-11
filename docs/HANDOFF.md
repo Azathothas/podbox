@@ -29,18 +29,30 @@ file when each step below is done.
 * COORD-001 (#194, to podcrates): the takes of `pod-relay` (T-1678,
   blocked: no release), `pod-services` (T-1679, open) and `pod-todo`
   (T-1680, blocked on T-1672).
-* COORD-024 (#242, to podcrates): the take of `v0.15.0` (T-1716).
-* COORD-025 (#243, to podcrates): the answer to PodUtils/podcrates#56
-  (COORD-031): T-1656 moves up, and the incus entries T-1717 and T-1718.
-  COORD-023 (#241) is closed.
-* From podcrates to podvm: PodUtils/podcrates#54 (COORD-029): podvm's
-  part is T-1716, done. PodUtils/podcrates#56 (COORD-031): DR-5 and incus,
-  recorded.
+* COORD-024 (#242) and COORD-025 (#243, to podcrates): the take of
+  `v0.15.0`, and the answer to PodUtils/podcrates#56.
+* COORD-038 (#257, to podcrates): podvm takes `v0.21.0` (T-1727).
+* COORD-039 (#258, to podrunner): each container has its own rootfs
+  (T-1709).
+* COORD-040 (#259, to podcrates): `pod-confine` and `Plan.confine` for
+  T-1658. podcrates answered (PodUtils/podcrates#69, COORD-044): it writes
+  them for the tag after `v0.22.0`. T-1658 is blocked until that tag.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`: item 2 (T-1656, the KVM legs on
-   the runner of `kvm.yml`, T-1718) is next. T-1719, T-1682 and T-1717
-   are done; `docs/incus.md` gives the form of T-1718. T-1716, T-1712, T-1713, T-1704, T-1705, T-1708, T-1715, T-1655,
-   T-1653, T-1720, T-1703, T-1710, T-1707 and T-1706 are done on
-   2026-11-11.
+1. The work order of `TODO/PROGRESS.md`, step 8: the broker of
+   [T-1665](../TODO/net.md) (the rewrite half is done), then
+   [T-1662](../TODO/net.md), [T-1663](../TODO/net.md),
+   [T-1664](../TODO/net.md), the profiles [T-1659](../TODO/cli.md),
+   [T-1661](../TODO/cli.md) and [T-1660](../TODO/cli.md), and
+   [T-1668](../TODO/gate.md).
+2. Done on 2026-11-11 in this order: T-1604, T-0211, T-0204, T-1709,
+   T-1728, T-1654, T-1657, T-1666, T-1730; partial: T-1667 (the `gh`
+   fallback waits for an installer), T-1665. New open entries: T-1729
+   (`runsc`), T-1731 (a dynamic program under the handler).
+3. Before an entry is set done, run `cargo test -p podvm`: the test
+   `each_listed_gap_names_an_entry_that_is_not_done` reads the record, and
+   CI run 387 failed on it.
+4. CI: the runners of the organization queued each run for a long time on
+   2026-11-11, and each push cancels the run before it. Let one run finish
+   between pushes where it can.
