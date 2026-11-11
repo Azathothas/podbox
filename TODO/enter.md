@@ -2178,7 +2178,7 @@ Source:      the work of T-1705, 2026-11-11; `src/userland.rs` of
 Category:    enter
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      blocked
 
 Problem:     On the userland rung podvm starts the image's loader with
              `--library-path` and the standard library directories of the
@@ -2208,4 +2208,18 @@ Prove:       `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
 
 **Filed 2026-11-11.** Found during T-1705, which put its test library in
 `/usr/lib/x86_64-linux-gnu` because `lib_dirs` has no `/usr/local/lib`.
+
+**Measured 2026-11-11; blocked on podcrates.** An image of alpine 3.20
+with `libt1719.so` in `/usr/local/lib`, and a dynamic musl program that
+needs it with no run path (built with zig cc): on the chroot-denied
+fixture of experiment 356 the run exits 127 with "Error loading shared
+library libt1719.so: No such file or directory"; on the namespace rung
+the same image prints `lib-42` at 0. With a file of that name in the
+host's `/usr/local/lib` (by a mistake of the drive, removed after it),
+the userland rung printed `lib-42`: the guest loader took the host's
+library. Thus the premise holds, and a miss also reaches the host's
+directories. COORD-029 (issue 247) asks podcrates for `/usr/local/lib`,
+the image's `ld.so.conf` and `ld-musl-ARCH.path`, and `--inhibit-cache`
+for glibc. The blocker clears when a podcrates tag carries it; then podvm
+takes the tag and adds the clause of the Prove.
 

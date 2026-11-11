@@ -7,7 +7,7 @@ start.
 
 ## State
 
-329 entries: 31 open, 7 partial, 4 blocked, 287 done.
+329 entries: 30 open, 7 partial, 5 blocked, 287 done.
 
 The state on 2026-11-11:
 
@@ -43,9 +43,9 @@ podrunner first ("podrunner first", the same day). Take the first entry
 that is not done. Read its Prove before you start. Set its status with
 `podvm-count` in the same commit as the work.
 
-1. [T-1707](enter.md) and [T-1719](enter.md) (COORD issues for
-   `pod-enter`), and [T-1706](cli.md) (the official runner on the
-   userland rung, after T-1707; T-1703 to T-1705 and T-1710 are done).
+1. [T-1707](enter.md), then [T-1706](cli.md) (the official runner on
+   the userland rung; T-1703 to T-1705 and T-1710 are done).
+   [T-1719](enter.md) is blocked on podcrates (COORD-029, issue 247).
 2. [T-1682](machine.md): `kvm.yml`, the Linux guest of the machine tier
    on a hosted runner with `/dev/kvm`. Then [T-1656](machine.md)
    (microVMs from `run`; podrunner's `microvm` unit waits for it, DR-5).

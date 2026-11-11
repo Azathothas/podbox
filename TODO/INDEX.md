@@ -392,12 +392,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1716](enter.md) | P2 | enter | done | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 | [T-1717](machine.md) | P2 | machine | open | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
 | [T-1718](machine.md) | P2 | machine | blocked | An incus back end: podvm drives incus over its REST API |
-| [T-1719](enter.md) | P2 | enter | open | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
+| [T-1719](enter.md) | P2 | enter | blocked | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
 | [T-1720](supervise.md) | P1 | supervise | done | `wait` gives no exit code for a payload that ends at once |
 
 ## Counts
 
-329 items: 31 open, 7 partial, 4 blocked, 287 done.
+329 items: 30 open, 7 partial, 5 blocked, 287 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -408,9 +408,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 3 | 6 | 0 | 137 | 146 |
-| P2 | 28 | 0 | 4 | 77 | 109 |
+| P2 | 27 | 0 | 5 | 77 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **31** | **7** | **4** | **287** | **329** |
+| **All** | **30** | **7** | **5** | **287** | **329** |
 
 ## Work order
 
