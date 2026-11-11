@@ -366,6 +366,10 @@ one instance somebody found.
 
 `./experiments/85-completion-symlink-escape.sh` exits 0
 
+## Correction
+
+**Amended 2026-11-11.** The script of this Prove, `./experiments/85-completion-symlink-escape.sh`, is retired by T-1735. Its six doors are the test `crates/podvm/tests/completion_reach.rs`: `cargo test -p podvm --test completion_reach` exits 0.
+
 ## Done
 
 **Done 2026-09-09.** `src/write.rs` of `pod-rootfs` (PodUtils/podcrates) is the mechanism and
@@ -386,7 +390,7 @@ ships that commented out. Its content is generated from this machine's own
 mount table, never shipped: another machine's device numbers in a mount table is
 a fabricated number.
 
-Prove, run 2026-09-09 -- `experiments/85-completion-symlink-escape.sh`, which
+Prove, run 2026-09-09 -- the experiment 85-completion-symlink-escape.sh (retired by T-1735), which
 extracts a real image, plants **five** symlinks out of the rootfs where the
 completion layer writes, runs the shipped binary, and reads the canaries off the
 filesystem rather than off an exit code:
@@ -1752,11 +1756,11 @@ does not; the library passes 53 of 53.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
-`experiments/85-completion-symlink-escape.sh` proves that a write of
+The experiment 85-completion-symlink-escape.sh (retired by T-1735) proved that a write of
 rootfs completion never leaves the rootfs through a link. Two of its
 clauses have no Rust test: a dangling directory link that the write
 must refuse and report, and the reach of the shipped binary.
@@ -1785,3 +1789,41 @@ The script stays until both tests exist.
 names the test of `pod-rootfs`, and
 `git grep -n 85-completion-symlink-escape -- . ':!docs/history'`
 prints nothing.
+
+## Correction
+
+**Amended 2026-11-11.** The Premise was wrong on one point: `pod-rootfs`
+at `v0.22.0` has the dangling-link test. A directory link out of the root
+dangles once it is rebased, and
+`a_write_through_a_symlinked_directory_is_refused` asserts that the write
+is refused with "does not write through" and that nothing is written
+outside; `reach_tells_absent_from_a_link_inside_from_a_link_out` asserts
+that the link is reported as unreachable, with the path and the word
+"symlink". So no COORD issue is necessary. The `git grep` clause of the
+Prove is too wide: the record keeps the name of the script as past text
+in T-0405, T-1630, T-1734 and this entry, as the record of T-1734 does
+for experiment 220. The proof is `git ls-files experiments | grep -c
+85-completion-symlink-escape`, which prints 0.
+
+Also found: the script did not work since T-1709 and T-1416. The fixups
+land in the container's own tree under `<store>/trees/`, not in the
+image tree, and the banner is quiet without `--verbose`. On 2026-11-11
+it reported 0 fixups and "STILL a symlink" for each door, with each
+canary intact. The new test reads the container's tree and passes
+`--verbose`.
+
+## Done
+
+**Done 2026-11-11.** `crates/podvm/tests/completion_reach.rs` pulls
+`ghcr.io/pkgforge-dev/archlinux:latest` (or `PODVM_RUN_IMAGE`), plants
+the six doors of experiment 85 in the extracted image, runs `podvm run
+--verbose` and reads the filesystem. The five canaries outside stay
+intact; `etc/mtab`, `etc/resolv.conf`, `etc/hosts` and `etc/passwd` of
+the container's tree are regular files, and `etc/passwd` names root; the
+drop-in `var/aptreal/apt.conf.d/99podvm` exists, so the link that stays
+inside was followed; door D is written at the rebased path or refused on
+the banner. It skips with its reason where Linux, the registry or the
+interposer object is missing. `cargo test -p podvm --test
+completion_reach` exits 0 (1 passed, 46 s, on the cloud host). The script
+and its result file are deleted; `git ls-files experiments | grep -c
+85-completion-symlink-escape` prints 0.

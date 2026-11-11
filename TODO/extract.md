@@ -733,7 +733,7 @@ destination ([the plant](../experiments/results/whiteout-escape-1698.txt)).
 The experiment 220-extract-path-safety.sh proves the path safety of
 extraction, and eight live lines of the record cite it
 (`TODO/extract.md`, `TODO/image.md`, `TODO/milestones.md`, and the
-header of `experiments/85-completion-symlink-escape.sh`). The code
+header of the experiment 85-completion-symlink-escape.sh (retired by T-1735)). The code
 that it proves now lives in podcrates' `pod-extract`, whose own tests
 prove the same rules.
 

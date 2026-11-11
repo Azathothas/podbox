@@ -1953,7 +1953,7 @@ against the manifest and shows the `Config` object in the document.
 
 ## Problem
 
-`experiments/85-completion-symlink-escape.sh` is converted
+The experiment 85-completion-symlink-escape.sh (retired by T-1735) is converted
 and its deletion is blocked on another task, so the tree
 reads as an unfinished port with no owner and no
 condition.
@@ -1986,7 +1986,7 @@ deletion.
 
 ## Correction
 
-**Recorded 2026-10-02.** `experiments/85-completion-symlink-escape.sh`
+**Recorded 2026-10-02.** The experiment 85-completion-symlink-escape.sh (retired by T-1735)
 stays on disk and is converted in the library. The script plants six
 doors, five out of the rootfs and one legitimate internal link
 (`85-completion-symlink-escape.sh:23`, `:105`): A `/etc/mtab` (`:25`), B
@@ -2037,10 +2037,12 @@ the only drive of the reach path. The deletion clears when the plan's
 library-test row and its reachability half land as tracked entries. Until
 then this row is the record, and no entry deletes the script.
 
+**Retired 2026-11-11.** T-1735 met the deletion condition: the reachability test `crates/podvm/tests/completion_reach.rs` drives the six doors through the shipped binary, and `pod-rootfs` at `v0.22.0` holds the dangling directory link (`a_write_through_a_symlinked_directory_is_refused`, `reach_tells_absent_from_a_link_inside_from_a_link_out`). The script is deleted.
+
 ## Done
 
 **Done 2026-10-02.** Recorded the converted state of
-`experiments/85-completion-symlink-escape.sh` and the condition that
+the experiment 85-completion-symlink-escape.sh (retired by T-1735) and the condition that
 clears its deletion. The six doors the script plants are carried by two
 tests in `src/write.rs` of `pod-rootfs` (PodUtils/podcrates):
 `a_write_replaces_an_out_link_with_a_regular_file` (`write.rs:752`) for

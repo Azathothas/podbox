@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 11 open, 9 partial, 6 blocked, 320 done.
+346 entries: 10 open, 9 partial, 6 blocked, 321 done.
 
 The state on 2026-11-11:
 
@@ -63,8 +63,7 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset
    record, workerd-test for T-1658).
 3. The record and the tree: [T-1679](deps.md) (`pod-services`; partial:
-   COORD-044, issue 263), the plan rows
-   [T-1735](complete.md) and [T-1737](packaging.md),
+   COORD-044, issue 263), the plan row [T-1737](packaging.md),
    [T-1684](gate.md) (fuzzing and the
    vendor watch).
 4. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`

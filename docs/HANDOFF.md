@@ -54,9 +54,9 @@ file when each step below is done.
 1. At podcrates `v0.23.0`: take it, then finish T-1658 (`pod-confine`),
    the lambda clause of T-1659, `workerd-test` of T-1661, and T-1679
    (empty the `WAITING` list of `crates/podvm/src/hosts_tests.rs`).
-2. The work order of `TODO/PROGRESS.md`, step 3: T-1735, T-1737 and T-1684.
+2. The work order of `TODO/PROGRESS.md`, step 3: T-1737 and T-1684.
 3. Done on 2026-11-11 after the first handoff: T-1660, T-1668, T-1672,
-   T-1673, T-1680, T-1683, T-1685, T-1732, T-1733, T-1734, T-1736; partial:
+   T-1673, T-1680, T-1683, T-1685, T-1735, T-1732, T-1733, T-1734, T-1736; partial:
    T-1659, T-1661, T-1679. Defects fixed on the way: the hard links of a
    container tree and of the guest's base archive, the removal of a
    read-only tree by a user that is not root, a partial tree of a killed
