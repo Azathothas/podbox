@@ -1303,10 +1303,19 @@ issue 168); with ACPI off it booted, but it found no virtio-mmio device,
 because it has no `CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES`. `tsc_early_khz`
 and `lpj` did not help. The machine stays `-M pc,acpi=off`.
 
-Remaining: `/workspace` and volumes (refused by name now; `virtiofs.ko`
-and the 9p modules are in the same initramfs); a second channel for
-stderr; stdin; the cold and warm times under KVM (on the runner of
-T-1682); the `microvm` machine type.
+`/workspace`, the same day: on the machine tier `run -v HOST:GUEST`
+copies the host tree into the run archive at GUEST
+(`Newc::tree_at` in `crates/podvm/src/machine/guest/cpio.rs`), and the run
+says on stderr that the volume is a copy whose writes do not return to
+the host, as the Prove allows. The 9p modules are not in
+`initramfs-virt` (only in the xz modloop), and `virtiofs.ko` needs a
+`virtiofsd` on the host, so a shared directory waits. Clause 6 of
+experiment 412 passes: the guest reads a host file in `/workspace`, the
+run names the copy, and the guest's write is not on the host.
+
+Remaining: a second channel for stderr; stdin; the cold and warm times
+under KVM (on the runner of T-1682); the `microvm` machine type; a shared
+`/workspace` (9p or virtiofs).
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:

@@ -98,8 +98,9 @@ runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
 The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
 podvm fetches into the store. The image needs `/bin/sh`. The guest
 has QEMU's user-mode network: it reaches the host's loopback at
-10.0.2.2. Not yet: volumes and `/workspace`, stdin, and a stderr apart
-from stdout. `create` and `exec`
+10.0.2.2. `-v HOST:GUEST` is a copy into the guest: the run says so, and a
+write in the guest does not return to the host. Not yet: stdin, and a
+stderr apart from stdout. `create` and `exec`
 with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).

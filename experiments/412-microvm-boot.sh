@@ -20,9 +20,11 @@
 #   5. the guest fetches a URL through an HTTP proxy that listens on the
 #      host's loopback (10.0.2.2 in the guest): `http_proxy` sends busybox
 #      wget there, and the proxy answers with the URL that it got.
-#   6. no emulator stays after the runs.
-# Not here yet (T-1656 keeps them): /workspace, and a second channel for
-# stderr.
+#   6. `-v HOSTDIR:/workspace`: the guest reads a host file there, the
+#      banner says that the volume is a copy, and a file that the guest
+#      writes there is not on the host.
+#   7. no emulator stays after the runs.
+# Not here yet (T-1656 keeps it): a second channel for stderr.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no qemu).
@@ -127,9 +129,21 @@ kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
 [ "$rc" -eq 0 ] || { note "5: wanted exit 0, got $rc"; fail=1; }
 grep -qx "proxied http://podvm-412.invalid/through-the-proxy" "$WORK/c5.out" || { note "5: the proxy did not answer the guest"; fail=1; }
 
-# Clause 6.
-if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "6: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
-ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "6: a run directory stayed"; fail=1; }
+# Clause 6: a volume is a copy.
+mkdir -p "$WORK/ws" && echo host-file >"$WORK/ws/in.txt"
+timeout 300 "$PB" run --podvm-tier=machine -v "$WORK/ws:/workspace" "$ALPINE" \
+	sh -c 'cat /workspace/in.txt; echo guest > /workspace/out.txt && echo wrote' >"$WORK/c6.out" 2>"$WORK/c6.err"
+rc=$?
+{ echo ""; echo "== 6. a volume"; echo "exit              $rc"; sed 's/^/  /' "$WORK/c6.out" "$WORK/c6.err"; } >>"$REPORT"
+[ "$rc" -eq 0 ] || { note "6: wanted exit 0, got $rc"; fail=1; }
+grep -qx "host-file" "$WORK/c6.out" || { note "6: the guest did not read the host file"; fail=1; }
+grep -qx "wrote" "$WORK/c6.out" || { note "6: the guest did not write"; fail=1; }
+grep -q "is a copy into the guest" "$WORK/c6.err" || { note "6: the run did not say that the volume is a copy"; fail=1; }
+[ -e "$WORK/ws/out.txt" ] && { note "6: the guest's write is on the host, and the run said copy"; fail=1; }
+
+# Clause 7.
+if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "7: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
+ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "7: a run directory stayed"; fail=1; }
 
 {
 echo ""

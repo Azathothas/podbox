@@ -15,9 +15,9 @@ file when each step below is done.
 * The newest release is `v0.2.0-beta.2` (2026-11-10). A release starts
   from `release.yml`; dispatch `nightly.yml` with `trial=true` on `main`
   first.
-* podvm takes 11 crates of PodUtils/podcrates at `v0.17.0` (`4da8fb3`),
-  the last podcrates tag (the child limits of T-1655,
-  PodUtils/podcrates#58).
+* podvm takes 11 crates of PodUtils/podcrates at `v0.19.0` (`9a11bbd`),
+  the last podcrates tag (the library directories of T-1719,
+  PodUtils/podcrates#62).
 * PodUtils/podrunner has a lead session since 2026-11-11 (DR-1 and DR-2
   are yes). It writes to podvm by a COORD issue of podrunner titled
   `(to podvm)`; the watcher of the organization reads it.

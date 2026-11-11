@@ -448,12 +448,17 @@ pub fn decide_entry(
     // That path is what was executed, and the banner says so. Where the
     // payload resolved to busybox through another name, the invoked name
     // rides beside the opened file so the applet selection survives.
-    let (loader_argv, applet) = podvm_enter::userland::loader_argv_for(
+    let (mut loader_argv, applet) = podvm_enter::userland::loader_argv_for(
         &plan.loader_host,
         &plan.payload_host,
         argv0,
         f.argv.get(1..).unwrap_or(&[]),
     );
+    // TODO/enter.md T-1719: a glibc loader from 2.16 reads no ld.so.cache
+    // of the host.
+    if plan.inhibit_cache {
+        loader_argv.insert(1, "--inhibit-cache".to_string());
+    }
     Ok(Some(Userland {
         family: podvm_enter::userland::Family::Loader,
         loader_argv,

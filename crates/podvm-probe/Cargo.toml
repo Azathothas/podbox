@@ -11,4 +11,4 @@ repository.workspace = true
 # shared through PodUtils/podcrates. This crate gives podvm's settings to it
 # and keeps the report. The syscall table and the kernel's struct layouts
 # (TODO/deps.md T-0911, T-0912) come with it.
-pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.17.0" }
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.19.0" }

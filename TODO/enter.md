@@ -2201,7 +2201,7 @@ Source:      the work of T-1705, 2026-11-11; `src/userland.rs` of
 Category:    enter
 Priority:    P2
 Effort:      S
-Status:      blocked
+Status:      done
 
 Problem:     On the userland rung podvm starts the image's loader with
              `--library-path` and the standard library directories of the
@@ -2228,6 +2228,28 @@ Decision:    The loader searches the directories that the image's own
              `ldconfig` would search; the host's cache plays no part.
 Prove:       `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
              exits 0 with a clause: the program of that image runs at 0.
+
+**Done 2026-11-11.** podvm takes the 11 crates of podcrates at `v0.19.0`
+(`9a11bbd`, PodUtils/podcrates#62), which carries its T-182 for COORD-029
+(issue 247). `lib_dirs` of `pod-enter` now gives `/usr/local/lib`,
+`/usr/local/lib64` and their multiarch forms, then each directory of the
+image's `/etc/ld.so.conf` (with `include`) or `/etc/ld-musl-ARCH.path`,
+each resolved through the table; `LoaderPlan::inhibit_cache` is true for
+a glibc loader of 2.16 or later. podvm gives that loader
+`--inhibit-cache` (`crates/podvm/src/lifecycle/entry.rs`), and the
+interposer gives it to the loader of each glibc child
+(`loader_takes_inhibit_cache` in
+`crates/podvm-interpose/src/exec/head.rs`), so the host's `ld.so.cache`
+plays no part. A library that no directory of the image holds is still
+searched in the loader's built-in host directories.
+
+Proof: `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0
+with clause 32 ([the run](../experiments/results/no-chroot-rung.txt)): on
+the fixture, a musl program of alpine with its library in
+`/usr/local/lib`, and a glibc program of debian with its library in a
+directory that only `/etc/ld.so.conf.d` names, each print `lib-42`. The
+interposer tests pass (83), with
+`a_glibc_loader_from_2_16_takes_inhibit_cache`.
 
 **Filed 2026-11-11.** Found during T-1705, which put its test library in
 `/usr/lib/x86_64-linux-gnu` because `lib_dirs` has no `/usr/local/lib`.

@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T05:12:41Z
+date              2026-11-11T06:22:42Z
 host kernel       Linux 6.18.44-fc-v378
 static input      mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 dynamic input     mirror.gcr.io/library/debian:bookworm-slim
@@ -159,12 +159,12 @@ output:
   open /proc/self/mem O_RDONLY       OK
   open /proc/self/mem O_RDWR         OK
   landlock_create_ruleset(VERSION)   OK
-  qemu-system-x86_64 --version       SKIP no qemu-system-x86_64 on PATH, so the emulator leg could not run
+  qemu-system-x86_64 --version       OK
   open(/dev/kvm, O_RDWR)             FAIL errno=2 ENOENT
   prlimit(RLIMIT_FSIZE)              OK
   open(/dev/net/tun, O_RDWR)         OK
   image space (statfs .)             OK
-  qemu-system-x86_64 -accel help     SKIP no qemu-system-x86_64 on PATH, so the accelerator list could not be read
+  qemu-system-x86_64 -accel help     OK
   seccomp(NEW_LISTENER) [supervise]  OK
   process_vm_readv(own pid) [supervise] OK
   ptrace(PTRACE_TRACEME) [supervise] OK
@@ -259,7 +259,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose --unsafe-host-paths static-hello:1 /hello
 exit              0
 output:
-  aec298ed2ec4: Extracted (1 entries, 0 whiteouts)
+  90333c9f1089: Extracted (1 entries, 0 whiteouts)
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
   podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
@@ -291,7 +291,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm static-hello:1 /hello
 exit              125
 output:
-  aec298ed2ec4: Extracted (1 entries, 0 whiteouts)
+  90333c9f1089: Extracted (1 entries, 0 whiteouts)
   podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
 
 == fx-hello-quiet
@@ -346,7 +346,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict --unsafe-host-paths static-hello:1 /hello
 exit              125
 output:
-  aec298ed2ec4: Extracted (1 entries, 0 whiteouts)
+  90333c9f1089: Extracted (1 entries, 0 whiteouts)
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
   podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
@@ -405,14 +405,14 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  066379e28946550ee200a3d77b06000a46273bb82640e5e27080c437ca5e53f8
+  b6de41ec66a424885c317eadf042ec75cebdf3310dc5ff6de3173691bd205514
 
 == fx-ps
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm ps
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND                CREATED                STATUS   NAMES
-  066379e28946   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-11-11T05:13:25Z   Up       ul356d
+  b6de41ec66a4   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-11-11T06:23:26Z   Up       ul356d
 
 == fx-logs
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356d
@@ -436,7 +436,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356c mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo created-hi; while :; do :; done
 exit              0
 output:
-  c9cfe6f0b435abe1ac73925cab1e1ec3465aa8150ca8b47329a8b88d57561b17
+  357763d4d38d577dd100b79fb438664753a13b9ce6a5ad16061e8d3c33a59a5c
 
 == fx-start
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm start ul356c
@@ -449,7 +449,7 @@ command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wr
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND                CREATED                STATUS   NAMES
-  c9cfe6f0b435   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-11-11T05:13:25Z   Up       ul356c
+  357763d4d38d   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-11-11T06:23:26Z   Up       ul356c
 
 == fx-logs2
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356c
@@ -654,14 +654,14 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-img:1 /hello.sh
 exit              126
 output:
-  1432d44ce7ad: Extracted (1 entries, 0 whiteouts)
-  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_f68c8ea9b13ad6196bd3fb95e83b442c92a661594ed21ae14e41c89a92280f2f/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  b3f1ed01ba26: Extracted (1 entries, 0 whiteouts)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_93ed93a8582109885a6b23e7c16b1414cca6cb7d4df1c52bc3872ef3ef8356fd/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
 
 == fx-script-run
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-alpine:1 /hello.sh arg1
 exit              0
 output:
-  2cbec0c3bda2: Extracted (520 entries, 0 whiteouts)
+  9ec5231e81b0: Extracted (520 entries, 0 whiteouts)
   script-hi /hello.sh arg1
 
 == fx-node-entry
@@ -722,7 +722,7 @@ output:
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356e mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sleep 60
 exit              0
 output:
-  b0114fb043f3b6dc8bd561976fb121444b8d25303230e637801633651281d31f
+  d1b09084e0c0de9105b465405112418266d47724c934d36060c15cac53f13d5d
 
 == sane-exec
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm exec ul356e echo exec-ctr-hi
@@ -754,7 +754,7 @@ command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm 
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND      CREATED                STATUS       NAMES
-  cc7a7a1ffd3e   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-11-11T05:13:49Z   Exited (0)   ul356fg
+  a4edf8dd34f8   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-11-11T06:23:49Z   Exited (0)   ul356fg
 
 == sane-logs
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356fg
@@ -1252,7 +1252,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict script-alpine:1 /bin/sh -c /hello
 exit              125
 output:
-  2cbec0c3bda2: Extracted (520 entries, 0 whiteouts)
+  9ec5231e81b0: Extracted (520 entries, 0 whiteouts)
   podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
   podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
@@ -1321,14 +1321,14 @@ node-app import   ok
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /app -e PATH=/usr/local/bin:/usr/bin:/bin -e HOME=/root -e npm_config_update_notifier=false node-app:1697 /bin/sh -c npm ci --no-audit --no-fund && npm test
 exit              0
 output:
-  990d7f5ed036: Extracted (3586 entries, 0 whiteouts)
+  2ea2f0a2e811: Extracted (3586 entries, 0 whiteouts)
   
   > p1697@1.0.0 postinstall
   > node -e "process.stdout.write(require('child_process').execSync('echo postinstall-child-ok').toString())"
   
   postinstall-child-ok
   
-  up to date in 481ms
+  up to date in 401ms
   
   > p1697@1.0.0 test
   > node test.js
@@ -1553,8 +1553,8 @@ Loaded image: docker.io/library/dl-debian:356
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm dl-debian:356 /usr/bin/dl356
 exit              0
 output:
-  c4ac07040b71: Extracted (4228 entries, 0 whiteouts)
-  dladdr /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_aeac5503b9157d8c176ad191f066c47900e0c5d519f7bdfa1b966343e633a00f/rootfs/lib/x86_64-linux-gnu/libx356.so
+  f68bf58f71f9: Extracted (4228 entries, 0 whiteouts)
+  dladdr /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c32553c0fd60ac2163dfce152ae5320212b69fa460cccbebbf8b690483435487/rootfs/usr/lib/x86_64-linux-gnu/libx356.so
   open ok
 
 == fx-read-only
@@ -1594,5 +1594,19 @@ output:
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   vol-workdir-ok
+
+== fx-libdir-musl
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm t1719-musl:1 /uselib
+exit              0
+output:
+  6f8a5df146cc: Extracted (520 entries, 0 whiteouts)
+  lib-42
+
+== fx-libdir-glibc
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm t1719-glibc:1 /uselib
+exit              0
+output:
+  7e0f5ef0f596: Extracted (4229 entries, 0 whiteouts)
+  lib-42
 
 verdict           NO-CHROOT FAMILY RUNS

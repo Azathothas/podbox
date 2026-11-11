@@ -45,6 +45,9 @@ pub struct Request<'a> {
     pub mem: Option<u64>,
     pub timeout: Option<Duration>,
     pub qemu_args: Vec<String>,
+    /// `-v HOST:GUEST`: each host path, copied into the guest at GUEST.
+    /// Writes in the guest do not return to the host.
+    pub copies: Vec<(PathBuf, String)>,
 }
 
 /// The cache file of the base archive of `digest`.
@@ -92,8 +95,15 @@ pub struct Tools {
 
 /// The archive of one run: `/podvm-init`, the console nodes, and, where
 /// `tools` gives them, podvm itself and the modules of the network.
-pub fn run_archive(script: &str, tools: Option<&Tools>) -> std::io::Result<Vec<u8>> {
+pub fn run_archive(
+    script: &str,
+    tools: Option<&Tools>,
+    copies: &[(PathBuf, String)],
+) -> std::io::Result<Vec<u8>> {
     let mut w = cpio::Newc::new(Vec::new());
+    for (host, guest) in copies {
+        w.tree_at(host, guest)?;
+    }
     w.entry("dev", cpio::DIR | 0o755, &[], (0, 0))?;
     w.entry("dev/console", cpio::CHR | 0o600, &[], (5, 1))?;
     w.entry("dev/ttyS0", cpio::CHR | 0o660, &[], (4, 64))?;
@@ -232,7 +242,7 @@ pub fn boot(r: &Request) -> i32 {
         .and_then(|()| std::fs::copy(&base, &initrd))
         .and_then(|_| {
             let script = init::script(&nonce, &r.argv, &r.env, &r.workdir, tools.is_some());
-            run_archive(&script, tools.as_ref())
+            run_archive(&script, tools.as_ref(), &r.copies)
         })
         .and_then(|extra| {
             let mut f = std::fs::OpenOptions::new().append(true).open(&initrd)?;
@@ -259,6 +269,14 @@ pub fn boot(r: &Request) -> i32 {
             "built now"
         }
     );
+    for (host, guest) in &r.copies {
+        eprintln!(
+            "podvm {}: machine tier: -v {}:{guest} is a copy into the guest: writes in the \
+             guest do not return to the host (TODO/machine.md T-1656)",
+            r.verb,
+            host.display()
+        );
+    }
     let argv = qemu_argv(
         accel,
         r.mem.unwrap_or(DEFAULT_MEM),

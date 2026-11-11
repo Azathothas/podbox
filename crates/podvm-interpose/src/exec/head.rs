@@ -167,6 +167,27 @@ pub fn loader_lacks_argv0(name: &[u8]) -> bool {
     minor < 33
 }
 
+/// Does the guest loader named `name` (its resolved file) take
+/// `--inhibit-cache`, so the host's `/etc/ld.so.cache` plays no part
+/// (TODO/enter.md T-1719)? glibc 2.16 and later do: `ld-2.NN.so` with NN of
+/// 16 or more, and the `ld-linux*` file of glibc 2.34 and later. musl has
+/// no cache and no such option.
+pub fn loader_takes_inhibit_cache(name: &[u8]) -> bool {
+    if name.starts_with(b"ld-linux") {
+        return true;
+    }
+    let Some(digits) = name
+        .strip_prefix(b"ld-2.")
+        .and_then(|r| r.strip_suffix(b".so"))
+    else {
+        return false;
+    };
+    !digits.is_empty()
+        && digits.len() <= 3
+        && digits.iter().all(u8::is_ascii_digit)
+        && digits.iter().fold(0u32, |v, d| v * 10 + (d - b'0') as u32) >= 16
+}
+
 /// The final element of a path.
 pub fn basename(p: &[u8]) -> &[u8] {
     match p.iter().rposition(|&c| c == b'/') {

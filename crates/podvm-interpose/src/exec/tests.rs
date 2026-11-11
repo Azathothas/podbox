@@ -82,6 +82,16 @@ fn a_shebang_line_parses_as_the_kernel_parses_it() {
 }
 
 #[test]
+fn a_glibc_loader_from_2_16_takes_inhibit_cache() {
+    assert!(loader_takes_inhibit_cache(b"ld-linux-x86-64.so.2"));
+    assert!(loader_takes_inhibit_cache(b"ld-2.31.so"));
+    assert!(loader_takes_inhibit_cache(b"ld-2.16.so"));
+    assert!(!loader_takes_inhibit_cache(b"ld-2.15.so"));
+    assert!(!loader_takes_inhibit_cache(b"ld-musl-x86_64.so.1"));
+    assert!(!loader_takes_inhibit_cache(b"ld-test.so"));
+}
+
+#[test]
 fn only_a_glibc_loader_before_2_33_lacks_argv0() {
     assert!(loader_lacks_argv0(b"ld-2.31.so"));
     assert!(loader_lacks_argv0(b"ld-2.17.so"));

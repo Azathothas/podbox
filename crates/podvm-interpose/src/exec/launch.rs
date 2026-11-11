@@ -254,6 +254,7 @@ pub unsafe fn assemble(
     t: &Table,
     tail: Tail,
     no_argv0: bool,
+    inhibit: bool,
     levels: &[(*const c_char, *const c_char)],
     rn: usize,
     file0: *const c_char,
@@ -292,7 +293,7 @@ pub unsafe fn assemble(
         head::basename(&s.host[..hn]) == b"busybox" && !invoked.is_empty() && invoked != b"busybox"
     };
     let opts = if loader {
-        2 + 2 * (lib_n > 0) as usize + 2 * (!no_argv0) as usize + applet as usize
+        2 + 2 * (lib_n > 0) as usize + 2 * (!no_argv0) as usize + applet as usize + inhibit as usize
     } else {
         0
     };
@@ -311,6 +312,9 @@ pub unsafe fn assemble(
     let host = s.host.as_ptr() as *const c_char;
     if loader {
         v.push(s.loader.as_ptr() as *const c_char);
+        if inhibit {
+            v.push(c"--inhibit-cache".as_ptr());
+        }
         if lib_n > 0 {
             v.push(c"--library-path".as_ptr());
             v.push(s.lib.as_ptr() as *const c_char);

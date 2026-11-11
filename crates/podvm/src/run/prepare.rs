@@ -40,7 +40,9 @@ pub(crate) fn prepare(
         &o.insecure,
         o.tls_verify,
     )?;
-    if tier == crate::tier::Tier::Machine && !(o.devices.is_empty() && o.volumes.is_empty()) {
+    // TODO/machine.md T-1656: `run` copies a volume into the guest.
+    let volumes_refused = verb != "run" && !o.volumes.is_empty();
+    if tier == crate::tier::Tier::Machine && (!o.devices.is_empty() || volumes_refused) {
         // ⛔ Refused rather than silently dropped: the guest boots behind
         // an emulator the host cannot hand descriptors or paths to, so a
         // mapping the caller believes is set would serve nothing.

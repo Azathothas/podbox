@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T06:07:24Z
+date              2026-11-11T06:21:22Z
 host kernel       Linux 6.18.44-fc-v378
 input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 boots             20
@@ -31,7 +31,7 @@ exit              0
 
 == 3. boots in a row
 reached           20 of 20
-seconds           59
+seconds           53
 
 == 4. KVM asked
 exit              125
@@ -40,5 +40,12 @@ exit              125
 == 5. the guest network
 exit              0
   proxied http://podvm-412.invalid/through-the-proxy
+
+== 6. a volume
+exit              0
+  host-file
+  wrote
+  podvm run: machine tier: a guest under TCG (the emulator process is the boundary, not hardware isolation), base archive from the cache (TODO/machine.md T-1656)
+  podvm run: machine tier: -v /workspace/podvm/experiments/.sweep412-work/ws:/workspace is a copy into the guest: writes in the guest do not return to the host (TODO/machine.md T-1656)
 
 verdict           THE GUEST RUNS THE COMMAND

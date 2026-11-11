@@ -42,6 +42,7 @@ fn the_run_archive_carries_init_and_the_console_nodes() {
             podvm: b"ELF".to_vec(),
             modules: vec![("virtio_net", b"KO".to_vec())],
         }),
+        &[],
     )
     .unwrap();
     assert_eq!(cpio::member(&a, "podvm/podvm"), Some(&b"ELF"[..]));
@@ -139,4 +140,34 @@ fn the_emulator_line_names_the_accelerator_and_the_init() {
     assert!(line.contains("rdinit=/podvm-init"));
     assert!(line.contains("-no-reboot"));
     assert!(line.ends_with("-x"));
+}
+
+/// `-v HOST:GUEST` on the machine tier: the host tree is in the run
+/// archive under GUEST, with each directory of GUEST before it.
+#[test]
+fn a_volume_is_a_copy_at_its_guest_path() {
+    let d = std::env::temp_dir().join(format!("podvm-t1656-vol-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(d.join("proj/sub")).unwrap();
+    std::fs::write(d.join("proj/sub/f.txt"), b"in-volume").unwrap();
+    let a = run_archive(
+        "#!/bin/sh\n",
+        None,
+        &[(d.join("proj"), "/srv/workspace".to_string())],
+    )
+    .unwrap();
+    let text = String::from_utf8_lossy(&a);
+    for want in [
+        "srv\0",
+        "srv/workspace\0",
+        "srv/workspace/sub\0",
+        "srv/workspace/sub/f.txt\0",
+    ] {
+        assert!(text.contains(want), "{want:?}");
+    }
+    assert_eq!(
+        cpio::member(&a, "workspace/sub/f.txt"),
+        Some(&b"in-volume"[..])
+    );
+    let _ = std::fs::remove_dir_all(&d);
 }

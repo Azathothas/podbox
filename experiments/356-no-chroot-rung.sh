@@ -120,6 +120,10 @@
 #   30. read-only (T-1655): under --read-only on the fixture a write to the
 #      image fails with EROFS and a write to a volume lands in the host
 #      directory; on the capable rung --read-only refuses at 125 by name.
+#   32. library directories (T-1719): on the fixture, a musl program in
+#      alpine finds its library in /usr/local/lib, and a glibc program in
+#      debian finds its library in a directory that only the image's
+#      /etc/ld.so.conf.d names; each prints lib-42.
 #   31. workdir (T-1707): `-w /bin ./busybox sh -c 'ls /etc/alpine-release'`
 #      lists the file of the image on the fixture, and `-w /data
 #      ./tool.sh` runs a script of a volume workdir.
@@ -916,6 +920,38 @@ grep -qx "/etc/alpine-release" "$WORK/out-fx-workdir-rel.txt" || { echo "a relat
 printf '#!/bin/sh\necho vol-workdir-ok\n' >"$VOL/tool356.sh"; chmod +x "$VOL/tool356.sh"
 step fx-workdir-vol 0 $FX "$PB" run --rm -v "$VOL:/data" -w /data "$ALPINE" ./tool356.sh
 grep -qx "vol-workdir-ok" "$WORK/out-fx-workdir-vol.txt" || { echo "a relative script of a volume workdir did not run" >>"$REPORT"; fail=1; }
+
+# Clause 32 (T-1719): the library directories of the image.
+L="$WORK/t1719"; mkdir -p "$L/musl/usr/local/lib" "$L/glibc/opt/t1719/lib" "$L/glibc/etc/ld.so.conf.d"
+printf 'int t1719_answer(void){return 42;}\n' >"$L/foo.c"
+printf '#include <stdio.h>\nint t1719_answer(void);\nint main(void){printf("lib-%%d\\n", t1719_answer());return 0;}\n' >"$L/main.c"
+if zig cc -target x86_64-linux-musl -shared -fPIC -Wl,-soname,libt1719.so -o "$L/musl/usr/local/lib/libt1719.so" "$L/foo.c" 2>>"$REPORT" &&
+	zig cc -target x86_64-linux-musl -dynamic -o "$L/musl/uselib" "$L/main.c" -L"$L/musl/usr/local/lib" -lt1719 2>>"$REPORT" &&
+	cc -shared -fPIC -Wl,-soname,libt1719.so -o "$L/glibc/opt/t1719/lib/libt1719.so" "$L/foo.c" 2>>"$REPORT" &&
+	cc -o "$L/glibc/uselib" "$L/main.c" -L"$L/glibc/opt/t1719/lib" -lt1719 2>>"$REPORT"; then
+	echo /opt/t1719/lib >"$L/glibc/etc/ld.so.conf.d/t1719.conf"
+	# An earlier --rm run removed each rootfs that no record names.
+	"$PB" extract "$ALPINE" >/dev/null 2>&1
+	AROOT=$("$PB" inspect --format '{{.RootfsPath}}' "$ALPINE" 2>/dev/null) || AROOT=""
+	"$PB" extract "$DEBIAN" >/dev/null 2>&1
+	DROOT=$("$PB" inspect --format '{{.RootfsPath}}' "$DEBIAN" 2>/dev/null) || DROOT=""
+	tar -cf "$L/musl.tar" -C "$AROOT" . -C "$L/musl" ./usr/local/lib/libt1719.so ./uselib 2>>"$REPORT" &&
+		"$PB" import "$L/musl.tar" t1719-musl:1 >/dev/null 2>>"$REPORT" ||
+		{ echo "the musl image of clause 32 did not build" >>"$REPORT"; fail=1; }
+	if [ -d "$DROOT" ]; then
+		tar -cf "$L/glibc.tar" -C "$DROOT" . -C "$L/glibc" ./opt/t1719/lib/libt1719.so ./etc/ld.so.conf.d/t1719.conf ./uselib 2>>"$REPORT" &&
+			"$PB" import "$L/glibc.tar" t1719-glibc:1 >/dev/null 2>>"$REPORT" ||
+			{ echo "the glibc image of clause 32 did not build" >>"$REPORT"; fail=1; }
+	else
+		echo "the debian rootfs of clause 32 is missing" >>"$REPORT"; fail=1
+	fi
+	step fx-libdir-musl 0 $FX "$PB" run --rm t1719-musl:1 /uselib
+	grep -qx "lib-42" "$WORK/out-fx-libdir-musl.txt" || { echo "a library in /usr/local/lib was not found" >>"$REPORT"; fail=1; }
+	step fx-libdir-glibc 0 $FX "$PB" run --rm t1719-glibc:1 /uselib
+	grep -qx "lib-42" "$WORK/out-fx-libdir-glibc.txt" || { echo "a library of ld.so.conf.d was not found" >>"$REPORT"; fail=1; }
+else
+	echo "the probes of clause 32 did not build" >>"$REPORT"; fail=1
+fi
 
 {
 echo ""

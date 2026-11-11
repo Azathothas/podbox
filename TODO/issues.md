@@ -141,5 +141,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #244 | COORD-026: pod-supervise: private modes for the table, the logs and each container directory (T-1715); a tag with T-162 for T-1708 (to podcrates) | closed (podcrates v0.16.0, taken 894cf13) | T-1708, T-1715 |
 | #245 | COORD-027: pod-enter: resource limits and no_new_privs in the child before the exec (T-1655) (to podcrates) | closed (podcrates v0.17.0, taken 522b437) | T-1655 (amended) |
 | #246 | COORD-028: the answer to PodUtils/podrunner#49: wait reads the record again until it has the exit code (to podrunner) | open | T-1720 |
-| #247 | COORD-029: pod-enter: lib_dirs takes /usr/local/lib and the image's loader configuration (T-1719) (to podcrates) | open | T-1719 |
+| #247 | COORD-029: pod-enter: lib_dirs takes /usr/local/lib and the image's loader configuration (T-1719) (to podcrates) | closed | T-1719 |
 | #248 | COORD-030: the official runner starts on the userland rung; the shape of M1's stand-in for run.sh (T-1706) (to podrunner) | closed | T-1706 |

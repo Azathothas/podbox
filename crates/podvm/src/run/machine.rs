@@ -77,6 +77,12 @@ pub(super) fn machine_tier(
         workdir
     };
     let env = Plan::env_for(&podvm_enter::NAMES, &cfg.config.env, &o.env);
+    // `-v HOST:GUEST`: a copy into the guest (`:ro` changes nothing there).
+    let copies = o
+        .volumes
+        .iter()
+        .map(|v| (std::path::PathBuf::from(&v.host), v.guest.clone()))
+        .collect();
     crate::machine::guest::boot(&crate::machine::guest::Request {
         verb,
         store_root: store.root(),
@@ -88,5 +94,6 @@ pub(super) fn machine_tier(
         mem: o.mem,
         timeout: o.timeout.map(std::time::Duration::from_secs),
         qemu_args: o.qemu_args.clone(),
+        copies,
     })
 }

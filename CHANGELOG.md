@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the loader finds the image's library directories, 2026-11-11
+
+Record: T-1719; issue 247.
+Deployed: not deployed; no version change.
+
+- On the userland rung the image's loader searches `/usr/local/lib`, each
+  directory of the image's `/etc/ld.so.conf` or `ld-musl-ARCH.path`, and
+  not the host's `ld.so.cache` (podcrates `v0.19.0`, `--inhibit-cache` for
+  glibc 2.16 and later, also for each child).
+
 ### Added: a microVM from an OCI image, 2026-11-11
 
 Record: T-1656 (partial), T-1682 (in progress); issue 168.
@@ -18,8 +28,8 @@ Deployed: not deployed; no version change.
   opens, under TCG elsewhere (about 2.4 s for each boot under TCG on the
   cloud host). `PODVM_MACHINE_ACCEL=kvm` refuses by name without KVM.
   The guest kernel and its network modules are pinned and fetched into
-  the store; the guest reaches the host's loopback at 10.0.2.2. No volume
-  or stdin yet.
+  the store; the guest reaches the host's loopback at 10.0.2.2. `-v` is a
+  copy into the guest, and the run says so. No stdin yet.
 - `podvm machine ssh` prints the accelerator that it took.
 - `.github/workflows/kvm.yml` runs the guest of experiment 390 on a hosted
   runner with `/dev/kvm`, dispatched by hand.

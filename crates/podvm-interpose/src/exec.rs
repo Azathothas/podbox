@@ -330,6 +330,7 @@ pub(crate) unsafe fn plan(
         }
     };
     let mut no_argv0 = false;
+    let mut inhibit = false;
     if let Tail::Loader = tail {
         // `s.lib` holds the `PT_INTERP` name. Resolve it inside the rootfs.
         let n = unsafe {
@@ -356,6 +357,7 @@ pub(crate) unsafe fn plan(
             return Err(ENOENT);
         };
         no_argv0 = head::loader_lacks_argv0(head::basename(&s.lib[..ln]));
+        inhibit = head::loader_takes_inhibit_cache(head::basename(&s.lib[..ln]));
         if crate::say::debug() {
             crate::say::line(&[
                 what,
@@ -371,6 +373,7 @@ pub(crate) unsafe fn plan(
             t,
             tail,
             no_argv0,
+            inhibit,
             &levels[..depth],
             rn,
             file0,

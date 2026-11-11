@@ -89,10 +89,36 @@ impl<W: Write> Newc<W> {
     /// Each directory, regular file and link under `root`, in a sorted walk,
     /// with the names relative to `root`.
     pub fn tree(&mut self, root: &Path) -> io::Result<()> {
-        self.walk(root, root)
+        self.walk(root, root, "")
     }
 
-    fn walk(&mut self, root: &Path, dir: &Path) -> io::Result<()> {
+    /// The tree under `root` at the guest path `at` (absolute), with an
+    /// entry for each directory of `at` itself first. A file `root` is one
+    /// entry at `at`.
+    pub fn tree_at(&mut self, root: &Path, at: &str) -> io::Result<()> {
+        use std::os::unix::fs::PermissionsExt;
+        let at = at.trim_matches('/');
+        let mut dir = String::new();
+        let parts: Vec<&str> = at.split('/').filter(|c| !c.is_empty()).collect();
+        for (i, c) in parts.iter().enumerate() {
+            if !dir.is_empty() {
+                dir.push('/');
+            }
+            dir.push_str(c);
+            if i + 1 < parts.len() {
+                self.entry(&dir, DIR | 0o755, &[], (0, 0))?;
+            }
+        }
+        let md = std::fs::metadata(root)?;
+        if md.is_file() {
+            let data = std::fs::read(root)?;
+            return self.entry(at, REG | (md.permissions().mode() & 0o7777), &data, (0, 0));
+        }
+        self.entry(at, DIR | (md.permissions().mode() & 0o7777), &[], (0, 0))?;
+        self.walk(root, root, at)
+    }
+
+    fn walk(&mut self, root: &Path, dir: &Path, prefix: &str) -> io::Result<()> {
         use std::os::unix::fs::PermissionsExt;
         let mut names: Vec<_> = std::fs::read_dir(dir)?.collect::<Result<Vec<_>, _>>()?;
         names.sort_by_key(|e| e.file_name());
@@ -103,12 +129,17 @@ impl<W: Write> Newc<W> {
                 .unwrap_or(&path)
                 .to_string_lossy()
                 .into_owned();
+            let rel = if prefix.is_empty() {
+                rel
+            } else {
+                format!("{prefix}/{rel}")
+            };
             let md = std::fs::symlink_metadata(&path)?;
             let perm = md.permissions().mode() & 0o7777;
             let ft = md.file_type();
             if ft.is_dir() {
                 self.entry(&rel, DIR | perm, &[], (0, 0))?;
-                self.walk(root, &path)?;
+                self.walk(root, &path, prefix)?;
             } else if ft.is_symlink() {
                 let target = std::fs::read_link(&path)?;
                 self.entry(
