@@ -14,16 +14,16 @@ file when each step below is done.
   (`docs/decisions.md`, rows of 2026-11-11). No question is open.
 * The newest release is `v0.2.0-beta.3` (2026-11-11, release run
   42980701550 on c62643d). The workspace version is `0.2.0-beta.4` since
-  4d8a3e0e; its release waits for the trial nightly run 43059674865 (the
-  first run of `podvm-package-ssh`, T-1737) and the gate on that commit.
+  4d8a3e0e; the trial nightly run 43059674865 is green (T-1737), and the
+  release waits for a green gate on the head of `main`.
   A release starts from `release.yml`; dispatch `nightly.yml` with
   `trial=true` on `main` first.
 * Commit signing is off for this repository (`.claude/session-start.sh`,
   `docs/decisions.md`, "Commit signing"), so the stop hook of a cloud
   session asks for no rewrite of the author.
-* podvm takes the crates of PodUtils/podcrates at `v0.22.0` (`93de04a`,
-  T-1732): `die_with_parent` in the launcher of `run -d`, and
-  `pod-services` (T-1679).
+* podvm takes the crates of PodUtils/podcrates at `v0.24.0` (`228e2e3`,
+  96acfbea): `pod-confine` and `Plan.confine` (T-1658), and the hosts and
+  module sums of `pod-services` (T-1679).
 * **The record is in the format of `pod-todo` since 2026-11-11** (T-1672,
   call C17). An entry is `# T-NNNN: Title`, the header fields
   `**Name:** value` (with `**Milestone:** none`), and the sections
@@ -60,15 +60,14 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. At podcrates `v0.23.0`: take it, then finish T-1658 (`pod-confine`),
-   the lambda clause of T-1659, `workerd-test` of T-1661, and T-1679
-   (empty the `WAITING` list of `crates/podvm/src/hosts_tests.rs`).
-2. Release `0.2.0-beta.4` when the trial nightly and the gate are green,
+1. podvm takes podcrates `v0.24.0` (T-1679, T-1659 done; T-1658 partial).
+   Next: the rest of T-1658 (the rungs with no chroot, `run -d`, `exec`),
+   then `workerd-test` of T-1661, which needs the layer.
+2. Release `0.2.0-beta.4` when the gate on the head of `main` is green,
    then tell podrunner that it carries T-1709, T-1725, T-1726 (its #62)
-   and T-1732. Set T-1737 done on a green trial nightly, and T-1684 done
-   on a green dispatch of `fuzz.yml` (run 43060659056).
+   and T-1732.
 3. Done on 2026-11-11 after the first handoff: T-1660, T-1668, T-1672,
-   T-1659, T-1665, T-1673, T-1679, T-1680, T-1683, T-1684, T-1685, T-1735, T-1732, T-1733, T-1734, T-1736; partial:
+   T-1659, T-1665, T-1673, T-1679, T-1680, T-1683, T-1684, T-1685, T-1735, T-1737, T-1732, T-1733, T-1734, T-1736; partial:
    T-1659, T-1661, T-1679. Defects fixed on the way: the hard links of a
    container tree and of the guest's base archive, the removal of a
    read-only tree by a user that is not root, a partial tree of a killed

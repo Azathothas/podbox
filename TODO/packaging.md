@@ -1665,7 +1665,7 @@ of the tag.
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1709,6 +1709,14 @@ so it stays with that lane.
 
 ## Done
 
+**Done 2026-11-11.** The trial run 43059674865 of `nightly.yml` (commit
+cdec8239) ends green on its second attempt: each of the seven legs ran
+`smoke and package the SSH helpers` through `podvm-package-ssh`, five of
+them under QEMU. The first attempt failed on three legs before any podvm
+step: the runner could not resolve the Ubuntu mirrors in the step
+`emulator` ("Temporary failure resolving"), and the rerun of the failed
+jobs passed.
+
 **Partial 2026-11-11.** `crates/podvm-release/src/package_ssh.rs` is the
 binary `podvm-package-ssh`, with the messages and exit codes of the
 script; `crates/podvm-release/src/package_ssh/elf.rs` reads PT_INTERP for
@@ -1721,5 +1729,4 @@ invalid ELF bytes by name and package the four release helpers with their
 notices. `nightly.yml` runs the binary; the script, experiment 394 and
 their rows in the READMEs are gone; `crates/podvm-gate/src/dev.rs` drops
 the 394 step, because `cargo test --workspace` runs the test.
-`git grep -n package-ssh.sh -- .github` prints nothing. Remaining: a
-trial run of `nightly.yml` packages each arch through the binary.
+`git grep -n package-ssh.sh -- .github` prints nothing.
