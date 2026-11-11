@@ -7,7 +7,7 @@ start.
 
 ## State
 
-329 entries: 27 open, 8 partial, 4 blocked, 290 done.
+329 entries: 26 open, 8 partial, 4 blocked, 291 done.
 
 The state on 2026-11-11:
 
@@ -47,9 +47,11 @@ that is not done. Read its Prove before you start. Set its status with
    official runner reaches its long poll on the userland rung
    (experiment 428), and the loader finds the image's library
    directories (podcrates `v0.19.0`).
-2. [T-1682](machine.md): `kvm.yml`, the Linux guest of the machine tier
-   on a hosted runner with `/dev/kvm`. Then [T-1656](machine.md)
-   (microVMs from `run`; podrunner's `microvm` unit waits for it, DR-5).
+2. [T-1656](machine.md): microVMs from `run` (podrunner's `microvm` unit
+   waits for it, DR-5); `run --podvm-tier=machine` boots a guest with a
+   network and a copied `-v` now, and the KVM times, stderr and stdin
+   remain. T-1682 is done: `kvm.yml` runs a guest under KVM on a hosted
+   runner.
    Then the KVM legs on a host with `/dev/kvm`: [T-1641](gate.md),
    [T-1350](gate.md) and [T-1112](milestones.md), in one bounded run.
    Then [T-1717](machine.md) (the incus study) and [T-1718](machine.md)

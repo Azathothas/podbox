@@ -1,0 +1,52 @@
+Experiment 390 (`podvm machine ssh`) under KVM on a hosted runner.
+Source: the job log of kvm.yml run 42972037125 (job 130362508969),
+2026-11-11, commit aa25ab2, runner ubuntu-latest (kernel 7.0.0-1019-azure),
+QEMU 10.2.1, /dev/kvm crw-rw-rw- through the udev rule of kvm.yml. The
+lines below are the transcript that the job printed, without the time
+stamps, the build lines and the generated key (TODO/machine.md T-1682).
+
+== 1. the binary and its refusals
+  ok: cargo build -p podvm -p podvm-ssh --bins exit 0
+  ok: podvm learns its version: podvm 0.2.0-beta.2
+  ok: podvm machine: usage with 0
+  ok: podvm machine -h: usage with 0
+  ok: podvm machine ssh -h: usage with 0
+  ok: machine ssh with no flags refused with 125 naming --kernel
+  ok: machine ssh with missing files refused with 125 naming the path
+  ok: machine ssh --podvm-timeout 0 refused with 125
+  ok: machine ssh --bogus refused with 125
+
+== 2. a static dropbear from the pinned commit
+  ok: dropbear source at 59870ad43153fe8d4f1c96f5d5752116c94f31ff
+  ok: static dropbear built with cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+  ok: dropbear is statically linked
+
+== 3. the socket bridge (owned, static, beside the pristine server)
+zig: 0.16.0
+  ok: static bridge built with zig 0.16.0
+  ok: bridge is statically linked
+
+== 4. the guest assembly
+  the base carries no dev/ttyS0: appending the node archive
+  ok: assembly: 11562180 bytes
+  ok: the base archive carries sbin/dropbear
+  ok: the base archive carries sbin/machine-bridge
+  ok: the base archive carries etc/dropbear/hostkey
+  ok: the base archive carries root/.ssh/authorized_keys
+  ok: the extras archive carries init
+  ok: the extras archive carries dev/console
+  ok: the node archive carries dev/ttyS0
+  ok: kernel matches the pin
+
+== 5. one SSH command in the guest podvm boots
+  ok: the guest ran the commands with exit 0, placed itself, and is root
+  accelerator: kvm
+  ok: the guest ran under KVM
+  ok: exit 42 passed through
+
+== 6. the wait is bounded and nothing remains
+  ok: the 1 s run stopped with 125, not a hang
+  ok: no per-run directory remains
+  ok: no run process remains
+  ok: parity carries the machine ssh rows
+verdict           MACHINE-OK: serial SSH drives a real guest command with its exit code

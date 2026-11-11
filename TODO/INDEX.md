@@ -355,7 +355,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1679](deps.md) | P2 | deps | open | Take `pod-services` for the third-party hosts compiled into podvm |
 | [T-1680](deps.md) | P2 | deps | blocked | Take `pod-todo` for the record half of `podvm-gate` |
 | [T-1681](deps.md) | P2 | deps | done | Hand the seven generic crates to podcrates and freeze their files |
-| [T-1682](machine.md) | P2 | machine | open | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
+| [T-1682](machine.md) | P2 | machine | done | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
 | [T-1683](gate.md) | P2 | gate | open | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
 | [T-1684](gate.md) | P2 | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
 | [T-1685](gate.md) | P2 | gate | open | A maintenance page and a development page in the sibling form |
@@ -397,7 +397,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-329 items: 27 open, 8 partial, 4 blocked, 290 done.
+329 items: 26 open, 8 partial, 4 blocked, 291 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -408,9 +408,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 25 | 1 | 4 | 79 | 109 |
+| P2 | 24 | 1 | 4 | 80 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **27** | **8** | **4** | **290** | **329** |
+| **All** | **26** | **8** | **4** | **291** | **329** |
 
 ## Work order
 

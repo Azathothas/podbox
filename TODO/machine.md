@@ -1386,7 +1386,7 @@ Source:      the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:138`
 Category:    machine
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     The KVM proof of the machine tier has run only on the
              operator's host. One run there left an emulator that SIGKILL
@@ -1412,6 +1412,22 @@ Prove:       `gh workflow run kvm.yml` starts a run whose guest experiment
              exits 0, with the transcript saved under
              `experiments/results/`, and `./target/x86_64-unknown-linux-musl/release/podvm-gate`
              exits 0 with the result cited.
+
+**Done 2026-11-11.** `.github/workflows/kvm.yml` (dispatched by hand) gives
+the job `/dev/kvm` with a udev rule and a `chmod` (a job without it exits
+2 before any guest), installs `qemu-system-x86` alone, and runs
+experiment 390 with `PODVM_390_WANT_KVM=1`: the run must name the `kvm`
+accelerator, which `podvm machine ssh` now prints on stderr. The job fails
+where an emulator stays after the run, and it uploads the transcript.
+Run 42972037125 at `aa25ab2` is green
+([the transcript](../experiments/results/machine-ssh-kvm.txt)): the
+guest booted under KVM, ran the command with exit 0 as root, passed exit
+42 through, and left no process and no run directory. Six earlier runs
+found the steps: no `/dev/kvm` mode at first; `qemu-user-static` failed
+to install; and the guest's dropbear refused the key with "Permission
+denied (publickey)", because a runner builds as a user and the base
+archive gave `/root/.ssh` that uid (`podvm_base` writes 0:0 now;
+`PODVM_MACHINE_SSH_LOG=DEBUG1` gave the reason).
 
 **Blocked 2026-11-06, cleared 2026-11-09.** The blocker was the KVM
 deferral of 2026-10-02 (`TODO/RULES.md` section 11). The owner lifted it

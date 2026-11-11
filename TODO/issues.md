@@ -143,3 +143,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #246 | COORD-028: the answer to PodUtils/podrunner#49: wait reads the record again until it has the exit code (to podrunner) | open | T-1720 |
 | #247 | COORD-029: pod-enter: lib_dirs takes /usr/local/lib and the image's loader configuration (T-1719) (to podcrates) | closed | T-1719 |
 | #248 | COORD-030: the official runner starts on the userland rung; the shape of M1's stand-in for run.sh (T-1706) (to podrunner) | closed | T-1706 |
+| #249 | COORD-031: podvm takes podcrates v0.19.0 (to podcrates) | open | T-1719 |
