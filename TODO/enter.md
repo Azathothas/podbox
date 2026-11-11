@@ -2515,8 +2515,11 @@ exits 0.
 
 Remaining: the layer on the rungs with no chroot (the loader family and
 the syscall tier, with host paths through the path map and `-v`), `run
--d` and `exec`, the Landlock ABI in `podvm probe` and in the report of
-T-1695, and the built-in profile `errand` of issue 170.
+-d` and `exec`, the Landlock ABI in the report of T-1695, and the built-in
+profile `errand` of issue 170. The ABI is in `podvm probe` already (the
+probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
+the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs
+with no TCP rule (`crates/podvm/src/doctor/scope.rs`).
 
 
 # T-1688: The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging

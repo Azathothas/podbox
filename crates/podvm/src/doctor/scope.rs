@@ -140,9 +140,24 @@ fn openat2(report: &mut Doctor) {
 fn landlock(report: &mut Doctor) {
     // SAFETY: landlock_create_ruleset(NULL, 0, VERSION) reads no memory.
     match unsafe { sys::sys(sys::SYS_LANDLOCK_CREATE_RULESET, [0, 0, 1, 0, 0, 0]) } {
+        Ok(abi) if abi < i64::from(podvm_enter::confine::MIN_ABI) => report.missing(
+            "scope.landlock",
+            format!(
+                "Landlock ABI {abi}; `--podvm-confine` needs ABI {} (TODO/enter.md T-1658)",
+                podvm_enter::confine::MIN_ABI
+            ),
+            "a kernel of Linux 6.2 or later has ABI 3".into(),
+        ),
+        Ok(abi) if abi < i64::from(podvm_enter::confine::NET_ABI) => report.ok(
+            "scope.landlock",
+            format!(
+                "Landlock ABI {abi}: `--podvm-confine` runs, with no TCP rule (`connect` needs ABI {}; TODO/enter.md T-1658)",
+                podvm_enter::confine::NET_ABI
+            ),
+        ),
         Ok(abi) => report.ok(
             "scope.landlock",
-            format!("Landlock ABI {abi}; the confine layer (TODO/enter.md T-1658) takes it when podcrates releases pod-confine"),
+            format!("Landlock ABI {abi}: `--podvm-confine` runs, with its TCP rules (TODO/enter.md T-1658)"),
         ),
         Err(e) => report.missing(
             "scope.landlock",
