@@ -1,4 +1,4 @@
-# supervise
+Area: supervise.
 
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
@@ -13,33 +13,48 @@ capture contains a failed run because it decided "running" by sleeping three
 seconds and looking, and M4's acceptance is twenty consecutive passes because
 one pass proves nothing about a race.
 
----
+# T-0601: One pidfd per direct child, `waitid` for status
 
-### T-0601 One pidfd per direct child, `waitid` for status
+**Source:** `TOOL.md` section 4.2, section 6.6; `paper_final.md` section 10.6
+**Category:** supervise
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 4.2, section 6.6; `paper_final.md` section 10.6
-Category:    supervise
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-09
+## Problem
 
-Problem:     Membership inferred from the filesystem races against exit, depends
-             on other processes' root links being readable, and trusts a path any
-             writable payload can create. Scanning `/proc/*/root/<marker>` is all
-             three at once.
-Premise:     Read.
-Approach:    Hold a pidfd per direct child from the moment it is created. Exit
-             status via `waitid`, wakeups via the pidfd in a poll set. Keep the
-             container table in the launcher, persisted to the store, and never
-             reconstruct it from `/proc`.
-             ⛔ Say what a pidfd is not: it addresses one process, it does not
-             contain descendants, and it is not a PID namespace. Grandchildren
-             that reparent are outside podvm's reach and `inspect` says so
-             rather than implying containment.
-Decision:    A pidfd rather than a pid plus a start time. The pid is reusable
-             and the start-time check is a heuristic; a pidfd cannot address a
-             process that has been reaped.
-Prove:       `podvm run -d --name pidfdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 5 && podvm wait pidfdprobe | grep -qx 0 && podvm rm pidfdprobe`
+Membership inferred from the filesystem races against exit, depends
+on other processes' root links being readable, and trusts a path any
+writable payload can create. Scanning `/proc/*/root/<marker>` is all
+three at once.
+
+## Premise
+
+Read.
+
+## Approach
+
+Hold a pidfd per direct child from the moment it is created. Exit
+status via `waitid`, wakeups via the pidfd in a poll set. Keep the
+container table in the launcher, persisted to the store, and never
+reconstruct it from `/proc`.
+⛔ Say what a pidfd is not: it addresses one process, it does not
+contain descendants, and it is not a PID namespace. Grandchildren
+that reparent are outside podvm's reach and `inspect` says so
+rather than implying containment.
+
+## Decision
+
+A pidfd rather than a pid plus a start time. The pid is reusable
+and the start-time check is a heuristic; a pidfd cannot address a
+process that has been reaped.
+
+## Prove
+
+`podvm run -d --name pidfdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 5 && podvm wait pidfdprobe | grep -qx 0 && podvm rm pidfdprobe`
+
+## Done
 
 **Done, 2026-09-09.** `crates/podvm-supervise/src/launcher.rs`. One launcher per
 container holds a pidfd on its payload from the moment the payload exists,
@@ -62,35 +77,50 @@ the three leading ints are followed by four bytes of padding and `_sifields`
 begins at 16, so `si_status` is at 24. `pod_hostprobe::sys` carries
 the reasoning beside the read.
 
----
+# T-0602: Never decide "running" by sleeping and looking
 
-### T-0602 Never decide "running" by sleeping and looking
+**Source:** `TOOL.md` section 6.6; `paper_final.md` section 10.6
+**Category:** supervise
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 6.6; `paper_final.md` section 10.6
-Category:    supervise
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-09
+## Problem
 
-Problem:     A fixed sleep is a scheduling assumption. The prior art's own
-             capture of this lifecycle contains a failed run for exactly that
-             reason, and it passed on other days.
-Premise:     Read, in the account of that capture. The general rule is in the
-             binding methodology: `docs/methodology/authoring.md:1-20` states
-             that an acceptance "waits on the condition, never on a guessed
-             duration", and that "both of these will happen" is the same
-             assumption as "this will happen in N seconds".
-Approach:    Wait on the pidfd, or on a readiness fd the child writes to and the
-             parent reads. `start` returns when the child has reached a defined
-             state, not when a timer expires. Every wait has an upper bound and
-             a distinct outcome for the bound being reached, per
-             [RULES.md](RULES.md) section 8.
-             ⛔ podvm inherits this as a product requirement, not just as
-             session hygiene: a container runtime that hangs waiting is unusable
-             by the audience it is built for.
-Decision:    A readiness fd over polling `ps`. Polling reintroduces the interval
-             the entry exists to remove.
-Prove:       `for i in $(seq 20); do podvm run -d --name loop$i public.ecr.aws/docker/library/alpine:3.20 sleep 1 && podvm ps -q | grep -q . && podvm stop loop$i && podvm rm loop$i || exit 1; done`
+A fixed sleep is a scheduling assumption. The prior art's own
+capture of this lifecycle contains a failed run for exactly that
+reason, and it passed on other days.
+
+## Premise
+
+Read, in the account of that capture. The general rule is in the
+binding methodology: `docs/methodology/authoring.md:1-20` states
+that an acceptance "waits on the condition, never on a guessed
+duration", and that "both of these will happen" is the same
+assumption as "this will happen in N seconds".
+
+## Approach
+
+Wait on the pidfd, or on a readiness fd the child writes to and the
+parent reads. `start` returns when the child has reached a defined
+state, not when a timer expires. Every wait has an upper bound and
+a distinct outcome for the bound being reached, per
+[RULES.md](RULES.md) section 8.
+⛔ podvm inherits this as a product requirement, not just as
+session hygiene: a container runtime that hangs waiting is unusable
+by the audience it is built for.
+
+## Decision
+
+A readiness fd over polling `ps`. Polling reintroduces the interval
+the entry exists to remove.
+
+## Prove
+
+`for i in $(seq 20); do podvm run -d --name loop$i public.ecr.aws/docker/library/alpine:3.20 sleep 1 && podvm ps -q | grep -q . && podvm stop loop$i && podvm rm loop$i || exit 1; done`
+
+## Done
 
 **Done, 2026-09-09**, and it took three failing runs and a door sweep to get
 there. `./experiments/230-lifecycle-loop.sh 20` reports **20 of 20 consecutive
@@ -142,36 +172,51 @@ directory; and `flock` is held on an open file description, so `reconcile`
 opening and closing its own fd cannot release a launcher's lock. Reading the code
 for what else reaches the socket is what found it.
 
----
+# T-0603: `PR_SET_PDEATHSIG` fires on the creating thread's exit
 
-### T-0603 `PR_SET_PDEATHSIG` fires on the creating thread's exit
+**Source:** `TOOL.md` section 6.6; `paper_final.md` section 10.6
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 6.6; `paper_final.md` section 10.6
-Category:    supervise
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-09
+## Problem
 
-Problem:     It does not fire on an ancestor's death. In a threaded supervisor
-             this produces surprising early exits that look like crashes, and a
-             wrapper such as `timeout(1)` around the launcher is enough to kill a
-             detached child unexpectedly.
-Premise:     Read. It is a kernel property, not a runtime property, and it is one
-             of the four rows behind `TOOL.md` section 3's language decision: a Go
-             supervisor cannot control which thread it is on.
-             `references/89luca89__lilipod/tree/pkg/procutils/proc_utils.go:48-56`
-             sets `Pdeathsig: syscall.SIGTERM` in the same `SysProcAttr` as the
-             `Credential` that fails, which is the shape the account describes.
-Approach:    podvm is single-threaded on the path that clones, chroots and
-             execs (`TOOL.md` section 4.2), so the creating thread is the process. Keep
-             it that way: spawn threads only for log pumps and the notification
-             supervisor, and assert it in a test rather than in a comment.
-             Where `PDEATHSIG` is used, lock the spawning thread.
-Decision:    Keep the spawn path single-threaded rather than pinning a thread.
-             Pinning works and it is a constraint every future contributor has to
-             know; a single-threaded path is a constraint the type system can be
-             made to hold.
-Prove:       `podvm run -d --name pdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && grep -qx 1 /proc/$(podvm inspect --format '{{.Pid}}' pdprobe)/status.threads 2>/dev/null || test "$(ls /proc/$(pgrep -f 'podvm run' | head -1)/task | wc -l)" -le 3`
+It does not fire on an ancestor's death. In a threaded supervisor
+this produces surprising early exits that look like crashes, and a
+wrapper such as `timeout(1)` around the launcher is enough to kill a
+detached child unexpectedly.
+
+## Premise
+
+Read. It is a kernel property, not a runtime property, and it is one
+of the four rows behind `TOOL.md` section 3's language decision: a Go
+supervisor cannot control which thread it is on.
+`references/89luca89__lilipod/tree/pkg/procutils/proc_utils.go:48-56`
+sets `Pdeathsig: syscall.SIGTERM` in the same `SysProcAttr` as the
+`Credential` that fails, which is the shape the account describes.
+
+## Approach
+
+podvm is single-threaded on the path that clones, chroots and
+execs (`TOOL.md` section 4.2), so the creating thread is the process. Keep
+it that way: spawn threads only for log pumps and the notification
+supervisor, and assert it in a test rather than in a comment.
+Where `PDEATHSIG` is used, lock the spawning thread.
+
+## Decision
+
+Keep the spawn path single-threaded rather than pinning a thread.
+Pinning works and it is a constraint every future contributor has to
+know; a single-threaded path is a constraint the type system can be
+made to hold.
+
+## Prove
+
+`podvm run -d --name pdprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && grep -qx 1 /proc/$(podvm inspect --format '{{.Pid}}' pdprobe)/status.threads 2>/dev/null || test "$(ls /proc/$(pgrep -f 'podvm run' | head -1)/task | wc -l)" -le 3`
+
+## Done
 
 **Done, 2026-09-09.** The spawn path is single-threaded and nothing on it spawns
 a thread: the launcher forks with `clone_fork`, the payload's `chroot` and
@@ -190,30 +235,45 @@ needles assembled at run time so the assertion does not match itself. ⭐ The
 runtime half is clause 3 of `experiments/230-lifecycle-loop.sh`, which reads
 **1** thread off a real detached launcher.
 
----
+# T-0604: Running state is launcher state
 
-### T-0604 Running state is launcher state
+**Source:** `TOOL.md` section 6.6
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 6.6
-Category:    supervise
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-09
+## Problem
 
-Problem:     Two launchers, or a launcher restart, must not disagree about what
-             is running, and neither may read the answer out of a directory a
-             payload can write to.
-Premise:     Read.
-Approach:    A single container table in the store, written by the launcher,
-             locked with the same inheritable lock fd as T-0204. On start, a
-             launcher reconciles the table against its pidfds and marks anything
-             it cannot address as exited, recording when it noticed. It never
-             infers membership from a marker file.
-Decision:    Reconcile on start rather than trust the table. A launcher killed
-             with `SIGKILL` leaves the table saying "running", and the only
-             honest answer after that is "this process exited while podvm was
-             not watching".
-Prove:       `podvm run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podvm inspect --format '{{.Pid}}' stateprobe)" && podvm ps -a --format '{{.Names}} {{.Status}}' | grep '^stateprobe ' | grep -qi exited && podvm rm stateprobe`
+Two launchers, or a launcher restart, must not disagree about what
+is running, and neither may read the answer out of a directory a
+payload can write to.
+
+## Premise
+
+Read.
+
+## Approach
+
+A single container table in the store, written by the launcher,
+locked with the same inheritable lock fd as T-0204. On start, a
+launcher reconciles the table against its pidfds and marks anything
+it cannot address as exited, recording when it noticed. It never
+infers membership from a marker file.
+
+## Decision
+
+Reconcile on start rather than trust the table. A launcher killed
+with `SIGKILL` leaves the table saying "running", and the only
+honest answer after that is "this process exited while podvm was
+not watching".
+
+## Prove
+
+`podvm run -d --name stateprobe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && kill -9 "$(podvm inspect --format '{{.Pid}}' stateprobe)" && podvm ps -a --format '{{.Names}} {{.Status}}' | grep '^stateprobe ' | grep -qi exited && podvm rm stateprobe`
+
+## Done
 
 **Done, 2026-09-09.** Clause 2 of `experiments/230-lifecycle-loop.sh` drives it:
 a detached container whose LAUNCHER is `SIGKILL`ed reads `dead`, `inspect
@@ -234,31 +294,46 @@ launcher does not kill the container's process, so the clause kills it too on th
 way out; podvm has no PID namespace and `inspect --format '{{.Contains}}'` says
 exactly that.
 
----
+# T-0605: Capture logs at spawn, from the descriptors opened in step 2
 
-### T-0605 Capture logs at spawn, from the descriptors opened in step 2
+**Source:** `TOOL.md` section 6.6, section 6.5
+**Category:** supervise
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 6.6, section 6.5
-Category:    supervise
-Priority:    P2
-Effort:      S
-Status:      done 2026-09-09
+## Problem
 
-Problem:     A log sink opened after the chroot cannot reach the store, which is
-             outside the new root. Opening it afterwards is the same mistake as
-             step 2 of section 6.5 in a different place.
-Premise:     Read.
-Approach:    Open the log sinks in step 2 of the entry sequence, before the root
-             change, and hand the descriptors to the child. `logs` reads the
-             store file; `attach` is a tail of the same file plus a signal proxy
-             and is marked Degraded for that reason.
-             `--log-driver` accepts `json-file` only, and any other value is a
-             named refusal rather than a silent substitution.
-Decision:    A file in the store rather than a pipe pumped by the launcher. A
-             pipe loses everything written after the launcher dies, and the
-             launcher is the process most likely to be killed by an outer
-             `timeout`.
-Prove:       `podvm run --rm --name logprobe public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo out; echo err >&2' >/dev/null 2>&1; podvm logs logprobe 2>&1 | grep -q out`
+A log sink opened after the chroot cannot reach the store, which is
+outside the new root. Opening it afterwards is the same mistake as
+step 2 of section 6.5 in a different place.
+
+## Premise
+
+Read.
+
+## Approach
+
+Open the log sinks in step 2 of the entry sequence, before the root
+change, and hand the descriptors to the child. `logs` reads the
+store file; `attach` is a tail of the same file plus a signal proxy
+and is marked Degraded for that reason.
+`--log-driver` accepts `json-file` only, and any other value is a
+named refusal rather than a silent substitution.
+
+## Decision
+
+A file in the store rather than a pipe pumped by the launcher. A
+pipe loses everything written after the launcher dies, and the
+launcher is the process most likely to be killed by an outer
+`timeout`.
+
+## Prove
+
+`podvm run --rm --name logprobe public.ecr.aws/docker/library/alpine:3.20 sh -c 'echo out; echo err >&2' >/dev/null 2>&1; podvm logs logprobe 2>&1 | grep -q out`
+
+## Done
 
 **Done, 2026-09-09.** Clause 4 of `experiments/230-lifecycle-loop.sh`:
 `podvm run -d ... sh -c 'echo out; echo err >&2'` then `podvm logs` reads back
@@ -306,106 +381,121 @@ conditions as T-0801 above): `log-driver-json` and
 naming the value. In-suite:
 `log_driver_takes_json_file_and_nothing_else`.
 
----
+# T-0606: The notification tier: probe three legs, refuse the tier, never fall back per call
 
-### T-0606 The notification tier: probe three legs, refuse the tier, never fall back per call
+**Source:** `TOOL.md` section 4.1, section 6.6; `references/multikernel__sandlock`
+**Category:** supervise
+**Milestone:** none
+**Priority:** P0
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 4.1, section 6.6; `references/multikernel__sandlock`
-Category:    supervise
-Priority:    P0
-Effort:      L
-Status:      done 2026-09-25
+## Problem
 
-Problem:     `supervise` is the only rung whose failure is silent by default. Its
-             listener keeps working after its argument-reading channel dies, and
-             a supervisor whose per-syscall fallback is "continue" then reports
-             success for mediation it never performed.
-Premise:     ⭐ **Read at file and line, and the whole chain is traceable in one
-             tree.** In `references/multikernel__sandlock`:
+`supervise` is the only rung whose failure is silent by default. Its
+listener keeps working after its argument-reading channel dies, and
+a supervisor whose per-syscall fallback is "continue" then reports
+success for mediation it never performed.
 
-             1. `tree/crates/sandlock-core/src/seccomp/notif.rs:1015-1034`
-                `read_child_mem_vm()` calls `libc::process_vm_readv` at
-                `:1026`. That is the only read channel; there is no
-                `/proc/pid/mem` fallback anywhere in the tree.
-             2. `tree/crates/sandlock-core/src/seccomp/notif.rs:1070-1081`
-                `read_child_mem()` propagates the failure.
-             3. `tree/crates/sandlock-core/src/chroot/dispatch.rs:213-231`
-                `read_path()` returns `None` on any read failure.
-             4. `tree/crates/sandlock-core/src/cow/dispatch.rs:203-206` turns
-                that `None` into `NotifAction::Continue`, and the same shape
-                appears at `:200`, `:219`, `:226`, `:238`, `:245`, `:253`,
-                `:276` and `:293`.
-             5. `Continue` lets the kernel run the syscall unmediated, so
-                nothing is recorded.
-             6. `tree/crates/sandlock-cli/src/main.rs:740-747` then prints
-                `sandlock: dry-run: no filesystem changes`.
+## Premise
 
-             On a runtime where `process_vm_readv` is filtered, every step 4
-             fires and step 6 reports no changes while the files change.
-             ⭐ **Its own audit examined every one of those sites and missed
-             this.** `tree/crates/sandlock-core/src/cow/dispatch.rs:6-24` is a
-             module header written by that audit, titled "Continue safety (issue
-             #27)", arguing each `Continue` is safe because "we're not making a
-             security decision whose validity depends on the kernel re-reading
-             the same memory we read". That is correct about security and silent
-             about reporting.
-             ⭐ **And its tracker settles a second question `TOOL.md` does not
-             raise.** Issue #27 is open. `seccomp_unotify(2)`'s own manual warns
-             the mechanism must not be used to make security policy decisions,
-             because it is race-prone. The fix that survived four rounds of
-             argument (PRs #28, #29, #33, #35) requires `PTRACE_SEIZE` plus
-             `PTRACE_INTERRUPT` on every thread of every process in the sandbox
-             before sending `Continue`, and **`ptrace` is filtered on this
-             runtime**. So `supervise` here has no read channel and no way to be
-             made race-safe if it had one. PR #29 also dropped path strings from
-             the policy surface entirely, on the ruling that "path-based access
-             control belongs in static Landlock rules".
-Approach:    Probe all three legs before selecting the tier: the listener, a
-             working channel for reading the child's arguments, and ptrace to
-             make a `Continue` race-safe. Refuse the tier if any is missing.
-             ⛔ Never fall back per call. A per-call fallback is what produces a
-             false report, and it is indistinguishable from success in the
-             output.
-             ⚠ The third leg is ptrace, not the `SECCOMP_IOCTL_NOTIF_ADDFD`
-             injection an earlier revision of this Approach named. Nothing in
-             the tree injects a descriptor (no reference to `ADDFD` anywhere
-             in `crates/`), so a leg for it would green-light a mechanism
-             with no consumer and no incident behind it. What the Problem
-             needs is the only known fix for race-unsafe `Continue`, which
-             issue #27 settles is `PTRACE_SEIZE` before it, and the Decision
-             below refuses the tier where that fix cannot run.
-             ⚠ The channel leg aims `process_vm_readv` at live memory, not
-             `open /proc/self/mem`. The Premise's step 1 settles that the
-             lineage's only channel is `process_vm_readv` with no mem
-             fallback, so a mem leg would pass a channel the implementation
-             does not use. The legs are the tier's own rows
-             (`Group::Supervise`), never the census and attribution rows
-             that answer other groups' contracts.
-Decision:    Refuse the whole tier when any leg is missing, rather than offering
-             a reduced `supervise`. A reduced one is what the corpus measures
-             failing: the listener keeps working, so the mode reports as active,
-             and only the mediation is gone. There is no output that
-             distinguishes it from the working case, which is why the refusal has
-             to happen before the tier is entered.
+⭐ **Read at file and line, and the whole chain is traceable in one
+tree.** In `references/multikernel__sandlock`:
+
+1. `tree/crates/sandlock-core/src/seccomp/notif.rs:1015-1034`
+   `read_child_mem_vm()` calls `libc::process_vm_readv` at
+   `:1026`. That is the only read channel; there is no
+   `/proc/pid/mem` fallback anywhere in the tree.
+2. `tree/crates/sandlock-core/src/seccomp/notif.rs:1070-1081`
+   `read_child_mem()` propagates the failure.
+3. `tree/crates/sandlock-core/src/chroot/dispatch.rs:213-231`
+   `read_path()` returns `None` on any read failure.
+4. `tree/crates/sandlock-core/src/cow/dispatch.rs:203-206` turns
+   that `None` into `NotifAction::Continue`, and the same shape
+   appears at `:200`, `:219`, `:226`, `:238`, `:245`, `:253`,
+   `:276` and `:293`.
+5. `Continue` lets the kernel run the syscall unmediated, so
+   nothing is recorded.
+6. `tree/crates/sandlock-cli/src/main.rs:740-747` then prints
+   `sandlock: dry-run: no filesystem changes`.
+
+On a runtime where `process_vm_readv` is filtered, every step 4
+fires and step 6 reports no changes while the files change.
+⭐ **Its own audit examined every one of those sites and missed
+this.** `tree/crates/sandlock-core/src/cow/dispatch.rs:6-24` is a
+module header written by that audit, titled "Continue safety (issue
+#27)", arguing each `Continue` is safe because "we're not making a
+security decision whose validity depends on the kernel re-reading
+the same memory we read". That is correct about security and silent
+about reporting.
+⭐ **And its tracker settles a second question `TOOL.md` does not
+raise.** Issue #27 is open. `seccomp_unotify(2)`'s own manual warns
+the mechanism must not be used to make security policy decisions,
+because it is race-prone. The fix that survived four rounds of
+argument (PRs #28, #29, #33, #35) requires `PTRACE_SEIZE` plus
+`PTRACE_INTERRUPT` on every thread of every process in the sandbox
+before sending `Continue`, and **`ptrace` is filtered on this
+runtime**. So `supervise` here has no read channel and no way to be
+made race-safe if it had one. PR #29 also dropped path strings from
+the policy surface entirely, on the ruling that "path-based access
+control belongs in static Landlock rules".
+
+## Approach
+
+Probe all three legs before selecting the tier: the listener, a
+working channel for reading the child's arguments, and ptrace to
+make a `Continue` race-safe. Refuse the tier if any is missing.
+⛔ Never fall back per call. A per-call fallback is what produces a
+false report, and it is indistinguishable from success in the
+output.
+⚠ The third leg is ptrace, not the `SECCOMP_IOCTL_NOTIF_ADDFD`
+injection an earlier revision of this Approach named. Nothing in
+the tree injects a descriptor (no reference to `ADDFD` anywhere
+in `crates/`), so a leg for it would green-light a mechanism
+with no consumer and no incident behind it. What the Problem
+needs is the only known fix for race-unsafe `Continue`, which
+issue #27 settles is `PTRACE_SEIZE` before it, and the Decision
+below refuses the tier where that fix cannot run.
+⚠ The channel leg aims `process_vm_readv` at live memory, not
+`open /proc/self/mem`. The Premise's step 1 settles that the
+lineage's only channel is `process_vm_readv` with no mem
+fallback, so a mem leg would pass a channel the implementation
+does not use. The legs are the tier's own rows
+(`Group::Supervise`), never the census and attribution rows
+that answer other groups' contracts.
+
+## Decision
+
+Refuse the whole tier when any leg is missing, rather than offering
+a reduced `supervise`. A reduced one is what the corpus measures
+failing: the listener keeps working, so the mode reports as active,
+and only the mediation is gone. There is no output that
+distinguishes it from the working case, which is why the refusal has
+to happen before the tier is entered.
 Status note: **open, and it was wrongly marked blocked.** Reconciled on
-             2026-09-11. ⛔ `docs/methodology/sessions.md` defines blocked as
-             "somebody outside this session must act", and nobody does. The
-             deliverable here is podvm's OWN three-leg probe and the tier
-             refusal it drives, and both are writable today against a target
-             where every leg is denied.
-             ⚠ What the corpus settles is the OUTCOME on that target, not
-             whether the work can start: both read channels are denied there and
-             `ptrace` is filtered, so the tier is refused. ⛔ That refusal still
-             has to be a measured verdict from the probe rather than a constant
-             in the code, because the next runtime may permit a leg this one
-             does not. Treating "the answer is known" as "the work is blocked"
-             is what kept this entry closed to work for two sessions.
-Prove:       `podvm probe --json | jq -e '.tiers.supervise | (.legs | length == 3) and (([.legs[] | select(.verdict != "ok")] | length == 0) == (.refusal == null))'`
-             ⚠ Amended 2026-09-22: the committed spelling selected `.ok` and
-             `.refused` fields the legs never carried (they carry `verdict`
-             strings and the tier carries one `refusal`), so it could never
-             pass. The new spelling asserts what the tier promises: three
-             legs, and a refusal exactly where not every leg is `ok`.
+2026-09-11. ⛔ `docs/methodology/sessions.md` defines blocked as
+"somebody outside this session must act", and nobody does. The
+deliverable here is podvm's OWN three-leg probe and the tier
+refusal it drives, and both are writable today against a target
+where every leg is denied.
+⚠ What the corpus settles is the OUTCOME on that target, not
+whether the work can start: both read channels are denied there and
+`ptrace` is filtered, so the tier is refused. ⛔ That refusal still
+has to be a measured verdict from the probe rather than a constant
+in the code, because the next runtime may permit a leg this one
+does not. Treating "the answer is known" as "the work is blocked"
+is what kept this entry closed to work for two sessions.
+
+## Prove
+
+`podvm probe --json | jq -e '.tiers.supervise | (.legs | length == 3) and (([.legs[] | select(.verdict != "ok")] | length == 0) == (.refusal == null))'`
+⚠ Amended 2026-09-22: the committed spelling selected `.ok` and
+`.refused` fields the legs never carried (they carry `verdict`
+strings and the tier carries one `refusal`), so it could never
+pass. The new spelling asserts what the tier promises: three
+legs, and a refusal exactly where not every leg is `ok`.
+
+## Done
 
 **Done 2026-09-22.** The tier's own three legs, and the refusal they drive.
 `pod_hostprobe::probes` gains `Group::Supervise` with the block
@@ -491,29 +581,44 @@ three notify legs, so no lane run can show the fallback. Full
 `podvm-probe` suite green on the same drive (107 passed,
 0 failed).
 
----
+# T-0607: The lifecycle, twenty times, twenty passes
 
-### T-0607 The lifecycle, twenty times, twenty passes
+**Source:** `TOOL.md` section 5 M4, section 9
+**Category:** supervise
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 5 M4, section 9
-Category:    supervise
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-09
+## Problem
 
-Problem:     One pass proves nothing about a race, and the race is the reason
-             this milestone exists.
-Premise:     Read, from the account of a capture containing a failed run beside
-             a passing one.
-Approach:    `create`, detached `start`, `ps` shows it running, `exec` prints a
-             marker, `stop`, `rm`. Twenty consecutive iterations, all passing,
-             with no sleep anywhere in the loop or in the implementation under
-             it. A single failure fails the milestone; retrying it is what turned
-             a race into a published pass elsewhere.
-Decision:    Twenty rather than a timed soak. A count is reproducible on a
-             different machine and a duration is not, and
-             `docs/methodology/authoring.md:1-20` rules out the duration form.
-Prove:       `./experiments/230-lifecycle-loop.sh 20` exits 0
+One pass proves nothing about a race, and the race is the reason
+this milestone exists.
+
+## Premise
+
+Read, from the account of a capture containing a failed run beside
+a passing one.
+
+## Approach
+
+`create`, detached `start`, `ps` shows it running, `exec` prints a
+marker, `stop`, `rm`. Twenty consecutive iterations, all passing,
+with no sleep anywhere in the loop or in the implementation under
+it. A single failure fails the milestone; retrying it is what turned
+a race into a published pass elsewhere.
+
+## Decision
+
+Twenty rather than a timed soak. A count is reproducible on a
+different machine and a duration is not, and
+`docs/methodology/authoring.md:1-20` rules out the duration form.
+
+## Prove
+
+`./experiments/230-lifecycle-loop.sh 20` exits 0
+
+## Done
 
 **Done, 2026-09-09.** `./experiments/230-lifecycle-loop.sh 20` reports **20 of
 20 consecutive passes**, and the three clauses after it run for the first time.
@@ -527,62 +632,76 @@ single pass would have shipped that defect, and a retry would have published it.
 it reports is how many iterations happened BEFORE the first one, which is the
 only number this entry is about.
 
----
+# T-0608: A detached container that reads `exited` with no launcher, seen twice and not reproduced
 
-### T-0608 A detached container that reads `exited` with no launcher, seen twice and not reproduced
+**Source:** Observed on 2026-09-09 while writing `experiments/250-negative-tests.sh`
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      Observed on 2026-09-09 while writing `experiments/250-negative-tests.sh`
-Category:    supervise
-Priority:    P1
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     ⛔ **`podvm run -d` returned a container id, and one second later
-             `inspect` read `exited`, pid `0`, launcher pid `0`, exit code `0`,
-             for a payload that was `sleep 20`.** `logs` was empty. Whatever
-             happened, the record says the container ran and ended cleanly, and
-             it did not: a `sleep 20` that exits 0 in under a second is not the
-             payload's answer, and reporting it as one is the class of lie
-             [T-0604](supervise.md) exists to refuse.
-Premise:     ⚠ **SEEN TWICE AND NOT REPRODUCED, and that is written down rather
-             than smoothed into a diagnosis.** Both sightings were in the same
-             shell, against `public.ecr.aws/docker/library/alpine:3.20`, in a
-             fresh store, while `experiments/240-distro-sweep.sh` had all four
-             CPUs. Immediately afterwards:
+⛔ **`podvm run -d` returned a container id, and one second later
+`inspect` read `exited`, pid `0`, launcher pid `0`, exit code `0`,
+for a payload that was `sleep 20`.** `logs` was empty. Whatever
+happened, the record says the container ran and ended cleanly, and
+it did not: a `sleep 20` that exits 0 in under a second is not the
+payload's answer, and reporting it as one is the class of lie
+[T-0604](supervise.md) exists to refuse.
 
-             - six consecutive `run -d` of the same image in a fresh store read
-               `running` with a launcher pid: **0 bad of 6**;
-             - the same image and `ghcr.io/pkgforge-dev/archlinux:latest`, one
-               each: both `running`;
-             - `experiments/230-lifecycle-loop.sh 3` passed **3 of 3**, and its
-               own T-0604 clause reports `a launcher pid was recorded: yes`.
+## Premise
 
-             ⛔ No cause is claimed. Two candidates are worth ruling out first
-             and neither has been: the readiness pipe's bound being reached under
-             load and reported as an exit rather than as "podvm does not know",
-             and `reconcile` running between `create` and `start` and writing a
-             terminal state over a container that had not started yet. ⚠ The
-             second would explain the `0` exit code, because `reconcile`'s
-             `dead` path leaves no code and this record had one.
-Approach:    Reproduce it before changing anything.
-             1. a loop like `230-lifecycle-loop.sh`'s, but with the machine
-                LOADED, because both sightings were under a full four-CPU build.
-                ⚠ Load is the one condition the passing runs did not share;
-             2. record, for every iteration, the state, the pid, the launcher
-                pid and the exit code, and stop on the first that is terminal
-                within a second;
-             3. only then read `start` and `reconcile` against what the
-                reproduction shows.
-             ⛔ Do not "fix" the two candidates above on the strength of the
-             observation. M4's own race was found by enumerating the doors after
-             two written-down causes were both wrong
-             ([T-0602](supervise.md)), and the entry keeps them for that reason.
-Decision:    An entry rather than a note in `PROGRESS.md`, because an
-             intermittent that nobody is assigned to reproduce is one that is
-             rediscovered instead of fixed. ⚠ P1 and not P0: it was not seen in
-             any acceptance run, and the acceptance is what a release gates on.
-Prove:       `./experiments/340-detached-stdio.sh 40` reproduced it on iteration 1 before the fix and reports 40 of 40 after it
+⚠ **SEEN TWICE AND NOT REPRODUCED, and that is written down rather
+than smoothed into a diagnosis.** Both sightings were in the same
+shell, against `public.ecr.aws/docker/library/alpine:3.20`, in a
+fresh store, while `experiments/240-distro-sweep.sh` had all four
+CPUs. Immediately afterwards:
 
+- six consecutive `run -d` of the same image in a fresh store read
+  `running` with a launcher pid: **0 bad of 6**;
+- the same image and `ghcr.io/pkgforge-dev/archlinux:latest`, one
+  each: both `running`;
+- `experiments/230-lifecycle-loop.sh 3` passed **3 of 3**, and its
+  own T-0604 clause reports `a launcher pid was recorded: yes`.
+
+⛔ No cause is claimed. Two candidates are worth ruling out first
+and neither has been: the readiness pipe's bound being reached under
+load and reported as an exit rather than as "podvm does not know",
+and `reconcile` running between `create` and `start` and writing a
+terminal state over a container that had not started yet. ⚠ The
+second would explain the `0` exit code, because `reconcile`'s
+`dead` path leaves no code and this record had one.
+
+## Approach
+
+Reproduce it before changing anything.
+1. a loop like `230-lifecycle-loop.sh`'s, but with the machine
+   LOADED, because both sightings were under a full four-CPU build.
+   ⚠ Load is the one condition the passing runs did not share;
+2. record, for every iteration, the state, the pid, the launcher
+   pid and the exit code, and stop on the first that is terminal
+   within a second;
+3. only then read `start` and `reconcile` against what the
+   reproduction shows.
+⛔ Do not "fix" the two candidates above on the strength of the
+observation. M4's own race was found by enumerating the doors after
+two written-down causes were both wrong
+([T-0602](supervise.md)), and the entry keeps them for that reason.
+
+## Decision
+
+An entry rather than a note in `PROGRESS.md`, because an
+intermittent that nobody is assigned to reproduce is one that is
+rediscovered instead of fixed. ⚠ P1 and not P0: it was not seen in
+any acceptance run, and the acceptance is what a release gates on.
+
+## Prove
+
+`./experiments/340-detached-stdio.sh 40` reproduced it on iteration 1 before the fix and reports 40 of 40 after it
+
+## Done
 
 **Done 2026-09-09.** `crates/podvm-supervise/src/launcher.rs`, and ⛔ **neither
 of the two candidates above was it.** The entry refused to act on either and
@@ -640,35 +759,50 @@ $ ./experiments/340-detached-stdio.sh 40
                   the longest `run -d` took: 1s, against a bound of 5s
 ```
 
----
+# T-1318: `logs -f` follows a container's log, bounded like the rest
 
-### T-1318 `logs -f` follows a container's log, bounded like the rest
+**Source:** issue 16, client beta testing 2026-09-22 (automated
+  callers poll `logs` in a loop);
+  `crates/podvm/src/parity.rs` (the `logs` row: `-f`
+  not implemented, T-0605 covers capture-at-spawn only)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** done
 
-Source:      issue 16, client beta testing 2026-09-22 (automated
-             callers poll `logs` in a loop);
-             `crates/podvm/src/parity.rs` (the `logs` row: `-f`
-             not implemented, T-0605 covers capture-at-spawn only)
-Category:    supervise
-Priority:    P3
-Effort:      S
-Status:      done 2026-09-23
+## Problem
 
-Problem:     `logs` prints what the container has written; following it
-             (`-f`) has no entry, so automated callers poll in a loop.
-             T-0605 covers capture at spawn, not following.
-Premise:     Read from the table: the row names the gap and the owner
-             of the other half.
-Approach:    Follow by tailing the container's log file (inotify where
-             present, bounded poll where not), exiting on container exit
-             with a bounded wait, never an unbounded one. Out of scope:
-             log rotation (named if needed), changing capture.
-Decision:    File-follow, not a new channel. The log file already
-             exists; the verb watches it.
-Prove:       `podvm logs -f` on a payload writing lines on a timer
-             shows each line before the container exits, and `-f` exits
-             promptly after; `logs` without `-f` is byte-identical.
-             Close issue 16 (logs third) with a comment showing the run
-             and the bounded follow as the guard that stops recurrence.
+`logs` prints what the container has written; following it
+(`-f`) has no entry, so automated callers poll in a loop.
+T-0605 covers capture at spawn, not following.
+
+## Premise
+
+Read from the table: the row names the gap and the owner
+of the other half.
+
+## Approach
+
+Follow by tailing the container's log file (inotify where
+present, bounded poll where not), exiting on container exit
+with a bounded wait, never an unbounded one. Out of scope:
+log rotation (named if needed), changing capture.
+
+## Decision
+
+File-follow, not a new channel. The log file already
+exists; the verb watches it.
+
+## Prove
+
+`podvm logs -f` on a payload writing lines on a timer
+shows each line before the container exits, and `-f` exits
+promptly after; `logs` without `-f` is byte-identical.
+Close issue 16 (logs third) with a comment showing the run
+and the bounded follow as the guard that stops recurrence.
+
+## Done
 
 **Done 2026-09-23.** File-follow, as decided: bounded poll (100 ms),
 never inotify (no new crate, same behaviour everywhere).
@@ -723,45 +857,60 @@ container it errors at 125 like `logs` does. The guard that stops
 recurrence is the bounded follow itself: callers watch one command that
 ends, instead of polling in a loop.
 
----
+# T-1335: The launcher forwards its own shutdown signals to the payload
 
-### T-1335 The launcher forwards its own shutdown signals to the payload
+**Source:** issue 16, client beta testing 2026-09-22 (Ctrl-C on
+  foreground `run` has no specified behavior);
+  `crates/podvm/src/parity.rs` (the `stop`/`kill` rows:
+  pidfd reach, reparented grandchildren out of reach)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** done
 
-Source:      issue 16, client beta testing 2026-09-22 (Ctrl-C on
-             foreground `run` has no specified behavior);
-             `crates/podvm/src/parity.rs` (the `stop`/`kill` rows:
-             pidfd reach, reparented grandchildren out of reach)
-Category:    supervise
-Priority:    P3
-Effort:      S
-Status:      done 2026-09-23
+## Problem
 
-Problem:    `stop`/`kill` reach the payload by pidfd, but the inverse,
-            the launcher itself receiving SIGINT/SIGTERM (Ctrl-C on a
-            foreground `podvm run`) has no specified behavior: no
-            entry says whether the payload is forwarded the signal or
-            dies with the launcher via `PR_SET_PDEATHSIG` (T-0603).
-Premise:    Read from the table and the T-0603 shape: the mechanism for
-            one direction exists, the other is unspecified.
-Approach:    Forward SIGINT/SIGTERM to the payload and wait boundedly
-             before exiting with the payload's disposition named; if the
-             design is PDEATHSIG-only, write the one parity-table
-             sentence naming it instead and close the question that way.
-             Out of scope: process groups beyond the payload, signal
-             masks callers set themselves.
-Decision:    Forward-and-name, unless the drive shows PDEATHSIG already
-             covers it, in which case the sentence is the fix. The drive
-             showed `prctl` is called nowhere: no PDEATHSIG covers any
-             path. Both waiters forward: the foreground waiter names on
-             stderr, and the setsid'd launcher (whose stdio is /dev/null)
-             forwards silently with the signaled exit recorded as today
-             and the parity sentence documenting it. Operator order
-             2026-09-23: full launcher coverage, not the foreground path
-             alone.
-Prove:       `./experiments/351-signal-forward.sh` exits 0. Close
-             issue 16 (signal third) with a comment showing the run
-             and the signalfd forward as the guard that stops
-             recurrence.
+`stop`/`kill` reach the payload by pidfd, but the inverse,
+the launcher itself receiving SIGINT/SIGTERM (Ctrl-C on a
+foreground `podvm run`) has no specified behavior: no
+entry says whether the payload is forwarded the signal or
+dies with the launcher via `PR_SET_PDEATHSIG` (T-0603).
+
+## Premise
+
+Read from the table and the T-0603 shape: the mechanism for
+one direction exists, the other is unspecified.
+
+## Approach
+
+Forward SIGINT/SIGTERM to the payload and wait boundedly
+before exiting with the payload's disposition named; if the
+design is PDEATHSIG-only, write the one parity-table
+sentence naming it instead and close the question that way.
+Out of scope: process groups beyond the payload, signal
+masks callers set themselves.
+
+## Decision
+
+Forward-and-name, unless the drive shows PDEATHSIG already
+covers it, in which case the sentence is the fix. The drive
+showed `prctl` is called nowhere: no PDEATHSIG covers any
+path. Both waiters forward: the foreground waiter names on
+stderr, and the setsid'd launcher (whose stdio is /dev/null)
+forwards silently with the signaled exit recorded as today
+and the parity sentence documenting it. Operator order
+2026-09-23: full launcher coverage, not the foreground path
+alone.
+
+## Prove
+
+`./experiments/351-signal-forward.sh` exits 0. Close
+issue 16 (signal third) with a comment showing the run
+and the signalfd forward as the guard that stops
+recurrence.
+
+## Done
 
 **Done 2026-09-23.** Forward-and-name, as decided: both waiters block
 SIGINT/SIGTERM and read them from a signalfd beside the payload's
@@ -802,36 +951,57 @@ suites and clippy `-D warnings` green in the same lane run. The
 guard that stops recurrence is the forward itself plus the 351
 experiment: a waiter that stops forwarding fails its clauses.
 
----
+# T-1421: A foreground run leaves a container record
 
-### T-1421 A foreground run leaves a container record
+**Source:** issue 84; `crates/podvm/src/run/parse.rs:171`;
+  `crates/podvm/src/run/foreground.rs:241`;
+  [T-0607](supervise.md)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      issue 84; `crates/podvm/src/run/parse.rs:171`;
-             `crates/podvm/src/run/foreground.rs:241`;
-             [T-0607](supervise.md)
-Category:    supervise
-Priority:    P1
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     `run --name fg1` succeeds but `ps -a` is empty and `logs
-             fg1` finds no container. `--name` is accepted then
-             discarded. docker always records foreground runs as
-             `Exited`.
-Premise:     Only `-d` creates a record (`run.rs:522`). The foreground
-             path holds the store and enters directly. The comment
-             confirms the design: a run of its own writes no record
-             (`run.rs:762`). `p.name` is consumed only on the detached
-             path.
-Approach:    Record every foreground run with id, name, image, argv,
-             times, exit, and log. Where records cannot persist, refuse
-             `--name` by name instead of dropping it. Keep the ephemeral
-             `--rm` path deleting its record on exit.
-Decision:    `--name` always names something `ps -a` can list. An
-             accepted flag is never silently dropped.
-Prove:       `cargo test --workspace` exits 0. A tracked drive shows
-             `ps -a` listing `fg1` as `Exited 0` with `logs` printing
-             the output after a foreground `run --name fg1`.
+`run --name fg1` succeeds but `ps -a` is empty and `logs
+fg1` finds no container. `--name` is accepted then
+discarded. docker always records foreground runs as
+`Exited`.
+
+## Premise
+
+Only `-d` creates a record (`run.rs:522`). The foreground
+path holds the store and enters directly. The comment
+confirms the design: a run of its own writes no record
+(`run.rs:762`). `p.name` is consumed only on the detached
+path.
+
+## Approach
+
+Record every foreground run with id, name, image, argv,
+times, exit, and log. Where records cannot persist, refuse
+`--name` by name instead of dropping it. Keep the ephemeral
+`--rm` path deleting its record on exit.
+
+## Decision
+
+`--name` always names something `ps -a` can list. An
+accepted flag is never silently dropped.
+
+## Prove
+
+`cargo test --workspace` exits 0. A tracked drive shows
+`ps -a` listing `fg1` as `Exited 0` with `logs` printing
+the output after a foreground `run --name fg1`.
+
+## Correction
+
+**Open 2026-09-30 (history).** Filed from issue 84. Related to T-1411 but
+distinct: that entry owns detached lifecycle where chroot is denied;
+this one owns foreground records on all hosts.
+
+## Done
 
 **Done 2026-09-30.** Every foreground run leaves a record with id,
 name, image, argv, times, exit, and log; `--name` always names
@@ -846,44 +1016,63 @@ Related to T-1411 but distinct: that entry owns detached lifecycle
 where chroot is denied; this one owns foreground records on all
 hosts.
 
-**Open 2026-09-30 (history).** Filed from issue 84. Related to T-1411 but
-distinct: that entry owns detached lifecycle where chroot is denied;
-this one owns foreground records on all hosts.
+# T-1691: `stop -t 0` is a stop: no grace sends SIGKILL at once, and a failed bound is not a gone launcher
 
-### T-1691 `stop -t 0` is a stop: no grace sends SIGKILL at once, and a failed bound is not a gone launcher
+**Source:** issue 215; T-0602 (bounded waits); call C12
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      issue 215; T-0602 (bounded waits); call C12
-Category:    supervise
-Priority:    P1
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     `podvm stop -t 0 NAME` exits 0, prints NAME and leaves the
-             container running. `std` refuses a zero read timeout, so
-             `launcher::wait` returns an error before it sends WAIT, and
-             `wait_or_gone` maps each error to `LauncherGone`. SIGKILL never
-             comes.
-Premise:     The zero comes from `crates/podvm/src/lifecycle/logs_stop.rs:208`,
-             which also multiplies with no overflow check. The early error
-             is in `launcher::wait`. The mapping is `wait_or_gone`, and the
-             comment above it is false. Both are `pod_supervise::launcher`
-             and `pod_supervise` of PodUtils/podcrates since T-060. The
-             parity row is `crates/podvm/src/parity.rs:389`. The files of
-             `podvm-supervise` go to `pod-supervise` (podcrates T-060), which
-             podcrates imports after this fix.
-Approach:    1. `launcher::wait` returns a distinct error for "no launcher"
-             and for any other failure. `wait_or_gone` maps only the first
-             to `LauncherGone`; the other reaches the caller.
-             2. `stop` with a zero grace sends SIGKILL at once and reports
-             `killed` (call C12).
-             3. The grace parser is a function with `checked_mul` and unit
-             tests.
-             4. The parity row says what zero does.
-Decision:    Call C12: `-t 0` means SIGKILL now, as docker does.
-Prove:       `cargo test -p podvm -p podvm-supervise` exits 0 with tests for
-             the parser and the error mapping, and a drive on the cloud host:
-             a container that ignores SIGTERM ends at `podvm stop -t 0` and
-             `podvm ps` does not list it as running.
+`podvm stop -t 0 NAME` exits 0, prints NAME and leaves the
+container running. `std` refuses a zero read timeout, so
+`launcher::wait` returns an error before it sends WAIT, and
+`wait_or_gone` maps each error to `LauncherGone`. SIGKILL never
+comes.
+
+## Premise
+
+The zero comes from `crates/podvm/src/lifecycle/logs_stop.rs:208`,
+which also multiplies with no overflow check. The early error
+is in `launcher::wait`. The mapping is `wait_or_gone`, and the
+comment above it is false. Both are `pod_supervise::launcher`
+and `pod_supervise` of PodUtils/podcrates since T-060. The
+parity row is `crates/podvm/src/parity.rs:389`. The files of
+`podvm-supervise` go to `pod-supervise` (podcrates T-060), which
+podcrates imports after this fix.
+
+## Approach
+
+1. `launcher::wait` returns a distinct error for "no launcher"
+and for any other failure. `wait_or_gone` maps only the first
+to `LauncherGone`; the other reaches the caller.
+2. `stop` with a zero grace sends SIGKILL at once and reports
+`killed` (call C12).
+3. The grace parser is a function with `checked_mul` and unit
+tests.
+4. The parity row says what zero does.
+
+## Decision
+
+Call C12: `-t 0` means SIGKILL now, as docker does.
+
+## Prove
+
+`cargo test -p podvm -p podvm-supervise` exits 0 with tests for
+the parser and the error mapping, and a drive on the cloud host:
+a container that ignores SIGTERM ends at `podvm stop -t 0` and
+`podvm ps` does not list it as running.
+
+## Correction
+
+**Filed 2026-11-09.** From issue 215 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2` and found the unchecked
+multiply.
+
+## Done
 
 **Done 2026-11-09.** `launcher::wait` returns `WaitError::Gone` when no
 launcher answers and `WaitError::Failed` for any other failure, and
@@ -899,70 +1088,102 @@ detached alpine container that traps SIGTERM shows `Exited (137)` in
 container was killed at once. The image came from `mirror.gcr.io`,
 because Docker Hub and `public.ecr.aws` answered HTTP 429 that day.
 
-**Filed 2026-11-09.** From issue 215 (an outside account). The triage of
-2026-11-09 confirmed each claim at `2be31b2` and found the unchecked
-multiply.
+# T-1708: `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper
 
-### T-1708 `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper
+**Source:** issue 233; the podrunner design review (the owner's design
+  review of PodUtils/podcrates#47), SPEC section 10.4, WP-C2 and
+  WP-V4, its measurement M2 (`05-lifecycle.log`); G-12 and
+  A-V-07 of PodUtils/podcrates#39; ask 2.3 of COORD-021 (issue
+  227); T-0601 (the pidfd decision); T-1655 (`--timeout`);
+  `src/launcher.rs` of `pod-supervise` (PodUtils/podcrates);
+  `crates/podvm/src/parity.rs:287`
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      issue 233; the podrunner design review (the owner's design
-             review of PodUtils/podcrates#47), SPEC section 10.4, WP-C2 and
-             WP-V4, its measurement M2 (`05-lifecycle.log`); G-12 and
-             A-V-07 of PodUtils/podcrates#39; ask 2.3 of COORD-021 (issue
-             227); T-0601 (the pidfd decision); T-1655 (`--timeout`);
-             `src/launcher.rs` of `pod-supervise` (PodUtils/podcrates);
-             `crates/podvm/src/parity.rs:287`
-Category:    supervise
-Priority:    P1
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     `stop`, `kill` and `rm -f` signal the payload only. A
-             grandchild that the payload's exit orphaned, or that left the
-             process group, keeps running with parent pid 1. `rm -f` exits
-             0 and removes the record, so podvm forgets processes that
-             still run in the container's rootfs. M2: for `sh -c 'sleep N
-             & sleep N.5 & wait'` under `run -d`, both sleeps stay after
-             `stop -t 1` and after `rm -f`, 6 of 6 runs.
-Premise:     The launcher signals one pid (`kill(pid, sig)` in
-             `src/launcher.rs` of `pod-supervise` v0.12.0, line 351).
-             T-0601 states that a pidfd does not contain descendants. The
-             `--init` row says that orphans reparent to the host init
-             (`crates/podvm/src/parity.rs:287`). No code sets
-             `PR_SET_CHILD_SUBREAPER` (grep of the tree and of podcrates
-             v0.12.0). The launcher is double-forked: its parent is pid 1
-             before a stop (M2). A subreaper needs no privilege.
-Approach:    The launcher sets `PR_SET_CHILD_SUBREAPER` before it forks
-             the payload, so that orphans of the payload reparent to it. A
-             stop or a kill signals the payload, then each descendant that
-             the parent chain of `/proc/PID/stat` finds, and repeats until
-             the walk is empty or the grace ends; then it sends SIGKILL to
-             each process that stays, reaps and counts. The foreground run
-             does the same in podvm's own process. `rm -f` and `--rm`
-             remove the record when the count is zero; a process that
-             stays after SIGKILL past the bound makes the verb exit 125
-             and name the pids. `inspect` gives the count that the end
-             killed. The code is in `pod-supervise`: send it to podcrates
-             as a COORD issue (`AGENTS.md`, section 9, item 4; ask 2.3 of
-             COORD-021 asks podcrates for the same mechanism), take the
-             tag, and correct the ⛔ text of T-0601 and the `--init` note
-             in place.
-Decision:    The launcher reaches each process of the container that did
-             not reparent above it. A process that reparents above it (to
-             an outer subreaper, or to init before the launcher existed)
-             stays out of reach, and `inspect` says so. No cgroup and no
-             PID namespace. Under a caller's subreaper the launcher is a
-             descendant of it, so the caller's walk also sees each
-             process.
-Prove:       `cargo test -p podvm` exits 0 with tests
-             `stop_ends_an_orphaned_grandchild` and
-             `rm_force_counts_the_tree`. `sh experiments/429-tree-kill.sh`
-             exits 0 on the chroot-denying fixture and on the chroot rung:
-             the M2 payload under `run -d`, then `stop -t 1`, leaves no
-             process after 60 s, 20 of 20; the same with a grandchild
-             that calls `setsid`, after `rm -f`, and for a foreground run
-             that gets SIGTERM; under an outer subreaper the launcher's
-             parent is that subreaper.
+`stop`, `kill` and `rm -f` signal the payload only. A
+grandchild that the payload's exit orphaned, or that left the
+process group, keeps running with parent pid 1. `rm -f` exits
+0 and removes the record, so podvm forgets processes that
+still run in the container's rootfs. M2: for `sh -c 'sleep N
+& sleep N.5 & wait'` under `run -d`, both sleeps stay after
+`stop -t 1` and after `rm -f`, 6 of 6 runs.
+
+## Premise
+
+The launcher signals one pid (`kill(pid, sig)` in
+`src/launcher.rs` of `pod-supervise` v0.12.0, line 351).
+T-0601 states that a pidfd does not contain descendants. The
+`--init` row says that orphans reparent to the host init
+(`crates/podvm/src/parity.rs:287`). No code sets
+`PR_SET_CHILD_SUBREAPER` (grep of the tree and of podcrates
+v0.12.0). The launcher is double-forked: its parent is pid 1
+before a stop (M2). A subreaper needs no privilege.
+
+## Approach
+
+The launcher sets `PR_SET_CHILD_SUBREAPER` before it forks
+the payload, so that orphans of the payload reparent to it. A
+stop or a kill signals the payload, then each descendant that
+the parent chain of `/proc/PID/stat` finds, and repeats until
+the walk is empty or the grace ends; then it sends SIGKILL to
+each process that stays, reaps and counts. The foreground run
+does the same in podvm's own process. `rm -f` and `--rm`
+remove the record when the count is zero; a process that
+stays after SIGKILL past the bound makes the verb exit 125
+and name the pids. `inspect` gives the count that the end
+killed. The code is in `pod-supervise`: send it to podcrates
+as a COORD issue (`AGENTS.md`, section 9, item 4; ask 2.3 of
+COORD-021 asks podcrates for the same mechanism), take the
+tag, and correct the ⛔ text of T-0601 and the `--init` note
+in place.
+
+## Decision
+
+The launcher reaches each process of the container that did
+not reparent above it. A process that reparents above it (to
+an outer subreaper, or to init before the launcher existed)
+stays out of reach, and `inspect` says so. No cgroup and no
+PID namespace. Under a caller's subreaper the launcher is a
+descendant of it, so the caller's walk also sees each
+process.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests
+`stop_ends_an_orphaned_grandchild` and
+`rm_force_counts_the_tree`. `sh experiments/429-tree-kill.sh`
+exits 0 on the chroot-denying fixture and on the chroot rung:
+the M2 payload under `run -d`, then `stop -t 1`, leaves no
+process after 60 s, 20 of 20; the same with a grandchild
+that calls `setsid`, after `rm -f`, and for a foreground run
+that gets SIGTERM; under an outer subreaper the launcher's
+parent is that subreaper.
+
+## Correction
+
+**Blocked 2026-11-11.** podcrates did the mechanism as its T-162 (on its
+`main`, after `v0.15.0`): the launcher is the subreaper of the payload's
+tree, reaps each descendant, kills the tree at the end of the payload, and
+writes the end with the count of residual processes (a number, or
+`unknown`) and a wall bound (`set_wall`). `stop` and `kill` still signal
+the payload; the tree kill follows its end. Blocker: no podcrates tag
+carries T-162. Clears when: a podcrates tag carries T-162 (COORD-026,
+issue 244). Then podvm moves the pins, gives `inspect` the count, makes
+`rm -f` exit 125 with the pids where the count is not 0, and runs the
+Prove.
+
+**Filed 2026-11-10.** From issue 233 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), WP-C2: "tree kill, timeout,
+rusage. The mechanism of section 10.4 placed in podvm's launcher". T-1655 keeps
+the flags; this entry is the mechanism. `rm -f` reports a removed
+container while its processes run, so the entry is P1.
+
+## Done
 
 **Done 2026-11-11.** The mechanism is `pod-supervise` of podcrates
 `v0.16.0` (its T-162; the record below). podvm's part: `inspect` gives the
@@ -993,17 +1214,6 @@ then `stop -t 1` leaves no process in 20 of 20 rounds, with
 outer subreaper the launcher's parent is that subreaper. `--timeout` is
 T-1655's flag over `set_wall`.
 
-**Blocked 2026-11-11.** podcrates did the mechanism as its T-162 (on its
-`main`, after `v0.15.0`): the launcher is the subreaper of the payload's
-tree, reaps each descendant, kills the tree at the end of the payload, and
-writes the end with the count of residual processes (a number, or
-`unknown`) and a wall bound (`set_wall`). `stop` and `kill` still signal
-the payload; the tree kill follows its end. Blocker: no podcrates tag
-carries T-162. Clears when: a podcrates tag carries T-162 (COORD-026,
-issue 244). Then podvm moves the pins, gives `inspect` the count, makes
-`rm -f` exit 125 with the pids where the count is not 0, and runs the
-Prove.
-
 **Partial, 2026-11-11.** podcrates `v0.16.0` (`60a675c`,
 PodUtils/podcrates#57) carries T-162, and podvm takes it: the launcher of
 each detached run is the child subreaper of the payload's tree
@@ -1016,49 +1226,67 @@ where the count is not 0, the foreground run does the same in podvm's own
 process, `--timeout` over `set_wall` (T-1655), and the new experiment 429 under
 `experiments/` (`429-tree-kill.sh`) with the runs of the Prove.
 
-**Filed 2026-11-10.** From issue 233 and the podrunner design review
-(the ruling "podrunner", 2026-11-10), WP-C2: "tree kill, timeout,
-rusage. The mechanism of section 10.4 placed in podvm's launcher". T-1655 keeps
-the flags; this entry is the mechanism. `rm -f` reports a removed
-container while its processes run, so the entry is P1.
+# T-1715: The container table keeps `-e` values in a file that other users can read
 
-### T-1715 The container table keeps `-e` values in a file that other users can read
+**Source:** issue 240; the podrunner design review (the owner's design
+  review of PodUtils/podcrates#47), its R1:1.6 and SPEC section 9.1;
+  `src/table.rs` of `pod-supervise` (PodUtils/podcrates);
+  `crates/podvm-image/src/store.rs:253`; T-1696 (`--secret`, dropped 2026-11-11);
+  T-1708 (the same COORD batch)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Source:      issue 240; the podrunner design review (the owner's design
-             review of PodUtils/podcrates#47), its R1:1.6 and SPEC section 9.1;
-             `src/table.rs` of `pod-supervise` (PodUtils/podcrates);
-             `crates/podvm-image/src/store.rs:253`; T-1696 (`--secret`, dropped 2026-11-11);
-             T-1708 (the same COORD batch)
-Category:    supervise
-Priority:    P2
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     `run -e K=V` and `--env-file` store each value in the
-             container record. The table writer uses the process umask,
-             and the store directory gets no mode, so with umask 022 the
-             table is 0644 in a 0755 directory. Each local user can read a
-             credential passed with `-e` while the record exists.
-             podrunner passes the egress token in the environment where
-             the hold is `none` (SPEC section 9.1).
-Premise:     `write` in `src/table.rs` of `pod-supervise` v0.12.0 writes
-             a staging file with `std::fs::write` and renames it; no mode.
-             `crates/podvm-image/src/store.rs:253` calls `create_dir_all`
-             with no mode. The record keeps `env`, and `exec` reads the
-             volume table from it. The modes on disk are Inferred from the
-             source, not run.
-Approach:    Create the store root and each container directory with mode
-             0700, and write the table and its staging file with mode 0600.
-             At store open, a root that group or other can read gets a
-             banner note and a doctor row. Send the `pod-supervise` part
-             to podcrates as a COORD issue, in one batch with T-1708; the
-             store root is podvm's.
-Decision:    podvm keeps `env` in the record, because `exec` needs it, and
-             protects the file. A secret belongs in a file that the
-             caller stages (podrunner stages the credential of the
-             runner, PodUtils/podrunner#6), and the help of `-e` says so.
-Prove:       `cargo test -p podvm` exits 0 with tests that the store root
-             is 0700 and the table is 0600 under umask 022.
+`run -e K=V` and `--env-file` store each value in the
+container record. The table writer uses the process umask,
+and the store directory gets no mode, so with umask 022 the
+table is 0644 in a 0755 directory. Each local user can read a
+credential passed with `-e` while the record exists.
+podrunner passes the egress token in the environment where
+the hold is `none` (SPEC section 9.1).
+
+## Premise
+
+`write` in `src/table.rs` of `pod-supervise` v0.12.0 writes
+a staging file with `std::fs::write` and renames it; no mode.
+`crates/podvm-image/src/store.rs:253` calls `create_dir_all`
+with no mode. The record keeps `env`, and `exec` reads the
+volume table from it. The modes on disk are Inferred from the
+source, not run.
+
+## Approach
+
+Create the store root and each container directory with mode
+0700, and write the table and its staging file with mode 0600.
+At store open, a root that group or other can read gets a
+banner note and a doctor row. Send the `pod-supervise` part
+to podcrates as a COORD issue, in one batch with T-1708; the
+store root is podvm's.
+
+## Decision
+
+podvm keeps `env` in the record, because `exec` needs it, and
+protects the file. A secret belongs in a file that the
+caller stages (podrunner stages the credential of the
+runner, PodUtils/podrunner#6), and the help of `-e` says so.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests that the store root
+is 0700 and the table is 0600 under umask 022.
+
+## Correction
+
+**Filed 2026-11-10.** From issue 240 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), R1:1.6: "A credential given with
+`-e` or `--env-file` is therefore at rest in the table, in a file created
+with default modes".
+
+## Done
 
 **Done 2026-11-11.** podcrates `v0.16.0` (`60a675c`, its T-175,
 PodUtils/podcrates#57) writes the table and each log 0600 from the first
@@ -1092,41 +1320,51 @@ directory 0700, the log 0600), asked of podcrates by COORD-026 (issue
 244), and the test that the table is 0600 under umask 022, at the tag that
 carries it.
 
-**Filed 2026-11-10.** From issue 240 and the podrunner design review
-(the ruling "podrunner", 2026-11-10), R1:1.6: "A credential given with
-`-e` or `--env-file` is therefore at rest in the table, in a file created
-with default modes".
+# T-1720: `wait` gives no exit code for a payload that ends at once
 
----
+**Source:** PodUtils/podrunner#49 (COORD-002 of podrunner, a message from
+  a peer session); `crates/podvm/src/lifecycle/wait_rm_cp.rs`
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-### T-1720 `wait` gives no exit code for a payload that ends at once
+## Problem
 
-Source:      PodUtils/podrunner#49 (COORD-002 of podrunner, a message from
-             a peer session); `crates/podvm/src/lifecycle/wait_rm_cp.rs`
-Category:    supervise
-Priority:    P1
-Effort:      S
-Status:      done
+podrunner measured, with the released `v0.2.0-beta.2` on a
+host with no root and no user namespace, that `podvm wait` of
+a detached payload that ends at once exits 125 with "has no
+exit code podvm measured: it is Up" in 4 of 5 runs. Its jobs
+then read no exit code.
 
-Problem:     podrunner measured, with the released `v0.2.0-beta.2` on a
-             host with no root and no user namespace, that `podvm wait` of
-             a detached payload that ends at once exits 125 with "has no
-             exit code podvm measured: it is Up" in 4 of 5 runs. Its jobs
-             then read no exit code.
-Premise:     `wait` of `pod-supervise` reads the record again when the
-             launcher is gone; a record that still says running there
-             gives no code. In `v0.12.0` (the crates of beta.2) the
-             launcher can go between its answer and its write of the
-             record (Inferred); since `v0.16.0` it writes the record
-             first (its T-162).
-Approach:    Settle in `wait`: where the answer has no code and the record
-             still says running, read the record again every 50 ms for up
-             to 10 s, until it has the code or is not running.
-Decision:    `wait` never answers "Up" for a payload that ended; a bound
-             still ends with no code, never a made-up one.
-Prove:       `cargo test -p podvm` exits 0 with
-             `wait_settles_a_record_that_still_says_running`, and ten
-             `run -d` of `sh -c 'exit 3'` then `wait` print 3.
+## Premise
+
+`wait` of `pod-supervise` reads the record again when the
+launcher is gone; a record that still says running there
+gives no code. In `v0.12.0` (the crates of beta.2) the
+launcher can go between its answer and its write of the
+record (Inferred); since `v0.16.0` it writes the record
+first (its T-162).
+
+## Approach
+
+Settle in `wait`: where the answer has no code and the record
+still says running, read the record again every 50 ms for up
+to 10 s, until it has the code or is not running.
+
+## Decision
+
+`wait` never answers "Up" for a payload that ended; a bound
+still ends with no code, never a made-up one.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with
+`wait_settles_a_record_that_still_says_running`, and ten
+`run -d` of `sh -c 'exit 3'` then `wait` print 3.
+
+## Done
 
 **Done 2026-11-11.** `settle` in `crates/podvm/src/lifecycle/wait_rm_cp.rs`.
 On the cloud host (the chroot-denied fixture of experiment 356, userland),
@@ -1136,4 +1374,3 @@ with the current tree and with the released beta.2 (digest
 race does not show on this host, so the guard is the fix of the cause
 that the Premise infers. `cargo test -p podvm` exits 0 with
 `wait_settles_a_record_that_still_says_running`.
-

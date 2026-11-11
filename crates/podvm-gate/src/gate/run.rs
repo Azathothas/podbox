@@ -93,7 +93,9 @@ pub(super) fn run_gate(root: &Path) -> i32 {
                 .get(position + 1)
                 .map(|(next, _, _)| *next)
                 .unwrap_or(lines.len());
-            let body = lines[*line_no..end].join("\n");
+            // TODO/gate.md T-1672: the checks read the old layout of the
+            // entry, built from its text in the format of pod-todo.
+            let body = view(tid, title, &lines[*line_no..end]);
             if entries.contains_key(tid) {
                 gate.err(
                     &format!("TODO/{name}:{}", line_no + 1),
@@ -321,7 +323,7 @@ pub(super) fn run_gate(root: &Path) -> i32 {
             continue;
         };
         for (index_no, line) in text.split('\n').enumerate() {
-            if line.starts_with("| [T-") || line.starts_with("### T-") {
+            if line.starts_with("| [T-") || parse_entry_heading(line).is_some() {
                 continue;
             }
             let mut mentioned = BTreeSet::new();

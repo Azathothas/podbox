@@ -13,18 +13,21 @@
 //! grammar reads is prose-rule ASCII (`docs/conventions/prose.md`), so the
 //! two agree on every input the tree can hold.
 
-/// One `TODO/INDEX.md` table row: `| [T-NNNN](file) | Pn | category | status | item |`.
+/// One `TODO/INDEX.md` table row in the format of pod-todo (TODO/gate.md
+/// T-1672): `| [T-NNNN](file) | Pn | effort | milestone | category | status | item |`.
 #[derive(Debug, PartialEq, Eq)]
 pub struct IndexRow {
     pub id: String,
     pub file: String,
     pub priority: String,
+    pub effort: String,
+    pub milestone: String,
     pub category: String,
     pub status: String,
     pub item: String,
 }
 
-/// One entry heading: `### T-NNNN <title>`.
+/// One entry heading: `# T-NNNN: <title>`.
 #[derive(Debug, PartialEq, Eq)]
 pub struct EntryHeading {
     pub id: String,
@@ -93,19 +96,18 @@ fn parse_status_cell(cell: &str) -> Option<String> {
     Some(word.to_string())
 }
 
-/// Parse one `TODO/INDEX.md` row into its six cells.
+/// Parse one `TODO/INDEX.md` row into its cells.
 ///
-/// Mirrors `ROW`: the line opens with `|`, closes with `|` past optional
-/// whitespace, and holds five inner cells. The item cell may itself hold
-/// `|` characters: like the lazy `(.+?)\s*\|` anchored at end of line, the
-/// item runs to the final pipe.
+/// The line opens with `|`, closes with `|` past optional whitespace, and
+/// holds seven inner cells, as pod-todo reads them. The item cell may itself
+/// hold `|` characters: the item runs to the final pipe.
 pub fn parse_index_row(line: &str) -> Option<IndexRow> {
     let line = line.trim_end_matches(['\r', '\n']);
     let inner = line.strip_prefix('|')?;
     let inner = inner.trim_end();
     let inner = inner.strip_suffix('|')?;
     let cells: Vec<&str> = inner.split('|').collect();
-    if cells.len() < 5 {
+    if cells.len() < 7 {
         return None;
     }
     let (id, file) = parse_link_cell(cells[0])?;
@@ -116,7 +118,15 @@ pub fn parse_index_row(line: &str) -> Option<IndexRow> {
     {
         return None;
     }
-    let category = cells[2].trim();
+    let effort = cells[2].trim();
+    if !["S", "M", "L"].contains(&effort) {
+        return None;
+    }
+    let milestone = cells[3].trim();
+    if milestone.is_empty() || milestone.contains(' ') {
+        return None;
+    }
+    let category = cells[4].trim();
     if category.is_empty()
         || !category
             .bytes()
@@ -124,8 +134,8 @@ pub fn parse_index_row(line: &str) -> Option<IndexRow> {
     {
         return None;
     }
-    let status = parse_status_cell(cells[3])?;
-    let item = cells[4..].join("|").trim().to_string();
+    let status = parse_status_cell(cells[5])?;
+    let item = cells[6..].join("|").trim().to_string();
     if item.is_empty() {
         return None;
     }
@@ -133,26 +143,26 @@ pub fn parse_index_row(line: &str) -> Option<IndexRow> {
         id,
         file,
         priority: priority.to_string(),
+        effort: effort.to_string(),
+        milestone: milestone.to_string(),
         category: category.to_string(),
         status,
         item,
     })
 }
 
-/// Parse one `### T-NNNN <title>` entry heading.
+/// Parse one `# T-NNNN: <title>` entry heading, the H1 of pod-todo.
 ///
-/// Mirrors `HEADING`: `###`, spaces, the id, spaces, then a title opening
-/// with a non-space character. The title is kept verbatim, trailing spaces
-/// included, exactly as the capture group holds them.
+/// `# `, the id, `: `, then a title opening with a non-space character.
+/// The title is kept verbatim, trailing spaces included.
 pub fn parse_entry_heading(line: &str) -> Option<EntryHeading> {
     let line = line.trim_end_matches(['\r', '\n']);
-    let rest = line.strip_prefix("### ")?;
+    let rest = line.strip_prefix("# ")?;
     let id = rest.get(..6)?;
     if !is_task_id(id) {
         return None;
     }
-    // ` +`: one space minimum, then the title opens with a non-space.
-    let title = rest.get(6..)?.strip_prefix(' ')?;
+    let title = rest.get(6..)?.strip_prefix(": ")?;
     if title.is_empty() || title.starts_with(|c: char| c.is_whitespace()) {
         return None;
     }
@@ -169,8 +179,8 @@ mod tests {
     // Characterization of ROW: verbatim rows the Python matcher accepts.
     #[test]
     fn row_plain_status() {
-        // TODO/INDEX.md:61, verbatim.
-        let line = "| [T-0101](probe.md) | P0 | probe | done | The probe set, one disposable child per probe, errno not boolean |";
+        // A row of TODO/INDEX.md in the format of pod-todo.
+        let line = "| [T-0101](probe.md) | P0 | M | none | probe | done | The probe set, one disposable child per probe, errno not boolean |";
         let row = parse_index_row(line).expect("the plain row must parse");
         assert_eq!(row.id, "T-0101");
         assert_eq!(row.file, "probe.md");
@@ -185,8 +195,8 @@ mod tests {
 
     #[test]
     fn row_bold_status() {
-        // TODO/INDEX.md:161, verbatim: the status cell carries `**`.
-        let line = "| [T-1001](packaging.md) | P0 | packaging | **done** | A single static binary with no `PT_INTERP` |";
+        // The status cell may carry `**`.
+        let line = "| [T-1001](packaging.md) | P0 | M | none | packaging | **done** | A single static binary with no `PT_INTERP` |";
         let row = parse_index_row(line).expect("the bold row must parse");
         assert_eq!(row.id, "T-1001");
         assert_eq!(row.status, "done");
@@ -195,8 +205,8 @@ mod tests {
 
     #[test]
     fn row_item_may_hold_pipes() {
-        // Mirrors `(.+?)\s*\|\s*$`: the item runs to the final pipe.
-        let line = "| [T-9999](probe.md) | P3 | probe | open | A \\| B \\| C |";
+        // The item runs to the final pipe.
+        let line = "| [T-9999](probe.md) | P3 | M | none | probe | open | A \\| B \\| C |";
         let row = parse_index_row(line).expect("pipes in the item must parse");
         assert_eq!(row.item, "A \\| B \\| C");
     }
@@ -205,7 +215,7 @@ mod tests {
     fn row_unbalanced_stars_match_like_the_regex() {
         // `\*{0,2}` applies per side with no pairing: Python accepts both.
         for status in ["**done", "done**", "*done*", "done"] {
-            let line = format!("| [T-0101](probe.md) | P0 | probe | {status} | Item |");
+            let line = format!("| [T-0101](probe.md) | P0 | M | none | probe | {status} | Item |");
             let row = parse_index_row(&line).expect("must parse");
             assert_eq!(row.status, "done");
         }
@@ -217,24 +227,25 @@ mod tests {
         // two-letter priority, uppercase category, triple-star status,
         // empty item, missing final pipe.
         let bad = [
-            "| [T-101](probe.md) | P0 | probe | done | Item |",
-            "| [T-0101]() | P0 | probe | done | Item |",
-            "| [T-0101](probe.md) | PX | probe | done | Item |",
-            "| [T-0101](probe.md) | P0 | Probe | done | Item |",
-            "| [T-0101](probe.md) | P0 | probe | ***done*** | Item |",
-            "| [T-0101](probe.md) | P0 | probe | done |  |",
-            "| [T-0101](probe.md) | P0 | probe | done | Item ",
+            "| [T-101](probe.md) | P0 | M | none | probe | done | Item |",
+            "| [T-0101]() | P0 | M | none | probe | done | Item |",
+            "| [T-0101](probe.md) | PX | M | none | probe | done | Item |",
+            "| [T-0101](probe.md) | P0 | M | none | Probe | done | Item |",
+            "| [T-0101](probe.md) | P0 | M | none | probe | ***done*** | Item |",
+            "| [T-0101](probe.md) | P0 | M | none | probe | done |  |",
+            "| [T-0101](probe.md) | P0 | M | none | probe | done | Item ",
+            "| [T-0101](probe.md) | P0 | XL | none | probe | done | Item |",
+            "| [T-0101](probe.md) | P0 | probe | done | The old row of podvm |",
         ];
         for line in bad {
             assert!(parse_index_row(line).is_none(), "must reject: {line}");
         }
     }
 
-    // Characterization of HEADING: verbatim headings the Python accepts.
+    // The H1 of an entry in the format of pod-todo.
     #[test]
     fn heading_plain() {
-        // TODO/probe.md:22, verbatim.
-        let line = "### T-0101 The probe set, one disposable child per probe, errno not boolean";
+        let line = "# T-0101: The probe set, one disposable child per probe, errno not boolean";
         let head = parse_entry_heading(line).expect("the heading must parse");
         assert_eq!(head.id, "T-0101");
         assert_eq!(
@@ -246,10 +257,11 @@ mod tests {
     #[test]
     fn heading_rejects_what_heading_rejects() {
         let bad = [
-            "## T-0101 Two hashes, not three",
-            "### T-101 Three id digits, not four",
-            "### T-0101No space after the id",
-            "### T-0101 ",
+            "## T-0101: Two hashes, not one",
+            "### T-0101 The old heading of podvm",
+            "# T-101: Three id digits, not four",
+            "# T-0101 No colon after the id",
+            "# T-0101: ",
         ];
         for line in bad {
             assert!(parse_entry_heading(line).is_none(), "must reject: {line}");

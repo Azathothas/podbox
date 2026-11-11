@@ -1,4 +1,4 @@
-# Reference map
+**Reference map**
 
 This table records captured revisions, licence decisions, and permitted use.
 It does not describe a live upstream tree.

@@ -180,7 +180,7 @@ pub(super) fn run() -> i32 {
             append_file(
                 &root,
                 "TODO/INDEX.md",
-                "| [T-9999](probe.md) | P0 | probe | open | A row naming nothing |\n",
+                "| [T-9999](probe.md) | P0 | S | none | probe | open | A row naming nothing |\n",
             );
             true
         },
@@ -194,7 +194,7 @@ pub(super) fn run() -> i32 {
             append_file(
                 &root,
                 "TODO/probe.md",
-                "\n---\n\n### T-9998 An entry no row names\n\nStatus:      open\n",
+                "\n# T-9998: An entry no row names\n\n**Status:** open\n",
             );
             true
         },
@@ -210,7 +210,7 @@ pub(super) fn run() -> i32 {
             let text = read_file(&root, "TODO/probe.md");
             let mut from = String::new();
             for line in text.split('\n') {
-                if let Some(rest) = line.strip_prefix("Status:      ") {
+                if let Some(rest) = line.strip_prefix("**Status:** ") {
                     let word: String = rest
                         .chars()
                         .take_while(|c| c.is_ascii_lowercase())
@@ -230,11 +230,11 @@ pub(super) fn run() -> i32 {
             let out: Vec<String> = text
                 .into_iter()
                 .map(|line| {
-                    if !done && line.starts_with(&format!("Status:      {from}")) {
+                    if !done && line.starts_with(&format!("**Status:** {from}")) {
                         done = true;
                         format!(
-                            "Status:      {to}{}",
-                            &line["Status:      ".len() + from.len()..]
+                            "**Status:** {to}{}",
+                            &line["**Status:** ".len() + from.len()..]
                         )
                     } else {
                         line.to_string()
@@ -285,9 +285,10 @@ pub(super) fn run() -> i32 {
             let out: Vec<String> = text
                 .split('\n')
                 .map(|line| {
-                    if !done && line.starts_with("Decision:") {
+                    // TODO/gate.md T-1672: the section `## Decision`.
+                    if !done && line == "## Decision" {
                         done = true;
-                        format!("Decisionx:{}", &line["Decision:".len()..])
+                        "## Decisionx".to_string()
                     } else {
                         line.to_string()
                     }

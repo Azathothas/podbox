@@ -46,14 +46,8 @@ pub(super) fn check_exit_codes(gate: &mut Gate, root: &Path, files: &BTreeSet<St
 fn entry_heads(lines: &[String]) -> Vec<(usize, String)> {
     let mut heads = Vec::new();
     for (index, line) in lines.iter().enumerate() {
-        if !line.starts_with("### ") {
-            continue;
-        }
-        let rest = &line["### ".len()..];
-        if let Some(id) = rest.get(..6)
-            && is_task_id(id)
-        {
-            heads.push((index, id.to_string()));
+        if let Some(h) = parse_entry_heading(line) {
+            heads.push((index, h.id));
         }
     }
     heads
@@ -82,9 +76,11 @@ pub(super) fn check_prove_registry(gate: &mut Gate, todo: &Path) {
                 .get(position + 1)
                 .map(|(next, _)| *next)
                 .unwrap_or(lines.len());
+            // TODO/gate.md T-1672: the section `## Prove` of the entry, to
+            // the next section.
             let mut start = None;
             for (offset, line) in lines.iter().enumerate().take(end).skip(*line_no) {
-                if line.starts_with("Prove:") {
+                if line.trim_end() == "## Prove" {
                     start = Some(offset);
                     break;
                 }
@@ -92,7 +88,9 @@ pub(super) fn check_prove_registry(gate: &mut Gate, todo: &Path) {
             let Some(start) = start else {
                 continue;
             };
-            let j = prove_block(&lines, start, end);
+            let j = (start + 1..end)
+                .find(|&k| lines[k].starts_with("## "))
+                .unwrap_or(end);
             gate.bump("prove_registry");
             let block = &lines[start..j];
             if block

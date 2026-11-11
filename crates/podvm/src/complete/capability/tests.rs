@@ -177,7 +177,8 @@ fn each_listed_gap_names_an_entry_that_is_not_done() {
             .lines()
             .find(|l| l.starts_with(&format!("| [{}](", g.entry)))
             .unwrap_or_else(|| panic!("{} has no row in TODO/INDEX.md", g.entry));
-        let status = row.split('|').nth(4).unwrap_or("").trim();
+        // The status cell of a row of pod-todo (TODO/gate.md T-1672).
+        let status = row.split('|').nth(6).unwrap_or("").trim();
         assert!(
             matches!(status, "open" | "partial" | "blocked"),
             "{} is {status}: remove its gap from LOADER_GAPS",

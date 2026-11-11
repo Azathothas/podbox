@@ -11,7 +11,7 @@ todo-count: row T-0208 has status 'bogus' priority 'P2'
 
 podbox-gate on the planted tree exit 1, four errors:
   TODO/INDEX.md:83: T-0208 status 'bogus' is not one of ['open', 'partial', 'blocked', 'done']
-  TODO/image.md:710: T-0208 entry status 'done' disagrees with the index row's 'bogus'
+  TODO/image.md:817: T-0208 entry status 'done' disagrees with the index row's 'bogus'
   TODO/INDEX.md: the totals line is not the rows. Expected exactly:
   TODO/INDEX.md: the P2 count row is not the rows. Expected exactly:
 

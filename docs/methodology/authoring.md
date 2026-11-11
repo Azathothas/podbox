@@ -39,8 +39,18 @@ Read [code rules](../conventions/code.md) and [patterns](../conventions/forbidde
 
 ## Entry fields
 
-Use Source, Category, Priority, Effort, Status, Problem, Premise,
-Approach, Decision, and Prove.
+The record is in the format of podcrates' `pod-todo` (TODO/gate.md
+T-1672). An entry starts with the heading `# T-NNNN: Title`. The header
+fields follow, one each, as `**Name:** value`: Source, Category,
+Milestone (`none`; the milestones of podvm are entries of their own),
+Priority, Effort (S, M or L), and Status (the word only). Then the
+sections `## Problem`, `## Premise`, `## Approach`, `## Decision` and
+`## Prove`, in this order, and the sections that the status asks for:
+`## Blocker` for a blocked entry, `## Done` with a date for a done or
+partial entry. `## Correction` holds a later note: a filed issue, an
+amendment, a corrected premise. Each row of `TODO/INDEX.md` has seven
+cells: the id linked to its area file, the priority, the effort, the
+milestone, the category, the status and the title.
 A proof names a runnable command.
 A comparison also needs a committed measurement script.
 

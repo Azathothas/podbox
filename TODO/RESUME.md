@@ -1,4 +1,4 @@
-# Resume
+**Resume**
 
 The cold start of a session, on 2026-11-11. This page gives no work order:
 [PROGRESS](PROGRESS.md) has the only one.

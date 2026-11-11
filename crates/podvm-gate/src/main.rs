@@ -241,6 +241,10 @@ use json_checks::*;
 mod state_checks;
 use state_checks::*;
 
+#[path = "gate/legacy.rs"]
+mod legacy;
+use legacy::*;
+
 #[path = "gate/findings.rs"]
 mod findings;
 use findings::*;

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-341 entries: 13 open, 9 partial, 7 blocked, 312 done.
+341 entries: 13 open, 9 partial, 6 blocked, 313 done.
 
 The state on 2026-11-11:
 
@@ -97,8 +97,8 @@ that is not done. Read its Prove before you start. Set its status with
    COORD-042, issue 261), [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset record, workerd-test for T-1658) and [T-1660](cli.md) (done), and
    [T-1668](gate.md) (done) beside them.
 9. The record and the tree: [T-1679](deps.md) (`pod-services`; partial: COORD-044, issue 263),
-    [T-1672](gate.md) (the record in the format of `pod-todo`), then
-    [T-1680](deps.md) (blocked on T-1672), [T-1673](gate.md) (the 29
+    [T-1672](gate.md) (the record in the format of `pod-todo`, done), then
+    [T-1680](deps.md) (open: the 356 problems of `podvm-todo check` that are not of form), [T-1673](gate.md) (the 29
     plan rows), [T-1683](gate.md) (retire the PowerShell twins),
     [T-1684](gate.md) (fuzzing and the vendor watch) and
     [T-1685](gate.md) (the two pages in the sibling form).

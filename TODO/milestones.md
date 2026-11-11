@@ -1,4 +1,4 @@
-# milestones
+Area: milestones.
 
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
@@ -16,38 +16,53 @@ has never run green does not count, and neither does a milestone built on one.
 The order is a dependency order, not a preference. [PROGRESS.md](PROGRESS.md)
 carries the work order.
 
----
+# T-1100: M-1 the corpus, the work index and the skeleton
 
-### T-1100 M-1 the corpus, the work index and the skeleton
+**Source:** `TOOL.md` section 5 M-1
+**Category:** milestones
+**Milestone:** none
+**Priority:** P0
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 5 M-1
-Category:    milestones
-Priority:    P0
-Effort:      L
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Everything after this depends on `TODO/` existing and being right,
-             and on the references having been read rather than cited.
-Premise:     ⭐ **Measured, and the acceptance is four commands.** `TOOL.md` section 5
-             M-1: the reader script exits 0; every entry cites a path and line
-             that resolves; `cargo build --release --target
-             x86_64-unknown-linux-musl` succeeds on the empty skeleton;
-             `readelf -l` on the result shows no `PT_INTERP`.
-Approach:    Produced: `docs/` copied verbatim; `LICENSE` (0BSD), `README.md`,
-             `THIRD_PARTY.md`; the workspace of section 4.3 with every crate a
-             skeleton; `rust-toolchain.toml` and `.cargo/config.toml`;
-             `experiments/` seeded from
-             `references/Azathothas__container-research` plus three measurements
-             of this project's own; the corpus of thirty trees under
-             `references/`; `TODO/` with its index, rules, record,
-             reference map and per-category entries; the two count scripts, the
-             reader wired as a gate; and CI that runs it.
-Decision:    The corpus is **tracked in the tree** rather than on a side branch,
-             because `crates/podvm-gate/src/main.rs` resolves every cited path and line
-             and cannot do so into a branch it is not on.
-             [reference-map.md](reference-map.md) records the choice and what a
-             clone pays for it.
-Prove:       `./target/release/podvm-gate && cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0`
+Everything after this depends on `TODO/` existing and being right,
+and on the references having been read rather than cited.
+
+## Premise
+
+⭐ **Measured, and the acceptance is four commands.** `TOOL.md` section 5
+M-1: the reader script exits 0; every entry cites a path and line
+that resolves; `cargo build --release --target
+x86_64-unknown-linux-musl` succeeds on the empty skeleton;
+`readelf -l` on the result shows no `PT_INTERP`.
+
+## Approach
+
+Produced: `docs/` copied verbatim; `LICENSE` (0BSD), `README.md`,
+`THIRD_PARTY.md`; the workspace of section 4.3 with every crate a
+skeleton; `rust-toolchain.toml` and `.cargo/config.toml`;
+`experiments/` seeded from
+`references/Azathothas__container-research` plus three measurements
+of this project's own; the corpus of thirty trees under
+`references/`; `TODO/` with its index, rules, record,
+reference map and per-category entries; the two count scripts, the
+reader wired as a gate; and CI that runs it.
+
+## Decision
+
+The corpus is **tracked in the tree** rather than on a side branch,
+because `crates/podvm-gate/src/main.rs` resolves every cited path and line
+and cannot do so into a branch it is not on.
+[reference-map.md](reference-map.md) records the choice and what a
+clone pays for it.
+
+## Prove
+
+`./target/release/podvm-gate && cargo build --release --target x86_64-unknown-linux-musl && readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0`
+
+## Done
 
 **Done. The `Prove` command was run on 2026-09-08 and exits 0.** The output is
 in [PROGRESS.md](PROGRESS.md)'s baseline block.
@@ -56,26 +71,41 @@ in [PROGRESS.md](PROGRESS.md)'s baseline block.
 carries what to do and which reference to open at which line. That is the whole
 point of paying for it once.
 
----
+# T-1101: M0 the probe, and nothing else
 
-### T-1101 M0 the probe, and nothing else
+**Source:** `TOOL.md` section 5 M0
+**Category:** milestones
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 5 M0
-Category:    milestones
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Everything downstream branches on the probe, and it is the
-             component the prior art most consistently gets wrong.
-Premise:     Read. The work is [probe.md](probe.md) T-0101 through T-0110.
-Approach:    `podvm probe` prints the mode it would select, the evidence, and
-             exits 0. Nothing else is implemented at this milestone.
-Decision:    The probe before the store, before extraction, before `run`.
-             Reversing it means every later component carries an assumption
-             about the machine that the probe would have replaced with a
-             measurement.
-Prove:       `./experiments/130-probe-parity.sh` exits 0. It runs the three clauses of the acceptance in one command: `chroot` inside `./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podvm`, `namespace` unconfined, and every attribution row against `experiments/results/attribute.txt`
+Everything downstream branches on the probe, and it is the
+component the prior art most consistently gets wrong.
+
+## Premise
+
+Read. The work is [probe.md](probe.md) T-0101 through T-0110.
+
+## Approach
+
+`podvm probe` prints the mode it would select, the evidence, and
+exits 0. Nothing else is implemented at this milestone.
+
+## Decision
+
+The probe before the store, before extraction, before `run`.
+Reversing it means every later component carries an assumption
+about the machine that the probe would have replaced with a
+measurement.
+
+## Prove
+
+`./experiments/130-probe-parity.sh` exits 0. It runs the three clauses of the acceptance in one command: `chroot` inside `./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podvm`, `namespace` unconfined, and every attribution row against `experiments/results/attribute.txt`
+
+## Done
 
 **Done 2026-09-08.** `./experiments/130-probe-parity.sh` exits 0. Its transcript
 is `experiments/results/probe-parity.txt`:
@@ -128,25 +158,40 @@ authored in this session and deliberately not implemented: it belongs beside
 the store. ⛔ Authoring it found that the specification's cache key does not
 work, and the entry carries the reading that settles it.
 
----
+# T-1102: M1 image acquisition
 
-### T-1102 M1 image acquisition
+**Source:** `TOOL.md` section 5 M1
+**Category:** milestones
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 5 M1
-Category:    milestones
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     No extraction is possible without a store, and no store is
-             trustworthy without digest parity.
-Premise:     Read. The work is [image.md](image.md) T-0201 through T-0204.
-Approach:    `podvm pull`, `images`, `rmi`, `tag`, and a content-addressed
-             store. No extraction yet.
-Decision:    Do not gold-plate it. The registry plane is ordinary HTTPS and file
-             I/O and it works here, and it is the least interesting part of the
-             problem.
-Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
+No extraction is possible without a store, and no store is
+trustworthy without digest parity.
+
+## Premise
+
+Read. The work is [image.md](image.md) T-0201 through T-0204.
+
+## Approach
+
+`podvm pull`, `images`, `rmi`, `tag`, and a content-addressed
+store. No extraction yet.
+
+## Decision
+
+Do not gold-plate it. The registry plane is ordinary HTTPS and file
+I/O and it works here, and it is the least interesting part of the
+problem.
+
+## Prove
+
+`podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm images --format '{{.Digest}}' public.ecr.aws/docker/library/alpine:3.20 | grep -qx "$(docker image inspect public.ecr.aws/docker/library/alpine:3.20 --format '{{index .RepoDigests 0}}' | cut -d@ -f2)"`
+
+## Done
 
 **Done 2026-09-08**, against a script rather than a recollection:
 `experiments/150-image-acquisition.sh` exits 0 and carries the `Prove` above as
@@ -177,30 +222,45 @@ to take a `[workspace.dependencies]` pin, and the artefact moved from 496,184 to
 the ceiling and still no `PT_INTERP`. `experiments/results/bloat-image.txt` is
 the reading.
 
----
+# T-1103: M2 extraction that survives the ownership wall
 
-### T-1103 M2 extraction that survives the ownership wall
+**Source:** `TOOL.md` section 5 M2
+**Category:** milestones
+**Milestone:** none
+**Priority:** P0
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 5 M2
-Category:    milestones
-Priority:    P0
-Effort:      L
-Status:      done 2026-09-09
+## Problem
 
-Problem:     The single highest-risk component. Four separate tools in the
-             corpus stop here.
-Premise:     ⭐ Measured, for three of the four acceptance criteria.
-             `experiments/results/whiteout-contract.txt` establishes that
-             `alpine`'s `etc/shadow` is gid 42, that `voidlinux-musl` ships
-             `var/cache/xbps` as an absolute self-referential symlink in layer 1
-             and whiteouts it in layer 2, and that a slash-anchored whiteout
-             selector misses a layer-root whiteout. The work is
-             [extract.md](extract.md) T-0301 through T-0307.
-Approach:    The four acceptance criteria, in order, and each is a separate
-             failure mode rather than a variation of one.
-Decision:    In-process extraction at entry level. Shelling out to `tar` is what
-             makes this wall reach five tools instead of one.
-Prove:       `./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podvm run --rm`
+The single highest-risk component. Four separate tools in the
+corpus stop here.
+
+## Premise
+
+⭐ Measured, for three of the four acceptance criteria.
+`experiments/results/whiteout-contract.txt` establishes that
+`alpine`'s `etc/shadow` is gid 42, that `voidlinux-musl` ships
+`var/cache/xbps` as an absolute self-referential symlink in layer 1
+and whiteouts it in layer 2, and that a slash-anchored whiteout
+selector misses a layer-root whiteout. The work is
+[extract.md](extract.md) T-0301 through T-0307.
+
+## Approach
+
+The four acceptance criteria, in order, and each is a separate
+failure mode rather than a variation of one.
+
+## Decision
+
+In-process extraction at entry level. Shelling out to `tar` is what
+makes this wall reach five tools instead of one.
+
+## Prove
+
+`./experiments/70-whiteout-contract.sh` exits 0; `./experiments/220-extract-path-safety.sh` exits 0; `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && test -f "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/etc/shadow"`; `podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`; then, when M3 lands, the same two images under `podvm run --rm`
+
+## Done
 
 **Done 2026-09-09.** Every clause below ran and matched: the first four with
 `crates/podvm-extract` and the `extract` verb on 2026-09-08, the last two
@@ -264,25 +324,40 @@ one script per question, three-state exit, per-clause verdicts.
 is never reused. [T-1205](gate.md) found this and three more, and the gate now
 holds the rule.
 
----
+# T-1104: M3 `run` on the chroot rung
 
-### T-1104 M3 `run` on the chroot rung
+**Source:** `TOOL.md` section 5 M3
+**Category:** milestones
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 5 M3
-Category:    milestones
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-09
+## Problem
 
-Problem:     ⭐ This is the product requirement the whole specification exists
-             for: an agent that knows docker must need zero new knowledge.
-Premise:     Read. The work is [enter.md](enter.md) T-0501 through T-0505 and
-             [cli.md](cli.md) T-0801 through T-0806.
-Approach:    That exact command, inside the reconstruction, with the mode banner
-             on stderr and nothing but the payload's output on stdout.
-Decision:    The banner goes to stderr. A banner on stdout corrupts every
-             pipeline the payload is in, and the payload's stdout is data.
-Prove:       `./experiments/300-run.sh` exits 0. Clause 7 is the command above, with the store pre-pulled outside and staged in
+⭐ This is the product requirement the whole specification exists
+for: an agent that knows docker must need zero new knowledge.
+
+## Premise
+
+Read. The work is [enter.md](enter.md) T-0501 through T-0505 and
+[cli.md](cli.md) T-0801 through T-0806.
+
+## Approach
+
+That exact command, inside the reconstruction, with the mode banner
+on stderr and nothing but the payload's output on stdout.
+
+## Decision
+
+The banner goes to stderr. A banner on stdout corrupts every
+pipeline the payload is in, and the payload's stdout is data.
+
+## Prove
+
+`./experiments/300-run.sh` exits 0. Clause 7 is the command above, with the store pre-pulled outside and staged in
+
+## Done
 
 **Done, 2026-09-09.** `experiments/300-run.sh`, **eight clauses, exit 0**, and
 the three entries this milestone was `partial` for are closed:
@@ -320,26 +395,41 @@ Its `run` half is clause 5 above; its remaining half is that a `podvm probe`
 run inside a foreign-architecture container measures the emulator and does not
 yet say so, which is a probe question rather than a `run` one.
 
----
+# T-1105: M4 the lifecycle, twenty times
 
-### T-1105 M4 the lifecycle, twenty times
+**Source:** `TOOL.md` section 5 M4
+**Category:** milestones
+**Milestone:** none
+**Priority:** P0
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 5 M4
-Category:    milestones
-Priority:    P0
-Effort:      L
-Status:      done 2026-09-09
+## Problem
 
-Problem:     The prior art's own capture of this lifecycle contains a failed run
-             because it decided "running" by sleeping and looking.
-Premise:     Read. The work is [supervise.md](supervise.md) T-0601 through
-             T-0607.
-Approach:    `create`, `start`, `ps`, `logs`, `stop`, `rm`, `exec`, `inspect`,
-             `kill`, `wait`, `cp`. The loop is create, detached start, `ps` shows
-             it running, `exec` prints a marker, `stop`, `rm`.
-Decision:    Twenty consecutive passes, and a single failure fails the milestone.
-             Retrying a failure is how a race becomes a published pass.
-Prove:       `./experiments/230-lifecycle-loop.sh 20` exits 0
+The prior art's own capture of this lifecycle contains a failed run
+because it decided "running" by sleeping and looking.
+
+## Premise
+
+Read. The work is [supervise.md](supervise.md) T-0601 through
+T-0607.
+
+## Approach
+
+`create`, `start`, `ps`, `logs`, `stop`, `rm`, `exec`, `inspect`,
+`kill`, `wait`, `cp`. The loop is create, detached start, `ps` shows
+it running, `exec` prints a marker, `stop`, `rm`.
+
+## Decision
+
+Twenty consecutive passes, and a single failure fails the milestone.
+Retrying a failure is how a race becomes a published pass.
+
+## Prove
+
+`./experiments/230-lifecycle-loop.sh 20` exits 0
+
+## Done
 
 **Done, 2026-09-09.** `./experiments/230-lifecycle-loop.sh 20` reports **20 of
 20 consecutive passes** and its three following clauses all run.
@@ -366,37 +456,51 @@ killer took it ([T-0601](supervise.md)'s crate); a readiness pipe without
 exactly as long as the container ran; and `si_status` sits at byte 24 of a
 `siginfo_t` and not 20, which reported a SIGTERMed payload as exit 128.
 
----
+# T-1106: M5 environment completion, ten distributions
 
-### T-1106 M5 environment completion, ten distributions
+**Source:** `TOOL.md` section 5 M5, section 9
+**Category:** milestones
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 5 M5, section 9
-Category:    milestones
-Priority:    P1
-Effort:      L
-Status:      done
+## Problem
 
-Problem:     The layer that makes package managers work. Without it the runtime
-             runs `echo` and nothing a user wants.
-Premise:     Read. The set is not arbitrary: alpine, debian, ubuntu, archlinux,
-             almalinux, rocky, rocky-minimal, fedora, opensuse-leap and
-             voidlinux-musl, each chosen because it broke something. The work is
-             [complete.md](complete.md) T-0401 through T-0409.
-Approach:    Each member installs a C toolchain through its native package
-             manager and builds and runs a two-file project, with no
-             user-supplied fixups.
-             ⚠ **Drive it through T-1203's runner rather than writing a second
-             one.** `experiments/125-across-distributions.sh` owns the pinning,
-             the `no-pull` row, the exit-2-when-nothing-ran rule and the
-             reference qualification; this milestone supplies the subject
-             script and the row list. Two runners drift, and the one that
-             drifts is the one nobody is looking at.
-Decision:    A C toolchain rather than a trivial package. It exercises the
-             ownership, the resolver, the keyring and the sandbox user at once,
-             and a two-file project catches a toolchain that installed and
-             cannot link.
-Prove:       `./experiments/240-distro-sweep.sh` exits 0
+The layer that makes package managers work. Without it the runtime
+runs `echo` and nothing a user wants.
 
+## Premise
+
+Read. The set is not arbitrary: alpine, debian, ubuntu, archlinux,
+almalinux, rocky, rocky-minimal, fedora, opensuse-leap and
+voidlinux-musl, each chosen because it broke something. The work is
+[complete.md](complete.md) T-0401 through T-0409.
+
+## Approach
+
+Each member installs a C toolchain through its native package
+manager and builds and runs a two-file project, with no
+user-supplied fixups.
+⚠ **Drive it through T-1203's runner rather than writing a second
+one.** `experiments/125-across-distributions.sh` owns the pinning,
+the `no-pull` row, the exit-2-when-nothing-ran rule and the
+reference qualification; this milestone supplies the subject
+script and the row list. Two runners drift, and the one that
+drifts is the one nobody is looking at.
+
+## Decision
+
+A C toolchain rather than a trivial package. It exercises the
+ownership, the resolver, the keyring and the sandbox user at once,
+and a two-file project catches a toolchain that installed and
+cannot link.
+
+## Prove
+
+`./experiments/240-distro-sweep.sh` exits 0
+
+## Done
 
 **Done 2026-09-09. TEN of the ten rows install a C toolchain through their own
 package manager and build and run a two-file program with it.** ⚠ It was 8 of 10
@@ -474,30 +578,45 @@ $ ./experiments/240-distro-sweep.sh
   exit 0
 ```
 
----
+# T-1107: M6 the interposer
 
-### T-1107 M6 the interposer
+**Source:** `TOOL.md` section 5 M6
+**Category:** milestones
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 5 M6
-Category:    milestones
-Priority:    P1
-Effort:      L
-Status:      done 2026-09-22
+## Problem
 
-Problem:     The measured gap. A stock path interposer delivers a bind view with
-             `mount(2)` denied and leaves `chown 0:42` at `EINVAL`, identically
-             to the bare call.
-Premise:     Measured, and the reason is at file and line:
-             `references/VHSgunzo__pathmap/tree/path-mapping.c:1240-1241` routes
-             `chown` through the path-rewriting macro and passes the ids
-             through untouched. The work is [interpose.md](interpose.md) T-0701
-             through T-0708.
-Approach:    Both halves in one object: path virtualization, and ownership
-             virtualization that clears the wall stopping the most tools.
-Decision:    Both, or the milestone is not done. ⭐ No project in the corpus does
-             both halves in one interposer while also speaking docker's CLI.
-             That gap is what podvm is.
-Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'touch /tmp/f && chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podvm run --rm -e 'PODVM_MAPS=/mapped:/etc' public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+The measured gap. A stock path interposer delivers a bind view with
+`mount(2)` denied and leaves `chown 0:42` at `EINVAL`, identically
+to the bare call.
+
+## Premise
+
+Measured, and the reason is at file and line:
+`references/VHSgunzo__pathmap/tree/path-mapping.c:1240-1241` routes
+`chown` through the path-rewriting macro and passes the ids
+through untouched. The work is [interpose.md](interpose.md) T-0701
+through T-0708.
+
+## Approach
+
+Both halves in one object: path virtualization, and ownership
+virtualization that clears the wall stopping the most tools.
+
+## Decision
+
+Both, or the milestone is not done. ⭐ No project in the corpus does
+both halves in one interposer while also speaking docker's CLI.
+That gap is what podvm is.
+
+## Prove
+
+`podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'touch /tmp/f && chown 0:42 /tmp/f && stat -c %u:%g /tmp/f' | grep -qx '0:42'` and `podvm run --rm -e 'PODVM_MAPS=/mapped:/etc' public.ecr.aws/docker/library/alpine:3.20 sh -c 'cd /mapped && test "$(pwd)" = /mapped'`
+
+## Done
 
 **Done 2026-09-22.** The work is T-0701 through T-0708, all closed, and
 this close drives both halves end to end on host podman 6.1.2 with the
@@ -511,26 +630,41 @@ podvm refuses.** The refusal names a copy pretending to be a mount.
 Maps travel through `PODVM_MAPS`, which is what the amended half
 drives; the first half gains the `touch` its `chown` needs.
 
----
+# T-1108: M7 packaging
 
-### T-1108 M7 packaging
+**Source:** `TOOL.md` section 5 M7
+**Category:** milestones
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 5 M7
-Category:    milestones
-Priority:    P2
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     The binary has to run on the target with no libraries present.
-Premise:     ⭐ Measured on the skeleton already: T-1001 is `done` and its
-             `Prove` exits 0. What remains is holding it once dependencies land,
-             which is what T-0910's ceiling is for.
-Approach:    A single static binary, optionally one file with an embedded
-             rootfs. The launch ladder is T-1003.
-Decision:    Keep T-1001 and this entry separate. T-1001 is the property of the
-             skeleton and is measurable now; this is the property of the shipped
-             artefact and is not.
-Prove:       `readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0 && ./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podvm -- /workspace/podvm version`
+The binary has to run on the target with no libraries present.
+
+## Premise
+
+⭐ Measured on the skeleton already: T-1001 is `done` and its
+`Prove` exits 0. What remains is holding it once dependencies land,
+which is what T-0910's ceiling is for.
+
+## Approach
+
+A single static binary, optionally one file with an embedded
+rootfs. The launch ladder is T-1003.
+
+## Decision
+
+Keep T-1001 and this entry separate. T-1001 is the property of the
+skeleton and is measurable now; this is the property of the shipped
+artefact and is not.
+
+## Prove
+
+`readelf -l target/x86_64-unknown-linux-musl/release/podvm | grep -c INTERP | grep -qx 0 && ./experiments/20-enter-target.sh --stage ./target/x86_64-unknown-linux-musl/release/podvm -- /workspace/podvm version`
+
+## Done
 
 **Done 2026-09-21.** Both halves, on the shipped artefact with both
 interposers embedded. `readelf -l` reports no `PT_INTERP` (`INTERP count:
@@ -547,35 +681,50 @@ a build input, so the bytes are the same build the job measured (both
 ⚠ The embedded-rootfs half stays with [T-1003](packaging.md), which is open.
 The `Prove` as written is satisfied.
 
----
+# T-1109: The negative tests, which are tests
 
-### T-1109 The negative tests, which are tests
+**Source:** `TOOL.md` section 9
+**Category:** milestones
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 9
-Category:    milestones
-Priority:    P1
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     Every honesty rule in section 4.1 and section 6.8 is unenforced until something
-             asserts that the refusal happens. A rule that is only prose is a
-             rule that regresses silently, which is the failure mode the whole
-             design is built against.
-Premise:     Read. `TOOL.md` section 9 names three: `--network=none` must **fail** with
-             a named reason; `-v ...:ro` must be **rejected**; a Go payload under
-             `interpose` must be **declined** rather than silently unvirtualized.
-Approach:    Assert all three, plus the two this corpus adds:
-             `--strict` turns every Degraded and Stub into a refusal (T-0804),
-             and `-t` is a named refusal where `/dev/ptmx` is absent (T-0503).
-             ⛔ `experiments/30-attribution-census.sh` must exit 0 or 2, never 1.
-             A 1 means the runtime moved or a probe stopped discriminating, and
-             either is a finding rather than a flake.
-Decision:    Negative tests live in `experiments/` with the positive ones and
-             share their exit-code convention, rather than in a separate suite.
-             A refusal that regresses is the same class of defect as a feature
-             that regresses, and splitting them makes one of the two easier to
-             skip.
-Prove:       `./experiments/250-negative-tests.sh` exits 0
+Every honesty rule in section 4.1 and section 6.8 is unenforced until something
+asserts that the refusal happens. A rule that is only prose is a
+rule that regresses silently, which is the failure mode the whole
+design is built against.
+
+## Premise
+
+Read. `TOOL.md` section 9 names three: `--network=none` must **fail** with
+a named reason; `-v ...:ro` must be **rejected**; a Go payload under
+`interpose` must be **declined** rather than silently unvirtualized.
+
+## Approach
+
+Assert all three, plus the two this corpus adds:
+`--strict` turns every Degraded and Stub into a refusal (T-0804),
+and `-t` is a named refusal where `/dev/ptmx` is absent (T-0503).
+⛔ `experiments/30-attribution-census.sh` must exit 0 or 2, never 1.
+A 1 means the runtime moved or a probe stopped discriminating, and
+either is a finding rather than a flake.
+
+## Decision
+
+Negative tests live in `experiments/` with the positive ones and
+share their exit-code convention, rather than in a separate suite.
+A refusal that regresses is the same class of defect as a feature
+that regresses, and splitting them makes one of the two easier to
+skip.
+
+## Prove
+
+`./experiments/250-negative-tests.sh` exits 0
+
+## Done
 
 **Done 2026-09-25.** `./experiments/250-negative-tests.sh` exits 0 under the
 cover `experiments/251-tty-refusal-no-ptmx.sh` builds: a private mount
@@ -646,59 +795,72 @@ so the M rows stay unattested here. The entry's rule allows 0 or 2, never 1.
 124, because the failure that refusal exists to prevent is a **hang** rather
 than an error: a clause with no bound would pass by hanging.
 
+# T-1110: M6's acceptance: a payload the interposer is the only reason works
 
----
+**Source:** `TOOL.md` section 9; T-1106's shape
+**Category:** milestones
+**Milestone:** none
+**Priority:** P0
+**Effort:** L
+**Status:** done
 
-### T-1110 M6's acceptance: a payload the interposer is the only reason works
+## Problem
 
-Source:      `TOOL.md` section 9; T-1106's shape
-Category:    milestones
-Priority:    P0
-Effort:      L
-Status:      done
+M5 has a ten-row matrix that installs a toolchain and builds a
+program, and it found five defects a one-image test would not.
+M6 has an object that clears the ownership wall in a container
+driven by hand and **no acceptance at all**. ⛔ Clause 1 of
+`experiments/250-negative-tests.sh` prints `SKIPPED: M6 has no
+interposer yet` and is the reason that script exits 2.
 
-Problem:     M5 has a ten-row matrix that installs a toolchain and builds a
-             program, and it found five defects a one-image test would not.
-             M6 has an object that clears the ownership wall in a container
-             driven by hand and **no acceptance at all**. ⛔ Clause 1 of
-             `experiments/250-negative-tests.sh` prints `SKIPPED: M6 has no
-             interposer yet` and is the reason that script exits 2.
-Premise:     Measured, and each is a row the acceptance has to cover:
-             `experiments/results/interpose-ownership.txt` -- the object clears
-             the wall under glibc and musl, and refuses the pair the loader
-             refuses. `experiments/results/interposer-abi.txt` -- a musl object
-             in a glibc payload is `invalid ELF header`, a glibc object in a
-             musl payload is `__snprintf_chk: symbol not found`, and a
-             `GLIBC_2.34` import against a 2.31 libc is refused by version.
-             ⚠ Those are the three ways the wrong object is chosen, so the
-             matrix must contain a row for each rather than one happy path.
-             ⚠ A **Go** payload is the one clause `TOOL.md` section 9 names,
-             and it is the hard case on purpose: a static Go binary makes raw
-             syscalls and `LD_PRELOAD` never sees them, so the honest outcome
-             is a NAMED DECLINE rather than a silent no-op. T-0706 owns that
-             refusal and this is what drives it.
-Approach:    A sweep in `experiments/240-distro-sweep.sh`'s shape, over
-             `scripts/common/distro-matrix.sh`'s rows, asking one question per
-             row: does a payload that needs virtualized ownership succeed, and
-             does podvm pick the right object without being told?
-             1. per row: extract, let podvm select and place the object, run a
-                payload that `chown`s and reads back;
-             2. per row: assert the SELECTION, not just the outcome -- a musl
-                row must have been given the musl object, which
-                `podvm system abi` can be asked about directly;
-             3. the three refusals above, each driven deliberately;
-             4. the Go clause, asserting a named decline.
-             ⛔ The docker control is what makes a failure attributable, as it
-             was for M5: this machine intercepts TLS and a row that fails under
-             both is the machine's.
-             ⚠ No quota-bearing registry: ghcr.io, public.ecr.aws and the
-             distributions' own, which `distro-matrix.sh` already holds.
-Decision:    The sweep is the shape the Approach describes, run on
-             2026-09-18: ten rows, one subject, transcripts per row.
-Prove:       `./experiments/245-interpose-sweep.sh`, printing `rows`, `ran`,
-             `virtualized`, `declined` and `host_not_runtime`, and clause 1 of
-             `./experiments/250-negative-tests.sh` no longer printing SKIPPED.
+## Premise
 
+Measured, and each is a row the acceptance has to cover:
+`experiments/results/interpose-ownership.txt` -- the object clears
+the wall under glibc and musl, and refuses the pair the loader
+refuses. `experiments/results/interposer-abi.txt` -- a musl object
+in a glibc payload is `invalid ELF header`, a glibc object in a
+musl payload is `__snprintf_chk: symbol not found`, and a
+`GLIBC_2.34` import against a 2.31 libc is refused by version.
+⚠ Those are the three ways the wrong object is chosen, so the
+matrix must contain a row for each rather than one happy path.
+⚠ A **Go** payload is the one clause `TOOL.md` section 9 names,
+and it is the hard case on purpose: a static Go binary makes raw
+syscalls and `LD_PRELOAD` never sees them, so the honest outcome
+is a NAMED DECLINE rather than a silent no-op. T-0706 owns that
+refusal and this is what drives it.
+
+## Approach
+
+A sweep in `experiments/240-distro-sweep.sh`'s shape, over
+`scripts/common/distro-matrix.sh`'s rows, asking one question per
+row: does a payload that needs virtualized ownership succeed, and
+does podvm pick the right object without being told?
+1. per row: extract, let podvm select and place the object, run a
+   payload that `chown`s and reads back;
+2. per row: assert the SELECTION, not just the outcome -- a musl
+   row must have been given the musl object, which
+   `podvm system abi` can be asked about directly;
+3. the three refusals above, each driven deliberately;
+4. the Go clause, asserting a named decline.
+⛔ The docker control is what makes a failure attributable, as it
+was for M5: this machine intercepts TLS and a row that fails under
+both is the machine's.
+⚠ No quota-bearing registry: ghcr.io, public.ecr.aws and the
+distributions' own, which `distro-matrix.sh` already holds.
+
+## Decision
+
+The sweep is the shape the Approach describes, run on
+2026-09-18: ten rows, one subject, transcripts per row.
+
+## Prove
+
+`./experiments/245-interpose-sweep.sh`, printing `rows`, `ran`,
+`virtualized`, `declined` and `host_not_runtime`, and clause 1 of
+`./experiments/250-negative-tests.sh` no longer printing SKIPPED.
+
+## Done
 
 **Done 2026-09-18.** `experiments/results/interpose-sweep.txt` carries the
 run: 10 rows, 10 ran, 10 virtualized, 20 declined, 0 host_not_runtime, with
@@ -720,108 +882,122 @@ in-root symlink resolution. The void row is what proved the decline
 reason gate: it refused an unknown decline rather than waving it through,
 and the transcript named the missing file.
 
+# T-1111: M8 the nix acceptance: a real payload the chroot tier is exactly the answer for
 
----
+**Source:** `references/talaria0101__nix-experiment/tree/REPORT.md`, plus that
+  tree's latest-nix-shim design document and its claim-scope review
+**Category:** milestones
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** done
 
-### T-1111 M8 the nix acceptance: a real payload the chroot tier is exactly the answer for
+## Problem
 
-Source:      `references/talaria0101__nix-experiment/tree/REPORT.md`, plus that
-             tree's latest-nix-shim design document and its claim-scope review
-Category:    milestones
-Priority:    P1
-Effort:      L
-Status:      done
+M5 drives package managers across ten distributions and M6 drives
+the interposer. ⛔ **Neither drives a payload that a consumer
+actually wanted and could not otherwise have**, which is the only
+evidence that says podvm is worth running rather than correct.
+⭐ **This is M8**, and it sits after M7 on purpose: it drives the
+SHIPPED binary, so it is the last gate rather than an early one.
 
-Problem:     M5 drives package managers across ten distributions and M6 drives
-             the interposer. ⛔ **Neither drives a payload that a consumer
-             actually wanted and could not otherwise have**, which is the only
-             evidence that says podvm is worth running rather than correct.
-             ⭐ **This is M8**, and it sits after M7 on purpose: it drives the
-             SHIPPED binary, so it is the last gate rather than an early one.
-Premise:     ⭐ **Somebody already did this by hand, on a runtime of this class,
-             and the answer they arrived at is what podvm is.** Every route with
-             a namespace, a mount or a `ptrace` in it failed: a portable
-             launcher wanted a pty, `bwrap` wanted `mount`, `proot` wanted
-             `ptrace`, and the user-namespace route wanted `unshare`. The
-             working solution was a plain `chroot` over a hand-assembled rootfs
-             with regular-file device stand-ins, a host CA bundle and
-             ownership-neutral extraction.
-             ⭐ **podvm already ships every one of those pieces.**
-             `src/devices.rs:50` of `pod-rootfs` (PodUtils/podcrates) fills `/dev/urandom`
-             with `FILLED_BYTES`, one MiB read once from the host's
-             `getrandom(2)`. [complete.md](complete.md) T-0407 is the CA bundle,
-             [extract.md](extract.md) is the ownership sidecar, and
-             [enter.md](enter.md) is the root change.
-             ⚠ **The two entropy fixes are not the same fix, and the difference
-             is worth keeping.** That experiment wrote **4 KiB copied from the
-             host's `/dev/urandom`**, reached by failure after an *empty* file
-             made `std::random_device` in gcc-7.3's libstdc++ throw during the
-             first download. podvm's is larger and comes from `getrandom(2)`,
-             which is the better source. ⛔ An `LD_PRELOAD` entropy shim was
-             tried there and did **not** work: libstdc++ opens the file through
-             `syscall()` and no libc interposer sees that. The file is the fix,
-             and that is wall 3 appearing in a real payload.
-             ⚠ **Two pieces are NOT in place**, and they are what this entry
-             measures: no procfs inside the chroot
-             ([complete.md](complete.md) T-0413), and no pty at all where
-             `/dev/ptmx` is absent ([enter.md](enter.md) T-0503). ⛔ The second
-             is decisive for this payload: a pipe-era build tool works and a
-             pty-era one cannot, on any runtime with no `/dev/ptmx`.
-Approach:    Drive the whole pipeline through the shipped binary and record what
-             podvm needed that the hand-built rootfs needed: fetch over TLS,
-             evaluate, build locally, and run the artefact.
-             ⛔ **Unpatched, or a named decline.** The value of this acceptance is
-             that it either runs with no hand patching or it says exactly which
-             piece is missing. A row that passes because the operator
-             pre-assembled the rootfs measures nothing.
-             The acceptance rows, and each is a separate verdict:
-             1. **register** the binary-tarball closure in the package database;
-             2. **fetch** the package set over TLS, which needs the CA bundle
-                and DNS;
-             3. **evaluate** it;
-             4. **build** locally with the sandbox setting off, which is the row
-                the pipe-era tool is pinned for;
-             5. **run** the built artefact inside the root;
-             6. ⛔ the **negative row**: a process asking for a namespace
-                must get an honest refusal, never a silent non-isolation.
-                nix's own sandbox is the wrong probe: as root without build
-                users it clones namespaces this chroot grants, and plain
-                hello substitutes without building at all, so both outcomes
-                read wrong (measured 2026-09-21: the forced-local sandboxed
-                build exits 0 while every raw `unshare` shape fails `EPERM`
-                with and without the preload). Raw `unshare -Urm` is the
-                request itself: it must fail naming the wall where
-                namespaces are refused, and succeed where the kernel grants
-                them. On that host the payload's own message is `setgroups
-                failed: Operation not permitted`, and [cli.md](cli.md) T-0809
-                is what makes podvm's version of it unambiguous;
-             7. ⚠ the **procfs row**: six of the package set's fixup hooks use
-                bash process substitution in live code
-                (`audit-blas.sh`, `audit-tmpdir.sh`, `canonicalize-jars.sh`,
-                `make-symlinks-relative.sh`, `patch-shebangs.sh`,
-                `separate-debug-info.sh`, measured 2026-09-21 in the 22.05
-                tree). Row 4 disables four of them and says so; the other
-                three never fire fatally for hello. The row pins the six
-                names, so a seventh cannot arrive silently. T-0413 stays the
-                general procfs piece; this pipeline does not need it.
-Decision:    ⭐ **Pin the known-good pair.** The acceptance pins the build tool
-             and the package set to the last pair whose whole pipeline runs with
-             no pty, because that measures **podvm** against a target known to
-             be reachable. Tracking the current pair measures the wall instead,
-             fails by design until T-0503 has an answer, and tells a reader
-             nothing about whether podvm regressed.
-             ⚠ **Rejected:** tracking the current pair. It is the more honest
-             test of the environment and the less useful test of this tool, and
-             the wall it would measure is already T-0503's subject.
-             ⭐ The pin is forced by two upstream gates, both verified at the
-             source: the build tool calls `posix_openpt()` unconditionally in
-             `startBuilder()` from 2.3.0 onward, with no setting to disable it;
-             and the package set gates on a minimum tool version, `"2.2"` at
-             22.05 and `"2.3"` at 22.11, while 23.11 additionally needs a
-             builtin that arrived in 2.4. ⛔ So **2.2.2 with 22.05** is the
-             newest release pair, and it is a pin with a reason rather than a
-             preference.
-Prove:       `./experiments/152-nix-acceptance.sh` exits 0 with the built artefact's own output, or exits 1 naming the single missing piece. ⛔ It may not exit 0 against a pre-assembled rootfs
+## Premise
+
+⭐ **Somebody already did this by hand, on a runtime of this class,
+and the answer they arrived at is what podvm is.** Every route with
+a namespace, a mount or a `ptrace` in it failed: a portable
+launcher wanted a pty, `bwrap` wanted `mount`, `proot` wanted
+`ptrace`, and the user-namespace route wanted `unshare`. The
+working solution was a plain `chroot` over a hand-assembled rootfs
+with regular-file device stand-ins, a host CA bundle and
+ownership-neutral extraction.
+⭐ **podvm already ships every one of those pieces.**
+`src/devices.rs:50` of `pod-rootfs` (PodUtils/podcrates) fills `/dev/urandom`
+with `FILLED_BYTES`, one MiB read once from the host's
+`getrandom(2)`. [complete.md](complete.md) T-0407 is the CA bundle,
+[extract.md](extract.md) is the ownership sidecar, and
+[enter.md](enter.md) is the root change.
+⚠ **The two entropy fixes are not the same fix, and the difference
+is worth keeping.** That experiment wrote **4 KiB copied from the
+host's `/dev/urandom`**, reached by failure after an *empty* file
+made `std::random_device` in gcc-7.3's libstdc++ throw during the
+first download. podvm's is larger and comes from `getrandom(2)`,
+which is the better source. ⛔ An `LD_PRELOAD` entropy shim was
+tried there and did **not** work: libstdc++ opens the file through
+`syscall()` and no libc interposer sees that. The file is the fix,
+and that is wall 3 appearing in a real payload.
+⚠ **Two pieces are NOT in place**, and they are what this entry
+measures: no procfs inside the chroot
+([complete.md](complete.md) T-0413), and no pty at all where
+`/dev/ptmx` is absent ([enter.md](enter.md) T-0503). ⛔ The second
+is decisive for this payload: a pipe-era build tool works and a
+pty-era one cannot, on any runtime with no `/dev/ptmx`.
+
+## Approach
+
+Drive the whole pipeline through the shipped binary and record what
+podvm needed that the hand-built rootfs needed: fetch over TLS,
+evaluate, build locally, and run the artefact.
+⛔ **Unpatched, or a named decline.** The value of this acceptance is
+that it either runs with no hand patching or it says exactly which
+piece is missing. A row that passes because the operator
+pre-assembled the rootfs measures nothing.
+The acceptance rows, and each is a separate verdict:
+1. **register** the binary-tarball closure in the package database;
+2. **fetch** the package set over TLS, which needs the CA bundle
+   and DNS;
+3. **evaluate** it;
+4. **build** locally with the sandbox setting off, which is the row
+   the pipe-era tool is pinned for;
+5. **run** the built artefact inside the root;
+6. ⛔ the **negative row**: a process asking for a namespace
+   must get an honest refusal, never a silent non-isolation.
+   nix's own sandbox is the wrong probe: as root without build
+   users it clones namespaces this chroot grants, and plain
+   hello substitutes without building at all, so both outcomes
+   read wrong (measured 2026-09-21: the forced-local sandboxed
+   build exits 0 while every raw `unshare` shape fails `EPERM`
+   with and without the preload). Raw `unshare -Urm` is the
+   request itself: it must fail naming the wall where
+   namespaces are refused, and succeed where the kernel grants
+   them. On that host the payload's own message is `setgroups
+   failed: Operation not permitted`, and [cli.md](cli.md) T-0809
+   is what makes podvm's version of it unambiguous;
+7. ⚠ the **procfs row**: six of the package set's fixup hooks use
+   bash process substitution in live code
+   (`audit-blas.sh`, `audit-tmpdir.sh`, `canonicalize-jars.sh`,
+   `make-symlinks-relative.sh`, `patch-shebangs.sh`,
+   `separate-debug-info.sh`, measured 2026-09-21 in the 22.05
+   tree). Row 4 disables four of them and says so; the other
+   three never fire fatally for hello. The row pins the six
+   names, so a seventh cannot arrive silently. T-0413 stays the
+   general procfs piece; this pipeline does not need it.
+
+## Decision
+
+⭐ **Pin the known-good pair.** The acceptance pins the build tool
+and the package set to the last pair whose whole pipeline runs with
+no pty, because that measures **podvm** against a target known to
+be reachable. Tracking the current pair measures the wall instead,
+fails by design until T-0503 has an answer, and tells a reader
+nothing about whether podvm regressed.
+⚠ **Rejected:** tracking the current pair. It is the more honest
+test of the environment and the less useful test of this tool, and
+the wall it would measure is already T-0503's subject.
+⭐ The pin is forced by two upstream gates, both verified at the
+source: the build tool calls `posix_openpt()` unconditionally in
+`startBuilder()` from 2.3.0 onward, with no setting to disable it;
+and the package set gates on a minimum tool version, `"2.2"` at
+22.05 and `"2.3"` at 22.11, while 23.11 additionally needs a
+builtin that arrived in 2.4. ⛔ So **2.2.2 with 22.05** is the
+newest release pair, and it is a pin with a reason rather than a
+preference.
+
+## Prove
+
+`./experiments/152-nix-acceptance.sh` exits 0 with the built artefact's own output, or exits 1 naming the single missing piece. ⛔ It may not exit 0 against a pre-assembled rootfs
+
+## Done
 
 **Done 2026-09-21.** Seven rows green through the shipped binary on host
 podman 6.1.2 (`experiments/152-nix-acceptance.sh`,
@@ -843,45 +1019,60 @@ procfs row pins the six fixup hooks that use process substitution.
 | NEGATIVE | ok, `unshare: unshare failed: Operation not permitted` |
 | PROCHOOKS | ok, the six names |
 
----
+# T-1112: A disposable guest that is not Linux
 
-### T-1112 A disposable guest that is not Linux
+**Source:** winquick at 095dd47; experiments 369, 370, 371 and 392
+**Category:** milestones
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** partial
 
-Source:      winquick at 095dd47; experiments 369, 370, 371 and 392
-Category:    milestones
-Priority:    P1
-Effort:      L
-Status:      partial
+## Problem
 
-Problem:     The machine tier needs a disposable non-Linux guest with
-             measured command output, exit status, and cleanup.
-Premise:     The first design considered an unpublished Windows image.
-             Current code has both DOS and disk guest routes. The licensed
-             ValidationOS input is supplied explicitly and is not shipped.
-Approach:    Keep the shared mailbox and QMP driver. Prove each guest route
-             with a pinned image. Diagnose the current KVM startup and
-             setup failures. Finish the ReactOS route and its driver.
-Decision:    Keep this entry partial until the ReactOS acceptance passes.
-             Historical ValidationOS and DOS results keep their stated
-             scope. They do not prove the current failed KVM repetition.
-             REVISED 2026-10-02. The operator descoped ReactOS: it is low
-             priority and ReactOS is itself a beta operating system, so
-             proving podvm against it is proving against a moving
-             target. The clause is dropped rather than deferred, because
-             "deferred" means it will be picked up later and this will not
-             be. What still owns this entry is the KVM leg: one guarded
-             run under `--unattended`, which T-1609 and T-1610 have
-             unblocked. The entry becomes `done` on that leg and not
-             before. Do not read this revision as a claim that a
-             non-Linux guest route is proven; the DOS and ValidationOS
-             results keep exactly the scope stated above.
-Prove:       `sh experiments/369-windows-tcg-dos.sh`,
-             `sh experiments/370-windows-guest.sh`, and
-             `sh experiments/392-kvm-guest.sh --accept-host-risk
-             --unattended --binary BINARY --image IMAGE` return 0 on
-             their stated hosts. The ReactOS clause is descoped by the
-             operator on 2026-10-02 and is not part of this entry's
-             acceptance; see the Decision.
+The machine tier needs a disposable non-Linux guest with
+measured command output, exit status, and cleanup.
+
+## Premise
+
+The first design considered an unpublished Windows image.
+Current code has both DOS and disk guest routes. The licensed
+ValidationOS input is supplied explicitly and is not shipped.
+
+## Approach
+
+Keep the shared mailbox and QMP driver. Prove each guest route
+with a pinned image. Diagnose the current KVM startup and
+setup failures. Finish the ReactOS route and its driver.
+
+## Decision
+
+Keep this entry partial until the ReactOS acceptance passes.
+Historical ValidationOS and DOS results keep their stated
+scope. They do not prove the current failed KVM repetition.
+REVISED 2026-10-02. The operator descoped ReactOS: it is low
+priority and ReactOS is itself a beta operating system, so
+proving podvm against it is proving against a moving
+target. The clause is dropped rather than deferred, because
+"deferred" means it will be picked up later and this will not
+be. What still owns this entry is the KVM leg: one guarded
+run under `--unattended`, which T-1609 and T-1610 have
+unblocked. The entry becomes `done` on that leg and not
+before. Do not read this revision as a claim that a
+non-Linux guest route is proven; the DOS and ValidationOS
+results keep exactly the scope stated above.
+
+## Prove
+
+`sh experiments/369-windows-tcg-dos.sh`,
+`sh experiments/370-windows-guest.sh`, and
+`sh experiments/392-kvm-guest.sh --accept-host-risk
+--unattended --binary BINARY --image IMAGE` return 0 on
+their stated hosts. The ReactOS clause is descoped by the
+operator on 2026-10-02 and is not part of this entry's
+acceptance; see the Decision.
+
+## Done
 
 **Partial 2026-09-30.** Earlier tracked results prove FreeDOS under TCG
 and ValidationOS under TCG. The saved KVM result from 2026-09-29 proves
@@ -913,37 +1104,54 @@ bounded run of `experiments/392-kvm-guest.sh` on a host with `/dev/kvm`
 (T-1350 and T-1641 ride the same run). T-1682 adds a hosted runner
 with `/dev/kvm`.
 
-### T-1623 Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger
+# T-1623: Record the 29 KEEP-SHELL rows as the retained set, re-derived from the ledger
 
-Source:      `refactor/recon-c.md:170`; `refactor/06-entries/PLAN.md:61-64`
-Category:    milestones
-Priority:    P3
-Effort:      S
-Status:      done
+**Source:** `refactor/recon-c.md:170`; `refactor/06-entries/PLAN.md:61-64`
+**Category:** milestones
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** done
 
-Problem:     29 scripts stay in shell, and the number that reaches a
-             reader is wrong. The plan's Round 2 breakdown says 27 and
-             its own category list sums to 30, and neither figure was
-             re-derived when two scripts were added.
-Premise:     The 29 is the most reliable part of the corpus: every row
-             was re-examined against one test, whether the script needs
-             a host tool, a device or an OS facility. None rests on a
-             Rust binary having to shell out, which is not a reason.
-Approach:     Re-derive the 29 from the ledger's rows rather than from
-             the plan's prose, then record the list with the reason each
-             row stays. The per-subject breakdown is the deliverable and
-             the plan explicitly does not supply it.
-Decision:     Re-derive, do not copy. The plan says its own figure was
-             not re-derived, so a copied one would carry the same error.
-Prove:       `grep -c "KEEP-SHELL" TODO/milestones.md` is at least 29;
-             the recorded list has no id twice and no id absent.
+## Problem
 
-**Done.** The entry records the 29 retained scripts as a per-row table, each
+29 scripts stay in shell, and the number that reaches a
+reader is wrong. The plan's Round 2 breakdown says 27 and
+its own category list sums to 30, and neither figure was
+re-derived when two scripts were added.
+
+## Premise
+
+The 29 is the most reliable part of the corpus: every row
+was re-examined against one test, whether the script needs
+a host tool, a device or an OS facility. None rests on a
+Rust binary having to shell out, which is not a reason.
+
+## Approach
+
+Re-derive the 29 from the ledger's rows rather than from
+the plan's prose, then record the list with the reason each
+row stays. The per-subject breakdown is the deliverable and
+the plan explicitly does not supply it.
+
+## Decision
+
+Re-derive, do not copy. The plan says its own figure was
+not re-derived, so a copied one would carry the same error.
+
+## Prove
+
+`grep -c "KEEP-SHELL" TODO/milestones.md` is at least 29;
+the recorded list has no id twice and no id absent.
+
+## Done
+
+**Done 2026-10-02.** The entry records the 29 retained scripts as a per-row table, each
 with the host tool, device or OS facility that keeps it in shell and the audit
 line the reason is read at. The 29 is re-derived from the ledger rows, not
 copied from the plan prose: the shipped ledger counts KEEP-SHELL 27, and the
 three numbered corrections move `95` in by VC-3 and `162` in by VC-2. The
-`162` row is refuted rather than re-derived, because `TODO/interpose.md:1479` is
+`162` row is refuted rather than re-derived, because `TODO/interpose.md:1697` is
 the `Prove` of T-1311 and names that script. `grep -c "KEEP-SHELL"
 TODO/milestones.md` returns 43, at or above the 29 the Prove sets. The shipped
 ledger still counts 27, so T-1622 owns the reconciliation and the two files
@@ -994,7 +1202,7 @@ one names a host tool, a device, or an OS facility a Rust binary cannot provide.
 | `400-kvm-cleanup.py` | KEEP-SHELL | `ps -eo pid,args` and `awk` against argv[0] being the emulator name, and the shell matcher is what the real KVM path calls | `refactor/01-audit/group-5.md:1032` |
 | `95-podman-vfs-ignorechown.sh` | KEEP-SHELL (VC-3) | a rootful podman machine, podman's own storage option, and a seccomp-filtered `podman unshare` load; the subject is podman's option, not podvm | VC-3, `refactor/06-entries/PLAN.md:22-27`; reason at `refactor/01-audit/group-4.md:498` |
 | `targetfs.sh` | KEEP-SHELL | the container's pid 1, calling `mount(2)` and `pivot_root(2)` before any confinement is applied, so nothing here is reachable from inside | `refactor/01-audit/group-3.md:1158` |
-| `162-tar-symlink-modes.sh` | KEEP-SHELL (VC-2) | a deployment proof over a real engine on a pinned image digest; DELETE is refuted because `TODO/interpose.md:1479` is the `Prove` of T-1311 and names this script | VC-2, `refactor/06-entries/PLAN.md:168-170`; reason recorded in [T-1628](interpose.md) |
+| `162-tar-symlink-modes.sh` | KEEP-SHELL (VC-2) | a deployment proof over a real engine on a pinned image digest; DELETE is refuted because `TODO/interpose.md:1697` is the `Prove` of T-1311 and names this script | VC-2, `refactor/06-entries/PLAN.md:168-170`; reason recorded in [T-1628](interpose.md) |
 | `gnu-link-stub.sh` | KEEP-SHELL | `rustc`'s `-C linker=` takes a PROGRAM and the object must be the first argument on the link line, which a Rust program cannot express | `refactor/01-audit/group-1.md:953` |
 | `zig-ar.sh` | KEEP-SHELL | `zig` itself, named in `.cargo/config.toml` as the archiver for eight targets; the `ar` key takes a program path, not a crate | `refactor/01-audit/group-6.md:884` |
 
@@ -1004,7 +1212,7 @@ re-derived, so the list is not a copy of the shipped ledger.**
 DELETE for `162`. The reasons are the plan's at
 `refactor/06-entries/PLAN.md:22-27` and `:168-170`. The `162` refutation is
 written where a reader of that category finds it, in
-[T-1628](interpose.md), because the `Prove` at `TODO/interpose.md:1479` is
+[T-1628](interpose.md), because the `Prove` at `TODO/interpose.md:1697` is
 what settles it.
 
 ⚠ **The shipped ledger still counts 27, and an implementor who reads it lands a
@@ -1013,31 +1221,48 @@ file the plan calls PRE-VC at `refactor/06-entries/PLAN.md:22-27`. T-1622 owns
 making it post-VC. Until that lands, the two files disagree by design and this
 entry is the one that says which is which.
 
-### T-1631 Record the `10`/`20`/`130` irreducible dependency as open, with T-1550
+# T-1631: Record the `10`/`20`/`130` irreducible dependency as open, with T-1550
 
-Source:      `refactor/recon-c.md:178`;
-             `refactor/06-entries/PLAN.md:174-177`; T-1619
-Category:    milestones
-Priority:    P2
-Effort:      S
-Status:      done
+**Source:** `refactor/recon-c.md:178`;
+  `refactor/06-entries/PLAN.md:174-177`; T-1619
+**Category:** milestones
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Problem:     Three scripts depend on each other and the plan calls the
-             dependency irreducible. Nothing in the record says so, so
-             the next session reads it as an oversight and deletes one
-             of them.
-Premise:     Two of the three name the third in live paths, and the
-             reduction the plan considered is ruled out for a named
-             reason.
-Approach:     Record the dependency beside the decision entry that owns
-             it, so the two are found together and neither is closed
-             without the other.
-Decision:     Milestones carries the dependency; the packaging entry
-             carries the decision. A dependency is not a decision.
-Prove:       `grep -n "10-build-target-image" TODO/milestones.md` names
-             the three scripts and the entry that owns the decision.
+## Problem
 
-**Done.** The entry records that `experiments/10-build-target-image.sh`,
+Three scripts depend on each other and the plan calls the
+dependency irreducible. Nothing in the record says so, so
+the next session reads it as an oversight and deletes one
+of them.
+
+## Premise
+
+Two of the three name the third in live paths, and the
+reduction the plan considered is ruled out for a named
+reason.
+
+## Approach
+
+Record the dependency beside the decision entry that owns
+it, so the two are found together and neither is closed
+without the other.
+
+## Decision
+
+Milestones carries the dependency; the packaging entry
+carries the decision. A dependency is not a decision.
+
+## Prove
+
+`grep -n "10-build-target-image" TODO/milestones.md` names
+the three scripts and the entry that owns the decision.
+
+## Done
+
+**Done 2026-10-02.** The entry records that `experiments/10-build-target-image.sh`,
 `experiments/20-enter-target.sh` and `experiments/130-probe-parity.sh` are one
 unit and the dependency is irreducible, so a later session does not delete one
 of them. The reduction the plan considered is refuted on disk: two scripts name
@@ -1063,49 +1288,66 @@ so it is not forgotten, not so it can be deleted alongside the other eleven."
 **The reduction was considered and does not work, and the reason is measured.**
 `experiments/130-probe-parity.sh` names no engine of its own, zero
 `docker|podman` lines, and still cannot run where `20` cannot. That is
-T-1213's own Problem field at `TODO/gate.md:1124-1129`, and its Decision at
+T-1213's own Problem field at `TODO/gate.md:1313-1318`, and its Decision at
 `:1139-1140` reads "The three convert as one unit. Converting `130` without
 `20` tests nothing, and converting `20` without `10` builds nothing." T-1213 is
 `Status: done`, so the unit is measured, not asserted: its Done record at
-`TODO/gate.md:1146-1148` names the host podman build of `10` at image id
+`TODO/gate.md:1350-1352` names the host podman build of `10` at image id
 `9ed4f5c81452` and a `130` run of 16 matched and 0 differed.
 
 **Milestones carries the dependency; [T-1619](packaging.md) carries the
 decision, and neither closes without the other.** T-1619 owns the question and
-names this entry's half at `TODO/packaging.md:1082-1087`. The plan's own task
+names this entry's half at `TODO/packaging.md:1375-1385`. The plan's own task
 row for that decision sits at `refactor/recon-c.md:137`. `refactor/` is
 untracked and its ids have no heading in `TODO/`, so the gate cannot
 resolve a plan id printed here, and T-1619 says the same at
-`TODO/packaging.md:1154-1163`. The plan row and the tracked entry point at
+`TODO/packaging.md:1463-1472`. The plan row and the tracked entry point at
 one decision. A reader who finds either row finds the other.
 
-### T-1637 Record the eleven converged-on-Rust counts and the 29 that stay in shell
+# T-1637: Record the eleven converged-on-Rust counts and the 29 that stay in shell
 
-Source:      `refactor/recon-c.md:184`;
-             `refactor/06-entries/PLAN.md:49-50`
-Category:    milestones
-Priority:    P2
-Effort:      S
-Status:      done
+**Source:** `refactor/recon-c.md:184`;
+  `refactor/06-entries/PLAN.md:49-50`
+**Category:** milestones
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Problem:     The corpus has two outcomes and the tree carries one
-             number for the whole of it. A reader cannot tell how much
-             is finished from how much is deliberately staying.
-Premise:     The plan's own arithmetic is 81 retiring plus 11 deletions
-             against 29 retained, and it sums to 121. The 81 is a sum
-             over three verdicts, so quoting it without the three is a
-             number nobody can check.
-Approach:     Record the three converging verdicts separately from the
-             sum, and the retained count beside them, so each is
-             checkable on its own.
-Decision:     The breakdown is the deliverable, not the total. A total
-             whose parts cannot be re-derived is the defect the audit
-             found twice already.
-Prove:       `grep -n "KEEP-SHELL" TODO/milestones.md` and the same for
-             each converging verdict name the counts that sum to the
-             corpus size.
+## Problem
 
-**Done.** The entry records the corpus as two outcomes rather than one number,
+The corpus has two outcomes and the tree carries one
+number for the whole of it. A reader cannot tell how much
+is finished from how much is deliberately staying.
+
+## Premise
+
+The plan's own arithmetic is 81 retiring plus 11 deletions
+against 29 retained, and it sums to 121. The 81 is a sum
+over three verdicts, so quoting it without the three is a
+number nobody can check.
+
+## Approach
+
+Record the three converging verdicts separately from the
+sum, and the retained count beside them, so each is
+checkable on its own.
+
+## Decision
+
+The breakdown is the deliverable, not the total. A total
+whose parts cannot be re-derived is the defect the audit
+found twice already.
+
+## Prove
+
+`grep -n "KEEP-SHELL" TODO/milestones.md` and the same for
+each converging verdict name the counts that sum to the
+corpus size.
+
+## Done
+
+**Done 2026-10-02.** The entry records the corpus as two outcomes rather than one number,
 with each converging verdict counted on its own: RUST-TOOL 27 and RUST-TEST 18
 give the 45 that converge wholly on Rust, SPLIT 36 retires because each has a
 Rust half, and the KEEP-SHELL 29 and DELETE 11 rows do not. Those sum to the 121
@@ -1169,35 +1411,56 @@ because it also sweeps the local Python bytecode cache that
 measurements. The three rows counted here carry no such file, so the 81 does not
 reach the gate's own checks.
 
+# T-1692: The `windows --podvm-mem` row says what the verb does about `RLIMIT_FSIZE`
 
-### T-1692 The `windows --podvm-mem` row says what the verb does about `RLIMIT_FSIZE`
+**Source:** issue 216; T-1305; T-1112
+**Category:** windows
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Source:      issue 216; T-1305; T-1112
-Category:    windows
-Priority:    P2
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     The parity row of `windows --podvm-mem` says that guest memory
-             is judged against `RLIMIT_FSIZE`. `windows::run` and
-             `windows::dos` never read the limit, and the comment of
-             `windows::run` says why. The contract and the code disagree.
-Premise:     The row is `crates/podvm/src/parity.rs:346`. The only caller of
-             `ceiling()` of `crates/podvm/src/windows/plan.rs:87` is the
-             download (`crates/podvm/src/windows/setup.rs:105`).
-             `crates/podvm/src/windows/run.rs:24` says that the limit does
-             not gate guest memory. The doc comment at
-             `crates/podvm/src/windows/plan.rs:85` misleads too.
-Approach:    Correct the row: guest memory is not judged on this path
-             (anonymous memory, sparse overlay); the ceiling binds the
-             download (`--max-bytes`). Fix the doc comment. Check the
-             `machine ssh` row the same way. Add a test: each row that
-             names `RLIMIT_FSIZE` belongs to a verb whose source reads the
-             limit.
-Decision:    Correct the row; do not add the check. T-1305 judges memory
-             where a memory backing file exists, and here none exists.
-Prove:       `cargo test -p podvm` exits 0, and the new test fails on a
-             planted row.
+The parity row of `windows --podvm-mem` says that guest memory
+is judged against `RLIMIT_FSIZE`. `windows::run` and
+`windows::dos` never read the limit, and the comment of
+`windows::run` says why. The contract and the code disagree.
+
+## Premise
+
+The row is `crates/podvm/src/parity.rs:346`. The only caller of
+`ceiling()` of `crates/podvm/src/windows/plan.rs:87` is the
+download (`crates/podvm/src/windows/setup.rs:105`).
+`crates/podvm/src/windows/run.rs:24` says that the limit does
+not gate guest memory. The doc comment at
+`crates/podvm/src/windows/plan.rs:85` misleads too.
+
+## Approach
+
+Correct the row: guest memory is not judged on this path
+(anonymous memory, sparse overlay); the ceiling binds the
+download (`--max-bytes`). Fix the doc comment. Check the
+`machine ssh` row the same way. Add a test: each row that
+names `RLIMIT_FSIZE` belongs to a verb whose source reads the
+limit.
+
+## Decision
+
+Correct the row; do not add the check. T-1305 judges memory
+where a memory backing file exists, and here none exists.
+
+## Prove
+
+`cargo test -p podvm` exits 0, and the new test fails on a
+planted row.
+
+## Correction
+
+**Filed 2026-11-09.** From issue 216 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2`.
+
+## Done
 
 **Done 2026-11-09.** The `windows --podvm-mem` row now says that
 `RLIMIT_FSIZE` does not gate guest memory on this path (anonymous memory,
@@ -1209,6 +1472,3 @@ row stays: `machine/ssh/qemu.rs` reads the limit. The test
 source calls `prlimit` on the limit. `cargo test -p podvm` exits 0; with
 the old row planted back, the test fails: "windows --podvm-mem: claims
 true, reads false".
-
-**Filed 2026-11-09.** From issue 216 (an outside account). The triage of
-2026-11-09 confirmed each claim at `2be31b2`.

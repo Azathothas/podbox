@@ -1,4 +1,4 @@
-# net
+Area: net.
 
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
@@ -21,49 +21,64 @@ root, and a rootfs-tier payload shares the host network.
 
 The current work order is [PROGRESS.md](PROGRESS.md).
 
----
+# T-1662: Network labs: NAT, IPv6, policy and impairment labs inside one guest
 
-### T-1662 Network labs: NAT, IPv6, policy and impairment labs inside one guest
+**Source:** issue 178; #193; the owner's ruling of 2026-11-06
+**Category:** net
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** blocked
 
-Source:      issue 178; #193; the owner's ruling of 2026-11-06
-Category:    net
-Priority:    P2
-Effort:      XL
-Status:      blocked
+## Problem
 
-Problem:     sand-net built 39 lab scenarios from three network namespaces
-             and checked each with a self-check that derived every expected
-             verdict from the lab's settings. The target host has no
-             network namespace and no `/dev/net/tun`, so podvm cannot build
-             a lab on the host.
-Premise:     A machine-tier guest kernel is root inside, so namespaces,
-             nftables, `tc netem`, tayga and WireGuard work there. The
-             machine tier runs under TCG on the target host
-             (`crates/podvm/src/tier.rs:144`), at 3x to 21x the native cost
-             (T-1308). User-mode networking carried a guest in
-             `experiments/361-guest-usernet.sh:299`. Running a guest from
-             `run` is T-1656. The issue names `pod-dns` and `pod-proxy`;
-             podcrates names `pod-netlab` (wave M7) on `pod-netstack`.
-Approach:    Add `podvm lab up|down|check|try|matrix` that boots one guest
-             with a lab image and kernel options (netns, nf_tables, netem,
-             wireguard, tun). Port the lab layout and the knobs unchanged.
-             The guest only measures; the host derives each expected
-             verdict from the lab's settings and compares, and reads each
-             nftables rule counter before and after. Refuse contradictory
-             knobs. For a policy-only lab, offer a lighter variant on a
-             user-space stack with no kernel, from podnet's `podnet net`.
-Decision:    The check design ports as it is: measure in the guest, derive
-             on the host, read counters, plant a failure. A rootfs-tier
-             payload as the lab's guest is measured or refused with the
-             reason. Take `pod-netlab` and `pod-netstack` when podcrates
-             releases them; the world's DNS and proxy come from podcrates
-             crates or the entry records why not.
-Prove:       `cargo test -p podvm` exits 0 with tests that derive the
-             expected verdicts of two scenarios from their knobs.
-             `sh experiments/418-net-lab.sh` exits 0 on a TCG-only host:
-             `podvm lab try dual-nat` prints PASS rows, `podvm lab matrix`
-             runs every offline scenario with its time, and a flushed
-             policy chain inside the guest makes the check fail.
+sand-net built 39 lab scenarios from three network namespaces
+and checked each with a self-check that derived every expected
+verdict from the lab's settings. The target host has no
+network namespace and no `/dev/net/tun`, so podvm cannot build
+a lab on the host.
+
+## Premise
+
+A machine-tier guest kernel is root inside, so namespaces,
+nftables, `tc netem`, tayga and WireGuard work there. The
+machine tier runs under TCG on the target host
+(`crates/podvm/src/tier.rs:144`), at 3x to 21x the native cost
+(T-1308). User-mode networking carried a guest in
+`experiments/361-guest-usernet.sh:299`. Running a guest from
+`run` is T-1656. The issue names `pod-dns` and `pod-proxy`;
+podcrates names `pod-netlab` (wave M7) on `pod-netstack`.
+
+## Approach
+
+Add `podvm lab up|down|check|try|matrix` that boots one guest
+with a lab image and kernel options (netns, nf_tables, netem,
+wireguard, tun). Port the lab layout and the knobs unchanged.
+The guest only measures; the host derives each expected
+verdict from the lab's settings and compares, and reads each
+nftables rule counter before and after. Refuse contradictory
+knobs. For a policy-only lab, offer a lighter variant on a
+user-space stack with no kernel, from podnet's `podnet net`.
+
+## Decision
+
+The check design ports as it is: measure in the guest, derive
+on the host, read counters, plant a failure. A rootfs-tier
+payload as the lab's guest is measured or refused with the
+reason. Take `pod-netlab` and `pod-netstack` when podcrates
+releases them; the world's DNS and proxy come from podcrates
+crates or the entry records why not.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests that derive the
+expected verdicts of two scenarios from their knobs.
+`sh experiments/418-net-lab.sh` exits 0 on a TCG-only host:
+`podvm lab try dual-nat` prints PASS rows, `podvm lab matrix`
+runs every offline scenario with its time, and a flushed
+policy chain inside the guest makes the check fail.
+
+## Blocker
 
 **Blocked 2026-11-11 on podcrates.** The Decision takes `pod-netlab`,
 which podcrates lists under M7 after a study, with no date. COORD-041
@@ -75,6 +90,8 @@ xz, 21 MB), and `squashfs.ko` is in the modloop only, so the host must
 read it and give the guest a module set with its `modules.dep`. The
 condition that clears the block: podcrates's answer on the crate and on
 the reader. T-1663 and T-1664 run in this lab guest.
+
+## Correction
 
 **Filed 2026-11-06.** Quoted from issue 178:
 
@@ -97,47 +114,64 @@ F21: a wildcard-bound UDP server answers from the route's preferred
   address; reply with IPV6_PKTINFO
 ```
 
----
+The effort of T-1662 was XL before call C17 of `docs/decisions.md`; pod-todo has no XL.
 
-### T-1663 Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs
+# T-1663: Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs
 
-Source:      issue 180; #193; the owner's ruling of 2026-11-06;
-             A-V-02 of PodUtils/podcrates#39
-Category:    net
-Priority:    P2
-Effort:      L
-Status:      blocked
+**Source:** issue 180; #193; the owner's ruling of 2026-11-06;
+  A-V-02 of PodUtils/podcrates#39
+**Category:** net
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** blocked
 
-Problem:     sand-net ran WireGuard labs with a kill switch, a live WARP
-             uplink, and a mode that forced a proxy-ignorant program
-             through a proxy. podvm has none of the three, and the target
-             host has no kernel facility for the first two.
-Premise:     WireGuard and the kill switch need a kernel, which the lab
-             guest of T-1662 has. podnet's `warp` needs no TUN in its proxy
-             and `run` modes; its TUN mode needs `CAP_NET_ADMIN`, which the
-             guest has. podnet's `pod` (crate `podnet-netns`, seccomp
-             backend) forces a program's traffic through a proxy with no
-             root. The issue names `pod-proxy` and `pod-tls`.
-Approach:    Run the vpn scenarios inside the T-1662 guest unchanged. Run
-             podnet inside the guest as the router's uplink, its outer
-             connection through user-mode networking and the host proxy.
-             On the rootfs tiers, add a net mode that reuses
-             `podnet-netns` to force a payload through a proxy URL. For a
-             kill switch without a namespace, refuse in a Syscall User
-             Dispatch handler (T-1652) every `connect` but the proxy.
-Decision:    podvm reuses podnet's crate and does not write a second one. A
-             kill switch on a rootfs tier is per payload, not per host, and
-             the output says so. A dead upstream fails the connection
-             visibly, not by a reset after a successful `connect` (cfrs
-             issue 190).
-Prove:       `cargo test -p podvm` exits 0 with tests for the net mode's
-             argument parse. `sh experiments/419-net-tunnels.sh` exits 0:
-             vpn-full, vpn-leak and vpn-killswitch pass in the lab guest with
-             the `leak` counter moving only in the kill-switch case, a
-             proxy-ignorant program reaches the world through the proxy
-             mode, and a dead upstream fails that program's connection
-             visibly. The live warp-uplink leg runs where the operator
-             grants a live run.
+## Problem
+
+sand-net ran WireGuard labs with a kill switch, a live WARP
+uplink, and a mode that forced a proxy-ignorant program
+through a proxy. podvm has none of the three, and the target
+host has no kernel facility for the first two.
+
+## Premise
+
+WireGuard and the kill switch need a kernel, which the lab
+guest of T-1662 has. podnet's `warp` needs no TUN in its proxy
+and `run` modes; its TUN mode needs `CAP_NET_ADMIN`, which the
+guest has. podnet's `pod` (crate `podnet-netns`, seccomp
+backend) forces a program's traffic through a proxy with no
+root. The issue names `pod-proxy` and `pod-tls`.
+
+## Approach
+
+Run the vpn scenarios inside the T-1662 guest unchanged. Run
+podnet inside the guest as the router's uplink, its outer
+connection through user-mode networking and the host proxy.
+On the rootfs tiers, add a net mode that reuses
+`podnet-netns` to force a payload through a proxy URL. For a
+kill switch without a namespace, refuse in a Syscall User
+Dispatch handler (T-1652) every `connect` but the proxy.
+
+## Decision
+
+podvm reuses podnet's crate and does not write a second one. A
+kill switch on a rootfs tier is per payload, not per host, and
+the output says so. A dead upstream fails the connection
+visibly, not by a reset after a successful `connect` (cfrs
+issue 190).
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests for the net mode's
+argument parse. `sh experiments/419-net-tunnels.sh` exits 0:
+vpn-full, vpn-leak and vpn-killswitch pass in the lab guest with
+the `leak` counter moving only in the kill-switch case, a
+proxy-ignorant program reaches the world through the proxy
+mode, and a dead upstream fails that program's connection
+visibly. The live warp-uplink leg runs where the operator
+grants a live run.
+
+## Blocker
 
 **Blocked 2026-11-11 with T-1662.** Each clause of the Prove runs in the
 lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
@@ -146,6 +180,8 @@ COORD-041 (issue 260) on PodUtils/podcrates#70 that this entry waits with
 it. The parts with no lab are in place: the kill switch of a rootfs-tier
 payload is the hold of T-1665 (the handler refuses each `connect` but the
 broker's).
+
+## Correction
 
 **Filed 2026-11-06.** Quoted from issue 180:
 
@@ -169,47 +205,62 @@ is the shared mechanism of this entry and of T-1665: a Syscall User Dispatch
 handler (T-1652) or podnet's `pod`. podcrates T-109 studies the hold of
 podnet. T-1665 holds the clauses of the ask. This entry changes no clause.
 
----
+# T-1664: Observability: capture, counters and connection logs without `CAP_NET_RAW`
 
-### T-1664 Observability: capture, counters and connection logs without `CAP_NET_RAW`
+**Source:** issue 182; #193; the owner's ruling of 2026-11-06
+**Category:** net
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** blocked
 
-Source:      issue 182; #193; the owner's ruling of 2026-11-06
-Category:    net
-Priority:    P2
-Effort:      L
-Status:      blocked
+## Problem
 
-Problem:     sand-net captured packets, read per-interface and rule
-             counters, and watched rates inside a lab, all through `sudo`.
-             On the target host `AF_PACKET` needs `CAP_NET_RAW`, which an
-             unprivileged process does not have. A rootfs-tier payload
-             shares the host network, so nothing can capture its packets.
-Premise:     Inside the T-1662 guest the kernel is root, so capture and
-             counters run there. QEMU's `filter-dump` writes a pcap of a
-             guest's user-mode network with no privilege. The interposer
-             and the T-1652 handler see each `connect`, `sendto` and `bind`
-             call. The issue names podcrates `pod-pcap` (wave M7) through
-             the podcrates crate table.
-Approach:    Add `podvm lab capture|stats|watch` that runs the capture and
-             the counters in the guest and streams them out on a second
-             channel. For a machine-tier run with user-mode networking,
-             write a host-side pcap through `filter-dump`. For a rootfs-tier
-             payload, write a connection log at the syscall layer: address,
-             port, result and errno for each call.
-Decision:    A connection log is not a packet capture, and its output says
-             so. The counters are part of correctness: the lab check fails
-             when a rule that should match did not. The proxy variables of
-             the calling shell are removed in a lab shell, because they
-             name a host loopback that the lab does not have. Take
-             `pod-pcap` when podcrates releases it.
-Prove:       `cargo test -p podvm` exits 0 with a test for the connection
-             log record format. `sh experiments/420-net-capture.sh` exits 0:
-             `podvm lab capture LAB --at router --iface rw -w out.pcap`
-             writes a pcap that `tcpdump -r` reads and that shows the NATed
-             source, `podvm lab stats LAB --json` lists the rule counters by
-             name, a machine-tier run writes a host-side pcap with no
-             privilege, and a rootfs-tier run logs each connect with its
-             errno.
+sand-net captured packets, read per-interface and rule
+counters, and watched rates inside a lab, all through `sudo`.
+On the target host `AF_PACKET` needs `CAP_NET_RAW`, which an
+unprivileged process does not have. A rootfs-tier payload
+shares the host network, so nothing can capture its packets.
+
+## Premise
+
+Inside the T-1662 guest the kernel is root, so capture and
+counters run there. QEMU's `filter-dump` writes a pcap of a
+guest's user-mode network with no privilege. The interposer
+and the T-1652 handler see each `connect`, `sendto` and `bind`
+call. The issue names podcrates `pod-pcap` (wave M7) through
+the podcrates crate table.
+
+## Approach
+
+Add `podvm lab capture|stats|watch` that runs the capture and
+the counters in the guest and streams them out on a second
+channel. For a machine-tier run with user-mode networking,
+write a host-side pcap through `filter-dump`. For a rootfs-tier
+payload, write a connection log at the syscall layer: address,
+port, result and errno for each call.
+
+## Decision
+
+A connection log is not a packet capture, and its output says
+so. The counters are part of correctness: the lab check fails
+when a rule that should match did not. The proxy variables of
+the calling shell are removed in a lab shell, because they
+name a host loopback that the lab does not have. Take
+`pod-pcap` when podcrates releases it.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test for the connection
+log record format. `sh experiments/420-net-capture.sh` exits 0:
+`podvm lab capture LAB --at router --iface rw -w out.pcap`
+writes a pcap that `tcpdump -r` reads and that shows the NATed
+source, `podvm lab stats LAB --json` lists the rule counters by
+name, a machine-tier run writes a host-side pcap with no
+privilege, and a rootfs-tier run logs each connect with its
+errno.
+
+## Blocker
 
 **Blocked 2026-11-11 with T-1662.** Each clause of the Prove runs in the
 lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
@@ -217,6 +268,8 @@ lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
 COORD-041 (issue 260) on PodUtils/podcrates#70 that this entry waits with
 it. The host-side pcap and the connection log at the syscall layer need no
 lab and come with the entry.
+
+## Correction
 
 **Filed 2026-11-06.** Quoted from issue 182:
 
@@ -232,55 +285,121 @@ F7: `ip netns exec` remounts /sys; a capture helper is fine, runc is not
 not covered: capture inside a cage's own namespace
 ```
 
----
+# T-1665: An egress broker, and the guest's view of a loopback-only proxy
 
-### T-1665 An egress broker, and the guest's view of a loopback-only proxy
+**Source:** issue 184; #193; the owner's ruling of 2026-11-06;
+  A-V-02, A-V-03 of PodUtils/podcrates#39
+**Category:** net
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** partial
 
-Source:      issue 184; #193; the owner's ruling of 2026-11-06;
-             A-V-02, A-V-03 of PodUtils/podcrates#39
-Category:    net
-Priority:    P2
-Effort:      L
-Status:      partial 2026-11-11
+## Problem
 
-Problem:     The target host's only way out is an HTTP CONNECT proxy, often
-             on the host loopback. A machine-tier guest cannot reach a
-             loopback proxy without a rewrite. podvm has no egress broker
-             that holds a payload to an allowlist, as errand's broker and
-             sand-net's replica did.
-Premise:     A rootfs-tier payload shares the host network, so a loopback
-             proxy is reachable and the variables pass through unchanged.
-             QEMU user-mode networking maps the host loopback at 10.0.2.2
-             unless `restrict=on`; the usernet experiment routes through
-             that gateway (`experiments/361-guest-usernet.sh:223`). The
-             tree reads no proxy variable today. The issue names podcrates
-             `pod-proxy` and `pod-tls`; podcrates names `pod-broker` for
-             the broker (podcrates T-099, T-100, call C25). `pod-egress` keeps the
-             roads (podcrates T-035).
-Approach:    On the machine tier, rewrite each proxy variable whose host is
-             `127.0.0.1`, `localhost` or `::1` to 10.0.2.2, scheme, port and
-             credentials byte for byte. Add `--net broker` with `--ports`
-             and `--allow`, built on `pod-broker` and `pod-proxy`, chained
-             to the host proxy. Hold a payload to the broker with a Syscall
-             User Dispatch handler that refuses every other `connect`
-             (T-1652), or with podnet's `pod`.
-Decision:    The broker's 407, 403, 502 and 504 vocabulary of issue 184 is
-             the specification. A profile never claims `broker` where no
-             holding mechanism is active. A seccomp filter cannot read a
-             sockaddr, so it is not a holding mechanism. The credential
-             never goes in argv or in a URL that podvm logs.
-Prove:       `cargo test -p podvm` exits 0 with rewrite tests: a password
-             with `@` survives, a percent-escaped password is not decoded,
-             a URL with no port or no scheme is refused.
-             `sh experiments/421-egress-broker.sh` exits 0 on a
-             loopback-proxy host: a rootfs-tier payload fetches through the
-             unchanged variables, a machine-tier guest gets the proxy at
-             the gateway with credentials intact, `--net broker --ports 443`
-             answers 403 for port 22 and for 127.0.0.1, 407 without the
-             session credential and 200 for an allowed host, and a payload
-             that ignores the variables cannot reach the network directly. A `connect` to a named upstream
-             reaches the broker on its Unix socket, the name resolves to a fake
-             address, and with no holding mechanism the run refuses by name.
+The target host's only way out is an HTTP CONNECT proxy, often
+on the host loopback. A machine-tier guest cannot reach a
+loopback proxy without a rewrite. podvm has no egress broker
+that holds a payload to an allowlist, as errand's broker and
+sand-net's replica did.
+
+## Premise
+
+A rootfs-tier payload shares the host network, so a loopback
+proxy is reachable and the variables pass through unchanged.
+QEMU user-mode networking maps the host loopback at 10.0.2.2
+unless `restrict=on`; the usernet experiment routes through
+that gateway (`experiments/361-guest-usernet.sh:223`). The
+tree reads no proxy variable today. The issue names podcrates
+`pod-proxy` and `pod-tls`; podcrates names `pod-broker` for
+the broker (podcrates T-099, T-100, call C25). `pod-egress` keeps the
+roads (podcrates T-035).
+
+## Approach
+
+On the machine tier, rewrite each proxy variable whose host is
+`127.0.0.1`, `localhost` or `::1` to 10.0.2.2, scheme, port and
+credentials byte for byte. Add `--net broker` with `--ports`
+and `--allow`, built on `pod-broker` and `pod-proxy`, chained
+to the host proxy. Hold a payload to the broker with a Syscall
+User Dispatch handler that refuses every other `connect`
+(T-1652), or with podnet's `pod`.
+
+## Decision
+
+The broker's 407, 403, 502 and 504 vocabulary of issue 184 is
+the specification. A profile never claims `broker` where no
+holding mechanism is active. A seccomp filter cannot read a
+sockaddr, so it is not a holding mechanism. The credential
+never goes in argv or in a URL that podvm logs.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with rewrite tests: a password
+with `@` survives, a percent-escaped password is not decoded,
+a URL with no port or no scheme is refused.
+`sh experiments/421-egress-broker.sh` exits 0 on a
+loopback-proxy host: a rootfs-tier payload fetches through the
+unchanged variables, a machine-tier guest gets the proxy at
+the gateway with credentials intact, `--net broker --ports 443`
+answers 403 for port 22 and for 127.0.0.1, 407 without the
+session credential and 200 for an allowed host, and a payload
+that ignores the variables cannot reach the network directly. A `connect` to a named upstream
+reaches the broker on its Unix socket, the name resolves to a fake
+address, and with no holding mechanism the run refuses by name.
+
+## Correction
+
+**Filed 2026-11-06.** Quoted from issue 184:
+
+```text
+broker: Basic Proxy-Authorization with a per-run 32-byte hex secret, else
+  407; port or host off the lists: 403 not on the egress allowlist; name
+  not resolved in 5 s: 504; not a public host (loopback, private,
+  link-local, reserved, 168.63.129.16): 403; dial over 10 s: 502
+F29: 127.0.0.1 in the guest is the guest; slirp4netns reaches the host
+  loopback only with allow_host_loopback=true, at 10.0.2.2:
+  `curl -x http://10.0.2.2:3128 https://api.github.com` gave 407; without it
+  the connection was refused
+F27: podman 5 copies the host proxy variables into every container
+  (--http-proxy defaults to true), so a guest failed naming itself
+F11: the reference report showed CONNECT answering 200 with no credential,
+  while errand's document says 407
+busybox wget sent plain HTTP to the proxy and got 404
+```
+
+**Amended 2026-11-09.** The asks A-V-02 and A-V-03 of PodUtils/podcrates#39
+(COORD-015, a message from a peer session) and the call C25 of podcrates
+change this entry. C25: the broker is the new crate `pod-broker` (podcrates
+T-099, T-100), not `pod-egress`. The Premise and the Approach now name
+`pod-broker`, and `--net broker` uses it. A-V-03 wants the policy of the
+egress proxy of cfb. That policy is an input of `pod-broker`: the allowed
+hosts and ports, the per-run credential, the rule for public hosts and the
+407, 403, 502 and 504 answers. `--net broker` loads it and does not write a
+second copy. A-V-02 wants a payload held to one egress. Each `connect` to a
+named upstream goes to the broker on a Unix socket. A fake DNS answers each
+name with one stable fake address, and the hold maps that address to the
+upstream. When no holding mechanism works, the run refuses by name before
+the start. The Decision already says this.
+
+**Amended 2026-11-10, for podrunner.** The podrunner design review (the
+owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
+2026-11-10; SPEC sections 9.1, 9.5 and its unknown U9) holds a podvm unit with
+`podnet pod` around `podvm run`, and calls that hold advisory. podnet owns
+the measurement of the pod with the runner (COORD-022, issue 228). One
+clause is podvm's: the experiment adds a run of `podnet pod
+--default-action reject -x http://unix:/PATH -- podvm run IMAGE`, where
+the payload's TCP reaches the Unix upstream, a direct connect is refused,
+podvm's own pull before the payload works or refuses by name, and the
+banner names the rung. The review writes the upstream as
+`socks5://unix:PATH`; `pod-broker` speaks HTTP CONNECT only, and podnet
+parses `http://unix:/PATH` (COORD-021, issue 227, section 0, item 4).
+Under the seccomp listener of the pod the kernel refuses a second
+listener, so the probe rejects `supervise` there (Inferred, not run); the
+experiment records the rung that it selects. The report of T-1695 names an
+outer hold only where podvm measures it, else `null`.
+
+## Done
 
 **Partial 2026-11-11.** The rewrite half is done. `cargo test -p podvm`
 exits 0 with `a_loopback_proxy_moves_to_the_gateway_byte_for_byte` (a
@@ -335,52 +454,3 @@ Remaining clause: a `connect` of a payload that ignores the variables to a
 named upstream reaches the broker (its Unix socket), the name resolving
 to a fake address that maps to the name. Today such a payload is refused,
 not served.
-
-**Filed 2026-11-06.** Quoted from issue 184:
-
-```text
-broker: Basic Proxy-Authorization with a per-run 32-byte hex secret, else
-  407; port or host off the lists: 403 not on the egress allowlist; name
-  not resolved in 5 s: 504; not a public host (loopback, private,
-  link-local, reserved, 168.63.129.16): 403; dial over 10 s: 502
-F29: 127.0.0.1 in the guest is the guest; slirp4netns reaches the host
-  loopback only with allow_host_loopback=true, at 10.0.2.2:
-  `curl -x http://10.0.2.2:3128 https://api.github.com` gave 407; without it
-  the connection was refused
-F27: podman 5 copies the host proxy variables into every container
-  (--http-proxy defaults to true), so a guest failed naming itself
-F11: the reference report showed CONNECT answering 200 with no credential,
-  while errand's document says 407
-busybox wget sent plain HTTP to the proxy and got 404
-```
-
-**Amended 2026-11-09.** The asks A-V-02 and A-V-03 of PodUtils/podcrates#39
-(COORD-015, a message from a peer session) and the call C25 of podcrates
-change this entry. C25: the broker is the new crate `pod-broker` (podcrates
-T-099, T-100), not `pod-egress`. The Premise and the Approach now name
-`pod-broker`, and `--net broker` uses it. A-V-03 wants the policy of the
-egress proxy of cfb. That policy is an input of `pod-broker`: the allowed
-hosts and ports, the per-run credential, the rule for public hosts and the
-407, 403, 502 and 504 answers. `--net broker` loads it and does not write a
-second copy. A-V-02 wants a payload held to one egress. Each `connect` to a
-named upstream goes to the broker on a Unix socket. A fake DNS answers each
-name with one stable fake address, and the hold maps that address to the
-upstream. When no holding mechanism works, the run refuses by name before
-the start. The Decision already says this.
-
-**Amended 2026-11-10, for podrunner.** The podrunner design review (the
-owner's design review of PodUtils/podcrates#47; the ruling "podrunner",
-2026-11-10; SPEC sections 9.1, 9.5 and its unknown U9) holds a podvm unit with
-`podnet pod` around `podvm run`, and calls that hold advisory. podnet owns
-the measurement of the pod with the runner (COORD-022, issue 228). One
-clause is podvm's: the experiment adds a run of `podnet pod
---default-action reject -x http://unix:/PATH -- podvm run IMAGE`, where
-the payload's TCP reaches the Unix upstream, a direct connect is refused,
-podvm's own pull before the payload works or refuses by name, and the
-banner names the rung. The review writes the upstream as
-`socks5://unix:PATH`; `pod-broker` speaks HTTP CONNECT only, and podnet
-parses `http://unix:/PATH` (COORD-021, issue 227, section 0, item 4).
-Under the seccomp listener of the pod the kernel refuses a second
-listener, so the probe rejects `supervise` there (Inferred, not run); the
-experiment records the rung that it selects. The report of T-1695 names an
-outer hold only where podvm measures it, else `null`.

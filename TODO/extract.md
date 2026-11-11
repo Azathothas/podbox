@@ -1,4 +1,4 @@
-# extract
+Area: extract.
 
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
@@ -17,38 +17,53 @@ separate tools in the corpus stop here, all at the same wall, and the wall is
 `experiments/70-whiteout-contract.sh` against two images pinned by digest. Four
 requirements come out of it and each is an entry below.
 
----
+# T-0301: Extract in-process, at entry level, never through system `tar`
 
-### T-0301 Extract in-process, at entry level, never through system `tar`
+**Source:** `TOOL.md` section 6.3, `paper_final.md` section 10.4
+**Category:** extract
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 6.3, `paper_final.md` section 10.4
-Category:    extract
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Shelling out to `tar` inherits its ownership semantics, its exit
-             codes and its path behaviour. That is how the ownership wall
-             reaches five separate tools rather than one.
-Premise:     Measured in the corpus, at file and line, in two of them.
-             `references/RuriOSS__rurima/tree/src/archive.c:95` builds a `tar`
-             argument vector containing `-xpf`, which preserves permissions and
-             ownership, and that is where its `docker pull` dies.
-             `references/indigo-dc__udocker/tree/udocker/container/structure.py:285-287`
-             also shells out, and survives only because it passes
-             `--no-same-owner` and `--no-same-permissions`. The flags are the
-             mechanism; the shell-out is not.
-Approach:    Drive a tar reader at **entry level**: read a header, decide, act.
-             Never call a library's `unpack()` convenience, which makes the
-             ownership, permission and path decisions this component exists to
-             make. The candidate crate and its measured size delta are T-0907.
-Decision:    In-process over a Rust tar reader, rather than a vendored C
-             libarchive. libarchive is where `short write: -20` came from
-             (T-0203), it is a C dependency that complicates `crt-static`, and
-             the entry-level API podvm needs is the smaller half of what it
-             offers.
-Prove:       `./experiments/220-extract-path-safety.sh` exits 0, and
-             `strace -f -e trace=execve -o /tmp/e.txt podvm extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
+Shelling out to `tar` inherits its ownership semantics, its exit
+codes and its path behaviour. That is how the ownership wall
+reaches five separate tools rather than one.
+
+## Premise
+
+Measured in the corpus, at file and line, in two of them.
+`references/RuriOSS__rurima/tree/src/archive.c:95` builds a `tar`
+argument vector containing `-xpf`, which preserves permissions and
+ownership, and that is where its `docker pull` dies.
+`references/indigo-dc__udocker/tree/udocker/container/structure.py:285-287`
+also shells out, and survives only because it passes
+`--no-same-owner` and `--no-same-permissions`. The flags are the
+mechanism; the shell-out is not.
+
+## Approach
+
+Drive a tar reader at **entry level**: read a header, decide, act.
+Never call a library's `unpack()` convenience, which makes the
+ownership, permission and path decisions this component exists to
+make. The candidate crate and its measured size delta are T-0907.
+
+## Decision
+
+In-process over a Rust tar reader, rather than a vendored C
+libarchive. libarchive is where `short write: -20` came from
+(T-0203), it is a C dependency that complicates `crt-static`, and
+the entry-level API podvm needs is the smaller half of what it
+offers.
+
+## Prove
+
+`./experiments/220-extract-path-safety.sh` exits 0, and
+`strace -f -e trace=execve -o /tmp/e.txt podvm extract --force public.ecr.aws/docker/library/alpine:3.20; grep -c 'execve.*"tar"' /tmp/e.txt` prints 0
+
+## Done
 
 **Done, 2026-09-08.** `src/apply.rs` of `pod-extract` (PodUtils/podcrates) drives
 `tar::Archive::entries()` and makes every decision itself. 515 entries out of a
@@ -69,59 +84,74 @@ caller. The writer's validation is not the reader's, so the hostile archives in
 at the header level. Taking a Rust tar crate does not make this safe by itself,
 which is what [T-0304](extract.md) is for.
 
----
+# T-0302: Ownership-neutral extraction plus the sidecar
 
-### T-0302 Ownership-neutral extraction plus the sidecar
+**Source:** `TOOL.md` section 6.3, `paper_final.md` section 9.1 and section 10.4
+**Category:** extract
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 6.3, `paper_final.md` section 9.1 and section 10.4
-Category:    extract
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     `chown` and `lchown` to an unmapped id return **`EINVAL`**, not
-             `EPERM`, and that is where GNU tar, containers/storage's layer
-             applier, Apptainer's Go unpacker, pacman's `DownloadUser` and
-             rurima's `tar -xpf` all stop. `/etc/shadow` is the usual first
-             casualty because it is `root:shadow`, gid 42.
-Premise:     ⭐ **Measured here, against a pinned image.**
-             `experiments/results/whiteout-contract.txt` check B reads
-             `-rw-r----- 0/42 ... etc/shadow` out of
-             `alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`.
-             The wall itself is at
-             `references/containers__storage/tree/pkg/archive/archive.go:798-811`:
-             with `chownOpts` nil it takes the ids straight from the tar header
-             and calls `idtools.SafeLchown`. The switch is at
-             `references/containers__storage/tree/pkg/archive/archive.go:1104`.
-Approach:    Never restore ownership by default. Record intended metadata in a
-             sidecar keyed by path, and apply it only where the target id is
-             mapped:
+`chown` and `lchown` to an unmapped id return **`EINVAL`**, not
+`EPERM`, and that is where GNU tar, containers/storage's layer
+applier, Apptainer's Go unpacker, pacman's `DownloadUser` and
+rurima's `tar -xpf` all stop. `/etc/shadow` is the usual first
+casualty because it is `root:shadow`, gid 42.
 
-             ```json
-             {"path":"etc/shadow","uid":0,"gid":42,"mode":"0640",
-              "applied":{"uid":0,"gid":0},"reason":"gid 42 unmapped"}
-             ```
+## Premise
 
-             The sidecar buys three things `--no-same-owner` alone does not:
-             faithful re-export, an honest answer to a workload that asks who
-             owns a file, and a diagnostic that names the gap.
-             ⛔ It changes no kernel permission check and must never be
-             presented as if it does.
-             The design to copy is `udocker`'s, which is ownership-neutral by
-             construction rather than by recovery:
-             `references/indigo-dc__udocker/tree/udocker/container/structure.py:285-287`.
-Decision:    A sidecar, not `--no-same-owner` semantics alone. The alternative
-             loses the intended metadata, and T-0704's interposer needs it to
-             answer a `stat` truthfully.
-             ⚠ **A note that corrects the corpus, not a decision.**
-             `references/containers__storage/tree/pkg/archive/archive.go:804-808`
-             already carries `ignoreChownErrors`, which turns exactly this
-             failure into a warning, and it is reachable by configuration:
-             `references/containers__storage/tree/types/options.go:473-474` and
-             `references/containers__storage/tree/drivers/vfs/driver.go:59-62`.
-             That does not change podvm's design and it does change a claim
-             about podman, which is T-0205.
-Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/../.meta.jsonl"`
+⭐ **Measured here, against a pinned image.**
+`experiments/results/whiteout-contract.txt` check B reads
+`-rw-r----- 0/42 ... etc/shadow` out of
+`alpine@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc`.
+The wall itself is at
+`references/containers__storage/tree/pkg/archive/archive.go:798-811`:
+with `chownOpts` nil it takes the ids straight from the tar header
+and calls `idtools.SafeLchown`. The switch is at
+`references/containers__storage/tree/pkg/archive/archive.go:1104`.
+
+## Approach
+
+Never restore ownership by default. Record intended metadata in a
+sidecar keyed by path, and apply it only where the target id is
+mapped:
+
+```json
+{"path":"etc/shadow","uid":0,"gid":42,"mode":"0640",
+ "applied":{"uid":0,"gid":0},"reason":"gid 42 unmapped"}
+```
+
+The sidecar buys three things `--no-same-owner` alone does not:
+faithful re-export, an honest answer to a workload that asks who
+owns a file, and a diagnostic that names the gap.
+⛔ It changes no kernel permission check and must never be
+presented as if it does.
+The design to copy is `udocker`'s, which is ownership-neutral by
+construction rather than by recovery:
+`references/indigo-dc__udocker/tree/udocker/container/structure.py:285-287`.
+
+## Decision
+
+A sidecar, not `--no-same-owner` semantics alone. The alternative
+loses the intended metadata, and T-0704's interposer needs it to
+answer a `stat` truthfully.
+⚠ **A note that corrects the corpus, not a decision.**
+`references/containers__storage/tree/pkg/archive/archive.go:804-808`
+already carries `ignoreChownErrors`, which turns exactly this
+failure into a warning, and it is reachable by configuration:
+`references/containers__storage/tree/types/options.go:473-474` and
+`references/containers__storage/tree/drivers/vfs/driver.go:59-62`.
+That does not change podvm's design and it does change a claim
+about podman, which is T-0205.
+
+## Prove
+
+`podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 && jq -e 'select(.path=="etc/shadow") | .uid==0 and .gid==42 and .applied.gid==0' "$(podvm inspect --format '{{.RootfsPath}}' public.ecr.aws/docker/library/alpine:3.20)/../.meta.jsonl"`
+
+## Done
 
 **Done, 2026-09-08.** `src/sidecar.rs` of `pod-extract` (PodUtils/podcrates), written per entry
 by `src/apply.rs` of `pod-extract` (PodUtils/podcrates). The `Prove` above runs and exits 0
@@ -148,41 +178,56 @@ pass on an implementation that claimed an ownership it never applied, so
 `the_sidecar_does_not_claim_an_ownership_the_kernel_did_not_apply` checks the
 file on disk and asserts its gid is the extractor's and NOT 42.
 
----
+# T-0303: Whiteouts are matched on the basename, never with a path glob
 
-### T-0303 Whiteouts are matched on the basename, never with a path glob
+**Source:** `TOOL.md` section 6.3; measured against `references/indigo-dc__udocker`
+**Category:** extract
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 6.3; measured against `references/indigo-dc__udocker`
-Category:    extract
-Priority:    P0
-Effort:      S
-Status:      done 2026-09-08
+## Problem
 
-Problem:     A whiteout at the **root** of a layer is silently ignored by a
-             selector anchored on a slash, and real OCI layers do not write a
-             `./` prefix, so there is no slash to anchor on.
-Premise:     ⭐ **Measured here, and the measurement contradicted the first
-             reading of the code.** `experiments/70-whiteout-contract.sh`
-             check A reads the first member of every layer of two pinned images
-             and gets `bin/`, `bin` and `etc/`: no `./` prefix anywhere. Check D
-             then runs udocker's own selector,
-             `tar t --wildcards -f LAYER '*/.wh.*'`
-             (`references/indigo-dc__udocker/tree/udocker/container/structure.py:242`),
-             against a crafted archive with one whiteout at the layer root and
-             one nested, and the root one is missed. Output in
-             `experiments/results/whiteout-contract.txt`.
-             ⚠ The crafted archive is deliberate: neither pinned image happens
-             to carry a root-level whiteout, so passing on them would say
-             nothing.
-Approach:    Take the basename of every entry and test it for the `.wh.` prefix.
-             Handle `.wh..wh..opq` as an opaque-directory marker separately: it
-             removes the contents of the directory it sits in, which is what
-             `references/indigo-dc__udocker/tree/udocker/container/structure.py:249-256`
-             does by listing that directory and removing each entry.
-Decision:    Basename matching over any glob. A glob is what produced the
-             defect, and there is no glob that is both correct for a prefixed
-             archive and a bare one.
-Prove:       `./experiments/70-whiteout-contract.sh` exits 0
+A whiteout at the **root** of a layer is silently ignored by a
+selector anchored on a slash, and real OCI layers do not write a
+`./` prefix, so there is no slash to anchor on.
+
+## Premise
+
+⭐ **Measured here, and the measurement contradicted the first
+reading of the code.** `experiments/70-whiteout-contract.sh`
+check A reads the first member of every layer of two pinned images
+and gets `bin/`, `bin` and `etc/`: no `./` prefix anywhere. Check D
+then runs udocker's own selector,
+`tar t --wildcards -f LAYER '*/.wh.*'`
+(`references/indigo-dc__udocker/tree/udocker/container/structure.py:242`),
+against a crafted archive with one whiteout at the layer root and
+one nested, and the root one is missed. Output in
+`experiments/results/whiteout-contract.txt`.
+⚠ The crafted archive is deliberate: neither pinned image happens
+to carry a root-level whiteout, so passing on them would say
+nothing.
+
+## Approach
+
+Take the basename of every entry and test it for the `.wh.` prefix.
+Handle `.wh..wh..opq` as an opaque-directory marker separately: it
+removes the contents of the directory it sits in, which is what
+`references/indigo-dc__udocker/tree/udocker/container/structure.py:249-256`
+does by listing that directory and removing each entry.
+
+## Decision
+
+Basename matching over any glob. A glob is what produced the
+defect, and there is no glob that is both correct for a prefixed
+archive and a bare one.
+
+## Prove
+
+`./experiments/70-whiteout-contract.sh` exits 0
+
+## Done
 
 **Done, 2026-09-08.** `src/whiteout.rs` of `pod-extract` (PodUtils/podcrates).
 
@@ -199,42 +244,57 @@ a removal of `""` would remove the directory the marker sits in; and a whiteout
 whose own name carries a trailing slash is still a removal, because the
 basename must not depend on the directory marker.
 
----
+# T-0304: Refuse an entry that resolves outside the destination, including through a symlink from the same layer
 
-### T-0304 Refuse an entry that resolves outside the destination, including through a symlink from the same layer
+**Source:** `TOOL.md` section 5 M2 acceptance 3, section 6.3; `paper_final.md` section 10.4
+**Category:** extract
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 5 M2 acceptance 3, section 6.3; `paper_final.md` section 10.4
-Category:    extract
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     A crafted layer creates `evil -> /etc` as its first entry and
-             writes `evil/passwd` as its second. Both entries are lexically
-             inside the destination and the second lands outside it.
-Premise:     Read, and half the mechanism is in the corpus at file and line.
-             `references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:19-48`
-             is `symlink_target_within_root`, a **purely lexical** check whose
-             own comment says why it is lexical: "so it cannot be defeated by
-             filesystem races". Beside it,
-             `references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:10-12`
-             rejects `""`, `.`, `..`, `/` and NUL as a path component.
-             ⚠ **That is only half of what M2 acceptance 3 needs.** onelf
-             validates a symlink entry when the symlink is created. It does not
-             validate a later regular entry whose path traverses that symlink,
-             which is exactly the crafted case.
-Approach:    Both halves. Validate every symlink entry lexically on creation,
-             as onelf does. Then resolve every entry's path against the
-             **accumulated tree**, with `openat2(RESOLVE_BENEATH | RESOLVE_NO_SYMLINKS)`
-             per component where the kernel has it, and an `O_NOFOLLOW` walk
-             holding a directory fd where it does not. Refuse, name the entry
-             and the layer digest, and fail the extraction rather than skipping
-             the entry.
-Decision:    Refuse rather than sanitize. Rewriting a hostile path to something
-             safe produces an image that differs from its digest with nothing
-             saying so, and the caller cannot tell a repaired layer from a
-             clean one.
-Prove:       `./experiments/220-extract-path-safety.sh` exits 0
+A crafted layer creates `evil -> /etc` as its first entry and
+writes `evil/passwd` as its second. Both entries are lexically
+inside the destination and the second lands outside it.
+
+## Premise
+
+Read, and half the mechanism is in the corpus at file and line.
+`references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:19-48`
+is `symlink_target_within_root`, a **purely lexical** check whose
+own comment says why it is lexical: "so it cannot be defeated by
+filesystem races". Beside it,
+`references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:10-12`
+rejects `""`, `.`, `..`, `/` and NUL as a path component.
+⚠ **That is only half of what M2 acceptance 3 needs.** onelf
+validates a symlink entry when the symlink is created. It does not
+validate a later regular entry whose path traverses that symlink,
+which is exactly the crafted case.
+
+## Approach
+
+Both halves. Validate every symlink entry lexically on creation,
+as onelf does. Then resolve every entry's path against the
+**accumulated tree**, with `openat2(RESOLVE_BENEATH | RESOLVE_NO_SYMLINKS)`
+per component where the kernel has it, and an `O_NOFOLLOW` walk
+holding a directory fd where it does not. Refuse, name the entry
+and the layer digest, and fail the extraction rather than skipping
+the entry.
+
+## Decision
+
+Refuse rather than sanitize. Rewriting a hostile path to something
+safe produces an image that differs from its digest with nothing
+saying so, and the caller cannot tell a repaired layer from a
+clean one.
+
+## Prove
+
+`./experiments/220-extract-path-safety.sh` exits 0
+
+## Done
 
 **Done, 2026-09-08.** `src/safety.rs` of `pod-extract` (PodUtils/podcrates), and the script
 exits 0 with six checks. `experiments/results/extract-path-safety.txt` is the
@@ -262,39 +322,54 @@ of the script and every refusal test look for the file the hostile layer tried
 to write. A refusal that still wrote it would pass a check that read only the
 status.
 
----
+# T-0305: An absolute symlink target is rootfs-relative, not a refusal
 
-### T-0305 An absolute symlink target is rootfs-relative, not a refusal
+**Source:** Found while reading `references/qaidvoid__onelf` against M2
+**Category:** extract
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      Found while reading `references/qaidvoid__onelf` against M2
-Category:    extract
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-08
+## Problem
 
-Problem:     A distro rootfs is full of legitimate absolute symlinks. Rejecting
-             them, as a bundle packer reasonably does, would refuse almost every
-             real image.
-Premise:     ⭐ **Measured here.** `experiments/results/whiteout-contract.txt`
-             check C reads
-             `lrwxrwxrwx 0/0 ... var/cache/xbps -> /var/cache/xbps` out of layer
-             1 of
-             `voidlinux/voidlinux-musl@sha256:d5c970d0015c3aa2559a2b5a87b158839969fbb1941a9ef52cc484a5392554cd`.
-             The refusal that must not be copied is
-             `references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:27-29`,
-             which returns false for any absolute target.
-Approach:    Interpret an absolute target **relative to the rootfs**, which is
-             what it will mean once the payload is inside the chroot, and apply
-             T-0304's containment check to the result. `/etc/mtab ->
-             /proc/self/mounts` and `/bin -> usr/bin` are then correct and
-             contained; a target that still escapes after rebasing is refused.
-             ⚠ The same absolute-symlink fact bites the completion layer from
-             the other side: writing through `/etc/mtab` with `>` follows the
-             link out of the rootfs. That is T-0405.
-Decision:    Rebase rather than reject, and rebase rather than dereference at
-             extraction time. Dereferencing would bake the build host's tree
-             into the image.
-Prove:       `podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`
+A distro rootfs is full of legitimate absolute symlinks. Rejecting
+them, as a bundle packer reasonably does, would refuse almost every
+real image.
+
+## Premise
+
+⭐ **Measured here.** `experiments/results/whiteout-contract.txt`
+check C reads
+`lrwxrwxrwx 0/0 ... var/cache/xbps -> /var/cache/xbps` out of layer
+1 of
+`voidlinux/voidlinux-musl@sha256:d5c970d0015c3aa2559a2b5a87b158839969fbb1941a9ef52cc484a5392554cd`.
+The refusal that must not be copied is
+`references/qaidvoid__onelf/tree/crates/onelf-format/src/manifest.rs:27-29`,
+which returns false for any absolute target.
+
+## Approach
+
+Interpret an absolute target **relative to the rootfs**, which is
+what it will mean once the payload is inside the chroot, and apply
+T-0304's containment check to the result. `/etc/mtab ->
+/proc/self/mounts` and `/bin -> usr/bin` are then correct and
+contained; a target that still escapes after rebasing is refused.
+⚠ The same absolute-symlink fact bites the completion layer from
+the other side: writing through `/etc/mtab` with `>` follows the
+link out of the rootfs. That is T-0405.
+
+## Decision
+
+Rebase rather than reject, and rebase rather than dereference at
+extraction time. Dereferencing would bake the build host's tree
+into the image.
+
+## Prove
+
+`podvm pull ghcr.io/void-linux/void-musl:latest && podvm extract ghcr.io/void-linux/void-musl:latest && ! test -L "$(podvm inspect --format '{{.RootfsPath}}' ghcr.io/void-linux/void-musl:latest)/var/cache/xbps"`
+
+## Done
 
 **Done, 2026-09-08.** `safety::rebase_symlink_target`, and driven against the
 image the entry names. `var/cache/xbps` is **gone** from the extracted tree,
@@ -314,38 +389,53 @@ Decision refuses.
 which is M3, and asserted "prints nothing and exits non-zero",  a shape that
 also passes when `run` itself is missing. It now asks the filesystem.
 
----
+# T-0306: Re-permission between layers, or the second layer fails
 
-### T-0306 Re-permission between layers, or the second layer fails
+**Source:** `references/indigo-dc__udocker`, read against `TOOL.md` section 6.3
+**Category:** extract
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      `references/indigo-dc__udocker`, read against `TOOL.md` section 6.3
-Category:    extract
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Ownership-neutral extraction leaves directories with the image's
-             modes and the extractor's ownership. A mode-0555 directory in
-             layer 1 cannot be written into when layer 2 extracts over it, and
-             the failure looks like a corrupt layer.
-Premise:     Read at file and line, not measured here.
-             `references/indigo-dc__udocker/tree/udocker/container/structure.py:296-303`
-             runs a `find` after every layer that adds `u+x` to directories
-             missing it, `u+w` and `u+r` to anything missing them, and `chgrp`
-             to the caller's own gid. Its docstring at
-             `references/indigo-dc__udocker/tree/udocker/container/structure.py:265-267`
-             states the reason: "permissions are changed to avoid file
-             permission issues when extracting the next layer".
-Approach:    After each layer, walk what that layer wrote and add owner read,
-             write and, for directories, execute. Record every mode changed in
-             the sidecar beside the ownership, so the intended mode survives a
-             re-export. Do not `chgrp`: podvm extracts as the only mapped id
-             already.
-Decision:    Widen only the owner bits, and only on entries this extraction
-             wrote. Widening group or other bits changes what the image means
-             for a payload that reads modes, and widening everything makes the
-             sidecar the only record of the real image.
-Prove:       `cargo test -p podvm-extract a_read_only_directory_in_one_layer_can_be_written_into_by_the_next` passes, and `podvm extract ghcr.io/void-linux/void-musl:latest` succeeds on a two-layer image
+Ownership-neutral extraction leaves directories with the image's
+modes and the extractor's ownership. A mode-0555 directory in
+layer 1 cannot be written into when layer 2 extracts over it, and
+the failure looks like a corrupt layer.
+
+## Premise
+
+Read at file and line, not measured here.
+`references/indigo-dc__udocker/tree/udocker/container/structure.py:296-303`
+runs a `find` after every layer that adds `u+x` to directories
+missing it, `u+w` and `u+r` to anything missing them, and `chgrp`
+to the caller's own gid. Its docstring at
+`references/indigo-dc__udocker/tree/udocker/container/structure.py:265-267`
+states the reason: "permissions are changed to avoid file
+permission issues when extracting the next layer".
+
+## Approach
+
+After each layer, walk what that layer wrote and add owner read,
+write and, for directories, execute. Record every mode changed in
+the sidecar beside the ownership, so the intended mode survives a
+re-export. Do not `chgrp`: podvm extracts as the only mapped id
+already.
+
+## Decision
+
+Widen only the owner bits, and only on entries this extraction
+wrote. Widening group or other bits changes what the image means
+for a payload that reads modes, and widening everything makes the
+sidecar the only record of the real image.
+
+## Prove
+
+`cargo test -p podvm-extract a_read_only_directory_in_one_layer_can_be_written_into_by_the_next` passes, and `podvm extract ghcr.io/void-linux/void-musl:latest` succeeds on a two-layer image
+
+## Done
 
 **Done, 2026-09-08.** The pass runs after each layer, over what **that layer
 wrote**, and adds owner read, write and execute to directories.
@@ -369,34 +459,49 @@ mapped id already.
 registry traffic,  and Docker Hub's anonymous quota is what
 [T-0206](image.md) exists for.
 
----
+# T-0307: Hard links, symlinks and the layer order
 
-### T-0307 Hard links, symlinks and the layer order
+**Source:** `TOOL.md` section 6.3, `paper_final.md` section 10.4
+**Category:** extract
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 6.3, `paper_final.md` section 10.4
-Category:    extract
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Dropping ownership does not discharge the rest of the OCI layer
-             contract, and a runtime that treats extraction as "untar each
-             layer" produces a tree that is not the image.
-Premise:     Read. The contract is: apply layers in order; interpret whiteouts;
-             preserve hard links and symlinks; refuse an escaping entry.
-             The whiteout ordering is more precise than "after each layer":
-             `references/indigo-dc__udocker/tree/udocker/container/structure.py:279`
-             applies layer N's whiteouts to the accumulated tree **before**
-             extracting N, which is the order that makes a layer able to both
-             delete a path and recreate it.
-Approach:    For each layer in manifest order: apply that layer's whiteouts to
-             the accumulated tree, then extract that layer's entries. Materialize
-             a hard link as a link to the already-extracted target within the
-             same destination, and refuse one whose target is outside it.
-             Preserve symlinks as symlinks; never dereference.
-Decision:    Whiteouts before the layer's own entries, per udocker. The opposite
-             order deletes what the same layer just wrote.
-Prove:       `./experiments/70-whiteout-contract.sh` exits 0 and `cargo test -p podvm-extract a_layer_may_delete_a_path_and_recreate_it_in_the_same_layer` passes
+Dropping ownership does not discharge the rest of the OCI layer
+contract, and a runtime that treats extraction as "untar each
+layer" produces a tree that is not the image.
+
+## Premise
+
+Read. The contract is: apply layers in order; interpret whiteouts;
+preserve hard links and symlinks; refuse an escaping entry.
+The whiteout ordering is more precise than "after each layer":
+`references/indigo-dc__udocker/tree/udocker/container/structure.py:279`
+applies layer N's whiteouts to the accumulated tree **before**
+extracting N, which is the order that makes a layer able to both
+delete a path and recreate it.
+
+## Approach
+
+For each layer in manifest order: apply that layer's whiteouts to
+the accumulated tree, then extract that layer's entries. Materialize
+a hard link as a link to the already-extracted target within the
+same destination, and refuse one whose target is outside it.
+Preserve symlinks as symlinks; never dereference.
+
+## Decision
+
+Whiteouts before the layer's own entries, per udocker. The opposite
+order deletes what the same layer just wrote.
+
+## Prove
+
+`./experiments/70-whiteout-contract.sh` exits 0 and `cargo test -p podvm-extract a_layer_may_delete_a_path_and_recreate_it_in_the_same_layer` passes
+
+## Done
 
 **Done, 2026-09-08.** `src/remove.rs` of `pod-extract` (PodUtils/podcrates) collects a layer's
 whiteouts and applies them to the accumulated tree **before** that layer's own
@@ -423,51 +528,66 @@ never see because the escape is in the link target rather than in the path.
 `Symbolic link loop` it watched for is the T-0305 case, and the extracted tree
 is asserted directly there.
 
----
+# T-1315: Extract re-verifies the blob digest against the manifest
 
-### T-1315 Extract re-verifies the blob digest against the manifest
+**Source:** issue 10, client beta testing 2026-09-22 (tampered store blob
+  extracts cleanly); `src/layer.rs` of `pod-extract` (PodUtils/podcrates),
+  `src/layer.rs` of `pod-extract` (PodUtils/podcrates),
+  `crates/podvm-image/src/store/blobs.rs:48`
+**Category:** extract
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      issue 10, client beta testing 2026-09-22 (tampered store blob
-             extracts cleanly); `src/layer.rs` of `pod-extract` (PodUtils/podcrates),
-             `src/layer.rs` of `pod-extract` (PodUtils/podcrates),
-             `crates/podvm-image/src/store/blobs.rs:48`
-Category:    extract
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-23
+## Problem
 
-Problem:     `extract_layers` opens each layer with `File::open` plus a
-             decompressor and never recomputes a digest, so a blob whose
-             bytes changed after pull extracts and the payload-visible
-             file carries the tampered bytes while the manifest still
-             names the original digest. The read-side re-verification
-             the store already has (`Store::read_blob`) is not used on
-             this path: extract goes through `store.blob_path` and reads
-             the file directly. Gzip layers are caught only by gzip's own
-             CRC, zstd by frame checks, uncompressed tar by nothing.
-Premise:     Measured by the reporter on the beta.1 asset and on a
-             rebuild: a one-byte flip at blob offset 514 extracts as
-             `heLlo` for honest `hello`. The code path above confirms the
-             mechanism on this tree. SECURITY.md states the invariant
-             ("a blob is accepted only when its computed digest matches
-             the manifest"); the store is the operator's authority, so
-             this is a gap in the stated invariant and its enforcement.
-Approach:    Hash each blob while streaming it into the decompressor in
-             `extract_layers` and compare against the manifest digest
-             before applying entries: one pass, no extra I/O. Out of
-             scope: changing what pull verifies, changing the store
-             layout, touching the threat model.
-Decision:    Stream-and-compare, not `read_blob` (which would read every
-             byte twice) and not a document amendment (the invariant is
-             worth keeping).
-Prove:       `cargo test -p podvm-extract` with a new test that commits
-             a tar through the store scaffolding, flips one content byte
-             in the stored blob, and asserts `extract` refuses with a
-             digest mismatch naming the blob; plus the reporter binary
-             repro (`podvm extract` after a one-byte flip exits non-zero
-             with the tampered bytes never written). Close issue 10 with
-             a comment showing the fix commit, the test output, and the
-             per-extract hash as the guard that stops recurrence.
+`extract_layers` opens each layer with `File::open` plus a
+decompressor and never recomputes a digest, so a blob whose
+bytes changed after pull extracts and the payload-visible
+file carries the tampered bytes while the manifest still
+names the original digest. The read-side re-verification
+the store already has (`Store::read_blob`) is not used on
+this path: extract goes through `store.blob_path` and reads
+the file directly. Gzip layers are caught only by gzip's own
+CRC, zstd by frame checks, uncompressed tar by nothing.
+
+## Premise
+
+Measured by the reporter on the beta.1 asset and on a
+rebuild: a one-byte flip at blob offset 514 extracts as
+`heLlo` for honest `hello`. The code path above confirms the
+mechanism on this tree. SECURITY.md states the invariant
+("a blob is accepted only when its computed digest matches
+the manifest"); the store is the operator's authority, so
+this is a gap in the stated invariant and its enforcement.
+
+## Approach
+
+Hash each blob while streaming it into the decompressor in
+`extract_layers` and compare against the manifest digest
+before applying entries: one pass, no extra I/O. Out of
+scope: changing what pull verifies, changing the store
+layout, touching the threat model.
+
+## Decision
+
+Stream-and-compare, not `read_blob` (which would read every
+byte twice) and not a document amendment (the invariant is
+worth keeping).
+
+## Prove
+
+`cargo test -p podvm-extract` with a new test that commits
+a tar through the store scaffolding, flips one content byte
+in the stored blob, and asserts `extract` refuses with a
+digest mismatch naming the blob; plus the reporter binary
+repro (`podvm extract` after a one-byte flip exits non-zero
+with the tampered bytes never written). Close issue 10 with
+a comment showing the fix commit, the test output, and the
+per-extract hash as the guard that stops recurrence.
+
+## Done
 
 **Done 2026-09-23.** Stream-and-compare, as decided, with one widening
 the Decision left open: two passes, not one. `layer::open_hashed`
@@ -516,35 +636,57 @@ stops recurrence is the per-extract hash: every layer of every extract is
 hashed against the manifest before its entries touch the tree, so there
 is no read path left that trusts stored bytes.
 
-### T-1698 A whiteout of `..` deletes outside the destination
+# T-1698: A whiteout of `..` deletes outside the destination
 
-Source:      PodUtils/podcrates (the import of pod-extract, its T-057,
-             podcrates `a40d45a`); `src/remove.rs` of `pod-extract` (PodUtils/podcrates);
-             `src/whiteout.rs` of `pod-extract` (PodUtils/podcrates)
-Category:    extract
-Priority:    P0
-Effort:      S
-Status:      done
+**Source:** PodUtils/podcrates (the import of pod-extract, its T-057,
+  podcrates `a40d45a`); `src/remove.rs` of `pod-extract` (PodUtils/podcrates);
+  `src/whiteout.rs` of `pod-extract` (PodUtils/podcrates)
+**Category:** extract
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** done
 
-Problem:     A whiteout skipped the lexical check of every other entry.
-             `.wh...` at the root of a layer named `..`, and its removal
-             deleted the contents of the directory above the destination.
-             `../.wh.x` reached past the destination where the kernel has
-             no `openat2`. A crafted image could delete files outside its
-             rootfs. Each released podvm and podbox binary has the defect.
-Premise:     `whiteout::classify` takes the basename, and `remove::collect`
-             took `dirname_parts` as it was: `..` stayed a component, and a
-             name of `..` or `.` went to `remove_at`.
-Approach:    `remove::collect` gives each whiteout the rule of
-             `safety::components`: no absolute path, no NUL, no `..` in the
-             directory, and a name of `.` or `..` refuses the layer with the
-             layer digest and the entry, as T-0304 refuses any entry.
-Decision:    Refuse the layer, never skip the whiteout (T-0304's rule). The
-             same check lives in pod-extract (podcrates `a40d45a`), which
-             podvm takes with podcrates v0.11.0.
-Prove:       `cargo test -p podvm-extract` exits 0 with the three tests of
-             `drive/whiteouts.rs`, and each of them fails with the check
-             turned off.
+## Problem
+
+A whiteout skipped the lexical check of every other entry.
+`.wh...` at the root of a layer named `..`, and its removal
+deleted the contents of the directory above the destination.
+`../.wh.x` reached past the destination where the kernel has
+no `openat2`. A crafted image could delete files outside its
+rootfs. Each released podvm and podbox binary has the defect.
+
+## Premise
+
+`whiteout::classify` takes the basename, and `remove::collect`
+took `dirname_parts` as it was: `..` stayed a component, and a
+name of `..` or `.` went to `remove_at`.
+
+## Approach
+
+`remove::collect` gives each whiteout the rule of
+`safety::components`: no absolute path, no NUL, no `..` in the
+directory, and a name of `.` or `..` refuses the layer with the
+layer digest and the entry, as T-0304 refuses any entry.
+
+## Decision
+
+Refuse the layer, never skip the whiteout (T-0304's rule). The
+same check lives in pod-extract (podcrates `a40d45a`), which
+podvm takes with podcrates v0.11.0.
+
+## Prove
+
+`cargo test -p podvm-extract` exits 0 with the three tests of
+`drive/whiteouts.rs`, and each of them fails with the check
+turned off.
+
+## Correction
+
+**Filed 2026-11-10.** Reported by the podcrates session, which found the
+defect while it imported `podvm-extract` into pod-extract.
+
+## Done
 
 **Done 2026-11-10.** `remove::checked_dir` holds the rule; `collect` takes
 the layer digest for the refusal. `cargo test -p podvm-extract` exits 0
@@ -553,7 +695,3 @@ the layer digest for the refusal. `cargo test -p podvm-extract` exits 0
 `a_whiteout_of_dot_refuses_the_layer`. With the check turned off, each of
 the three fails, and the `..` case reached the directory above the
 destination ([the plant](../experiments/results/whiteout-escape-1698.txt)).
-
-**Filed 2026-11-10.** Reported by the podcrates session, which found the
-defect while it imported `podvm-extract` into pod-extract.
-

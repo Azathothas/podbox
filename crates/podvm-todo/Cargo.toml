@@ -1,0 +1,14 @@
+[package]
+name = "podvm-todo"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# TODO/gate.md T-1672: the record of podvm in the format of podcrates'
+# `pod-todo`. `podvm-todo check` is pod-todo's reader with the facts of
+# TODO/todo.toml; podvm's own checks stay in `podvm-gate`.
+[dependencies]
+pod-todo = { git = "https://github.com/PodUtils/podcrates", tag = "v0.22.0" }

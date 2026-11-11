@@ -194,14 +194,6 @@ pub(super) fn step_at(line: &str, at: usize) -> usize {
     at + line[at..].chars().next().map(|c| c.len_utf8()).unwrap_or(1)
 }
 
-pub(super) fn is_task_id(text: &str) -> bool {
-    let bytes = text.as_bytes();
-    bytes.len() == 6
-        && bytes[0] == b'T'
-        && bytes[1] == b'-'
-        && bytes[2..6].iter().all(|b| b.is_ascii_digit())
-}
-
 // Single-quote a string the way the reference output quotes one.
 pub(super) fn quote_repr(text: &str) -> String {
     let mut out = String::with_capacity(text.len() + 2);

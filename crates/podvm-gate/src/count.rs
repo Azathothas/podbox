@@ -72,14 +72,15 @@ fn match_row(line: &str) -> Option<MatchedRow> {
     if bytes.first() != Some(&b'|') {
         return None;
     }
-    // Five pipes minimum: lead, link, priority, category, status, item.
+    // Eight pipes minimum: lead, link, priority, effort, milestone,
+    // category, status, item (the row of pod-todo, TODO/gate.md T-1672).
     let mut pipes = Vec::new();
     for (i, b) in bytes.iter().enumerate() {
         if *b == b'|' {
             pipes.push(i);
         }
     }
-    if pipes.len() < 5 {
+    if pipes.len() < 8 {
         return None;
     }
     let cell = |n: usize| &line[pipes[n] + 1..pipes[n + 1]];
@@ -102,7 +103,7 @@ fn match_row(line: &str) -> Option<MatchedRow> {
         return None;
     }
     // Group 4's middle: lowercase-dash category.
-    let category = cell(2).trim();
+    let category = cell(4).trim();
     if category.is_empty()
         || !category
             .bytes()
@@ -112,7 +113,7 @@ fn match_row(line: &str) -> Option<MatchedRow> {
     }
     // Group 5: stars plus word; the span covers the trimmed cell so the
     // surrounding spaces stay exactly where they were.
-    let raw_status = cell(3);
+    let raw_status = cell(5);
     let leading_ws = raw_status.len() - raw_status.trim_start().len();
     let trailing_ws = raw_status.len() - raw_status.trim_end().len();
     let word = &raw_status[leading_ws..raw_status.len() - trailing_ws];
@@ -131,7 +132,7 @@ fn match_row(line: &str) -> Option<MatchedRow> {
     if leading_stars > 2 || trailing_stars > 2 {
         return None;
     }
-    let base = pipes[3] + 1;
+    let base = pipes[5] + 1;
     Some(MatchedRow {
         id: id.to_string(),
         priority: prio.to_string(),
@@ -253,7 +254,7 @@ fn run(argv: &[String]) -> ExitCode {
             let Some(text) = read_text(&path) else {
                 continue;
             };
-            let heading = format!("### {id} ");
+            let heading = format!("# {id}: ");
             if !text.split('\n').any(|l| l.starts_with(&heading)) {
                 continue;
             }
@@ -261,18 +262,18 @@ fn run(argv: &[String]) -> ExitCode {
                 continue;
             };
             let tail = &text[head + 1..];
-            let next_rel = tail.find("\n### T-");
+            let next_rel = tail.find("\n# T-");
             let nxt = match next_rel {
                 Some(r) => head + 1 + r,
                 None => text.len(),
             };
             let body = &text[head..nxt];
-            // First Status line: ^(Status: +)\*{0,2}[a-z]+\*{0,2}, stars dropped.
+            // The header line `**Status:** word` (TODO/gate.md T-1672).
             let mut replaced: Option<String> = None;
             let mut offset = 0;
             for line in body.split('\n') {
                 let line_len = line.len();
-                if let Some(rest) = line.strip_prefix("Status:") {
+                if let Some(rest) = line.strip_prefix("**Status:**") {
                     let spaces = rest.len() - rest.trim_start_matches(' ').len();
                     if spaces > 0 {
                         let after = &rest[spaces..];
@@ -290,8 +291,8 @@ fn run(argv: &[String]) -> ExitCode {
                         {
                             // Replace the match only, not the line: the
                             // script's subn leaves whatever follows the word.
-                            let match_end = offset + 7 + spaces + word_len;
-                            let new_prefix = format!("Status:{}{}", &rest[..spaces], status);
+                            let match_end = offset + "**Status:**".len() + spaces + word_len;
+                            let new_prefix = format!("**Status:**{}{}", &rest[..spaces], status);
                             let mut new_body = String::with_capacity(body.len());
                             new_body.push_str(&body[..offset]);
                             new_body.push_str(&new_prefix);

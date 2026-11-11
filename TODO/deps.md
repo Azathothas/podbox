@@ -1,4 +1,4 @@
-# deps
+Area: deps.
 
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
@@ -39,32 +39,61 @@ It is not about size. It is about **whether we will end up patching it**.
 | **Registry dependency, pinned** | large, generic, well-maintained infrastructure with no seam we need to move: TLS, hashing, JSON, argument parsing, compression | Vendoring buys nothing and costs a cold compile plus every one of their lints becoming ours |
 | **Write it ourselves** | anything where the dependency is bigger than the code it replaces | The default when 1 and 2 do not clearly favour the crate |
 
----
+# T-0901: Sweep: syscalls
 
-### T-0901 Sweep: syscalls
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Roughly every syscall podvm makes is a raw one, and `unsafe` is
-             unavoidable. The question is whether a crate is saving enough of it
-             to pay for itself.
-Premise:     Read. `rustix` with its `linux_raw` backend is the starting point.
-             ⚠ Going in: the new mount API, the seccomp ioctls and Landlock are
-             likely hand-declared either way, so the crate covers the ordinary
-             half and not the interesting half.
-Approach:    Declare the section 6.1 probe set by hand first, measure the binary, then
-             add the crate and measure again. `libc` alone may be enough, and it
-             is already in the dependency tree of anything else considered here.
-Decision:    Recommendation, to be confirmed by the measurement: hand-declare,
-             with `libc` for the type and constant definitions. `TOOL.md` section 3.3
-             requires `unsafe` be confined to one module per subsystem with the
-             safe wrapper adjacent, and that shape is the same work whether a
-             crate is under it or not.
-Prove:       `./experiments/110-bloat-delta.sh syscalls` exits 0 and writes `experiments/results/bloat-syscalls.txt`
+Roughly every syscall podvm makes is a raw one, and `unsafe` is
+unavoidable. The question is whether a crate is saving enough of it
+to pay for itself.
+
+## Premise
+
+Read. `rustix` with its `linux_raw` backend is the starting point.
+⚠ Going in: the new mount API, the seccomp ioctls and Landlock are
+likely hand-declared either way, so the crate covers the ordinary
+half and not the interesting half.
+
+## Approach
+
+Declare the section 6.1 probe set by hand first, measure the binary, then
+add the crate and measure again. `libc` alone may be enough, and it
+is already in the dependency tree of anything else considered here.
+
+## Decision
+
+Recommendation, to be confirmed by the measurement: hand-declare,
+with `libc` for the type and constant definitions. `TOOL.md` section 3.3
+requires `unsafe` be confined to one module per subsystem with the
+safe wrapper adjacent, and that shape is the same work whether a
+crate is under it or not.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh syscalls` exits 0 and writes `experiments/results/bloat-syscalls.txt`
+
+## Correction
+
+**Ruling: hand-declare, and neither crate lands.** `pod_hostprobe::sys`
+is 330 lines including its documentation and its tests, and it already covers
+the half the entry expected to stay hand-written anyway: the new mount API,
+`seccomp`, `landlock_create_ruleset`, `kcmp` and `pidfd_getfd`. The 46 numbers
+and 19 constants in it were checked against the kernel's own headers, which is
+the correctness a crate would have been bought for.
+
+⚠ `libc` is priced at zero and may be taken later for a struct definition
+without re-arguing this entry. What it may not be taken for is the errno: a
+libc wrapper answers with the library's `setuid` semantics rather than the
+kernel's, which is [T-0101](probe.md)'s whole point.
+
+## Done
 
 **Done 2026-09-08.** Measured as two areas rather than one, because the entry
 names two candidates: `experiments/results/bloat-syscalls-libc.txt` and
@@ -83,44 +112,44 @@ already linked, and `rustix`'s `linux_raw` backend emits the same instruction
 `pod_hostprobe::sys` emits. ⚠ Both readings passed the instrument's
 scaffold control, so a zero here is a reading and not an unmeasured run.
 
-**Ruling: hand-declare, and neither crate lands.** `pod_hostprobe::sys`
-is 330 lines including its documentation and its tests, and it already covers
-the half the entry expected to stay hand-written anyway: the new mount API,
-`seccomp`, `landlock_create_ruleset`, `kcmp` and `pidfd_getfd`. The 46 numbers
-and 19 constants in it were checked against the kernel's own headers, which is
-the correctness a crate would have been bought for.
+# T-0902: Sweep: seccomp BPF
 
-⚠ `libc` is priced at zero and may be taken later for a struct definition
-without re-arguing this entry. What it may not be taken for is the errno: a
-libc wrapper answers with the library's `setuid` semantics rather than the
-kernel's, which is [T-0101](probe.md)'s whole point.
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
----
+## Problem
 
-### T-0902 Sweep: seccomp BPF
+podvm installs short filters. A crate that generalizes filter
+construction may be larger than the filters.
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P2
-Effort:      S
-Status:      done 2026-09-08
+## Premise
 
-Problem:     podvm installs short filters. A crate that generalizes filter
-             construction may be larger than the filters.
-Premise:     Read, with a size reference in the corpus:
-             `references/Azathothas__container-research/tree/verification/confine/main.go`
-             emits a filter by hand in about sixty lines, and that is the size
-             of the thing a crate would replace.
-Approach:    Emit the BPF by hand, measure, then compare against `seccompiler`.
-             ⚠ The notification listener is a separate question from filter
-             construction and is T-0606; a crate that helps with one may not
-             help with the other.
-Decision:    Recommendation: hand-emit. Revisit if the notification tier ever
-             becomes reachable and needs a larger filter surface.
-Prove:       `./experiments/110-bloat-delta.sh seccomp` exits 0 and writes `experiments/results/bloat-seccomp.txt`
+Read, with a size reference in the corpus:
+`references/Azathothas__container-research/tree/verification/confine/main.go`
+emits a filter by hand in about sixty lines, and that is the size
+of the thing a crate would replace.
 
-**Done 2026-09-08.** `experiments/results/bloat-seccomp.txt`: `seccompiler` 0.5
-costs **+8,192 bytes** and 2 crates.
+## Approach
+
+Emit the BPF by hand, measure, then compare against `seccompiler`.
+⚠ The notification listener is a separate question from filter
+construction and is T-0606; a crate that helps with one may not
+help with the other.
+
+## Decision
+
+Recommendation: hand-emit. Revisit if the notification tier ever
+becomes reachable and needs a larger filter surface.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh seccomp` exits 0 and writes `experiments/results/bloat-seccomp.txt`
+
+## Correction
 
 **Ruling: hand-emit, and it does not land.** The filter podvm installs is one
 BPF instruction, already emitted in `pod_hostprobe::probes` as four
@@ -134,36 +163,52 @@ neither a race-safe channel nor a way to acquire one on this runtime, and
 [T-0107](probe.md)'s rung selection refuses it for that reason. There is no
 larger filter surface coming.
 
----
+## Done
 
-### T-0903 Sweep: Landlock
+**Done 2026-09-08.** `experiments/results/bloat-seccomp.txt`: `seccompiler` 0.5
+costs **+8,192 bytes** and 2 crates.
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P3
-Effort:      S
-Status:      done 2026-09-08
+# T-0903: Sweep: Landlock
 
-Problem:     Three syscalls. A crate for three syscalls needs an argument.
-             ⚠ podvm does not currently **install** a Landlock ruleset; it
-             probes for one that is already there. This entry is the sweep for
-             the day it does.
-Premise:     Read, with a size reference:
-             `references/Azathothas__container-research/tree/verification/confine/landlock.go`
-             is the whole mechanism in one file.
-             ⭐ The corpus also carries a design ruling that bears on it:
-             `references/multikernel__sandlock` PR #29 dropped path strings from
-             its notification policy surface on the reasoning that "path-based
-             access control belongs in static Landlock rules". Where podvm ever
-             needs path policy, Landlock is where it goes, not the notifier.
-Approach:    Hand-declare, measure, compare against the `landlock` crate.
-Decision:    Recommendation: hand-declare. Three syscalls, and podvm needs the
-             ABI-version probe more than the ruleset builder.
-Prove:       `./experiments/110-bloat-delta.sh landlock` exits 0 and writes `experiments/results/bloat-landlock.txt`
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** done
 
-**Done 2026-09-08.** `experiments/results/bloat-landlock.txt`: the `landlock`
-crate 0.4 costs **0 bytes** (below the instrument's resolution, scaffold
-control answered) and **13 crates**.
+## Problem
+
+Three syscalls. A crate for three syscalls needs an argument.
+⚠ podvm does not currently **install** a Landlock ruleset; it
+probes for one that is already there. This entry is the sweep for
+the day it does.
+
+## Premise
+
+Read, with a size reference:
+`references/Azathothas__container-research/tree/verification/confine/landlock.go`
+is the whole mechanism in one file.
+⭐ The corpus also carries a design ruling that bears on it:
+`references/multikernel__sandlock` PR #29 dropped path strings from
+its notification policy surface on the reasoning that "path-based
+access control belongs in static Landlock rules". Where podvm ever
+needs path policy, Landlock is where it goes, not the notifier.
+
+## Approach
+
+Hand-declare, measure, compare against the `landlock` crate.
+
+## Decision
+
+Recommendation: hand-declare. Three syscalls, and podvm needs the
+ABI-version probe more than the ruleset builder.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh landlock` exits 0 and writes `experiments/results/bloat-landlock.txt`
+
+## Correction
 
 **Ruling: hand-declare, and it does not land.** Zero bytes is not the whole
 price: thirteen crates is thirteen more things to audit, pin and rebuild for a
@@ -172,34 +217,50 @@ and that is `landlock_create_ruleset(NULL, 0, 1)`, already one row of
 `pod_hostprobe::probes`. Revisit if podvm ever installs a ruleset,
 which needs a kernel that has Landlock at all.
 
----
+## Done
 
-### T-0904 Sweep: OCI registry client and types
+**Done 2026-09-08.** `experiments/results/bloat-landlock.txt`: the `landlock`
+crate 0.4 costs **0 bytes** (below the instrument's resolution, scaffold
+control answered) and **13 crates**.
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-08
+# T-0904: Sweep: OCI registry client and types
 
-Problem:     ⚠ The heaviest candidate in the list by far. `oci-client` and
-             `oci-spec` cover a much larger surface than the endpoints podvm
-             uses.
-Premise:     Read. podvm needs token auth, manifest by tag and digest, manifest
-             lists for one platform, and blob fetch: T-0201's list.
-Approach:    Write the minimal client against that list, measure it, then
-             measure the same build with `oci-client` and `oci-spec` and compare.
-             Count the types actually deserialized: a manifest, a manifest list,
-             an image config and a descriptor.
-Decision:    Recommendation, to be confirmed: write it. The endpoint set is
-             small and fixed, and `TOOL.md` section 5 M1 says the registry plane is the
-             least interesting part of the problem and must not be gold-plated.
-Prove:       `./experiments/110-bloat-delta.sh oci` exits 0 and writes `experiments/results/bloat-oci.txt`
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-**Done 2026-09-08.** `experiments/results/bloat-oci.txt`: `oci-spec` 0.7 with
-only its `image` feature costs **+69,664 bytes** and **40 crates**, against
-**+32,768 bytes and 13 crates** for `serde_json` plus structs
-(`experiments/results/bloat-json.txt`).
+## Problem
+
+⚠ The heaviest candidate in the list by far. `oci-client` and
+`oci-spec` cover a much larger surface than the endpoints podvm
+uses.
+
+## Premise
+
+Read. podvm needs token auth, manifest by tag and digest, manifest
+lists for one platform, and blob fetch: T-0201's list.
+
+## Approach
+
+Write the minimal client against that list, measure it, then
+measure the same build with `oci-client` and `oci-spec` and compare.
+Count the types actually deserialized: a manifest, a manifest list,
+an image config and a descriptor.
+
+## Decision
+
+Recommendation, to be confirmed: write it. The endpoint set is
+small and fixed, and `TOOL.md` section 5 M1 says the registry plane is the
+least interesting part of the problem and must not be gold-plated.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh oci` exits 0 and writes `experiments/results/bloat-oci.txt`
+
+## Correction
 
 **Ruling: write it, confirming the entry's recommendation.** Twice the bytes and
 three times the crates, for four types. ⭐ The scaffold is itself part of the
@@ -212,38 +273,70 @@ free and it is not asked for.
 stack, which [T-0906](#t-0906-sweep-http) prices on its own, and measuring the
 two together would have credited one with the other's cost.
 
----
+## Done
 
-### T-0905 Sweep: TLS
+**Done 2026-09-08.** `experiments/results/bloat-oci.txt`: `oci-spec` 0.7 with
+only its `image` feature costs **+69,664 bytes** and **40 crates**, against
+**+32,768 bytes and 13 crates** for `serde_json` plus structs
+(`experiments/results/bloat-json.txt`).
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P0
-Effort:      S
-Status:      done 2026-09-08
+# T-0905: Sweep: TLS
 
-Problem:     HTTPS is the only working transport (T-0201), so TLS is not
-             optional, and the wrong choice breaks the static story.
-Premise:     Read. ⛔ Non-negotiable that it is pure Rust: the alternative pulls
-             OpenSSL, which is a C dependency and breaks `crt-static`.
-             ⚠ One tree in the corpus shows the trap:
-             `references/VHSgunzo__ulexec/tree/Cargo.toml:31` takes `reqwest`
-             with `native-tls-vendored` on Linux while its Windows arm at
-             `references/VHSgunzo__ulexec/tree/Cargo.toml:24` takes `rustls-tls`. The vendored-native arm is the one that
-             drags a C toolchain.
-Approach:    `rustls` plus `webpki-roots`, measured. Also measure the root store
-             question separately: bundling roots costs binary size, and reading
-             the host bundle costs a file that may not exist. podvm needs the
-             host bundle anyway for T-0407, so measure "host bundle with
-             `webpki-roots` as the fallback" against "roots bundled".
-Decision:    Recommendation: `rustls`. There is no pure-Rust alternative with a
-             comparable maintenance state, and the C path is ruled out by the
-             static requirement rather than by preference.
-             ⛔ Never disable certificate verification to work around the
-             TLS-interception on a build host. That is a red line in
-             `TOOL.md` section 11.1 and it is the one that turns a build problem into a
-             shipped vulnerability.
-Prove:       `./experiments/110-bloat-delta.sh tls` exits 0 and `readelf -d target/x86_64-unknown-linux-musl/release/podvm | grep -c NEEDED | grep -qx 0`
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** done
+
+## Problem
+
+HTTPS is the only working transport (T-0201), so TLS is not
+optional, and the wrong choice breaks the static story.
+
+## Premise
+
+Read. ⛔ Non-negotiable that it is pure Rust: the alternative pulls
+OpenSSL, which is a C dependency and breaks `crt-static`.
+⚠ One tree in the corpus shows the trap:
+`references/VHSgunzo__ulexec/tree/Cargo.toml:31` takes `reqwest`
+with `native-tls-vendored` on Linux while its Windows arm at
+`references/VHSgunzo__ulexec/tree/Cargo.toml:24` takes `rustls-tls`. The vendored-native arm is the one that
+drags a C toolchain.
+
+## Approach
+
+`rustls` plus `webpki-roots`, measured. Also measure the root store
+question separately: bundling roots costs binary size, and reading
+the host bundle costs a file that may not exist. podvm needs the
+host bundle anyway for T-0407, so measure "host bundle with
+`webpki-roots` as the fallback" against "roots bundled".
+
+## Decision
+
+Recommendation: `rustls`. There is no pure-Rust alternative with a
+comparable maintenance state, and the C path is ruled out by the
+static requirement rather than by preference.
+⛔ Never disable certificate verification to work around the
+TLS-interception on a build host. That is a red line in
+`TOOL.md` section 11.1 and it is the one that turns a build problem into a
+shipped vulnerability.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh tls` exits 0 and `readelf -d target/x86_64-unknown-linux-musl/release/podvm | grep -c NEEDED | grep -qx 0`
+
+## Correction
+
+**Ruling: `rustls` lands, with the host bundle first and `webpki-roots` as the
+fallback.** There is no pure-Rust-all-the-way-down alternative in a comparable
+maintenance state, and HTTPS is the only transport that works
+([T-0201](image.md)), so the alternative to this cost is no image acquisition
+at all. The host bundle is read anyway for [T-0407](complete.md), and it found
+more roots here than the bundled set (152 against 121); the bundled set is what
+makes a machine with no bundle still work.
+
+## Done
 
 **Done 2026-09-08, and it lands.** Three arms, because the entry asks for the
 root-store question to be measured separately:
@@ -286,44 +379,43 @@ costs a C cross-compiler, and `scripts/zig-cc.sh` with `.cargo/config.toml` is
 the answer, pinned and checksummed by
 `scripts/common/bootstrap-env.sh`.
 
-**Ruling: `rustls` lands, with the host bundle first and `webpki-roots` as the
-fallback.** There is no pure-Rust-all-the-way-down alternative in a comparable
-maintenance state, and HTTPS is the only transport that works
-([T-0201](image.md)), so the alternative to this cost is no image acquisition
-at all. The host bundle is read anyway for [T-0407](complete.md), and it found
-more roots here than the bundled set (152 against 121); the bundled set is what
-makes a machine with no bundle still work.
+# T-0906: Sweep: HTTP
 
----
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-### T-0906 Sweep: HTTP
+## Problem
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-08
+An async runtime is a large dependency with nothing to do here.
 
-Problem:     An async runtime is a large dependency with nothing to do here.
-Premise:     Read. podvm has no reason to be async: it fetches blobs
-             sequentially and its concurrency is one child per container, held
-             by a pidfd.
-Approach:    Measure `ureq` against a hand-rolled client over `rustls`. Count
-             what podvm actually needs: `GET` and `HEAD`, redirects, chunked
-             bodies, a `Range` header for resumption, and bearer tokens.
-Decision:    Recommendation: `ureq`, blocking. The hand-rolled path has to
-             re-implement chunked transfer encoding and redirects, which is more
-             code than the crate and is the class of code that is wrong in ways
-             a test suite finds slowly.
-Prove:       `./experiments/110-bloat-delta.sh http` exits 0 and writes `experiments/results/bloat-http.txt`
+## Premise
 
-**Done 2026-09-08, and it lands.** `experiments/results/bloat-http.txt`: `ureq`
-2 with its own TLS stack costs **+1,024,152 bytes and 69 crates** against the
-empty baseline, which is **about +123,000 bytes on top of the TLS arm** that has
-to be paid either way. ⚠ That second figure is a subtraction between two runs
-rather than a measurement, and [T-0905](#t-0905-sweep-tls) records why two runs
-of one arm can differ by a percent. The order of magnitude is what the decision
-rests on.
+Read. podvm has no reason to be async: it fetches blobs
+sequentially and its concurrency is one child per container, held
+by a pidfd.
+
+## Approach
+
+Measure `ureq` against a hand-rolled client over `rustls`. Count
+what podvm actually needs: `GET` and `HEAD`, redirects, chunked
+bodies, a `Range` header for resumption, and bearer tokens.
+
+## Decision
+
+Recommendation: `ureq`, blocking. The hand-rolled path has to
+re-implement chunked transfer encoding and redirects, which is more
+code than the crate and is the class of code that is wrong in ways
+a test suite finds slowly.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh http` exits 0 and writes `experiments/results/bloat-http.txt`
+
+## Correction
 
 **Ruling: `ureq`, blocking, confirming the entry's recommendation.** 127 KB buys
 chunked transfer encoding, redirects and the `Range` header, which the entry
@@ -341,33 +433,58 @@ depends on `webpki-roots 0.26.11`, which is a compatibility shim over
 the shim too; naming `1` shares the crate that actually holds the roots. The
 resolve graph is quoted at the pin.
 
----
+## Done
 
-### T-0907 Sweep: tar, gzip, zstd
+**Done 2026-09-08, and it lands.** `experiments/results/bloat-http.txt`: `ureq`
+2 with its own TLS stack costs **+1,024,152 bytes and 69 crates** against the
+empty baseline, which is **about +123,000 bytes on top of the TLS arm** that has
+to be paid either way. ⚠ That second figure is a subtraction between two runs
+rather than a measurement, and [T-0905](#t-0905-sweep-tls) records why two runs
+of one arm can differ by a percent. The order of magnitude is what the decision
+rests on.
 
-Source:      `TOOL.md` section 3.5, section 6.3
-Category:    deps
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-08
+# T-0907: Sweep: tar, gzip, zstd
 
-Problem:     Extraction is driven at **entry level, never `unpack()`** (T-0301),
-             so the crate is being used for a fraction of its surface and the
-             fraction matters more than the total.
-Premise:     Read. `tar`, `flate2` with `rust_backend`, and `ruzstd` are the
-             starting points. ⛔ `flate2`'s default backend is C
-             (`miniz_oxide` is the Rust one and is the feature to select), and
-             the C backend is the trap question 3 exists for.
-Approach:    Confirm the entry-level API gives header, reader and no implicit
-             filesystem action. Measure with `rust_backend` selected. Measure
-             `ruzstd` against skipping zstd entirely: zstd layers exist and are
-             not universal, and a named refusal for a zstd layer is a legitimate
-             v1 answer if the size delta is large.
-Decision:    Recommendation: `tar` plus `flate2` with `rust_backend`, and a
-             measurement before zstd. `TOOL.md` section 6.3 rules out shelling out and
-             a hand-written tar reader is the one piece of this list that is
-             genuinely small, so the measurement may still say write it.
-Prove:       `./experiments/110-bloat-delta.sh archive` exits 0 and `cargo tree -e normal -p podvm-extract | grep -c ' cc ' | grep -qx 0`
+**Source:** `TOOL.md` section 3.5, section 6.3
+**Category:** deps
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
+
+## Problem
+
+Extraction is driven at **entry level, never `unpack()`** (T-0301),
+so the crate is being used for a fraction of its surface and the
+fraction matters more than the total.
+
+## Premise
+
+Read. `tar`, `flate2` with `rust_backend`, and `ruzstd` are the
+starting points. ⛔ `flate2`'s default backend is C
+(`miniz_oxide` is the Rust one and is the feature to select), and
+the C backend is the trap question 3 exists for.
+
+## Approach
+
+Confirm the entry-level API gives header, reader and no implicit
+filesystem action. Measure with `rust_backend` selected. Measure
+`ruzstd` against skipping zstd entirely: zstd layers exist and are
+not universal, and a named refusal for a zstd layer is a legitimate
+v1 answer if the size delta is large.
+
+## Decision
+
+Recommendation: `tar` plus `flate2` with `rust_backend`, and a
+measurement before zstd. `TOOL.md` section 6.3 rules out shelling out and
+a hand-written tar reader is the one piece of this list that is
+genuinely small, so the measurement may still say write it.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh archive` exits 0 and `cargo tree -e normal -p podvm-extract | grep -c ' cc ' | grep -qx 0`
+
+## Done
 
 **Done 2026-09-08, and all three land.**
 
@@ -399,31 +516,46 @@ taken with the scaffold in `podvm-image`, which is where every arm of this
 sweep put it so the arms are comparable. The `cc` check was read from the
 workspace graph instead and is the same answer: no `cc` anywhere.
 
----
+# T-0908: Sweep: digests, JSON, argument parsing, ELF
 
-### T-0908 Sweep: digests, JSON, argument parsing, ELF
+**Source:** `TOOL.md` section 3.5
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 3.5
-Category:    deps
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-08
+## Problem
 
-Problem:     Four small questions with one large answer among them. ⚠ `clap` is
-             large for what podvm needs from it.
-Premise:     Read. `sha2`, `serde_json`, `clap` and `goblin` are the starting
-             points. podvm's parser has a table (T-0801) rather than a grammar,
-             and its ELF needs are `PT_INTERP` presence plus a Go build-marker
-             check (T-0706), which is a header walk.
-Approach:    Measure each separately, because they are independent decisions
-             that a single "add the obvious four" would bundle.
-             For `clap`, measure it against a hand-rolled parser driven by the
-             section 6.8 table. For `goblin`, measure it against a program-header walk.
-Decision:    Recommendation: `sha2` and `serde_json` yes, `clap` and `goblin`
-             measured first and probably no. `clap`'s help generation is the
-             part podvm would use least, because docker's help text is the
-             text to match rather than generate.
-Prove:       `./experiments/110-bloat-delta.sh cli-json-elf` exits 0 and writes `experiments/results/bloat-cli-json-elf.txt`
+Four small questions with one large answer among them. ⚠ `clap` is
+large for what podvm needs from it.
+
+## Premise
+
+Read. `sha2`, `serde_json`, `clap` and `goblin` are the starting
+points. podvm's parser has a table (T-0801) rather than a grammar,
+and its ELF needs are `PT_INTERP` presence plus a Go build-marker
+check (T-0706), which is a header walk.
+
+## Approach
+
+Measure each separately, because they are independent decisions
+that a single "add the obvious four" would bundle.
+For `clap`, measure it against a hand-rolled parser driven by the
+section 6.8 table. For `goblin`, measure it against a program-header walk.
+
+## Decision
+
+Recommendation: `sha2` and `serde_json` yes, `clap` and `goblin`
+measured first and probably no. `clap`'s help generation is the
+part podvm would use least, because docker's help text is the
+text to match rather than generate.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh cli-json-elf` exits 0 and writes `experiments/results/bloat-cli-json-elf.txt`
+
+## Done
 
 **Done 2026-09-08.** Measured as four areas rather than one, because the entry
 says they are independent decisions that a single "add the obvious four" would
@@ -452,84 +584,99 @@ each. The scaffold confirmed it: `interp=None sections=25` on podvm's own
 static-pie binary is one field and one count, from a crate that parses the whole
 format.
 
----
+# T-0909: Vendor the memfd and userland-exec rungs, and fix the fork's regression here
 
-### T-0909 Vendor the memfd and userland-exec rungs, and fix the fork's regression here
+**Source:** `TOOL.md` section 3.5; [reference-map.md](reference-map.md)
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 3.5; [reference-map.md](reference-map.md)
-Category:    deps
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-22
+## Problem
 
-Problem:     These sit on a seam podvm will move, and one of them is a fork
-             maintained because the original is not. A registry dependency on an
-             unmaintained crate is a blocker waiting to happen, and "blocked on
-             upstream" is not an outcome this methodology has a place for.
-Premise:     ⭐ **Read at file and line, and it corrects the specification in two
-             places.**
-             1. `TOOL.md` section 3.5 calls `userland-execve` "the second fork to
-                vendor". There is no such fork.
-                `references/VHSgunzo__userland-execve/PROVENANCE.md` records the
-                404 beside a reachable control, and
-                `references/VHSgunzo__ulexec/tree/Cargo.toml:29` shows `ulexec`
-                depending on the original crate, whose repository is
-                `references/io12__userland-execve-rust`. Its licence is clean:
-                `tree/LICENSE` present and `tree/Cargo.toml:8` says MIT.
-             2. The `memfd-exec` fork carries a regression against its own
-                upstream, and both trees are in the corpus so it is a diff.
-                `references/novafacing__memfd-exec/tree/src/executable.rs:546`
-                passes `MemFdCreateFlag::MFD_CLOEXEC` unconditionally.
-                `references/VHSgunzo__memfd-exec/tree/src/executable.rs:684-691`
-                makes it conditional on `fn is_running_in_qemu() -> bool { true }`,
-                a stub that always returns true, so `MFD_CLOEXEC` is **never**
-                set and the memfd leaks across every later `execve`. It is
-                marked `// TODO: add detect for qemu emulator`.
-             What the fork adds and is worth having:
-             `references/VHSgunzo__memfd-exec/tree/src/executable.rs:574-601`
-             `fallback_exec()`, the launch ladder as a library, and
-             `references/VHSgunzo__memfd-exec/tree/src/executable.rs:694-704`,
-             which checks `is_exe("/proc/self/fd/<mfd>")` before writing so a
-             non-executable memfd becomes `EACCES` there rather than a confusing
-             `fexecve` failure later.
-Approach:    Vendor `io12/userland-execve-rust` whole: 512 lines across six
-             files, MIT, licence file present. Do **not** vendor either
-             `memfd-exec` until its licence resolves; `memfd_create` plus
-             `fexecve` is three syscalls and podvm declares them itself, with
-             the `is_exe` probe and the `MFD_CLOEXEC` flag both taken as
-             mechanisms rather than as code.
-             ⚠ Carry the stack-size costing from
-             `references/io12__userland-execve-rust`'s tracker: issue #1 records
-             that the synthetic stack was 1 MB and GCC's `cc1plus` overflowed
-             it, fixed by raising it to 10 MB, because GCC normally raises its
-             own stack with `setrlimit()` and a synthetic stack does not honour
-             that. M5 builds a C toolchain project in ten distributions, so this
-             is on podvm's path. Its issue #5 is open: non-PIE ELF binaries
-             cannot be loaded by that rung at all.
-Decision:    Vendor `userland-execve` and write podvm's own three-syscall memfd
-             path, rather than vendoring `memfd-exec` once its licence resolves.
-             The fork's value is two mechanisms and a ladder, all of which are
-             smaller re-implemented than carried, and carrying it would import a
-             regression this tree would then have to patch out
-             (the `MFD_CLOEXEC` stub above) for no gain.
+These sit on a seam podvm will move, and one of them is a fork
+maintained because the original is not. A registry dependency on an
+unmaintained crate is a blocker waiting to happen, and "blocked on
+upstream" is not an outcome this methodology has a place for.
+
+## Premise
+
+⭐ **Read at file and line, and it corrects the specification in two
+places.**
+1. `TOOL.md` section 3.5 calls `userland-execve` "the second fork to
+   vendor". There is no such fork.
+   `references/VHSgunzo__userland-execve/PROVENANCE.md` records the
+   404 beside a reachable control, and
+   `references/VHSgunzo__ulexec/tree/Cargo.toml:29` shows `ulexec`
+   depending on the original crate, whose repository is
+   `references/io12__userland-execve-rust`. Its licence is clean:
+   `tree/LICENSE` present and `tree/Cargo.toml:8` says MIT.
+2. The `memfd-exec` fork carries a regression against its own
+   upstream, and both trees are in the corpus so it is a diff.
+   `references/novafacing__memfd-exec/tree/src/executable.rs:546`
+   passes `MemFdCreateFlag::MFD_CLOEXEC` unconditionally.
+   `references/VHSgunzo__memfd-exec/tree/src/executable.rs:684-691`
+   makes it conditional on `fn is_running_in_qemu() -> bool { true }`,
+   a stub that always returns true, so `MFD_CLOEXEC` is **never**
+   set and the memfd leaks across every later `execve`. It is
+   marked `// TODO: add detect for qemu emulator`.
+What the fork adds and is worth having:
+`references/VHSgunzo__memfd-exec/tree/src/executable.rs:574-601`
+`fallback_exec()`, the launch ladder as a library, and
+`references/VHSgunzo__memfd-exec/tree/src/executable.rs:694-704`,
+which checks `is_exe("/proc/self/fd/<mfd>")` before writing so a
+non-executable memfd becomes `EACCES` there rather than a confusing
+`fexecve` failure later.
+
+## Approach
+
+Vendor `io12/userland-execve-rust` whole: 512 lines across six
+files, MIT, licence file present. Do **not** vendor either
+`memfd-exec` until its licence resolves; `memfd_create` plus
+`fexecve` is three syscalls and podvm declares them itself, with
+the `is_exe` probe and the `MFD_CLOEXEC` flag both taken as
+mechanisms rather than as code.
+⚠ Carry the stack-size costing from
+`references/io12__userland-execve-rust`'s tracker: issue #1 records
+that the synthetic stack was 1 MB and GCC's `cc1plus` overflowed
+it, fixed by raising it to 10 MB, because GCC normally raises its
+own stack with `setrlimit()` and a synthetic stack does not honour
+that. M5 builds a C toolchain project in ten distributions, so this
+is on podvm's path. Its issue #5 is open: non-PIE ELF binaries
+cannot be loaded by that rung at all.
+
+## Decision
+
+Vendor `userland-execve` and write podvm's own three-syscall memfd
+path, rather than vendoring `memfd-exec` once its licence resolves.
+The fork's value is two mechanisms and a ladder, all of which are
+smaller re-implemented than carried, and carrying it would import a
+regression this tree would then have to patch out
+(the `MFD_CLOEXEC` stub above) for no gain.
 Status note: **open.** The `blocked` label came off on 2026-09-11, and it never
-             fitted. ⛔ The `Decision` above already rules that neither
-             `memfd-exec` tree is vendored, whatever its licence resolves to, so
-             the licence is a fact this entry no longer needs. An entry blocked
-             on evidence for a path it has decided not to take is an entry that
-             blocks itself.
-             ⚠ What remains is all doable now: vendor
-             `io12/userland-execve-rust` under
-             [`../docs/methodology/vendoring.md`](../docs/methodology/vendoring.md),
-             and write podvm's own `memfd_create` plus `fexecve` path with the
-             `is_exe` probe and `MFD_CLOEXEC` taken as mechanisms rather than as
-             code. ⚠ Carry the 10 MB synthetic-stack figure from the tracker:
-             M5 builds a C toolchain in ten distributions and `cc1plus`
-             overflowed 1 MB.
-             ⛔ Nothing is opened on anybody's repository to unblock it. What
-             would clear it is a licence file appearing in either tree at a later
-             commit, checked at the next reconciliation.
-Prove:       `test -f vendor/userland-execve/LICENSE && grep -q '^license = "MIT"' vendor/userland-execve/Cargo.toml && ./experiments/110-bloat-delta.sh memfd` exits 0
+fitted. ⛔ The `Decision` above already rules that neither
+`memfd-exec` tree is vendored, whatever its licence resolves to, so
+the licence is a fact this entry no longer needs. An entry blocked
+on evidence for a path it has decided not to take is an entry that
+blocks itself.
+⚠ What remains is all doable now: vendor
+`io12/userland-execve-rust` under
+[`../docs/methodology/vendoring.md`](../docs/methodology/vendoring.md),
+and write podvm's own `memfd_create` plus `fexecve` path with the
+`is_exe` probe and `MFD_CLOEXEC` taken as mechanisms rather than as
+code. ⚠ Carry the 10 MB synthetic-stack figure from the tracker:
+M5 builds a C toolchain in ten distributions and `cc1plus`
+overflowed 1 MB.
+⛔ Nothing is opened on anybody's repository to unblock it. What
+would clear it is a licence file appearing in either tree at a later
+commit, checked at the next reconciliation.
+
+## Prove
+
+`test -f vendor/userland-execve/LICENSE && grep -q '^license = "MIT"' vendor/userland-execve/Cargo.toml && ./experiments/110-bloat-delta.sh memfd` exits 0
+
+## Done
 
 **Done 2026-09-22.** The `Prove` ran green in the lane: the two file legs
 hold on this tree, and `110-bloat-delta.sh memfd` exits 0 with
@@ -588,34 +735,49 @@ tree. All seven read identical today. A future upstream release retires no
 patch on its own; reconcile it by reading per
 [`../docs/methodology/vendoring.md`](../docs/methodology/vendoring.md).
 
----
+# T-0910: The `cargo bloat` baseline, committed, and checked at the gate
 
-### T-0910 The `cargo bloat` baseline, committed, and checked at the gate
+**Source:** `TOOL.md` section 3.5; `docs/methodology/experiments.md`
+**Category:** deps
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 3.5; `docs/methodology/experiments.md`
-Category:    deps
-Priority:    P0
-Effort:      S
-Status:      done 2026-09-08
+## Problem
 
-Problem:     ⛔ A dependency that lands without a before-and-after number has not
-             landed. Without a committed baseline there is no "before".
-Premise:     Measured, for the empty skeleton, on this host: the release binary
-             is 389,656 bytes with no dependencies at all. That is the baseline
-             every delta below is measured against, and it is quoted here as one
-             machine on one day, as
-             `docs/conventions/prose.md:1-20` requires.
-Approach:    `experiments/110-bloat-delta.sh <area>` takes the current binary
-             size and the `cargo bloat` breakdown, with and without the
-             dependency under test, and writes both to
-             `experiments/results/bloat-<area>.txt`. It prints its conditions and
-             exits 0, 1 or 2 per the convention.
-             ⭐ Wire the total into the gate as a ceiling, so a dependency that
-             lands quietly fails CI rather than being noticed at release.
-Decision:    A ceiling on the total, not on the delta. A delta ceiling permits
-             an unbounded number of small dependencies, which is how a binary
-             gets large without any single decision being wrong.
-Prove:       `./experiments/110-bloat-delta.sh baseline` exits 0, `./target/release/podvm-gate` exits 0, and `./target/release/podvm-plant` reports cases 17a, 17b and 17c caught
+⛔ A dependency that lands without a before-and-after number has not
+landed. Without a committed baseline there is no "before".
+
+## Premise
+
+Measured, for the empty skeleton, on this host: the release binary
+is 389,656 bytes with no dependencies at all. That is the baseline
+every delta below is measured against, and it is quoted here as one
+machine on one day, as
+`docs/conventions/prose.md:1-20` requires.
+
+## Approach
+
+`experiments/110-bloat-delta.sh <area>` takes the current binary
+size and the `cargo bloat` breakdown, with and without the
+dependency under test, and writes both to
+`experiments/results/bloat-<area>.txt`. It prints its conditions and
+exits 0, 1 or 2 per the convention.
+⭐ Wire the total into the gate as a ceiling, so a dependency that
+lands quietly fails CI rather than being noticed at release.
+
+## Decision
+
+A ceiling on the total, not on the delta. A delta ceiling permits
+an unbounded number of small dependencies, which is how a binary
+gets large without any single decision being wrong.
+
+## Prove
+
+`./experiments/110-bloat-delta.sh baseline` exits 0, `./target/release/podvm-gate` exits 0, and `./target/release/podvm-plant` reports cases 17a, 17b and 17c caught
+
+## Done
 
 **Done 2026-09-08.** The `Prove` commands were run and exit 0. The reading is
 `experiments/results/bloat-baseline.txt`: **496,184 bytes and zero third-party
@@ -640,96 +802,111 @@ artefact's; its absolute sizes are not, and the file says so. Where
 `cargo-bloat` is not installed the script exits 2 and records that the
 breakdown was not taken, because a skip is not a pass.
 
----
+# T-0911: The syscall table and the kernel structs come from a crate, per architecture
 
-### T-0911 The syscall table and the kernel structs come from a crate, per architecture
+**Source:** Found by the operator on 2026-09-09, reading `pod_hostprobe::sys`
+**Category:** deps
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      Found by the operator on 2026-09-09, reading `pod_hostprobe::sys`
-Category:    deps
-Priority:    P0
-Effort:      M
-Status:      done 2026-09-09
+## Problem
 
-Problem:     ⛔ **podvm was a single-architecture runtime because of a table
-             somebody typed.** `pod_hostprobe::sys` declared 46
-             x86_64 syscall numbers and a `#[repr(C)] struct stat` by hand, and
-             opened with a `compile_error!` for every other architecture. The
-             `compile_error!` was the right call given the table, a wrong
-             number is a verdict reported for a syscall nobody named, but the
-             table was the wrong thing to have. docker and podman run every
-             architecture Linux ships; podvm refused to compile for seven of
-             them.
-Premise:     ⭐ **Measured on 2026-09-09, and the premise it overturns is
-             [T-0901](#t-0901-sweep-syscalls)'s.** T-0901 ruled `libc` and
-             `rustix` out at a delta below the instrument's resolution, on the
-             grounds that the probe set is hand-declared and needs no crate.
-             What that ruling priced was the bytes. What it did not price was
-             the cost of hand-declaring, which is one architecture.
+⛔ **podvm was a single-architecture runtime because of a table
+somebody typed.** `pod_hostprobe::sys` declared 46
+x86_64 syscall numbers and a `#[repr(C)] struct stat` by hand, and
+opened with a `compile_error!` for every other architecture. The
+`compile_error!` was the right call given the table, a wrong
+number is a verdict reported for a syscall nobody named, but the
+table was the wrong thing to have. docker and podman run every
+architecture Linux ships; podvm refused to compile for seven of
+them.
 
-             ⚠ The requirement T-0901 was protecting is real and survives:
-             [probe.md](probe.md) T-0101 needs **the kernel's** errno, not a
-             libc wrapper's, because glibc's `setuid(3)` runs an id-change dance
-             and returns the library's answer. `syscalls::raw` is not a libc
-             wrapper: it issues the instruction and returns the raw value, so
-             nothing passes through `errno`'s thread-local. The rule is kept and
-             the table is gone.
+## Premise
 
-             | | |
-             | --- | --- |
-             | architectures that compiled the workspace, before | **1** |
-             | after | **6**, and one named blocker |
-             | shipping binary, x86_64, before | 2,282,224 bytes |
-             | after | **2,282,352 bytes**, +128 |
+⭐ **Measured on 2026-09-09, and the premise it overturns is
+[T-0901](#t-0901-sweep-syscalls)'s.** T-0901 ruled `libc` and
+`rustix` out at a delta below the instrument's resolution, on the
+grounds that the probe set is hand-declared and needs no crate.
+What that ruling priced was the bytes. What it did not price was
+the cost of hand-declaring, which is one architecture.
 
-             ⭐ **The size question answered itself.** The operator ruled that
-             features outrank bytes here, and the trade did not have to be made:
-             both crates are `const` tables and inlined assembly, so `+128 bytes`
-             buys six architectures. ⚠ `+128` is one build on one host and is
-             below anything this instrument resolves; it is quoted as the
-             reading it is and not as a law.
-Approach:    `syscalls` for the numbers and the trap, `linux-raw-sys` for the
-             kernel structs. Both `default-features = false`, both `no_std`,
-             neither pulling a libc.
-             ⛔ **What replaced the transcription risk rather than removing it.**
-             A name a kernel does not define is a **compile error**, never a
-             wrong number: `Sysno` has no such variant. Three cfg lists remain
-             and each is a claim about the kernel that the compiler checks:
-             1. the `asm-generic/unistd.h` architectures, which have no `open`,
-                `stat`, `mkdir`, `unlink`, `chown`, `lchown`, `readlink`,
-                `mknod` or `dup2`;
-             2. the three names one syscall has, `newfstatat`, `fstatat` and
-                `fstatat64`, **paired with the struct each writes**, because on
-                a 32-bit architecture `fstatat64` writes `struct stat64` and
-                taking it with `struct stat`'s buffer is a kernel write of the
-                wrong shape into a right-sized hole;
-             3. nothing else.
-             Every path-taking **utility** routes through the `*at` form on every
-             architecture, which is what `open(path)` means anyway and removes
-             nine per-architecture cases. ⛔ The three calls where the entry
-             point **is** the measurement, `chown`, `lchown`, `mknod`, keep
-             their identity in `sys::Entry`, and on an architecture that has
-             only `fchownat` the row prints `fchownat`. A probe that calls one
-             syscall and names another is the dishonesty the probe set exists to
-             refuse.
-Decision:    Take the crates. ⚠ **`syscalls` 0.8.1 gates powerpc, s390x and mips
-             behind `asm_experimental_arch`, and that gate is stale**: clause 3
-             of `experiments/260-multiarch.sh` compiles powerpc64 inline
-             assembly on stable rustc 1.98.1 and it succeeds. So
-             `powerpc64le-unknown-linux-musl` does not build, for a reason that
-             is not a rustc limit and is not podvm's code.
-             ⛔ It is **not closed as somebody else's problem**
-             (`AGENTS.md` absolute 5). It stays named in clause 2 of that
-             script, which goes **red** the day it starts building, and either of
-             two things clears it: a `syscalls` release dropping the gate, or
-             podvm taking the numbers from `linux-raw-sys`, which carries
-             `__NR_*` for every architecture with no gate at all, and carrying
-             its own six-line trap for those two. The second is entirely within
-             this tree and is why the first is not a dependency on anyone.
-             ⚠ `AGENTS.md` absolute 2 says a defect in vendored code is
-             fixed here. This crate is a registry dependency and not vendored,
-             so the fix that applies is the second option, and it is recorded
-             rather than taken because six architectures ship today without it.
-Prove:       `./experiments/260-multiarch.sh` exits 0, and `cargo check --workspace --target aarch64-unknown-linux-musl` exits 0
+⚠ The requirement T-0901 was protecting is real and survives:
+[probe.md](probe.md) T-0101 needs **the kernel's** errno, not a
+libc wrapper's, because glibc's `setuid(3)` runs an id-change dance
+and returns the library's answer. `syscalls::raw` is not a libc
+wrapper: it issues the instruction and returns the raw value, so
+nothing passes through `errno`'s thread-local. The rule is kept and
+the table is gone.
+
+| | |
+| --- | --- |
+| architectures that compiled the workspace, before | **1** |
+| after | **6**, and one named blocker |
+| shipping binary, x86_64, before | 2,282,224 bytes |
+| after | **2,282,352 bytes**, +128 |
+
+⭐ **The size question answered itself.** The operator ruled that
+features outrank bytes here, and the trade did not have to be made:
+both crates are `const` tables and inlined assembly, so `+128 bytes`
+buys six architectures. ⚠ `+128` is one build on one host and is
+below anything this instrument resolves; it is quoted as the
+reading it is and not as a law.
+
+## Approach
+
+`syscalls` for the numbers and the trap, `linux-raw-sys` for the
+kernel structs. Both `default-features = false`, both `no_std`,
+neither pulling a libc.
+⛔ **What replaced the transcription risk rather than removing it.**
+A name a kernel does not define is a **compile error**, never a
+wrong number: `Sysno` has no such variant. Three cfg lists remain
+and each is a claim about the kernel that the compiler checks:
+1. the `asm-generic/unistd.h` architectures, which have no `open`,
+   `stat`, `mkdir`, `unlink`, `chown`, `lchown`, `readlink`,
+   `mknod` or `dup2`;
+2. the three names one syscall has, `newfstatat`, `fstatat` and
+   `fstatat64`, **paired with the struct each writes**, because on
+   a 32-bit architecture `fstatat64` writes `struct stat64` and
+   taking it with `struct stat`'s buffer is a kernel write of the
+   wrong shape into a right-sized hole;
+3. nothing else.
+Every path-taking **utility** routes through the `*at` form on every
+architecture, which is what `open(path)` means anyway and removes
+nine per-architecture cases. ⛔ The three calls where the entry
+point **is** the measurement, `chown`, `lchown`, `mknod`, keep
+their identity in `sys::Entry`, and on an architecture that has
+only `fchownat` the row prints `fchownat`. A probe that calls one
+syscall and names another is the dishonesty the probe set exists to
+refuse.
+
+## Decision
+
+Take the crates. ⚠ **`syscalls` 0.8.1 gates powerpc, s390x and mips
+behind `asm_experimental_arch`, and that gate is stale**: clause 3
+of `experiments/260-multiarch.sh` compiles powerpc64 inline
+assembly on stable rustc 1.98.1 and it succeeds. So
+`powerpc64le-unknown-linux-musl` does not build, for a reason that
+is not a rustc limit and is not podvm's code.
+⛔ It is **not closed as somebody else's problem**
+(`AGENTS.md` absolute 5). It stays named in clause 2 of that
+script, which goes **red** the day it starts building, and either of
+two things clears it: a `syscalls` release dropping the gate, or
+podvm taking the numbers from `linux-raw-sys`, which carries
+`__NR_*` for every architecture with no gate at all, and carrying
+its own six-line trap for those two. The second is entirely within
+this tree and is why the first is not a dependency on anyone.
+⚠ `AGENTS.md` absolute 2 says a defect in vendored code is
+fixed here. This crate is a registry dependency and not vendored,
+so the fix that applies is the second option, and it is recorded
+rather than taken because six architectures ship today without it.
+
+## Prove
+
+`./experiments/260-multiarch.sh` exits 0, and `cargo check --workspace --target aarch64-unknown-linux-musl` exits 0
+
+## Done
 
 **Done 2026-09-09.** `experiments/260-multiarch.sh` exits 0 and
 `experiments/results/multiarch.txt` is its reading.
@@ -786,48 +963,63 @@ reads and the same reason `experiments/260-multiarch.sh` reads its magic back
 before proceeding. podvm's answer on a machine with no such registration is
 already the right one: refuse by name, with the ELF machine it looked for.
 
----
+# T-0912: The powerpc gate is the crate's and it is stale, so podvm can clear it
 
-### T-0912 The powerpc gate is the crate's and it is stale, so podvm can clear it
+**Source:** Measured by `experiments/260-multiarch.sh` clause 3 on 2026-09-09, and raised again by the operator on the same day
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      Measured by `experiments/260-multiarch.sh` clause 3 on 2026-09-09, and raised again by the operator on the same day
-Category:    deps
-Priority:    P2
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     `powerpc64le` is the one architecture the workspace does not build
-             for, and [T-0911](deps.md) records it as blocked on `syscalls`
-             0.8.1's `asm_experimental_arch` gate. A blocker nobody can clear is
-             a fact; this one can be cleared here.
-Premise:     ⭐ **Measured, and the measurement is why this is an entry rather
-             than a wish.** Clause 3 of `experiments/260-multiarch.sh` compiles
-             powerpc64 inline assembly against the real rustc rather than
-             believing the crate's cfg, and
-             `experiments/results/multiarch.txt` records that it **compiles on
-             stable rustc 1.98.1**. The gate is therefore the crate's and not
-             the compiler's.
-             ⚠ Clause 2 of the same script goes **red** the day `powerpc64le`
-             starts building, which is the point: it is how this project finds
-             out rather than a failure to suppress.
-             ⚠ The runtime half is separate and is not this entry: an emulator
-             for big-endian PowerPC is absent from `docker/setup-qemu-action`,
-             which [T-0911](deps.md) now records.
-Approach:    Take the syscall numbers for powerpc64, s390x and mips from
-             `linux-raw-sys`, which podvm already depends on for the kernel
-             structs, and carry podvm's own trap for those architectures in
-             `pod_hostprobe::sys` beside the ones it already has.
-             ⛔ Not a fork of `syscalls` and not a patch to it in this tree: the
-             numbers are already available from a crate podvm takes, and one
-             more source of them is one more place for them to disagree.
-             ⚠ Then flip clause 2's expectation in the same change, because a
-             clause asserting a blocker that has been cleared is a check that
-             fires on the truth.
-Decision:    Clear it here rather than wait for a `syscalls` release. Waiting is
-             a dependency on somebody else's schedule for a value this project
-             has already measured, and `AGENTS.md` absolute 5 is that a
-             blocked entry names what would clear it.
-Prove:       `./experiments/260-multiarch.sh` reports 7 architectures checking the workspace and 0 blocked, and clause 3 says the gate was the crate's
+`powerpc64le` is the one architecture the workspace does not build
+for, and [T-0911](deps.md) records it as blocked on `syscalls`
+0.8.1's `asm_experimental_arch` gate. A blocker nobody can clear is
+a fact; this one can be cleared here.
+
+## Premise
+
+⭐ **Measured, and the measurement is why this is an entry rather
+than a wish.** Clause 3 of `experiments/260-multiarch.sh` compiles
+powerpc64 inline assembly against the real rustc rather than
+believing the crate's cfg, and
+`experiments/results/multiarch.txt` records that it **compiles on
+stable rustc 1.98.1**. The gate is therefore the crate's and not
+the compiler's.
+⚠ Clause 2 of the same script goes **red** the day `powerpc64le`
+starts building, which is the point: it is how this project finds
+out rather than a failure to suppress.
+⚠ The runtime half is separate and is not this entry: an emulator
+for big-endian PowerPC is absent from `docker/setup-qemu-action`,
+which [T-0911](deps.md) now records.
+
+## Approach
+
+Take the syscall numbers for powerpc64, s390x and mips from
+`linux-raw-sys`, which podvm already depends on for the kernel
+structs, and carry podvm's own trap for those architectures in
+`pod_hostprobe::sys` beside the ones it already has.
+⛔ Not a fork of `syscalls` and not a patch to it in this tree: the
+numbers are already available from a crate podvm takes, and one
+more source of them is one more place for them to disagree.
+⚠ Then flip clause 2's expectation in the same change, because a
+clause asserting a blocker that has been cleared is a check that
+fires on the truth.
+
+## Decision
+
+Clear it here rather than wait for a `syscalls` release. Waiting is
+a dependency on somebody else's schedule for a value this project
+has already measured, and `AGENTS.md` absolute 5 is that a
+blocked entry names what would clear it.
+
+## Prove
+
+`./experiments/260-multiarch.sh` reports 7 architectures checking the workspace and 0 blocked, and clause 3 says the gate was the crate's
+
+## Done
 
 **Done 2026-09-09, and the Prove's number was low: it says seven architectures
 and the reading is EIGHT.**
@@ -896,44 +1088,59 @@ $ ./experiments/260-multiarch.sh
   therefore could not run. ⛔ Not a failure: it is the third state.
 ```
 
----
+# T-1316: The committed lock matches the manifests, so a clean build leaves a clean tree
 
-### T-1316 The committed lock matches the manifests, so a clean build leaves a clean tree
+**Source:** issue 11, client beta testing 2026-09-22 (every fresh build
+  dirties `Cargo.lock` and the binary self-reports `-dirty`);
+  `Cargo.lock`, `crates/podvm/Cargo.toml`,
+  `crates/podvm-image/Cargo.toml`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Source:      issue 11, client beta testing 2026-09-22 (every fresh build
-             dirties `Cargo.lock` and the binary self-reports `-dirty`);
-             `Cargo.lock`, `crates/podvm/Cargo.toml`,
-             `crates/podvm-image/Cargo.toml`
-Category:    deps
-Priority:    P2
-Effort:      S
-Status:      done 2026-09-23
+## Problem
 
-Problem:     The committed lock is stale against the committed manifests
-             (`podvm` declares `sha2` under `[build-dependencies]`
-             (T-1004), `podvm-image` declares `base64`, neither in the
-             lock's lists; last lock commit 2026-09-11), and this
-             session's T-1315 adds a third stale edge (`podvm-extract`
-             declares `sha2`), so the first build on a pristine clone
-             rewrites the lock, `build.rs` sees a dirty tree, and the
-             binary records `-dirty`. Every released beta asset carries
-             the suffix for no reason.
-Premise:     Measured by the reporter on a pristine clone at the release
-             commit and confirmed on this tree: the two crates' lock
-             lists lack the two declared dependencies.
-Approach:    Refresh the lock (`cargo check`, then commit the lock) in
-             its own change, no manifest edits. Out of scope: whether
-             `build.rs` should distinguish cargo-caused dirt from
-             hand-edited dirt (recorded as future work in the entry if
-             wanted, not done here).
-Decision:    Lock refresh only. The `-dirty` semantics question is real
-             but widens the unit past one file.
-Prove:       Clone pristine, `cargo build --release`, `git status
-             --porcelain` prints nothing and `podvm version --verbose`
-             reports the bare commit. Close issue 11 with a comment
-             showing the clean-tree build and the lock diff as the guard
-             (a stale lock can no longer hide: any future manifest edit
-             without its lock shows the same way).
+The committed lock is stale against the committed manifests
+(`podvm` declares `sha2` under `[build-dependencies]`
+(T-1004), `podvm-image` declares `base64`, neither in the
+lock's lists; last lock commit 2026-09-11), and this
+session's T-1315 adds a third stale edge (`podvm-extract`
+declares `sha2`), so the first build on a pristine clone
+rewrites the lock, `build.rs` sees a dirty tree, and the
+binary records `-dirty`. Every released beta asset carries
+the suffix for no reason.
+
+## Premise
+
+Measured by the reporter on a pristine clone at the release
+commit and confirmed on this tree: the two crates' lock
+lists lack the two declared dependencies.
+
+## Approach
+
+Refresh the lock (`cargo check`, then commit the lock) in
+its own change, no manifest edits. Out of scope: whether
+`build.rs` should distinguish cargo-caused dirt from
+hand-edited dirt (recorded as future work in the entry if
+wanted, not done here).
+
+## Decision
+
+Lock refresh only. The `-dirty` semantics question is real
+but widens the unit past one file.
+
+## Prove
+
+Clone pristine, `cargo build --release`, `git status
+--porcelain` prints nothing and `podvm version --verbose`
+reports the bare commit. Close issue 11 with a comment
+showing the clean-tree build and the lock diff as the guard
+(a stale lock can no longer hide: any future manifest edit
+without its lock shows the same way).
+
+## Done
 
 **Done 2026-09-23.** Lock refresh only, as decided: three missing edges,
 no manifest edits, no version moves (`podvm-image` -> `base64`,
@@ -952,36 +1159,53 @@ suffix. The guard that stops recurrence is the same mechanism that
 reported the defect: a future manifest edit without its lock dirties the
 tree on the next build and the binary self-reports `-dirty` again.
 
-### T-1562 Port `experiments/110-bloat-delta.sh` to `podvm-size`
+# T-1562: Port `experiments/110-bloat-delta.sh` to `podvm-size`
 
-Source:      `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:52`;
-             `experiments/110-bloat-delta.sh`; `TODO/deps.md` T-0910
-Category:    deps
-Priority:    P0
-Effort:      M
-Status:      done
+**Source:** `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:52`;
+  `experiments/110-bloat-delta.sh`; `TODO/deps.md` T-0910
+**Category:** deps
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Problem:     The artefact measurement is shell. It is the `deps`
-             category's ceiling instrument, and it moves into the
-             `podvm-release` crate. Three readers pin its path: the gate
-             workflow runs it, the record gate reads the ceiling out of
-             it, and the plant harness reads the digits. The waves cannot
-             move the readers without the file.
-Premise:     The ceiling keeps its one home in the shell stub
-             (`CEILING_BYTES=<n>`), and the binary reads it at runtime:
-             the gate refuses the digits anywhere else (D-1 option c). The
-             scaffold control, the zero-delta refusal, and the shipping
-             profile stay as written.
-Approach:    Port the measurement to binary `podvm-size` with no
-             dependencies. Keep the experiment path as a declaration stub
-             that execs the binary, so the gate job, the gate check, and
-             the plant harness move nothing.
-Decision:    The stub declares; the binary measures. The `ci` area keeps
-             its meaning: measured, never asserted; the ceiling is the
-             gate.
-Prove:       `cargo test -p podvm-release` green in the lane; the gate's
-             `ci` area still runs through the stub;
-             `./target/release/podvm-gate` exits 0.
+## Problem
+
+The artefact measurement is shell. It is the `deps`
+category's ceiling instrument, and it moves into the
+`podvm-release` crate. Three readers pin its path: the gate
+workflow runs it, the record gate reads the ceiling out of
+it, and the plant harness reads the digits. The waves cannot
+move the readers without the file.
+
+## Premise
+
+The ceiling keeps its one home in the shell stub
+(`CEILING_BYTES=<n>`), and the binary reads it at runtime:
+the gate refuses the digits anywhere else (D-1 option c). The
+scaffold control, the zero-delta refusal, and the shipping
+profile stay as written.
+
+## Approach
+
+Port the measurement to binary `podvm-size` with no
+dependencies. Keep the experiment path as a declaration stub
+that execs the binary, so the gate job, the gate check, and
+the plant harness move nothing.
+
+## Decision
+
+The stub declares; the binary measures. The `ci` area keeps
+its meaning: measured, never asserted; the ceiling is the
+gate.
+
+## Prove
+
+`cargo test -p podvm-release` green in the lane; the gate's
+`ci` area still runs through the stub;
+`./target/release/podvm-gate` exits 0.
+
+## Done
 
 **Done 2026-10-01.** Binary `podvm-size` measures in the
 `podvm-release` crate, which it needs no dependencies for; the
@@ -992,40 +1216,46 @@ section 9): the workspace release build exits 0 and `podvm-size ci`
 through the stub exits 0 with `total_bytes 3277880` under the declared
 ceiling. The record gate exits 0 on the landed tree.
 
-### T-1624 Record the 265-row parity figure and the four stale values the tree carries
+# T-1624: Record the 265-row parity figure and the four stale values the tree carries
 
-Source:      `refactor/recon-c.md:171`;
-             `refactor/06-entries/PLAN.md:190-194`
-Category:    deps
-Priority:    P2
-Effort:      S
-Status:      done
+**Source:** `refactor/recon-c.md:171`;
+  `refactor/06-entries/PLAN.md:190-194`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Problem:     The parity table has one row count and this tree carries
-             four values for it. A reader cannot tell which is current
-             and one of the four is labelled CURRENT while being wrong.
-Premise:     265 is the source value. 220 and 164 are historical
-             readings, and 160 is a fourth. A count of 267 counted
-             `struct Row` and `impl Row` rather than the table's rows.
-Approach:     Record 265 once, beside the other three and the reason
-             each is what it is, so the four stop being four answers to
-             one question. Check the current value in the source before
-             writing it.
-Decision:     One page carries the figure and names the other three as
-             historical. Four pages each asserting a number is the defect.
-Prove:       `grep -n "265" TODO/deps.md` names the parity figure once
-             with the three stale values beside it.
+## Problem
 
-**Done 2026-10-02.** The 265-row figure is recorded once, with the three
-other values named as dated readings beside it: 220 from `TODO/cli.md:166`,
-164 from `experiments/results/parity-drive.txt:7`, and 160 from
-`TODO/cli.md:694`. The value is re-derived on this tree rather than copied:
-`TABLE` runs from `crates/podvm/src/parity.rs:119` to `:422` and holds
-265 `Row {` literals inside that range. A fourth figure, 267, is recorded as
-a whole-file artefact, because `pub struct Row` at `:58` and `impl Row` at
-`:65` both match the same grep; the whole-file count is 267. The Prove grep
-`grep -n "265" TODO/deps.md` matches, and each of its lines is either this
-entry or the record it wrote.
+The parity table has one row count and this tree carries
+four values for it. A reader cannot tell which is current
+and one of the four is labelled CURRENT while being wrong.
+
+## Premise
+
+265 is the source value. 220 and 164 are historical
+readings, and 160 is a fourth. A count of 267 counted
+`struct Row` and `impl Row` rather than the table's rows.
+
+## Approach
+
+Record 265 once, beside the other three and the reason
+each is what it is, so the four stop being four answers to
+one question. Check the current value in the source before
+writing it.
+
+## Decision
+
+One page carries the figure and names the other three as
+historical. Four pages each asserting a number is the defect.
+
+## Prove
+
+`grep -n "265" TODO/deps.md` names the parity figure once
+with the three stale values beside it.
+
+## Correction
 
 **Recorded 2026-10-02.** One figure answers one question: how many rows
 `TABLE` holds. The source reads **265**, and the plan carries the same
@@ -1039,56 +1269,73 @@ was taken:
 | Value | Where | What it is |
 | --- | --- | --- |
 | 265 | `crates/podvm/src/parity.rs:119-422` | the source count, current |
-| 220 | `TODO/cli.md:166` | T-0801's 2026-09-25 reading |
+| 220 | `TODO/cli.md:183` | T-0801's 2026-09-25 reading |
 | 164 | `experiments/results/parity-drive.txt:7` | the 2026-09-22 drive |
-| 160 | `TODO/cli.md:694` | T-0808's 2026-09-21 reading |
+| 160 | `TODO/cli.md:812` | T-0808's 2026-09-21 reading |
 
 ⚠ A count of 267 is not a fourth reading. `grep -c 'Row {'` over the
 whole file returns 267 because `pub struct Row` at `:58` and `impl Row`
 at `:65` both match. Neither is a table row.
 
-The live page is `TODO/cli.md:63`, which reads 265 and labels itself
+The live page is `TODO/cli.md:109`, which reads 265 and labels itself
 CURRENT. It carries the current value and does not need this entry; the
 three historical rows name it rather than assert a number, so the table
 has one cell that answers and three that do not compete with it.
 
+## Done
 
-### T-1633 Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right
+**Done 2026-10-02.** The 265-row figure is recorded once, with the three
+other values named as dated readings beside it: 220 from `TODO/cli.md:183`,
+164 from `experiments/results/parity-drive.txt:7`, and 160 from
+`TODO/cli.md:812`. The value is re-derived on this tree rather than copied:
+`TABLE` runs from `crates/podvm/src/parity.rs:119` to `:422` and holds
+265 `Row {` literals inside that range. A fourth figure, 267, is recorded as
+a whole-file artefact, because `pub struct Row` at `:58` and `impl Row` at
+`:65` both match the same grep; the whole-file count is 267. The Prove grep
+`grep -n "265" TODO/deps.md` matches, and each of its lines is either this
+entry or the record it wrote.
 
-Source:      `refactor/recon-c.md:180`;
-             `refactor/06-entries/PLAN.md:178-184`
-Category:    deps
-Priority:    P2
-Effort:      S
-Status:      done
+# T-1633: Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right
 
-Problem:     Two documents give two counts for the same set of proof
-             lines, and a third says the count is wrong twice. Neither
-             figure has been re-derived, so a repair set built on either
-             is the wrong size.
-Premise:     The larger figure was verified twice and the correction is
-             itself recorded: the lines sit in two files, not three, and
-             one named file contributes none. The smaller figure has no
-             stated derivation.
-Approach:     Re-derive the count over the current tree and record the
-             count and its derivation together. The historical figure
-             stays named as historical.
-Decision:     Re-derive before recording. A correction that carries the
-             error forward under a new number is not a correction.
-Prove:       `grep -n "plant.sh" TODO/deps.md` names the current count
-             and the command that derives it.
+**Source:** `refactor/recon-c.md:180`;
+  `refactor/06-entries/PLAN.md:178-184`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-**Done 2026-10-02.** The entry stands on a re-derivation over this tree,
-not on the premise. The current count of `Prove` clauses that drive the
-plant harness is 4, not 13 and not 3: the derivation below prints T-1207,
-T-1338, T-1341 and T-1343, all in `TODO/gate.md`. The historical 13 keeps
-its 12 + 1 + 0 breakdown, and 3 is recorded as a file count that the two
-documents giving one put at 2. The reason the figure moved is recorded:
-the harness was ported to binary `podvm-plant`
-(`crates/podvm-gate/src/plant.rs:3`), so the plan's own command now reads
-a finished repair set as an absence. The Prove grep
-`grep -n "plant.sh" TODO/deps.md` matches, and each of its lines is either
-this entry or the record it wrote.
+## Problem
+
+Two documents give two counts for the same set of proof
+lines, and a third says the count is wrong twice. Neither
+figure has been re-derived, so a repair set built on either
+is the wrong size.
+
+## Premise
+
+The larger figure was verified twice and the correction is
+itself recorded: the lines sit in two files, not three, and
+one named file contributes none. The smaller figure has no
+stated derivation.
+
+## Approach
+
+Re-derive the count over the current tree and record the
+count and its derivation together. The historical figure
+stays named as historical.
+
+## Decision
+
+Re-derive before recording. A correction that carries the
+error forward under a new number is not a correction.
+
+## Prove
+
+`grep -n "plant.sh" TODO/deps.md` names the current count
+and the command that derives it.
+
+## Correction
 
 **Recorded 2026-10-02.** Re-derived over this tree, and the current
 count is **0**. The historical figure is **13**, from
@@ -1143,56 +1390,86 @@ question as unresolved. `PLAN.md:180` carries the same 13 with no file
 count beside it. No document in the corpus states 3 as a measured
 result.
 
+## Done
 
-### T-1642 Refuse a Linux-target cargo build launched on a Windows host
+**Done 2026-10-02.** The entry stands on a re-derivation over this tree,
+not on the premise. The current count of `Prove` clauses that drive the
+plant harness is 4, not 13 and not 3: the derivation below prints T-1207,
+T-1338, T-1341 and T-1343, all in `TODO/gate.md`. The historical 13 keeps
+its 12 + 1 + 0 breakdown, and 3 is recorded as a file count that the two
+documents giving one put at 2. The reason the figure moved is recorded:
+the harness was ported to binary `podvm-plant`
+(`crates/podvm-gate/src/plant.rs:3`), so the plan's own command now reads
+a finished repair set as an absence. The Prove grep
+`grep -n "plant.sh" TODO/deps.md` matches, and each of its lines is either
+this entry or the record it wrote.
 
-Source:      measured 2026-10-02 on this host; `.cargo/config.toml:7-8`;
-             `docs/containers.md:33`; `scripts/dev-lane.sh:1`;
-             `scripts/common/check-build-lane.sh`
-Category:    deps
-Priority:    P1
-Effort:      S
-Status:      done
+# T-1642: Refuse a Linux-target cargo build launched on a Windows host
 
-Problem:     A Linux build run on the Windows host fails deep inside a
-             C dependency, and the failure reads like a host limitation.
-             It is not one, and this session reported it as one.
-Premise:     `.cargo/config.toml` sets `[build] target =
-             "x86_64-unknown-linux-musl"`, so a bare `cargo build`
-             compiles a Linux target on every host including a Windows
-             one. `ring`'s build script then invokes
-             `scripts/zig-cc.sh` through a Windows process spawner:
-             `os error 193`. `cargo check` and `cargo clippy` never link,
-             so they pass on the same host, which is why the difference
-             is invisible until a link is attempted.
-Approach:     Make the refusal mechanical rather than documented. A guard
-             decides from the host and the pinned `[build] target`, and
-             refuses `build`, `test`, `run` and `bench` when that target
-             is a Linux triple. It allows `check`, `clippy`, `fmt` and a
-             Windows `--target`, because `check-gate.sh` builds the gate
-             as `x86_64-pc-windows-msvc` and a guard that refused that
-             would make the tree unverifiable on the host.
-Decision:     Refuse on the PLACE, not on the error. The error is loud and
-             harmless on its own; the damage is what an agent concludes
-             from it. This session confirmed the failure reproduced on a
-             clean tree and wrote "pre-existing, not introduced here" into
-             three records. Every observation was true and the conclusion
-             was worthless, because the build had run in the wrong place.
-             The guard therefore runs before cargo, in 0.665 s measured,
-             and its message names the lane and says the error is not a
-             host limitation.
-Prove:       `sh scripts/common/check-build-lane.sh --self-test` exits 0
-             with 16 cases, 8 per host, driven through a stubbed
-             `uname`: a Windows host refuses a bare build, a Linux
-             `--target` build and `cargo test`, and allows `check`,
-             `clippy`, `fmt`, a Windows `--target` and `cargo tree`; a
-             Linux host allows all eight, which is what keeps the CI
-             workflows valid at `gate.yml:45`. The plant: restoring
-             revision one's `[ "$u" != "MINGW"* ]` turns the self-test
-             red with exit 1, measured. `check-gate.sh` runs the
-             self-test so the guard cannot rot unobserved.
+**Source:** measured 2026-10-02 on this host; `.cargo/config.toml:7-8`;
+  `docs/containers.md:33`; `scripts/dev-lane.sh:1`;
+  `scripts/common/check-build-lane.sh`
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-**Done.** The guard is `scripts/common/check-build-lane.sh` and it is
+## Problem
+
+A Linux build run on the Windows host fails deep inside a
+C dependency, and the failure reads like a host limitation.
+It is not one, and this session reported it as one.
+
+## Premise
+
+`.cargo/config.toml` sets `[build] target =
+"x86_64-unknown-linux-musl"`, so a bare `cargo build`
+compiles a Linux target on every host including a Windows
+one. `ring`'s build script then invokes
+`scripts/zig-cc.sh` through a Windows process spawner:
+`os error 193`. `cargo check` and `cargo clippy` never link,
+so they pass on the same host, which is why the difference
+is invisible until a link is attempted.
+
+## Approach
+
+Make the refusal mechanical rather than documented. A guard
+decides from the host and the pinned `[build] target`, and
+refuses `build`, `test`, `run` and `bench` when that target
+is a Linux triple. It allows `check`, `clippy`, `fmt` and a
+Windows `--target`, because `check-gate.sh` builds the gate
+as `x86_64-pc-windows-msvc` and a guard that refused that
+would make the tree unverifiable on the host.
+
+## Decision
+
+Refuse on the PLACE, not on the error. The error is loud and
+harmless on its own; the damage is what an agent concludes
+from it. This session confirmed the failure reproduced on a
+clean tree and wrote "pre-existing, not introduced here" into
+three records. Every observation was true and the conclusion
+was worthless, because the build had run in the wrong place.
+The guard therefore runs before cargo, in 0.665 s measured,
+and its message names the lane and says the error is not a
+host limitation.
+
+## Prove
+
+`sh scripts/common/check-build-lane.sh --self-test` exits 0
+with 16 cases, 8 per host, driven through a stubbed
+`uname`: a Windows host refuses a bare build, a Linux
+`--target` build and `cargo test`, and allows `check`,
+`clippy`, `fmt`, a Windows `--target` and `cargo tree`; a
+Linux host allows all eight, which is what keeps the CI
+workflows valid at `gate.yml:45`. The plant: restoring
+revision one's `[ "$u" != "MINGW"* ]` turns the self-test
+red with exit 1, measured. `check-gate.sh` runs the
+self-test so the guard cannot rot unobserved.
+
+## Done
+
+**Done 2026-10-02.** The guard is `scripts/common/check-build-lane.sh` and it is
 wired into `check-gate.sh:116` as `check-build-lane`, running its
 self-test rather than its own judgment of the host's command, because
 running the guard against this host's command would pass by
@@ -1213,54 +1490,69 @@ the right command easy to find. A reader still has to reach for
 one line in a list. That is why the entry keeps a documentation half
 beside the guard half, and why neither is described as sufficient.
 
----
+# T-1669: Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate
 
-### T-1669 Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate
+**Source:** call C6 of the decisions page of 2026-11-06 (the main session
+  adds it as docs/decisions.md); COORD-001, issue 194, "podvm
+  moves to the pinned stable Rust and edition 2024 before its
+  first take"; `rust-toolchain.toml:2`; `Cargo.toml:28-29`;
+  `crates/podvm-interpose/Cargo.toml:4-5`
+**Category:** deps
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      call C6 of the decisions page of 2026-11-06 (the main session
-             adds it as docs/decisions.md); COORD-001, issue 194, "podvm
-             moves to the pinned stable Rust and edition 2024 before its
-             first take"; `rust-toolchain.toml:2`; `Cargo.toml:28-29`;
-             `crates/podvm-interpose/Cargo.toml:4-5`
-Category:    deps
-Priority:    P1
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     The toolchain floats on `stable`, so the compiler changes under
-             the tree without a commit. Stable moved from 1.98.1 to 1.99.0
-             between two CI runs on 2026-10-01 and turned the static build
-             red (T-1601). The podcrates crates that podvm takes next build
-             on a pinned stable and edition 2024; podvm is on edition 2021.
-Premise:     `rust-toolchain.toml:2` reads `channel = "stable"`. The
-             workspace sets `edition = "2021"` and `rust-version = "1.85"`
-             (`Cargo.toml:28-29`). The interposer is outside the workspace
-             and sets the same two values
-             (`crates/podvm-interpose/Cargo.toml:4-5`). T-1601 recorded "do
-             not pin the toolchain" under the 2026-10-02 rule of
-             `TODO/RULES.md` section 11; call C6 of 2026-11-06 orders the
-             pin.
-Approach:    Read the stable version of the day of the change with `rustup
-             check`. Set `channel` to that exact version, and keep the
-             components and the musl target. Set `edition = "2024"` and
-             `rust-version` to the pinned version in the workspace and in
-             the interposer. Run `cargo fix --edition` for each, then fix
-             what remains by hand. Run the full lane: fmt, clippy, tests,
-             the static build and both interposer objects. A later bump is
-             one commit that changes the pin and passes the same lane.
-Decision:    C6 settles the pin; it supersedes T-1601's "do not pin" for the
-             channel only. The rule "take whatever toolchain feature unlocks
-             the task" of `TODO/RULES.md` section 11 stays: a bump to a newer
-             pin is how a feature is taken. This entry comes before the
-             first `pod-*` take (T-1675) and before the record moves to
-             pod-todo (T-1672).
-Prove:       `cargo fmt --all --check`, `cargo clippy --workspace
-             --all-targets -- -D warnings` and `cargo test --workspace` each
-             exit 0 in the Linux lane (`sh scripts/dev-lane.sh run JOB.sh`)
-             on the pinned toolchain; `./target/release/podvm-interpose-build`
-             exits 0 with both objects under the ceiling; and
-             `rustc --version` in the lane prints the version that
-             `rust-toolchain.toml` names.
+The toolchain floats on `stable`, so the compiler changes under
+the tree without a commit. Stable moved from 1.98.1 to 1.99.0
+between two CI runs on 2026-10-01 and turned the static build
+red (T-1601). The podcrates crates that podvm takes next build
+on a pinned stable and edition 2024; podvm is on edition 2021.
+
+## Premise
+
+`rust-toolchain.toml:2` reads `channel = "stable"`. The
+workspace sets `edition = "2021"` and `rust-version = "1.85"`
+(`Cargo.toml:28-29`). The interposer is outside the workspace
+and sets the same two values
+(`crates/podvm-interpose/Cargo.toml:4-5`). T-1601 recorded "do
+not pin the toolchain" under the 2026-10-02 rule of
+`TODO/RULES.md` section 11; call C6 of 2026-11-06 orders the
+pin.
+
+## Approach
+
+Read the stable version of the day of the change with `rustup
+check`. Set `channel` to that exact version, and keep the
+components and the musl target. Set `edition = "2024"` and
+`rust-version` to the pinned version in the workspace and in
+the interposer. Run `cargo fix --edition` for each, then fix
+what remains by hand. Run the full lane: fmt, clippy, tests,
+the static build and both interposer objects. A later bump is
+one commit that changes the pin and passes the same lane.
+
+## Decision
+
+C6 settles the pin; it supersedes T-1601's "do not pin" for the
+channel only. The rule "take whatever toolchain feature unlocks
+the task" of `TODO/RULES.md` section 11 stays: a bump to a newer
+pin is how a feature is taken. This entry comes before the
+first `pod-*` take (T-1675) and before the record moves to
+pod-todo (T-1672).
+
+## Prove
+
+`cargo fmt --all --check`, `cargo clippy --workspace
+--all-targets -- -D warnings` and `cargo test --workspace` each
+exit 0 in the Linux lane (`sh scripts/dev-lane.sh run JOB.sh`)
+on the pinned toolchain; `./target/release/podvm-interpose-build`
+exits 0 with both objects under the ceiling; and
+`rustc --version` in the lane prints the version that
+`rust-toolchain.toml` names.
+
+## Done
 
 **Done 2026-11-06.** `cargo test --workspace` exits 0 in a Linux
 cloud container on the pinned 1.99.1, with no test failing; fmt, clippy,
@@ -1287,38 +1579,53 @@ the change), so `gate.yml` runs them with one thread.
 The remaining clause closed on 2026-11-06: the detached start passes
 since `4c2cb91` (T-1604) and the device tests since T-1686.
 
----
+# T-1675: Take `pod-term` for the SSH line discipline
 
-### T-1675 Take `pod-term` for the SSH line discipline
+**Source:** COORD-001, issue 194, "What podvm takes, in this order", row 1;
+  PodUtils podcrates issue 3; `crates/podvm-ssh/src/session.rs:1`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      COORD-001, issue 194, "What podvm takes, in this order", row 1;
-             PodUtils podcrates issue 3; `crates/podvm-ssh/src/session.rs:1`
-Category:    deps
-Priority:    P2
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     podvm carries its own terminal line discipline in
-             `crates/podvm-ssh/src/session.rs` (1,132 lines). podcrates
-             makes the same code a shared crate, `pod-term`, so podnet,
-             podssh and podvm keep one copy.
-Premise:     COORD-001 puts `pod-term` first because it needs no tokio.
-             podcrates recorded the order in its answer (podcrates issue 3)
-             and hands each crate over as `adoption/podvm/CRATE.patch` and
-             `.run` at the tag of its release (podcrates T-040). The pinned
-             toolchain comes first (T-1669).
-Approach:    When the release is out, apply its adoption patch: depend on
-             `pod-term` at the release version and replace the line
-             discipline in `session.rs` with calls to the crate. Keep the
-             existing session tests and run them against the crate. Write
-             the commit that took the crate as a COORD issue `(to
-             podcrates)`, as podcrates issue 3 asks.
-Decision:    podvm takes a released version, never a path or a git
-             dependency. A defect found in the crate goes to podcrates as a
-             COORD issue; podvm does not patch a copy.
-Prove:       `cargo test -p podvm-ssh` exits 0 in the Linux lane with the
-             session tests passing through `pod-term`, and
-             `./target/release/podvm-gate` exits 0.
+podvm carries its own terminal line discipline in
+`crates/podvm-ssh/src/session.rs` (1,132 lines). podcrates
+makes the same code a shared crate, `pod-term`, so podnet,
+podssh and podvm keep one copy.
+
+## Premise
+
+COORD-001 puts `pod-term` first because it needs no tokio.
+podcrates recorded the order in its answer (podcrates issue 3)
+and hands each crate over as `adoption/podvm/CRATE.patch` and
+`.run` at the tag of its release (podcrates T-040). The pinned
+toolchain comes first (T-1669).
+
+## Approach
+
+When the release is out, apply its adoption patch: depend on
+`pod-term` at the release version and replace the line
+discipline in `session.rs` with calls to the crate. Keep the
+existing session tests and run them against the crate. Write
+the commit that took the crate as a COORD issue `(to
+podcrates)`, as podcrates issue 3 asks.
+
+## Decision
+
+podvm takes a released version, never a path or a git
+dependency. A defect found in the crate goes to podcrates as a
+COORD issue; podvm does not patch a copy.
+
+## Prove
+
+`cargo test -p podvm-ssh` exits 0 in the Linux lane with the
+session tests passing through `pod-term`, and
+`./target/release/podvm-gate` exits 0.
+
+## Done
 
 **Done 2026-11-06.** podvm took `pod-term` with
 `adoption/podvm/pod-term.patch` of PodUtils/podcrates at `784469a`,
@@ -1334,39 +1641,54 @@ sshd, clippy of the workspace, rustfmt of podvm-ssh, the record gate,
 version, never a git dependency" holds with a git tag; the crate is not
 on a registry.
 
----
+# T-1676: Take `pod-tls` for both TLS stacks, with its synchronous face
 
-### T-1676 Take `pod-tls` for both TLS stacks, with its synchronous face
+**Source:** COORD-001, issue 194, row 2; PodUtils podcrates issue 3,
+  question 1 (call C20 of podcrates); `crates/podvm-ssh/src/tls.rs:1`;
+  `crates/podvm-image/src/tls.rs:1`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      COORD-001, issue 194, row 2; PodUtils podcrates issue 3,
-             question 1 (call C20 of podcrates); `crates/podvm-ssh/src/tls.rs:1`;
-             `crates/podvm-image/src/tls.rs:1`
-Category:    deps
-Priority:    P2
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     podvm has two TLS setups: `crates/podvm-ssh/src/tls.rs` (153
-             lines) and `crates/podvm-image/src/tls.rs` (290 lines). It
-             needs TLS 1.2, RSA and `ring` for intercepting proxies.
-             podcrates makes this `pod-tls`.
-Premise:     podvm is synchronous and measures the size of each dependency.
-             podcrates answered question 1: with `default-features = false`,
-             `pod-tls` builds its configurations, roots and stores with no
-             tokio, and podvm drives rustls's own synchronous stream.
-             `pod-rootfs` (T-1681) reads the CA data that moves to
-             `pod-tls`.
-Approach:    Take the released `pod-tls` with `default-features = false`.
-             Replace both modules with the crate's configuration and roots.
-             Measure the binary size before and after with
-             `./target/release/podvm-size` and record both. Report the
-             taken commit in a COORD issue `(to podcrates)`.
-Decision:    No tokio enters podvm through this crate. A size growth past
-             the ceiling the gate checks is a blocker to raise with
-             podcrates, not a ceiling to move.
-Prove:       `cargo test -p podvm-image` and `cargo test -p podvm-ssh` exit
-             0 in the Linux lane, `cargo tree -p podvm -e normal -i tokio`
-             finds no tokio, and `./target/release/podvm-gate` exits 0.
+podvm has two TLS setups: `crates/podvm-ssh/src/tls.rs` (153
+lines) and `crates/podvm-image/src/tls.rs` (290 lines). It
+needs TLS 1.2, RSA and `ring` for intercepting proxies.
+podcrates makes this `pod-tls`.
+
+## Premise
+
+podvm is synchronous and measures the size of each dependency.
+podcrates answered question 1: with `default-features = false`,
+`pod-tls` builds its configurations, roots and stores with no
+tokio, and podvm drives rustls's own synchronous stream.
+`pod-rootfs` (T-1681) reads the CA data that moves to
+`pod-tls`.
+
+## Approach
+
+Take the released `pod-tls` with `default-features = false`.
+Replace both modules with the crate's configuration and roots.
+Measure the binary size before and after with
+`./target/release/podvm-size` and record both. Report the
+taken commit in a COORD issue `(to podcrates)`.
+
+## Decision
+
+No tokio enters podvm through this crate. A size growth past
+the ceiling the gate checks is a blocker to raise with
+podcrates, not a ceiling to move.
+
+## Prove
+
+`cargo test -p podvm-image` and `cargo test -p podvm-ssh` exit
+0 in the Linux lane, `cargo tree -p podvm -e normal -i tokio`
+finds no tokio, and `./target/release/podvm-gate` exits 0.
+
+## Done
 
 **Done 2026-11-06.** podvm took `pod-tls` 0.4.0 with
 `default-features = false` by `adoption/podvm/pod-tls.patch` of
@@ -1386,42 +1708,57 @@ after: `podvm` 3,974,200 and 4,006,968 bytes (+32 KiB), `node` 1,622,872
 and 1,672,024 (+48 KiB), `operator` 1,594,264 and 1,635,224 (+40 KiB).
 Call C9 of `docs/decisions.md` accepts the three changes of behaviour.
 
----
+# T-1677: Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial
 
-### T-1677 Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial
+**Source:** COORD-001, issue 194, row 3; PodUtils podcrates issue 3,
+  question 1 (podcrates T-063); `crates/podvm-image/src/transport.rs:1`;
+  `crates/podvm-ssh/src/transport.rs:226`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** done
 
-Source:      COORD-001, issue 194, row 3; PodUtils podcrates issue 3,
-             question 1 (podcrates T-063); `crates/podvm-image/src/transport.rs:1`;
-             `crates/podvm-ssh/src/transport.rs:226`
-Category:    deps
-Priority:    P2
-Effort:      L
-Status:      done
+## Problem
 
-Problem:     podvm dials registries and SSH targets directly
-             (`crates/podvm-ssh/src/transport.rs:226`). It reads no
-             `HTTPS_PROXY` and no `NO_PROXY`, so on a host whose only way
-             out is a proxy, `pull` and the guest image fetch cannot reach
-             the network.
-Premise:     podcrates answered question 1 with a feature `blocking`: a
-             blocking `Dialer` and `Client` over a private current-thread
-             runtime, on the same code as the async ones (call C20). Where
-             podvm's measurement asks for no tokio, the protocol parts
-             become state machines that a synchronous driver runs.
-             podcrates records that as T-063, before podvm takes the crate.
-Approach:    Take the released `pod-proxy` with `blocking`. Route the
-             registry transport, the SSH dial and the guest image fetch
-             through its `Dialer`, honouring `HTTPS_PROXY`, `HTTP_PROXY`,
-             `ALL_PROXY` and `NO_PROXY`. Measure the size, and the count of
-             threads during a pull. Report the taken commit.
-Decision:    The proxy credential never appears in argv, in a log line or in
-             an error message. Whether the private runtime is acceptable is
-             decided by the measurement: where it is not, podvm waits for the
-             state-machine form of podcrates T-063.
-Prove:       `cargo test -p podvm-image` exits 0 in the Linux lane with a
-             test that pulls through a local CONNECT proxy fixture and
-             bypasses it for a `NO_PROXY` host, and
-             `./target/release/podvm-gate` exits 0.
+podvm dials registries and SSH targets directly
+(`crates/podvm-ssh/src/transport.rs:226`). It reads no
+`HTTPS_PROXY` and no `NO_PROXY`, so on a host whose only way
+out is a proxy, `pull` and the guest image fetch cannot reach
+the network.
+
+## Premise
+
+podcrates answered question 1 with a feature `blocking`: a
+blocking `Dialer` and `Client` over a private current-thread
+runtime, on the same code as the async ones (call C20). Where
+podvm's measurement asks for no tokio, the protocol parts
+become state machines that a synchronous driver runs.
+podcrates records that as T-063, before podvm takes the crate.
+
+## Approach
+
+Take the released `pod-proxy` with `blocking`. Route the
+registry transport, the SSH dial and the guest image fetch
+through its `Dialer`, honouring `HTTPS_PROXY`, `HTTP_PROXY`,
+`ALL_PROXY` and `NO_PROXY`. Measure the size, and the count of
+threads during a pull. Report the taken commit.
+
+## Decision
+
+The proxy credential never appears in argv, in a log line or in
+an error message. Whether the private runtime is acceptable is
+decided by the measurement: where it is not, podvm waits for the
+state-machine form of podcrates T-063.
+
+## Prove
+
+`cargo test -p podvm-image` exits 0 in the Linux lane with a
+test that pulls through a local CONNECT proxy fixture and
+bypasses it for a `NO_PROXY` host, and
+`./target/release/podvm-gate` exits 0.
+
+## Done
 
 **Done 2026-11-06.** podvm took the registry patch
 `adoption/podvm/pod-proxy-registry.patch` of PodUtils/podcrates (`main`
@@ -1465,33 +1802,48 @@ behaviour.
 The registry and the guest image fetch followed with the registry patch
 above.
 
----
+# T-1678: Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1`
 
-### T-1678 Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1`
+**Source:** COORD-001, issue 194, row 4; PodUtils podcrates issue 3;
+  `crates/podvm-ssh/src/mux.rs:1`; `crates/podvm-ssh/src/ws.rs:1`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** blocked
 
-Source:      COORD-001, issue 194, row 4; PodUtils podcrates issue 3;
-             `crates/podvm-ssh/src/mux.rs:1`; `crates/podvm-ssh/src/ws.rs:1`
-Category:    deps
-Priority:    P2
-Effort:      L
-Status:      blocked
+## Problem
 
-Problem:     podvm carries its own relay: `crates/podvm-ssh/src/mux.rs`
-             (1,356 lines), `crates/podvm-ssh/src/ws.rs` (1,051 lines), and a
-             pairing through curl in `crates/podvm/src/remote/`. podcrates
-             makes the relay a shared crate, `pod-relay`.
-Premise:     COORD-001 takes `pod-relay` with feature `blocking` when
-             podcrates' wave M2 lands, and the protocol keeps podvm's live
-             `reverse-v1`. T-1406 is partial on live-relay pairing.
-Approach:    Take the released crate. Replace `mux.rs`, `ws.rs` and the curl
-             pairing with its blocking client. Keep `reverse-v1` on the
-             wire, and prove it against a relay that runs the version podvm
-             shipped. Report the taken commit.
-Decision:    The wire protocol does not change in this entry. A protocol
-             change is its own entry with a version bump.
-Prove:       `cargo test -p podvm-ssh` exits 0 in the Linux lane with the
-             mux and relay tests passing through `pod-relay`, and
-             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+podvm carries its own relay: `crates/podvm-ssh/src/mux.rs`
+(1,356 lines), `crates/podvm-ssh/src/ws.rs` (1,051 lines), and a
+pairing through curl in `crates/podvm/src/remote/`. podcrates
+makes the relay a shared crate, `pod-relay`.
+
+## Premise
+
+COORD-001 takes `pod-relay` with feature `blocking` when
+podcrates' wave M2 lands, and the protocol keeps podvm's live
+`reverse-v1`. T-1406 is partial on live-relay pairing.
+
+## Approach
+
+Take the released crate. Replace `mux.rs`, `ws.rs` and the curl
+pairing with its blocking client. Keep `reverse-v1` on the
+wire, and prove it against a relay that runs the version podvm
+shipped. Report the taken commit.
+
+## Decision
+
+The wire protocol does not change in this entry. A protocol
+change is its own entry with a version bump.
+
+## Prove
+
+`cargo test -p podvm-ssh` exits 0 in the Linux lane with the
+mux and relay tests passing through `pod-relay`, and
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+
+## Blocker
 
 **Blocked 2026-11-06.** Blocker: podcrates' wave M2 and a `pod-relay`
 release with feature `blocking`. Clears when: that release and its
@@ -1502,34 +1854,49 @@ relay, for podssh and podnet; the notes of that release say "podvm needs
 no code change". The blocker stays: a `pod-relay` release, or a podcrates
 hand-off that names the crate podvm takes for its relay.
 
----
+# T-1679: Take `pod-services` for the third-party hosts compiled into podvm
 
-### T-1679 Take `pod-services` for the third-party hosts compiled into podvm
+**Source:** COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
+  ask of podvm" (podcrates T-054); COORD-003, issue 196
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** partial
 
-Source:      COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
-             ask of podvm" (podcrates T-054); COORD-003, issue 196
-Category:    deps
-Priority:    P2
-Effort:      M
-Status:      partial 2026-11-11
+## Problem
 
-Problem:     The relay URL, the registry endpoints and the guest image
-             sources are compiled into podvm in several places. A changed
-             host means a source edit in each place, and no list says which
-             hosts podvm contacts.
-Premise:     podcrates' `pod-services` holds the hosts of other parties for
-             each consumer. podcrates asked for podvm's inventory of those
-             hosts; COORD-003, issue 196, sends it. podcrates T-054 takes
-             that inventory into the crate.
-Approach:    When the release carries podvm's hosts, replace each compiled
-             host with a read from `pod-services`. Keep a test that lists
-             every host podvm can contact and compares it with the crate's
-             list for podvm.
-Decision:    A host podvm contacts and the crate does not list is a defect
-             of the inventory, reported to podcrates. podvm does not keep a
-             second list.
-Prove:       `cargo test -p podvm` exits 0 with the host-list test, and
-             `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+The relay URL, the registry endpoints and the guest image
+sources are compiled into podvm in several places. A changed
+host means a source edit in each place, and no list says which
+hosts podvm contacts.
+
+## Premise
+
+podcrates' `pod-services` holds the hosts of other parties for
+each consumer. podcrates asked for podvm's inventory of those
+hosts; COORD-003, issue 196, sends it. podcrates T-054 takes
+that inventory into the crate.
+
+## Approach
+
+When the release carries podvm's hosts, replace each compiled
+host with a read from `pod-services`. Keep a test that lists
+every host podvm can contact and compares it with the crate's
+list for podvm.
+
+## Decision
+
+A host podvm contacts and the crate does not list is a defect
+of the inventory, reported to podcrates. podvm does not keep a
+second list.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with the host-list test, and
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+
+## Correction
 
 **Blocked 2026-11-06.** Blocker: podcrates has not released
 `pod-services` with podvm's inventory (podcrates T-054). Clears when:
@@ -1542,6 +1909,7 @@ second condition is dropped: the README says that podvm has no default
 relay, so the relay row needs no data file and this entry does not wait
 for T-1678. The status moves from `blocked` to `open`.
 
+## Done
 
 **Partial 2026-11-11.** podvm takes `pod-services` at podcrates `v0.22.0`
 and reads each host of another party that the crate lists: the netboot
@@ -1565,111 +1933,120 @@ asks podcrates for them. Until its tag, the test names the two hosts in a
 list of reported hosts, which fails the test when the crate lists one, so
 the list only shrinks; then the list goes, the module sums come from the
 crate, and this entry closes.
----
 
-### T-1680 Take `pod-todo` for the record half of `podvm-gate`
+# T-1680: Take `pod-todo` for the record half of `podvm-gate`
 
-Source:      COORD-001, issue 194, row 8; PodUtils podcrates issue 3;
-             `crates/podvm-gate/src/main.rs:1`; `crates/podvm-gate/src/grammar.rs:1`
-Category:    deps
-Priority:    P2
-Effort:      L
-Status:      blocked
+**Source:** COORD-001, issue 194, row 8; PodUtils podcrates issue 3;
+  `crates/podvm-gate/src/main.rs:1`; `crates/podvm-gate/src/grammar.rs:1`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
 
-Problem:     `podvm-gate` checks the record (rows, fields, counts,
-             citations, links) and the tree (sizes, exports, plants) in one
-             4,220-line file. The record half is the same work that
-             podcrates' `pod-todo` does for its other consumers.
-Premise:     COORD-001 takes `pod-todo` last, "after podvm's record moves
-             to the format of pod-todo". That move is T-1672. The grammar
-             is shared with `podvm-count` (`grammar.rs`).
-Approach:    After T-1672, remove the record checks from `podvm-gate` and
-             call `pod-todo` through the `podvm-todo` wrapper. Keep the
-             tree checks in `podvm-gate`. Move each plant of a record check
-             to the wrapper and prove each still fails the gate. Report the
-             taken commit.
-Decision:    No record check is lost: each one is in `pod-todo`, in the
-             wrapper, or recorded as retired with its reason.
-Prove:       `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and
-             `./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 with every record plant
-             caught through the wrapper.
+## Problem
+
+`podvm-gate` checks the record (rows, fields, counts,
+citations, links) and the tree (sizes, exports, plants) in one
+4,220-line file. The record half is the same work that
+podcrates' `pod-todo` does for its other consumers.
+
+## Premise
+
+COORD-001 takes `pod-todo` last, "after podvm's record moves
+to the format of pod-todo". That move is T-1672. The grammar
+is shared with `podvm-count` (`grammar.rs`).
+
+## Approach
+
+After T-1672, remove the record checks from `podvm-gate` and
+call `pod-todo` through the `podvm-todo` wrapper. Keep the
+tree checks in `podvm-gate`. Move each plant of a record check
+to the wrapper and prove each still fails the gate. Report the
+taken commit.
+
+## Decision
+
+No record check is lost: each one is in `pod-todo`, in the
+wrapper, or recorded as retired with its reason.
+
+## Prove
+
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and
+`./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 with every record plant
+caught through the wrapper.
+
+## Correction
 
 **Blocked 2026-11-06.** Blocker: podcrates has not released `pod-todo`.
 Clears when: that release exists, and T-1672 is done.
 **Still blocked, 2026-11-10.** The first condition holds: `pod-todo` is in
 podcrates `v0.12.0`. The blocker is now T-1672 alone, which is `open`.
 
----
+**Unblocked 2026-11-11.** T-1672 is done: the record is in the format of
+`pod-todo`, and `podvm-todo check` runs. It reports 356 problems that are
+not of form: citations of paths that only the history keeps, ids of
+other repositories with no `REPO@`, done entries that the work order
+names, and line citations past the end of a file. This entry moves the
+record checks of `podvm-gate` to pod-todo once they are 0.
 
-### T-1681 Hand the seven generic crates to podcrates and freeze their files
 
-Source:      COORD-001, issue 194, "What podvm hands to podcrates";
-             PodUtils podcrates issue 3, wave M6 (podcrates T-055 to T-061);
-             PodUtils podcrates issue 1
-Category:    deps
-Priority:    P2
-Effort:      L
-Status:      done
+# T-1681: Hand the seven generic crates to podcrates and freeze their files
 
-Problem:     The owner ruled on 2026-11-06 that each generic crate of podvm
-             moves to podcrates as `pod-*`. Until podcrates imports them and
-             podvm takes them back, two copies can drift: a fix in one does
-             not reach the other.
-Premise:     podcrates wave M6 imports, in order: `pod-hostprobe` from
-             `crates/podvm-probe` (first, because extract, rootfs, enter and
-             supervise read its raw syscalls), `pod-oci` from part of
-             `crates/podvm-image`, `pod-extract` from `crates/podvm-extract`,
-             `pod-rootfs` from `crates/podvm-complete`, `pod-enter` from
-             `crates/podvm-enter`, `pod-supervise` from
-             `crates/podvm-supervise` and `pod-guest` from
-             `crates/podvm-windows`. Each import starts from the rename
-             commit that COORD-001 names. From the import on, the imported
-             files of podvm are frozen (fixes only) until a `taken` line in
-             podcrates' `SOURCES` ends the freeze.
-Approach:    For each crate, as podcrates imports it: record the frozen
-             files in this repository, send each fix of a frozen file to
-             podcrates as a COORD issue with its commit, and, when the
-             crate is released, replace the podvm crate with a dependency
-             on it and report the taken commit. The content store stays in
-             podvm. The CA data that `pod-rootfs` reads moves to `pod-tls`
-             (T-1676).
-Decision:    One entry tracks the hand-over of all seven, because each step
-             is the same procedure; a crate whose take needs code work gets
-             its own entry. A frozen file takes fixes only, as podcrates
-             issue 3 states.
-Prove:       `./target/release/podvm-gate` exits 0 with each of the seven
-             podvm crates replaced by its `pod-*` dependency, and
-             `cargo test --workspace` exits 0 in the Linux lane.
+**Source:** COORD-001, issue 194, "What podvm hands to podcrates";
+  PodUtils podcrates issue 3, wave M6 (podcrates T-055 to T-061);
+  PodUtils podcrates issue 1
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** done
 
-**Done 2026-11-10.** podvm took `pod-extract` and `pod-rootfs` 0.11.0
-(PodUtils/podcrates#46, its T-057, T-058, T-141, T-139):
-`adoption/podvm/pod-extract.patch`, then `pod-rootfs.patch`, applied with
-`git apply --3way` at podvm `72523d7`, with no conflict. pod-extract
-carries the T-1698 sentinel tests; pod-rootfs fixes eleven defects of the
-old `podvm-complete`; the pod-enter of the tag stages a payload over
-128 MiB (T-1647). Each line of both `.run` files exits 0, and `cargo test
---workspace` and the interposer tests exit 0. The seven generic crates of
-this entry are with podcrates now; `podvm-extract` and `podvm-complete`
-keep podvm's glue.
+## Problem
 
-**Partial, 2026-11-06.** The first of the seven crates is taken:
-podvm took `pod-hostprobe` 0.6.0 by `adoption/podvm/pod-hostprobe.patch`
-of PodUtils/podcrates (`main` at `5535a27`, made at podvm `b32b19c`),
-applied with `git apply --3way`; its two conflicts were the move to
-v0.6.0 that podvm had made the same day, and its side was taken. 26
-files leave podvm; `podvm-probe` keeps its report and re-exports the
-crate, and `space.rs` and `exec_probe.rs` of podvm-image wrap it. The
-freeze of the 29 files ends, and with it the two 32-bit faults of
-`sys/` (podcrates T-072 and T-080). Each line of `pod-hostprobe.run`
-exits 0 in a Linux container (about 866 tests, none failed;
-`podvm probe --rows` gives 66 rows; the wire is `pod-hostprobe/1`),
-`mux_two_client` 15 passes against sshd, and the test the `.run` skips,
-`abi::tests::resolve_past_a_denied_listing`, passes as uid 0. Call C11
-of `docs/decisions.md` accepts the four points of podcrates#17.
-Gate run 42265769964 at `8899c2e` is green in each job; podcrates
-recorded the take (its T-055 done) and closed PodUtils/podcrates#11.
-Remaining: the other six crates, each on its import and trial
-(podcrates T-056 to T-061).
+The owner ruled on 2026-11-06 that each generic crate of podvm
+moves to podcrates as `pod-*`. Until podcrates imports them and
+podvm takes them back, two copies can drift: a fix in one does
+not reach the other.
+
+## Premise
+
+podcrates wave M6 imports, in order: `pod-hostprobe` from
+`crates/podvm-probe` (first, because extract, rootfs, enter and
+supervise read its raw syscalls), `pod-oci` from part of
+`crates/podvm-image`, `pod-extract` from `crates/podvm-extract`,
+`pod-rootfs` from `crates/podvm-complete`, `pod-enter` from
+`crates/podvm-enter`, `pod-supervise` from
+`crates/podvm-supervise` and `pod-guest` from
+`crates/podvm-windows`. Each import starts from the rename
+commit that COORD-001 names. From the import on, the imported
+files of podvm are frozen (fixes only) until a `taken` line in
+podcrates' `SOURCES` ends the freeze.
+
+## Approach
+
+For each crate, as podcrates imports it: record the frozen
+files in this repository, send each fix of a frozen file to
+podcrates as a COORD issue with its commit, and, when the
+crate is released, replace the podvm crate with a dependency
+on it and report the taken commit. The content store stays in
+podvm. The CA data that `pod-rootfs` reads moves to `pod-tls`
+(T-1676).
+
+## Decision
+
+One entry tracks the hand-over of all seven, because each step
+is the same procedure; a crate whose take needs code work gets
+its own entry. A frozen file takes fixes only, as podcrates
+issue 3 states.
+
+## Prove
+
+`./target/release/podvm-gate` exits 0 with each of the seven
+podvm crates replaced by its `pod-*` dependency, and
+`cargo test --workspace` exits 0 in the Linux lane.
+
+## Correction
 
 **Open 2026-11-06.** The blocker cleared for the first crate.
 podcrates imported `pod-hostprobe` (T-055) from podvm at `2c03085`
@@ -1724,42 +2101,90 @@ in the form that names the crates). Each line of `pod-oci.run` exits 0,
 and `cargo test --workspace` exits 0. Remaining: pod-extract and
 pod-rootfs (podcrates v0.11.0); `podvm-extract` stays frozen until then.
 
+## Done
 
-### T-1687 Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
+**Done 2026-11-10.** podvm took `pod-extract` and `pod-rootfs` 0.11.0
+(PodUtils/podcrates#46, its T-057, T-058, T-141, T-139):
+`adoption/podvm/pod-extract.patch`, then `pod-rootfs.patch`, applied with
+`git apply --3way` at podvm `72523d7`, with no conflict. pod-extract
+carries the T-1698 sentinel tests; pod-rootfs fixes eleven defects of the
+old `podvm-complete`; the pod-enter of the tag stages a payload over
+128 MiB (T-1647). Each line of both `.run` files exits 0, and `cargo test
+--workspace` and the interposer tests exit 0. The seven generic crates of
+this entry are with podcrates now; `podvm-extract` and `podvm-complete`
+keep podvm's glue.
 
-Source:      PodUtils podcrates issue 6 (COORD-004 of podcrates);
-             `crates/podvm-measure/src/workload.rs:37-42`;
-             `experiments/146-podvm-initramfs.sh:54-55`;
-             `experiments/147-podvm-exec.sh:52-53`;
-             `experiments/360-perf-harness.sh:49-50`;
-             `experiments/361-guest-usernet.sh:45-48`;
-             `experiments/390-machine-ssh.sh:50-51`
-Category:    deps
-Priority:    P2
-Effort:      S
-Status:      done
+**Partial, 2026-11-06.** The first of the seven crates is taken:
+podvm took `pod-hostprobe` 0.6.0 by `adoption/podvm/pod-hostprobe.patch`
+of PodUtils/podcrates (`main` at `5535a27`, made at podvm `b32b19c`),
+applied with `git apply --3way`; its two conflicts were the move to
+v0.6.0 that podvm had made the same day, and its side was taken. 26
+files leave podvm; `podvm-probe` keeps its report and re-exports the
+crate, and `space.rs` and `exec_probe.rs` of podvm-image wrap it. The
+freeze of the 29 files ends, and with it the two 32-bit faults of
+`sys/` (podcrates T-072 and T-080). Each line of `pod-hostprobe.run`
+exits 0 in a Linux container (about 866 tests, none failed;
+`podvm probe --rows` gives 66 rows; the wire is `pod-hostprobe/1`),
+`mux_two_client` 15 passes against sshd, and the test the `.run` skips,
+`abi::tests::resolve_past_a_denied_listing`, passes as uid 0. Call C11
+of `docs/decisions.md` accepts the four points of podcrates#17.
+Gate run 42265769964 at `8899c2e` is green in each job; podcrates
+recorded the take (its T-055 done) and closed PodUtils/podcrates#11.
+Remaining: the other six crates, each on its import and trial
+(podcrates T-056 to T-061).
 
-Problem:     podvm pins `vmlinuz-virt` and `modloop-virt` of Alpine v3.22 by
-             SHA-256 and fetches them from `netboot/`. That directory follows
-             each point release and serves 3.22.8 now, so the sum check
-             fails on each fresh download.
-Premise:     The pinned sums are the files of 3.22.6. Measured 2026-11-06:
-             `alpine-netboot-3.22.6-x86_64.tar.gz` of
-             `https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/`
-             is 301,555,932 bytes with SHA-256 `74ff3dd7ed96186b5fd4d728dd63ce5947578b40cf48ef792b8420e2463dc267`,
-             and its `boot/vmlinuz-virt` and `boot/modloop-virt` have the two
-             pinned sums.
-Approach:    Fetch the archive, check its SHA-256, extract the two files
-             with `tar`, and check their sums as now. Keep one cached copy
-             of the archive in the scratch directory of the run. Change the
-             five experiments and `podvm-measure` the same way.
-Decision:    Way 1 of podcrates issue 6: the pinned files stay, and a point
-             release does not move them. The values that moved to
-             `pod-services` are frozen lines; the change goes to podcrates
-             as a COORD issue `(to podcrates)`.
-Prove:       `cargo test -p podvm-measure` exits 0, and the fetch step of
-             `podvm-workload` reports the two pinned sums from a fresh
-             download.
+# T-1687: Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive
+
+**Source:** PodUtils podcrates issue 6 (COORD-004 of podcrates);
+  `crates/podvm-measure/src/workload.rs:37-42`;
+  `experiments/146-podvm-initramfs.sh:54-55`;
+  `experiments/147-podvm-exec.sh:52-53`;
+  `experiments/360-perf-harness.sh:49-50`;
+  `experiments/361-guest-usernet.sh:45-48`;
+  `experiments/390-machine-ssh.sh:50-51`
+**Category:** deps
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+podvm pins `vmlinuz-virt` and `modloop-virt` of Alpine v3.22 by
+SHA-256 and fetches them from `netboot/`. That directory follows
+each point release and serves 3.22.8 now, so the sum check
+fails on each fresh download.
+
+## Premise
+
+The pinned sums are the files of 3.22.6. Measured 2026-11-06:
+`alpine-netboot-3.22.6-x86_64.tar.gz` of
+`https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/`
+is 301,555,932 bytes with SHA-256 `74ff3dd7ed96186b5fd4d728dd63ce5947578b40cf48ef792b8420e2463dc267`,
+and its `boot/vmlinuz-virt` and `boot/modloop-virt` have the two
+pinned sums.
+
+## Approach
+
+Fetch the archive, check its SHA-256, extract the two files
+with `tar`, and check their sums as now. Keep one cached copy
+of the archive in the scratch directory of the run. Change the
+five experiments and `podvm-measure` the same way.
+
+## Decision
+
+Way 1 of podcrates issue 6: the pinned files stay, and a point
+release does not move them. The values that moved to
+`pod-services` are frozen lines; the change goes to podcrates
+as a COORD issue `(to podcrates)`.
+
+## Prove
+
+`cargo test -p podvm-measure` exits 0, and the fetch step of
+`podvm-workload` reports the two pinned sums from a fresh
+download.
+
+## Done
 
 **Done 2026-11-10.** `PODVM_WORKLOAD_MIRROR=1` makes `podvm-workload`
 take the same pinned alpine digest from `mirror.gcr.io`, because
@@ -1794,4 +2219,3 @@ with `HTTP 429: TOOMANYREQUESTS: Data limit exceeded`. Remaining: one
 closed its issue 6 on the evidence of 5209adb.
 Remaining: a run of `podvm-workload` whose fetch step reports the pinned
 kernel sum.
-

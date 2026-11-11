@@ -1,4 +1,4 @@
-# cli
+Area: cli.
 
 Record semantics: [task rules](RULES.md#5-entry-closure).
 
@@ -14,44 +14,90 @@ same exit codes; where a flag cannot be honoured it is accepted and reported in
 the banner, and where a flag **requests isolation** it fails loudly with a
 named reason.
 
----
+# T-0801: The verb and flag parity table
 
-### T-0801 The verb and flag parity table
+**Source:** `TOOL.md` section 6.8
+**Category:** cli
+**Milestone:** none
+**Priority:** P0
+**Effort:** L
+**Status:** done
 
-Source:      `TOOL.md` section 6.8
-Category:    cli
-Priority:    P0
-Effort:      L
-Status:      done 2026-09-09
+## Problem
 
-Problem:     A tool that needs its user to learn its differences has not
-             replaced anything. Thousands of agents reach for `docker` because
-             it is the only container language they know.
-Premise:     Read. `TOOL.md` section 6.8 is the table, in full, with a status per verb
-             and per flag. Four statuses: **Native** (real semantics),
-             **Degraded** (works, documented difference, stated in the banner),
-             **Stub** (accepted, no-op, listed in the banner), **None** (fails
-             with a named reason).
-Approach:    Implement the table as data, not as a match arm per flag, so that
-             `podvm system info` can print it and a test can assert every row
-             is reachable. A flag with no row is a bug in the table, and the
-             parser says so rather than ignoring it.
-             ⭐ The posture to copy is `dockless`'s, at
-             `references/ylang-ylang__dockless/tree/dockless/run.py:129-160`.
-             `guard_run` refuses `run --name` up front because the engine
-             beneath it cannot honour it, and warns hard when `--rm` names an
-             existing container, citing the incident that produced the guard.
-             ⛔ dockless has **no licence statement of any kind**
-             ([reference-map.md](reference-map.md)), so the posture is described
-             and adopted as a design and no line is copied.
-             ⚠ Its degradation is worth noting from the other side: when it
-             cannot determine the target it prints that the guardrail itself is
-             degraded and continues. Naming the degradation of the guard is the
-             part to keep.
-Decision:    A table plus a generated parser, over a hand-written one. The table
-             is what section 6.8 already is, and generating from it makes "the flag
-             exists and is unlisted" impossible.
-Prove:       `./experiments/320-cli-contract.sh` clauses 1 to 3, whose first clause is `podvm system info --format '{{json .Parity}}' | jq -e 'length >= 60 and all(.status | IN("Native","Degraded","Stub","None"))'`
+A tool that needs its user to learn its differences has not
+replaced anything. Thousands of agents reach for `docker` because
+it is the only container language they know.
+
+## Premise
+
+Read. `TOOL.md` section 6.8 is the table, in full, with a status per verb
+and per flag. Four statuses: **Native** (real semantics),
+**Degraded** (works, documented difference, stated in the banner),
+**Stub** (accepted, no-op, listed in the banner), **None** (fails
+with a named reason).
+
+## Approach
+
+Implement the table as data, not as a match arm per flag, so that
+`podvm system info` can print it and a test can assert every row
+is reachable. A flag with no row is a bug in the table, and the
+parser says so rather than ignoring it.
+⭐ The posture to copy is `dockless`'s, at
+`references/ylang-ylang__dockless/tree/dockless/run.py:129-160`.
+`guard_run` refuses `run --name` up front because the engine
+beneath it cannot honour it, and warns hard when `--rm` names an
+existing container, citing the incident that produced the guard.
+⛔ dockless has **no licence statement of any kind**
+([reference-map.md](reference-map.md)), so the posture is described
+and adopted as a design and no line is copied.
+⚠ Its degradation is worth noting from the other side: when it
+cannot determine the target it prints that the guardrail itself is
+degraded and continues. Naming the degradation of the guard is the
+part to keep.
+
+## Decision
+
+A table plus a generated parser, over a hand-written one. The table
+is what section 6.8 already is, and generating from it makes "the flag
+exists and is unlisted" impossible.
+
+## Prove
+
+`./experiments/320-cli-contract.sh` clauses 1 to 3, whose first clause is `podvm system info --format '{{json .Parity}}' | jq -e 'length >= 60 and all(.status | IN("Native","Degraded","Stub","None"))'`
+
+## Correction
+
+**Amended, 2026-09-10, by the door sweep after T-0412.** ⛔ **One verb was
+served by another verb's parser and nothing said so, in either direction.**
+`create` is parsed by `run::parse`, which called `admit("run", …)` with the verb
+written in rather than passed. Two consequences, and each is the class this
+entry exists to make impossible:
+
+- ⛔ `podvm create --no-steps` was **accepted and acted on** while
+  `podvm system info` listed `--no-steps` under `run` and `exec` only. The
+  table under-described the binary, which is "the flag exists and is unlisted"
+  arriving through the door the entry did not enumerate.
+- ⛔ `podvm create --no-such-flag` answered **`podvm run: unknown option`**
+  and printed `usage: podvm run`, naming a verb the caller had not typed, and
+  then sent them to "every flag this verb takes" -- a row set that does not
+  exist.
+
+`parity::rows_of` is the one place that says where a verb's rows live, so the
+28 rows stay a single copy; `run::usage(verb)` builds the first line from the
+verb the caller typed; and the `create` row and the refusal message both name
+the borrowing out loud. ⚠ Threading the verb was not cosmetic: `admit` looks the
+flag up, so naming the caller's verb without `rows_of` would have made `create`
+refuse every flag it accepts. Six functions in `run.rs` took the verb --
+`parse`, `prepare`, `acquire`, `extract_now` and `config_of` among them --
+because each wrote `podvm run:` into a message `create` and `exec` can reach.
+
+Prove: `a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so`
+asserts both halves, and driven: `podvm create --no-such-flag` now names
+`create`, `podvm create --no-steps` is still accepted, and the table is 141
+rows as before, because the fix added none.
+
+## Done
 
 **Done, 2026-09-09.** `crates/podvm/src/parity.rs` is the table,
 `crates/podvm/src/system.rs` is `podvm system info`, and
@@ -103,35 +149,6 @@ instead of a flag being ignored, so deleting one makes podvm quieter and less
 honest rather than smaller. A test asserts every one of them carries a reason
 longer than a milestone number, which caught eleven rows whose whole note was
 "the lifecycle is M4".
-
-**Amended, 2026-09-10, by the door sweep after T-0412.** ⛔ **One verb was
-served by another verb's parser and nothing said so, in either direction.**
-`create` is parsed by `run::parse`, which called `admit("run", …)` with the verb
-written in rather than passed. Two consequences, and each is the class this
-entry exists to make impossible:
-
-- ⛔ `podvm create --no-steps` was **accepted and acted on** while
-  `podvm system info` listed `--no-steps` under `run` and `exec` only. The
-  table under-described the binary, which is "the flag exists and is unlisted"
-  arriving through the door the entry did not enumerate.
-- ⛔ `podvm create --no-such-flag` answered **`podvm run: unknown option`**
-  and printed `usage: podvm run`, naming a verb the caller had not typed, and
-  then sent them to "every flag this verb takes" -- a row set that does not
-  exist.
-
-`parity::rows_of` is the one place that says where a verb's rows live, so the
-28 rows stay a single copy; `run::usage(verb)` builds the first line from the
-verb the caller typed; and the `create` row and the refusal message both name
-the borrowing out loud. ⚠ Threading the verb was not cosmetic: `admit` looks the
-flag up, so naming the caller's verb without `rows_of` would have made `create`
-refuse every flag it accepts. Six functions in `run.rs` took the verb --
-`parse`, `prepare`, `acquire`, `extract_now` and `config_of` among them --
-because each wrote `podvm run:` into a message `create` and `exec` can reach.
-
-Prove: `a_verb_served_by_another_parser_resolves_that_verbs_rows_and_says_so`
-asserts both halves, and driven: `podvm create --no-such-flag` now names
-`create`, `podvm create --no-steps` is still accepted, and the table is 141
-rows as before, because the fix added none.
 
 **Partial, 2026-09-25.** Issue 60 reopens this entry on its own
 invariant: a flag with no row is a bug in the table, and 46 `run`
@@ -193,34 +210,48 @@ Report in `experiments/results/parity-curated.txt`. In-suite:
 passed, 0 failed. Guards are check 27's curated arm and the
 in-suite test beside it.
 
----
+# T-0802: docker's exit codes, unaltered
 
-### T-0802 docker's exit codes, unaltered
+**Source:** `TOOL.md` section 6.8
+**Category:** cli
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 6.8
-Category:    cli
-Priority:    P0
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     An automated caller reads the exit code first. A runtime that
-             returns its own codes breaks every script that branches on
-             docker's, and a runtime that improves a payload's code lies in the
-             field read first.
-Premise:     Read. docker's convention: the payload's own status for `run`, 125
-             when the runtime itself could not run the command, 126 when the
-             command was found and could not be invoked, 127 when it was not
-             found.
-Approach:    Return the payload's status verbatim from `run`, `start` in the
-             attached case, and `wait`. Use 125, 126 and 127 for the three
-             runtime-side cases and nothing else.
-             ⛔ Never translate a payload's non-zero status into zero because a
-             fixup succeeded, and never into non-zero because a fixup warned.
-             That rule is what T-0409 depends on.
-Decision:    Match docker rather than define a clearer scheme. Parity is the
-             product.
-Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'exit 42'; test $? -eq 42 && podvm run --rm public.ecr.aws/docker/library/alpine:3.20 /nonexistent; test $? -eq 127`
+An automated caller reads the exit code first. A runtime that
+returns its own codes breaks every script that branches on
+docker's, and a runtime that improves a payload's code lies in the
+field read first.
 
+## Premise
+
+Read. docker's convention: the payload's own status for `run`, 125
+when the runtime itself could not run the command, 126 when the
+command was found and could not be invoked, 127 when it was not
+found.
+
+## Approach
+
+Return the payload's status verbatim from `run`, `start` in the
+attached case, and `wait`. Use 125, 126 and 127 for the three
+runtime-side cases and nothing else.
+⛔ Never translate a payload's non-zero status into zero because a
+fixup succeeded, and never into non-zero because a fixup warned.
+That rule is what T-0409 depends on.
+
+## Decision
+
+Match docker rather than define a clearer scheme. Parity is the
+product.
+
+## Prove
+
+`podvm run --rm public.ecr.aws/docker/library/alpine:3.20 sh -c 'exit 42'; test $? -eq 42 && podvm run --rm public.ecr.aws/docker/library/alpine:3.20 /nonexistent; test $? -eq 127`
+
+## Done
 
 **Done 2026-09-09, and the entry's own description of docker's convention was
 incomplete.** `experiments/330-exit-codes.sh` runs the same case through both
@@ -282,44 +313,59 @@ $ ./experiments/330-exit-codes.sh
   exit 0
 ```
 
----
+# T-0803: Answer to `docker` and `podman` on PATH
 
-### T-0803 Answer to `docker` and `podman` on PATH
+**Source:** `TOOL.md` section 2.0, section 6.8
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 2.0, section 6.8
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-09
+## Problem
 
-Problem:     An agent runs `docker`. If podvm is only reachable as `podvm`,
-             it has replaced nothing on the machines it is for.
-Premise:     Read. On the studied runtime `docker` on PATH is already a podman
-             alias with no daemon, so the name is available and currently
-             resolves to something that does not work.
-Approach:    Multicall on `argv[0]`: `docker`, `podman` and `podvm` all enter
-             the same parser, and the banner names which. Install the two extra
-             names as symlinks, never as copies, so one binary is one artefact.
-             ⚠ Check what is already on PATH before replacing it, and refuse to
-             overwrite a real docker client without an explicit flag. A machine
-             with a working daemon is a machine where podvm is the wrong tool.
-Decision:    Symlinks over a wrapper script. A shell wrapper is a second
-             artefact, it breaks the memfd rung (T-1001), and it is the exact
-             thing `references/qaidvoid__onelf` records as skipping that rung.
-             ⭐ **RULED by the operator on 2026-09-08, and no longer open:**
-             podvm **refuses** to take the `docker` name where a working
-             docker daemon is reachable, unless an explicit flag says otherwise,
-             and says why in one line. A machine with a working daemon is a
-             machine where podvm is the wrong tool.
-             The alternative considered and rejected is deferring to the real
-             daemon transparently by exec'ing it: it costs an exec on every
-             call and it hides which tool ran, which is the class of thing
-             `TOOL.md` section 4.1 exists to forbid.
-             ⚠ The check is on a **reachable daemon**, not on a `docker` binary
-             being present: on the target runtime `docker` on PATH is a podman
-             alias with no daemon behind it, so a binary check would refuse on
-             exactly the machines podvm is for.
-Prove:       `./experiments/320-cli-contract.sh` clauses 4 and 5: both names run the payload and say which tool ran, and the `docker` name is refused where a daemon answers unless `--force`
+An agent runs `docker`. If podvm is only reachable as `podvm`,
+it has replaced nothing on the machines it is for.
+
+## Premise
+
+Read. On the studied runtime `docker` on PATH is already a podman
+alias with no daemon, so the name is available and currently
+resolves to something that does not work.
+
+## Approach
+
+Multicall on `argv[0]`: `docker`, `podman` and `podvm` all enter
+the same parser, and the banner names which. Install the two extra
+names as symlinks, never as copies, so one binary is one artefact.
+⚠ Check what is already on PATH before replacing it, and refuse to
+overwrite a real docker client without an explicit flag. A machine
+with a working daemon is a machine where podvm is the wrong tool.
+
+## Decision
+
+Symlinks over a wrapper script. A shell wrapper is a second
+artefact, it breaks the memfd rung (T-1001), and it is the exact
+thing `references/qaidvoid__onelf` records as skipping that rung.
+⭐ **RULED by the operator on 2026-09-08, and no longer open:**
+podvm **refuses** to take the `docker` name where a working
+docker daemon is reachable, unless an explicit flag says otherwise,
+and says why in one line. A machine with a working daemon is a
+machine where podvm is the wrong tool.
+The alternative considered and rejected is deferring to the real
+daemon transparently by exec'ing it: it costs an exec on every
+call and it hides which tool ran, which is the class of thing
+`TOOL.md` section 4.1 exists to forbid.
+⚠ The check is on a **reachable daemon**, not on a `docker` binary
+being present: on the target runtime `docker` on PATH is a podman
+alias with no daemon behind it, so a binary check would refuse on
+exactly the machines podvm is for.
+
+## Prove
+
+`./experiments/320-cli-contract.sh` clauses 4 and 5: both names run the payload and say which tool ran, and the `docker` name is refused where a daemon answers unless `--force`
+
+## Done
 
 **Done, 2026-09-09.** `crates/podvm/src/names.rs`, the banner line in `run`
 and `exec`, `podvm system install-names`, and clauses 4 and 5 of
@@ -350,45 +396,59 @@ pass.
 it on the filesystem rather than on an exit code. A file that is already a link
 to this binary is left alone; anything else needs `--force`.
 
----
+# T-0804: The honesty rules, and one switch that makes every degradation fatal
 
-### T-0804 The honesty rules, and one switch that makes every degradation fatal
+**Source:** `TOOL.md` section 4.1, section 6.8; `paper_final.md` section 10.1
+**Category:** cli
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 4.1, section 6.8; `paper_final.md` section 10.1
-Category:    cli
-Priority:    P0
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     The audience is automated. An agent cannot notice that its
-             "container" was a `chroot` the way a human skimming a log might, so
-             the reporting is the product and not a disclaimer.
-Premise:     Read, and both halves are in the corpus.
-             `references/RuriOSS__ruri/tree/src/include/ruri.h:237-248` is the
-             degradation macro that becomes fatal under one flag.
-             `references/multikernel__sandlock` is the counter-example: a
-             `--dry-run` that reports no changes while changing files, traced in
-             T-0606.
-Approach:    Four rules, enforced in the output path rather than in review:
+The audience is automated. An agent cannot notice that its
+"container" was a `chroot` the way a human skimming a log might, so
+the reporting is the product and not a disclaimer.
 
-             1. the banner prints on every `run` and `exec`, suppressible by
-                config and never by default;
-             2. a request that **requires** isolation fails with a named reason
-                instead of silently using the host;
-             3. `inspect` reports the true mode per container;
-             4. no output may imply namespaces, cgroups or devices exist when
-                they do not.
+## Premise
 
-             ⭐ Add `--strict`, which turns every Degraded and every Stub into a
-             refusal, so a caller that needs real semantics can demand them in
-             one flag rather than checking the banner.
-Decision:    Suppressible by config, never by default. `ruri` allows
-             `--disable-warnings` to silence its degradation notices, which is
-             the `sandlock` failure mode with a flag in front of it; podvm's
-             equivalent is a config file a machine's operator sets once, and it
-             cannot be set from the command line of a single run.
-Prove:       `! podvm run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true && ! podvm run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true && ! podvm run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true`
+Read, and both halves are in the corpus.
+`references/RuriOSS__ruri/tree/src/include/ruri.h:237-248` is the
+degradation macro that becomes fatal under one flag.
+`references/multikernel__sandlock` is the counter-example: a
+`--dry-run` that reports no changes while changing files, traced in
+T-0606.
 
+## Approach
+
+Four rules, enforced in the output path rather than in review:
+
+1. the banner prints on every `run` and `exec`, suppressible by
+   config and never by default;
+2. a request that **requires** isolation fails with a named reason
+   instead of silently using the host;
+3. `inspect` reports the true mode per container;
+4. no output may imply namespaces, cgroups or devices exist when
+   they do not.
+
+⭐ Add `--strict`, which turns every Degraded and every Stub into a
+refusal, so a caller that needs real semantics can demand them in
+one flag rather than checking the banner.
+
+## Decision
+
+Suppressible by config, never by default. `ruri` allows
+`--disable-warnings` to silence its degradation notices, which is
+the `sandlock` failure mode with a flag in front of it; podvm's
+equivalent is a config file a machine's operator sets once, and it
+cannot be set from the command line of a single run.
+
+## Prove
+
+`! podvm run --rm --network=none public.ecr.aws/docker/library/alpine:3.20 true && ! podvm run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true && ! podvm run --strict --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true`
+
+## Done
 
 **Done 2026-09-09.** All four rules, and the third and fourth needed a defect
 fixed rather than a switch added.
@@ -469,38 +529,52 @@ $ podvm run --rm --memory=1g public.ecr.aws/docker/library/alpine:3.20 true; ech
   125
 ```
 
----
+# T-0805: Diagnostics that name the operation, the errno, the mechanism and the remedy
 
-### T-0805 Diagnostics that name the operation, the errno, the mechanism and the remedy
+**Source:** `TOOL.md` section 6.9; `paper_final.md` section 10.8
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `TOOL.md` section 6.9; `paper_final.md` section 10.8
-Category:    cli
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-21
+## Problem
 
-Problem:     In this environment the errno alone actively misleads. `EINVAL`
-             from `chown` reads as a bad argument and means an id that does not
-             exist. `fork/exec <path>: operation not permitted` reads as a
-             missing binary and is a denied `setgroups`.
-Premise:     Read, and `TOOL.md` section 8 is a whole table of them. The target shape:
+In this environment the errno alone actively misleads. `EINVAL`
+from `chown` reads as a bad argument and means an id that does not
+exist. `fork/exec <path>: operation not permitted` reads as a
+missing binary and is a denied `setgroups`.
 
-             ```
-             cannot restore ownership of etc/shadow (uid 0, gid 42): EINVAL
-               gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1)
-               extracting without ownership; intended metadata recorded in .meta.jsonl
-             ```
+## Premise
 
-Approach:    Every failure carries four parts: the operation, the errno, the
-             mechanism that produced it, and the remedy. The mechanism comes
-             from T-0102's discriminator and the maps from T-0105, so the
-             diagnostic quotes measured state rather than a guess.
-             Encode `TOOL.md` section 8's table as the mapping from a raw failure to
-             those four parts, so a new failure mode is a table row.
-Decision:    Quote the actual `uid_map` contents rather than saying "an unmapped
-             id". The map is one read (T-0105) and it is what turns a confusing
-             errno into an explanation a reader can act on.
-Prove:       `podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'`
+Read, and `TOOL.md` section 8 is a whole table of them. The target shape:
+
+```
+cannot restore ownership of etc/shadow (uid 0, gid 42): EINVAL
+  gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 1000 1)
+  extracting without ownership; intended metadata recorded in .meta.jsonl
+```
+
+## Approach
+
+Every failure carries four parts: the operation, the errno, the
+mechanism that produced it, and the remedy. The mechanism comes
+from T-0102's discriminator and the maps from T-0105, so the
+diagnostic quotes measured state rather than a guess.
+Encode `TOOL.md` section 8's table as the mapping from a raw failure to
+those four parts, so a new failure mode is a table row.
+
+## Decision
+
+Quote the actual `uid_map` contents rather than saying "an unmapped
+id". The map is one read (T-0105) and it is what turns a confusing
+errno into an explanation a reader can act on.
+
+## Prove
+
+`podvm pull public.ecr.aws/docker/library/alpine:3.20 && podvm extract public.ecr.aws/docker/library/alpine:3.20 2>&1 | grep -A2 'gid 42' | grep -q 'gid_map'`
+
+## Done
 
 **Done 2026-09-21.** `crates/podvm/src/diagnose.rs` carries TOOL.md
 section 8 as data: 22 rows from observation to operation, errno, mechanism
@@ -526,43 +600,57 @@ passed in podvm with 5 new diagnose tests, 46 passed in
 podvm-extract. Clippy passes with `-D warnings`. The spawn row in the table
 stays unwired until T-0809.
 
----
+# T-0806: Never prompt, never wait unbounded, and check space before every large write
 
-### T-0806 Never prompt, never wait unbounded, and check space before every large write
+**Source:** `TOOL.md` section 11.3; [RULES.md](RULES.md) section 8
+**Category:** cli
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** done
 
-Source:      `TOOL.md` section 11.3; [RULES.md](RULES.md) section 8
-Category:    cli
-Priority:    P0
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     A prompt with no terminal behind it is a hang, and a hang is total.
-             The three ways a long autonomous run dies are the three ways podvm
-             can make its caller die.
-Premise:     Read, and one instance is in the corpus at file and line.
-             `references/89luca89__lilipod/tree/pkg/utils/utils.go:194-214`
-             checks `getsubids`, `newuidmap` and `newgidmap` with `exec.LookPath`
-             and returns an unrecoverable error when any is missing, and it runs
-             before **every** subcommand including `pull`. A dependency check
-             ahead of every syscall wall is the same class of problem as a
-             prompt: the tool refuses before it has done anything the user can
-             use.
-Approach:    Three properties, tested rather than reviewed:
+A prompt with no terminal behind it is a hang, and a hang is total.
+The three ways a long autonomous run dies are the three ways podvm
+can make its caller die.
 
-             1. no code path reads stdin unless the user asked for it with `-i`;
-             2. every wait has an upper bound and a distinct outcome for reaching
-                it (T-0602);
-             3. `statvfs` for blocks and inodes before every large write, with
-                the destination named in the error (T-0203).
+## Premise
 
-             ⚠ Where podvm needs a tool it does not have, it says so **at the
-             point of use** and not at startup, so every verb that does not need
-             it still works.
-Decision:    Check at the point of use rather than up front. lilipod's shape
-             makes `pull` fail on a machine where `pull` would have worked, and
-             `pull` is the verb an agent reaches for first.
-Prove:       `podvm run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null && timeout 30 podvm pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; test $? -ne 124`
+Read, and one instance is in the corpus at file and line.
+`references/89luca89__lilipod/tree/pkg/utils/utils.go:194-214`
+checks `getsubids`, `newuidmap` and `newgidmap` with `exec.LookPath`
+and returns an unrecoverable error when any is missing, and it runs
+before **every** subcommand including `pull`. A dependency check
+ahead of every syscall wall is the same class of problem as a
+prompt: the tool refuses before it has done anything the user can
+use.
 
+## Approach
+
+Three properties, tested rather than reviewed:
+
+1. no code path reads stdin unless the user asked for it with `-i`;
+2. every wait has an upper bound and a distinct outcome for reaching
+   it (T-0602);
+3. `statvfs` for blocks and inodes before every large write, with
+   the destination named in the error (T-0203).
+
+⚠ Where podvm needs a tool it does not have, it says so **at the
+point of use** and not at startup, so every verb that does not need
+it still works.
+
+## Decision
+
+Check at the point of use rather than up front. lilipod's shape
+makes `pull` fail on a machine where `pull` would have worked, and
+`pull` is the verb an agent reaches for first.
+
+## Prove
+
+`podvm run --rm public.ecr.aws/docker/library/alpine:3.20 true </dev/null && timeout 30 podvm pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; test $? -ne 124`
+
+## Done
 
 **Done 2026-09-09.** All three properties, and each is asserted rather than
 reviewed.
@@ -600,95 +688,125 @@ $ timeout 30 podvm pull public.ecr.aws/docker/library/alpine:3.20 </dev/null; ec
   0, and never 124
 ```
 
----
+# T-0807: `podvm images --format` refuses a template no verb can answer, before it looks at the store
 
-### T-0807 `podvm images --format` refuses a template no verb can answer, before it looks at the store
+**Source:** Found by driving the CLI cold against an empty store
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Source:      Found by driving the CLI cold against an empty store
-Category:    cli
-Priority:    P2
-Effort:      S
-Status:      done 2026-09-08
+## Problem
 
-Problem:     A `--format` template was validated inside the loop over records.
-             An empty store means zero iterations, so an invalid template was
-             never seen: `podvm images --format '{{.Nope}}'` printed nothing
-             and exited 0, and a caller's typo read as an empty result set.
-Premise:     ⭐ **Measured by running it**, not by reading it, on 2026-09-08.
-             Three templates exited 0 against an empty store where all three are
-             refusals: an unknown field, an unterminated opening delimiter,
-             and docker's
-             `table` prefix, which rendered the word `table` beside the values.
-Approach:    One walk over the template, shared by a `check` that has no record
-             in hand and a `render` that does, in
-             `crates/podvm/src/format.rs`. Both verbs call `check` before
-             the store is opened, against a named list of their own fields.
-             ⛔ The field-name list and the field builder are two places holding
-             one value, so a test asserts they agree, which is the remedy
-             `docs/conventions/forbidden-patterns.md` names for exactly that row.
-Decision:    Refuse `table` rather than rendering it as literal text. It selects
-             a column layout in docker and podvm does not have one, so printing
-             it is output shaped like something podvm does not do.
-Prove:       `podvm images --format '{{.Nope}}' >/dev/null 2>&1; test $? -eq 2`
+A `--format` template was validated inside the loop over records.
+An empty store means zero iterations, so an invalid template was
+never seen: `podvm images --format '{{.Nope}}'` printed nothing
+and exited 0, and a caller's typo read as an empty result set.
+
+## Premise
+
+⭐ **Measured by running it**, not by reading it, on 2026-09-08.
+Three templates exited 0 against an empty store where all three are
+refusals: an unknown field, an unterminated opening delimiter,
+and docker's
+`table` prefix, which rendered the word `table` beside the values.
+
+## Approach
+
+One walk over the template, shared by a `check` that has no record
+in hand and a `render` that does, in
+`crates/podvm/src/format.rs`. Both verbs call `check` before
+the store is opened, against a named list of their own fields.
+⛔ The field-name list and the field builder are two places holding
+one value, so a test asserts they agree, which is the remedy
+`docs/conventions/forbidden-patterns.md` names for exactly that row.
+
+## Decision
+
+Refuse `table` rather than rendering it as literal text. It selects
+a column layout in docker and podvm does not have one, so printing
+it is output shaped like something podvm does not do.
+
+## Prove
+
+`podvm images --format '{{.Nope}}' >/dev/null 2>&1; test $? -eq 2`
+
+## Done
 
 **Done 2026-09-08.** Driven against an empty store: the unknown field, the
 unterminated brace, the `table` prefix and a pipeline all exit 2 and name what
 is wrong; `{{.Digest}}` exits 0. `inspect` reports a bad template before it
 reports a missing image, because the template is the caller's own input.
 
----
+# T-0808: Drive every row of the parity table through the shipped binary
 
-### T-0808 Drive every row of the parity table through the shipped binary
+**Source:** T-0801; the door sweep of 2026-09-10
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** done
 
-Source:      T-0801; the door sweep of 2026-09-10
-Category:    cli
-Priority:    P1
-Effort:      L
-Status:      done 2026-09-21
+## Problem
 
-Problem:     ⛔ **The table is 141 rows and nothing asserts the binary agrees
-             with all of them.** `experiments/320-cli-contract.sh` drives a
-             handful: the JSON parses, one `None` flag refuses with its own
-             note, one unlisted flag is refused. The other rows are checked by
-             a unit test that walks the table and calls the PARSER, which is
-             the same code that reads the table, so the two cannot disagree
-             even when the binary is wrong.
-Premise:     Found by hand on 2026-09-10 and not by any check: `podvm create
-             --no-steps` was accepted and acted on while `podvm system info`
-             listed `--no-steps` under `run` and `exec` only. ⚠ The unit test
-             could not have caught it, because it asks the table which flags a
-             verb has and then asks the parser about those; a flag the parser
-             accepts and the table does not mention is invisible from that
-             direction. ⛔ **The check has to run the BINARY and start from the
-             flag, not from the row.**
-Approach:    One driver, over the table read out of the binary itself:
-             1. for every row with a flag, invoke the verb with it and assert
-                the outcome its status predicts -- `None` refuses with the
-                row's own note and the flag-error code, `Native` and
-                `Degraded` do not refuse for the flag's own sake, `Stub` is
-                accepted and named in the banner;
-             2. for every verb, invoke it with a flag no row names and assert
-                the refusal names **the verb the caller typed**;
-             3. the direction the unit test cannot go: for every flag the
-                parser has an arm for, assert a row exists. ⚠ This one needs
-                the arms enumerated from the source rather than from the
-                table, which is the only way the two lists can be compared at
-                all.
-             ⚠ Rows that need an image or a container are driven against a
-             store that has neither, so the assertion is about the FLAG's
-             refusal and not the verb's; a row whose flag cannot be reached
-             without state reports the third state rather than passing.
-Decision:    Admit-first everywhere, in the same change as the driver. Every
-             dash-arg passes `parity::admit_all` before any match arm runs, so
-             an arm for a flag with no row is unreachable and a row with no arm
-             ends at `parity::no_arm`, which the driver reports as a mismatch.
-             Group subverbs carry the path the caller typed (`image prune`,
-             `system abi`) and resolve their rows through `parity::rows_of`.
-             Approach clause 3 closed structurally rather than by enumeration:
-             with the pre-pass there is no second list to compare.
-Prove:       `./experiments/325-parity-drive.sh`, which exits 0 only when every
-             row of `podvm system info --format '{{json .Parity}}'` was driven
-             or reported as unreachable here, and prints the count of each.
+⛔ **The table is 141 rows and nothing asserts the binary agrees
+with all of them.** `experiments/320-cli-contract.sh` drives a
+handful: the JSON parses, one `None` flag refuses with its own
+note, one unlisted flag is refused. The other rows are checked by
+a unit test that walks the table and calls the PARSER, which is
+the same code that reads the table, so the two cannot disagree
+even when the binary is wrong.
+
+## Premise
+
+Found by hand on 2026-09-10 and not by any check: `podvm create
+--no-steps` was accepted and acted on while `podvm system info`
+listed `--no-steps` under `run` and `exec` only. ⚠ The unit test
+could not have caught it, because it asks the table which flags a
+verb has and then asks the parser about those; a flag the parser
+accepts and the table does not mention is invisible from that
+direction. ⛔ **The check has to run the BINARY and start from the
+flag, not from the row.**
+
+## Approach
+
+One driver, over the table read out of the binary itself:
+1. for every row with a flag, invoke the verb with it and assert
+   the outcome its status predicts -- `None` refuses with the
+   row's own note and the flag-error code, `Native` and
+   `Degraded` do not refuse for the flag's own sake, `Stub` is
+   accepted and named in the banner;
+2. for every verb, invoke it with a flag no row names and assert
+   the refusal names **the verb the caller typed**;
+3. the direction the unit test cannot go: for every flag the
+   parser has an arm for, assert a row exists. ⚠ This one needs
+   the arms enumerated from the source rather than from the
+   table, which is the only way the two lists can be compared at
+   all.
+⚠ Rows that need an image or a container are driven against a
+store that has neither, so the assertion is about the FLAG's
+refusal and not the verb's; a row whose flag cannot be reached
+without state reports the third state rather than passing.
+
+## Decision
+
+Admit-first everywhere, in the same change as the driver. Every
+dash-arg passes `parity::admit_all` before any match arm runs, so
+an arm for a flag with no row is unreachable and a row with no arm
+ends at `parity::no_arm`, which the driver reports as a mismatch.
+Group subverbs carry the path the caller typed (`image prune`,
+`system abi`) and resolve their rows through `parity::rows_of`.
+Approach clause 3 closed structurally rather than by enumeration:
+with the pre-pass there is no second list to compare.
+
+## Prove
+
+`./experiments/325-parity-drive.sh`, which exits 0 only when every
+row of `podvm system info --format '{{json .Parity}}'` was driven
+or reported as unreachable here, and prints the count of each.
+
+## Done
 
 **Done, 2026-09-21.** The driver is green against the shipped binary: 160
 rows, 199 driven, 0 mismatches, 0 unreachable here
@@ -723,49 +841,64 @@ reading matched a lane-only line or an older banner is unestablished,
 and neither the driver criterion nor the banner moves in the T-0209
 change that exposed it.
 
----
+# T-0809: The spawn that fails with the wrong reason, and the one field that fixes it
 
-### T-0809 The spawn that fails with the wrong reason, and the one field that fixes it
+**Source:** `https://github.com/talaria0101/sandbox-insights`, its walls document, wall 2; T-0805 above
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      `https://github.com/talaria0101/sandbox-insights`, its walls document, wall 2; T-0805 above
-Category:    cli
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-21
+## Problem
 
-Problem:     A payload inside podvm spawns a child, the spawn fails, and the
-             message says the operation is not permitted. ⛔ **That one string
-             covers at least two different refused calls**, and reading it as the
-             wrong one has cost whole architectures.
-Premise:     ⭐ **Measured, with the matrix committed, by somebody else.** Go's
-             `os/exec` issues `setgroups` in the child whenever a credential is
-             set, and one guard meant to suppress it does not take when its
-             enabling field is set with no mappings beside it. On a runtime that
-             denies `setgroups`, the spawn fails.
-             ⚠ **The ambiguity is what makes it expensive.** A spawn that asks
-             for namespace clone flags AND a credential fails with the identical
-             string whichever call was refused: the clone runs first, the
-             `setgroups` runs in the child before the `execve`, and both surface
-             the same way. Reading it as "namespaces are denied" is the recorded
-             mistake.
-             ⭐ The remedy is one field and it changes nothing else. Dropping the
-             credential entirely is not required and has other effects.
-Approach:    podvm does not spawn this way: it is Rust and it declares its own
-             syscalls. ⛔ **The payload does, and podvm is what the payload's
-             operator reads.** So this is a diagnostic row and not a code change:
-             T-0805's four-part message gains an entry mapping the observed
-             string plus a denied `setgroups` leg to the mechanism and the
-             one-field remedy.
-             ⚠ The discriminator is already probed: [probe.md](probe.md)
-             separates a refused clone from a refused `setgroups`, so podvm can
-             say which wall the payload met rather than repeating the payload's
-             own ambiguous string.
-Decision:    Diagnose, never patch. ⛔ podvm does not rewrite a payload's
-             process attributes: that is a behaviour change inside somebody
-             else's program, which is a larger thing than
-             [complete.md](complete.md) T-0407's trust change, and it is not this
-             tool's to make. It names the wall and the remedy.
-Prove:       `./experiments/151-spawn-ambiguity.sh` asserts podvm distinguishes a refused clone from a refused `setgroups` behind one identical payload message, and that the diagnostic names the field
+A payload inside podvm spawns a child, the spawn fails, and the
+message says the operation is not permitted. ⛔ **That one string
+covers at least two different refused calls**, and reading it as the
+wrong one has cost whole architectures.
+
+## Premise
+
+⭐ **Measured, with the matrix committed, by somebody else.** Go's
+`os/exec` issues `setgroups` in the child whenever a credential is
+set, and one guard meant to suppress it does not take when its
+enabling field is set with no mappings beside it. On a runtime that
+denies `setgroups`, the spawn fails.
+⚠ **The ambiguity is what makes it expensive.** A spawn that asks
+for namespace clone flags AND a credential fails with the identical
+string whichever call was refused: the clone runs first, the
+`setgroups` runs in the child before the `execve`, and both surface
+the same way. Reading it as "namespaces are denied" is the recorded
+mistake.
+⭐ The remedy is one field and it changes nothing else. Dropping the
+credential entirely is not required and has other effects.
+
+## Approach
+
+podvm does not spawn this way: it is Rust and it declares its own
+syscalls. ⛔ **The payload does, and podvm is what the payload's
+operator reads.** So this is a diagnostic row and not a code change:
+T-0805's four-part message gains an entry mapping the observed
+string plus a denied `setgroups` leg to the mechanism and the
+one-field remedy.
+⚠ The discriminator is already probed: [probe.md](probe.md)
+separates a refused clone from a refused `setgroups`, so podvm can
+say which wall the payload met rather than repeating the payload's
+own ambiguous string.
+
+## Decision
+
+Diagnose, never patch. ⛔ podvm does not rewrite a payload's
+process attributes: that is a behaviour change inside somebody
+else's program, which is a larger thing than
+[complete.md](complete.md) T-0407's trust change, and it is not this
+tool's to make. It names the wall and the remedy.
+
+## Prove
+
+`./experiments/151-spawn-ambiguity.sh` asserts podvm distinguishes a refused clone from a refused `setgroups` behind one identical payload message, and that the diagnostic names the field
+
+## Done
 
 **Done 2026-09-21.** The probe evidence names the wall per context
 (`crates/podvm-probe/src/report.rs`): both legs with what this machine
@@ -785,38 +918,53 @@ clone half attributed in the plain context and the setgroups half under
 `unshare -Ur`, and the control payload exits 0 where setgroups is
 allowed. `experiments/results/spawn-ambiguity.txt` carries the run.
 
----
+# T-0810: `create` fails storing the memo: the container directory is never made
 
-### T-0810 `create` fails storing the memo: the container directory is never made
+**Source:** T-0708's drive, host podman 6.1.2
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      T-0708's drive, host podman 6.1.2
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-22
+## Problem
 
-Problem:     `podvm create --name e1 <image> ...` fails with `the ownership
-             memo could not be stored: No such file or directory`, so no
-             container with a record can be created and `inspect` has nothing
-             to read. `run --detach` shares the rename and fails the same way.
-Premise:     Read at file and line. `crates/podvm/src/lifecycle.rs`
-             `create` renames the ephemeral memo into
-             `supervise::table::memo_path` beside the new record, and
-             `crates/podvm/src/run.rs` (detach) does the same. Neither
-             the rename's parent (`table::dir`, a pure join) nor
-             `supervise::create` (a table-JSON write only) makes the
-             directory. Foreground `run` never renames, which is why every
-             drive to date stayed green past it.
-Approach:    Make the directory where the container is created, not where
-             the memo is renamed: `supervise::create` owns the container's
-             directories (`lock_path`, `log_path` and `control_path` all
-             live under `dir`), so it ensures `dir` after the table write.
-             Both rename call sites ride it with no change.
-Decision:    A failed directory fails the creation loudly, beside the
-             rename's own failure. A container with a record and no memo
-             answers `stat` with the real uid and contradicts every
-             foreground run, which is the inconsistency T-0710 refuses.
-Prove:       `podvm create --name e1 public.ecr.aws/docker/library/alpine:3.20 true && podvm rm e1`
+`podvm create --name e1 <image> ...` fails with `the ownership
+memo could not be stored: No such file or directory`, so no
+container with a record can be created and `inspect` has nothing
+to read. `run --detach` shares the rename and fails the same way.
+
+## Premise
+
+Read at file and line. `crates/podvm/src/lifecycle.rs`
+`create` renames the ephemeral memo into
+`supervise::table::memo_path` beside the new record, and
+`crates/podvm/src/run.rs` (detach) does the same. Neither
+the rename's parent (`table::dir`, a pure join) nor
+`supervise::create` (a table-JSON write only) makes the
+directory. Foreground `run` never renames, which is why every
+drive to date stayed green past it.
+
+## Approach
+
+Make the directory where the container is created, not where
+the memo is renamed: `supervise::create` owns the container's
+directories (`lock_path`, `log_path` and `control_path` all
+live under `dir`), so it ensures `dir` after the table write.
+Both rename call sites ride it with no change.
+
+## Decision
+
+A failed directory fails the creation loudly, beside the
+rename's own failure. A container with a record and no memo
+answers `stat` with the real uid and contradicts every
+foreground run, which is the inconsistency T-0710 refuses.
+
+## Prove
+
+`podvm create --name e1 public.ecr.aws/docker/library/alpine:3.20 true && podvm rm e1`
+
+## Done
 
 **Done 2026-09-22.** `supervise::create` ensures `containers/<id>/` after the
 table write (`crates/podvm-supervise/src/lib.rs`). Both memo renames ride it
@@ -834,43 +982,58 @@ guarantee for each (the launcher's own directory creation, the lock's parent
 creation, the memo helper's parent creation). No site writes beside a record
 without a directory behind it.
 
----
+# T-1319: `inspect` prints exactly one document for any reference
 
-### T-1319 `inspect` prints exactly one document for any reference
+**Source:** issue 21, client beta testing 2026-09-22 (container
+  inspect emits the record plus a spurious `[]`);
+  `crates/podvm/src/images.rs` (the `find_one`, then
+  `inspect_container`, then unconditional array print)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      issue 21, client beta testing 2026-09-22 (container
-             inspect emits the record plus a spurious `[]`);
-             `crates/podvm/src/images.rs` (the `find_one`, then
-             `inspect_container`, then unconditional array print)
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done 2026-09-23
+## Problem
 
-Problem:     `podvm inspect <container>` prints two JSON documents: the
-             container record (printed inside `inspect_container`) and a
-             trailing `[]` (the empty image `records` vec, printed
-             unconditionally after). An automated caller parsing stdout
-             fails; `jq` cannot consume it. Image references print one
-             array correctly, and `--format` is unaffected, so only the
-             container path is broken.
-Premise:     Measured by the reporter (`json.load` fails with "Extra
-             data", `raw_decode` finds two documents) and confirmed
-             against the loop above: the container branch prints inside
-             the call and returns `Some(0)`, leaving `records` empty for
-             the final print.
-Approach:    Do not print the trailing image array where the reference
-             resolved to a container (or collect the rendered container
-             document into `records`, one path, one print). Out of
-             scope: changing either document's fields, touching image
-             inspect.
-Decision:    Skip the second print on the container path: the smaller
-             diff, and the image path keeps its exact bytes.
-Prove:       `podvm inspect <container>` piped to `python3 -c
-             'json.load(sys.stdin)'` and to `jq` both succeed with one
-             document; image inspect output is byte-identical before and
-             after. Close issue 21 with a comment showing the parse and
-             the single-print path as the guard that stops recurrence.
+`podvm inspect <container>` prints two JSON documents: the
+container record (printed inside `inspect_container`) and a
+trailing `[]` (the empty image `records` vec, printed
+unconditionally after). An automated caller parsing stdout
+fails; `jq` cannot consume it. Image references print one
+array correctly, and `--format` is unaffected, so only the
+container path is broken.
+
+## Premise
+
+Measured by the reporter (`json.load` fails with "Extra
+data", `raw_decode` finds two documents) and confirmed
+against the loop above: the container branch prints inside
+the call and returns `Some(0)`, leaving `records` empty for
+the final print.
+
+## Approach
+
+Do not print the trailing image array where the reference
+resolved to a container (or collect the rendered container
+document into `records`, one path, one print). Out of
+scope: changing either document's fields, touching image
+inspect.
+
+## Decision
+
+Skip the second print on the container path: the smaller
+diff, and the image path keeps its exact bytes.
+
+## Prove
+
+`podvm inspect <container>` piped to `python3 -c
+'json.load(sys.stdin)'` and to `jq` both succeed with one
+document; image inspect output is byte-identical before and
+after. Close issue 21 with a comment showing the parse and
+the single-print path as the guard that stops recurrence.
+
+## Done
 
 **Done 2026-09-23.** Skip the second print on the container path, as
 decided. `inspect` (`crates/podvm/src/images.rs`) tracks whether any
@@ -907,48 +1070,63 @@ The `jq` half ran beside it on a clean store in the same lane
 so `create` failed there for the tampered-store reason; the rerun used a
 fresh store.)
 
----
+# T-1323: `cp` reaches an image's extracted rootfs, and copies directories with the same checks
 
-### T-1323 `cp` reaches an image's extracted rootfs, and copies directories with the same checks
+**Source:** issues 14 and 16, client beta testing 2026-09-22 (`cp`
+  gated on container records; no recursive copy);
+  `crates/podvm/src/parity.rs` (the `cp` row: one file
+  at a time, gated through the containment check)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      issues 14 and 16, client beta testing 2026-09-22 (`cp`
-             gated on container records; no recursive copy);
-             `crates/podvm/src/parity.rs` (the `cp` row: one file
-             at a time, gated through the containment check)
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      done 2026-09-23
+## Problem
 
-Problem:     `cp` only addresses `container:path`, and `run` leaves no
-             record, so on a host where the payload cannot launch there
-             is no checked way to stage or retrieve files: the only
-             interface with containment checks is gated on a started
-             container, which restricted hosts cannot always provide.
-             Separately, `cp` copies one file at a time; a recursive
-             option with the same checks has no entry.
-Premise:     Measured by the reporter: `cp alpine:latest:/etc/os-release`
-             refuses ("no such container"), `create`+`cp` works only
-             where `start` works, and raw store writes omit every
-             check. The containment machinery (`podvm-extract` safety
-             module) and the extract walker already exist to make both
-             halves safe.
-Approach:    Accept `image:path` (the extracted rootfs in the store) as
-             well as `container:path`, reusing the containment-checked
-             path unchanged; add a recursive option over the same walker
-             with the same checks. Out of scope: a new stage/unstage
-             verb pair (rejected: `image:path` covers the workflow with
-             no new verb and no parity debt), documenting raw store
-             surgery (never an answer).
-Decision:    Extend `cp`, do not add verbs. One verb, one checker, two
-             new addressings.
-Prove:       `podvm cp image:/etc/os-release` on a host where
-             payloads cannot launch retrieves bytes, and `podvm cp` of
-             a directory tree round-trips with containment intact (a
-             hostile symlink inside the tree refuses rather than
-             escapes); `podvm cp --help` documents both. Close issues 14
-             and 16 (cp half) with comments showing the commands and the
-             shared containment check as the guard that stops recurrence.
+`cp` only addresses `container:path`, and `run` leaves no
+record, so on a host where the payload cannot launch there
+is no checked way to stage or retrieve files: the only
+interface with containment checks is gated on a started
+container, which restricted hosts cannot always provide.
+Separately, `cp` copies one file at a time; a recursive
+option with the same checks has no entry.
+
+## Premise
+
+Measured by the reporter: `cp alpine:latest:/etc/os-release`
+refuses ("no such container"), `create`+`cp` works only
+where `start` works, and raw store writes omit every
+check. The containment machinery (`podvm-extract` safety
+module) and the extract walker already exist to make both
+halves safe.
+
+## Approach
+
+Accept `image:path` (the extracted rootfs in the store) as
+well as `container:path`, reusing the containment-checked
+path unchanged; add a recursive option over the same walker
+with the same checks. Out of scope: a new stage/unstage
+verb pair (rejected: `image:path` covers the workflow with
+no new verb and no parity debt), documenting raw store
+surgery (never an answer).
+
+## Decision
+
+Extend `cp`, do not add verbs. One verb, one checker, two
+new addressings.
+
+## Prove
+
+`podvm cp image:/etc/os-release` on a host where
+payloads cannot launch retrieves bytes, and `podvm cp` of
+a directory tree round-trips with containment intact (a
+hostile symlink inside the tree refuses rather than
+escapes); `podvm cp --help` documents both. Close issues 14
+and 16 (cp half) with comments showing the commands and the
+shared containment check as the guard that stops recurrence.
+
+## Done
 
 **Done, 2026-09-23.** `cp` addresses `container:path` first and
 `image:path` second (last-colon split, so a tag survives), extracting
@@ -976,40 +1154,55 @@ recurrence are the shared `within` gate on every rootfs-side path,
 the no-follow walk with verbatim link replication, and the
 write-through-symlink refusal on every destination.
 
----
+# T-1330: Bundled short flags parse as docker reads them
 
-### T-1330 Bundled short flags parse as docker reads them
+**Source:** issue 27, client beta testing 2026-09-22 (`ps -aq`,
+  `run -it` refused); `crates/podvm/src/parity.rs`
+  (the `-a`/`-q` and `-i`/`-t` rows, never mentioning
+  bundling)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-Source:      issue 27, client beta testing 2026-09-22 (`ps -aq`,
-             `run -it` refused); `crates/podvm/src/parity.rs`
-             (the `-a`/`-q` and `-i`/`-t` rows, never mentioning
-             bundling)
-Category:    cli
-Priority:    P2
-Effort:      S
-Status:      done 2026-09-23
+## Problem
 
-Problem:     Combined short flags are refused: `ps -aq` and `run -it`
-             answer `unknown option` with 125. Docker callers write
-             clusters constantly; the parity table lists the member flags
-             separately and never mentions bundling, so the refusal reads
-             as a missing flag rather than a missing spelling.
-Premise:     Measured by the reporter on the beta.3 asset, both forms,
-             both 125. The parser has no cluster path (each flag is
-             matched whole).
-Approach:    Parse a cluster of value-less short flags by docker's own
-             rule (a cluster containing a flag that takes a value
-             consumes the rest as its value; an unknown member refuses
-             naming the member). One parser change, every verb inherits
-             it. Out of scope: new flags, changing any refusal code.
-Decision:    Docker's cluster rule exactly, not a subset. A subset would
-             move the surprise rather than remove it.
-Prove:       `ps -aq`, `run -it` (and a cluster with an unknown member,
-             refusing by name) behave as docker's rule says across three
-             verbs; the existing flag tests still pass unchanged. Close
-             issue 27 (bundling third) with a comment showing the runs
-             and the single parser path as the guard that stops
-             recurrence.
+Combined short flags are refused: `ps -aq` and `run -it`
+answer `unknown option` with 125. Docker callers write
+clusters constantly; the parity table lists the member flags
+separately and never mentions bundling, so the refusal reads
+as a missing flag rather than a missing spelling.
+
+## Premise
+
+Measured by the reporter on the beta.3 asset, both forms,
+both 125. The parser has no cluster path (each flag is
+matched whole).
+
+## Approach
+
+Parse a cluster of value-less short flags by docker's own
+rule (a cluster containing a flag that takes a value
+consumes the rest as its value; an unknown member refuses
+naming the member). One parser change, every verb inherits
+it. Out of scope: new flags, changing any refusal code.
+
+## Decision
+
+Docker's cluster rule exactly, not a subset. A subset would
+move the surprise rather than remove it.
+
+## Prove
+
+`ps -aq`, `run -it` (and a cluster with an unknown member,
+refusing by name) behave as docker's rule says across three
+verbs; the existing flag tests still pass unchanged. Close
+issue 27 (bundling third) with a comment showing the runs
+and the single parser path as the guard that stops
+recurrence.
+
+## Done
 
 **Done, 2026-09-23.** One rule, `parity::expand`, called at the top of
 every flag-taking verb before admission: value-less shorts split
@@ -1031,48 +1224,63 @@ clippy clean, `ps -aq`, `run -it`, `inspect -f` and `ls -la` through
 a payload green, `-aZ` refusing 125 naming `-Z`. The guard is the
 single expansion path plus check 26's mirror.
 
----
+# T-1331: `--filter`, `restart` and `pull -a/-q` answer the docker idiom
 
-### T-1331 `--filter`, `restart` and `pull -a/-q` answer the docker idiom
+**Source:** issue 27, client beta testing 2026-09-22 (three refused
+  idioms with no entry);
+  `crates/podvm/src/parity.rs` (the `None` rows for
+  `--filter`, `restart`, `pull -a`)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      issue 27, client beta testing 2026-09-22 (three refused
-             idioms with no entry);
-             `crates/podvm/src/parity.rs` (the `None` rows for
-             `--filter`, `restart`, `pull -a`)
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      done 2026-09-23
+## Problem
 
-Problem:     Three docker idioms break with 125 and have no work-order
-             entry: `--filter` on `images` and `ps` (every `docker ps
-             --filter name=x` one-liner), `restart` ("`stop` then `start`
-             is the same thing" is not the same verb), `pull
-             -a/--all-tags` and `pull -q`. The table is honest; the work
-             order does not know these are missing.
-Premise:     Measured by the reporter on the beta.3 asset, each form
-             with its refusal text. Bundled flags are the sibling entry;
-             these are per-verb gaps, not parser gaps.
-Approach:    Implement the three behind the table rows that already name
-             them: `--filter` as a caller-side predicate over listed
-             records (no new query language), `restart` as stop-then-
-             start in one verb reporting which half failed, `pull -a` as
-             all offered tags and `-q` as quiet output. Out of scope:
-             server-side filter syntax beyond `name=` and label
-             equality (named if dropped), restart policies (a different
-             gap).
-Decision:    Caller-side filter, composite restart, per-tag pull. Each
-             reuses a path that already exists rather than forking one. A
-             tag with no manifest for this platform is named and skipped
-             (typed `NoPlatform`, not a string match); any other failing
-             tag stops the run, and an offer with nothing for this
-             platform at all is an error.
-Prove:       `ps --filter name=x` selects, `restart` stops and starts
-             with both halves named, `pull -a` fetches every offered tag
-             and `-q` stays quiet; the three parity rows move status with
-             the behavior. Close issue 27 (idiom thirds) with a comment
-             showing the runs and the row-status moves as the guard that
-             stops recurrence.
+Three docker idioms break with 125 and have no work-order
+entry: `--filter` on `images` and `ps` (every `docker ps
+--filter name=x` one-liner), `restart` ("`stop` then `start`
+is the same thing" is not the same verb), `pull
+-a/--all-tags` and `pull -q`. The table is honest; the work
+order does not know these are missing.
+
+## Premise
+
+Measured by the reporter on the beta.3 asset, each form
+with its refusal text. Bundled flags are the sibling entry;
+these are per-verb gaps, not parser gaps.
+
+## Approach
+
+Implement the three behind the table rows that already name
+them: `--filter` as a caller-side predicate over listed
+records (no new query language), `restart` as stop-then-
+start in one verb reporting which half failed, `pull -a` as
+all offered tags and `-q` as quiet output. Out of scope:
+server-side filter syntax beyond `name=` and label
+equality (named if dropped), restart policies (a different
+gap).
+
+## Decision
+
+Caller-side filter, composite restart, per-tag pull. Each
+reuses a path that already exists rather than forking one. A
+tag with no manifest for this platform is named and skipped
+(typed `NoPlatform`, not a string match); any other failing
+tag stops the run, and an offer with nothing for this
+platform at all is an error.
+
+## Prove
+
+`ps --filter name=x` selects, `restart` stops and starts
+with both halves named, `pull -a` fetches every offered tag
+and `-q` stays quiet; the three parity rows move status with
+the behavior. Close issue 27 (idiom thirds) with a comment
+showing the runs and the row-status moves as the guard that
+stops recurrence.
+
+## Done
 
 **Done, 2026-09-23.** `--filter` is a caller-side predicate over listed
 records (`name=` substring, `label=` equality, any other key refused
@@ -1094,53 +1302,68 @@ verdict `fail=0`: filter units by exact name, suites, clippy clean,
 store, explicit-tag `-a` refused, `-q` byte-quiet, the three parity rows
 moved. The guard is the three moved table rows plus the prove script.
 
----
+# T-1332: `podvm man` generates the manual from the binary, pager-aware
 
-### T-1332 `podvm man` generates the manual from the binary, pager-aware
+**Source:** operator order 2026-09-23 (drift-free human/AI manual;
+  docs need not carry help text); `crates/podvm/src`
+  (per-verb usage strings, the parity table as data)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      operator order 2026-09-23 (drift-free human/AI manual;
-             docs need not carry help text); `crates/podvm/src`
-             (per-verb usage strings, the parity table as data)
-Category:    cli
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-23
+## Problem
 
-Problem:     Help text lives in docs or not at all, so every new flag is
-             a chance for drift: the manual says what the binary said on
-             the day somebody copied it. Nothing generates a readable
-             manual from the binary for humans (`less`) and agents
-             (plain text) alike.
-Premise:     Audited: no `man` surface exists in `crates/podvm/src`
-             (only shell completion in `complete.rs`); per-verb usage
-             strings and the parity table already carry the content a
-             generator needs.
-Approach:    A `man` verb rendering every verb, flag and parity note
-             from the binary's own data (usage strings plus
-             `parity::TABLE`), plain text to stdout, shaped like
-             `wsl-toolkit man --no-pager`: version header, command list
-             with one-line summaries, a Global section, then a COMMAND
-             REFERENCE with one section per command carrying its
-             synopsis and flags. `podvm man [verb]` pages through
-             `$PAGER` (`less` where present), `--no-pager` (and non-tty
-             stdout) prints without paging. Progress and diagnostics
-             stay on stderr; stdout carries the answer alone. New verbs
-             and flags appear by construction, never by edit. The
-             generated output carries no emoji and no markers (the
-             binary-wide scrub is the sibling entry below). Out of
-             scope: troff/`man(1)` integration (no new dependency, no
-             roff to drift either), shell completions (unchanged),
-             `--json` (verbs that have structured answers keep it; the
-             manual is text).
-Decision:    Generated plain text, pager-aware, no troff. The audience
-             is a tired reader and an agent: both read text, neither
-             needs typesetting.
-Prove:       A script diffs `podvm man` output against every `--help`
-             output plus the parity rows and fails on any verb or flag
-             the manual lacks; `podvm man --no-pager` and piped `podvm
-             man` print identical bytes with no pager spawned. The
-             completeness script is the drift guard that stops
-             recurrence.
+Help text lives in docs or not at all, so every new flag is
+a chance for drift: the manual says what the binary said on
+the day somebody copied it. Nothing generates a readable
+manual from the binary for humans (`less`) and agents
+(plain text) alike.
+
+## Premise
+
+Audited: no `man` surface exists in `crates/podvm/src`
+(only shell completion in `complete.rs`); per-verb usage
+strings and the parity table already carry the content a
+generator needs.
+
+## Approach
+
+A `man` verb rendering every verb, flag and parity note
+from the binary's own data (usage strings plus
+`parity::TABLE`), plain text to stdout, shaped like
+`wsl-toolkit man --no-pager`: version header, command list
+with one-line summaries, a Global section, then a COMMAND
+REFERENCE with one section per command carrying its
+synopsis and flags. `podvm man [verb]` pages through
+`$PAGER` (`less` where present), `--no-pager` (and non-tty
+stdout) prints without paging. Progress and diagnostics
+stay on stderr; stdout carries the answer alone. New verbs
+and flags appear by construction, never by edit. The
+generated output carries no emoji and no markers (the
+binary-wide scrub is the sibling entry below). Out of
+scope: troff/`man(1)` integration (no new dependency, no
+roff to drift either), shell completions (unchanged),
+`--json` (verbs that have structured answers keep it; the
+manual is text).
+
+## Decision
+
+Generated plain text, pager-aware, no troff. The audience
+is a tired reader and an agent: both read text, neither
+needs typesetting.
+
+## Prove
+
+A script diffs `podvm man` output against every `--help`
+output plus the parity rows and fails on any verb or flag
+the manual lacks; `podvm man --no-pager` and piped `podvm
+man` print identical bytes with no pager spawned. The
+completeness script is the drift guard that stops
+recurrence.
+
+## Done
 
 **Done, 2026-09-23.** New `man` verb in `crates/podvm/src/man.rs`:
 version header, command list with one-line summaries (the first
@@ -1196,48 +1419,63 @@ meaningful rather than vacuous. A regression that spawns where it
 should not now fails the stderr assertion; a regression that
 silences the fallback now fails the pty assertion.
 
----
+# T-1336: CLI output is plain ASCII: no emoji, no markers, on every path
 
-### T-1336 CLI output is plain ASCII: no emoji, no markers, on every path
+**Source:** operator order 2026-09-23 (no place for either in a CLI
+  tool, let alone without a terminal or pty);
+  `crates/podvm/src` (usage strings, error messages and
+  parity notes carry marker glyphs on dozens of paths:
+  `complete.rs:103`, `exec.rs:252`, `main.rs:372`,
+  `names.rs:259`, `parity.rs:103`, `run.rs:26`, and the
+  per-verb usage blocks behind every `--help`)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-Source:      operator order 2026-09-23 (no place for either in a CLI
-             tool, let alone without a terminal or pty);
-             `crates/podvm/src` (usage strings, error messages and
-             parity notes carry marker glyphs on dozens of paths:
-             `complete.rs:103`, `exec.rs:252`, `main.rs:372`,
-             `names.rs:259`, `parity.rs:103`, `run.rs:26`, and the
-             per-verb usage blocks behind every `--help`)
-Category:    cli
-Priority:    P1
-Effort:      M
-Status:      done 2026-09-23
+## Problem
 
-Problem:     The binary's user-facing text carries ⛔/⚠/⭐ glyphs on
-             dozens of paths: per-verb usage blocks (printed by every
-             `--help`), error messages (`complete`, `exec`, `probe`
-             cache, `install-names`), and parity notes (the
-             machine-readable contract). On a constrained host with no
-             terminal or pty these are unrenderable bytes in an
-             automated caller's stream, and they force every downstream
-             parser to handle codepoints that carry no meaning.
-Premise:     Measured on this tree: non-ASCII bytes outside comments
-             across `crates/podvm/src` (usage blocks, emitted
-             errors, table notes); comments and doc-comments that are
-             never printed are not in scope and stay.
-Approach:    Scrub every printed string to ASCII, replacing each glyph
-             with the word it stands for (`refused:`, `note:`), usage
-             blocks, errors, banner lines and parity notes alike; keep
-             source comments as they are. Add the guard that stops
-             recurrence: a test (or gate check) failing any non-ASCII
-             byte in `--help` output per verb, the `man` output, and the
-             error/catalog paths. Out of scope: docs and comments (the
-             markers check owns those), changing any message's meaning
-             (glyphs become words, nothing is reworded).
-Decision:    Words, not glyphs, everywhere printed. The manual entry
-             (T-1332) inherits ASCII output from this one.
-Prove:       `./experiments/352-ascii-output.sh` exits 0, with the
-             existing suite green; the guard runs in the gate so a new
-             glyph fails before it ships.
+The binary's user-facing text carries ⛔/⚠/⭐ glyphs on
+dozens of paths: per-verb usage blocks (printed by every
+`--help`), error messages (`complete`, `exec`, `probe`
+cache, `install-names`), and parity notes (the
+machine-readable contract). On a constrained host with no
+terminal or pty these are unrenderable bytes in an
+automated caller's stream, and they force every downstream
+parser to handle codepoints that carry no meaning.
+
+## Premise
+
+Measured on this tree: non-ASCII bytes outside comments
+across `crates/podvm/src` (usage blocks, emitted
+errors, table notes); comments and doc-comments that are
+never printed are not in scope and stay.
+
+## Approach
+
+Scrub every printed string to ASCII, replacing each glyph
+with the word it stands for (`refused:`, `note:`), usage
+blocks, errors, banner lines and parity notes alike; keep
+source comments as they are. Add the guard that stops
+recurrence: a test (or gate check) failing any non-ASCII
+byte in `--help` output per verb, the `man` output, and the
+error/catalog paths. Out of scope: docs and comments (the
+markers check owns those), changing any message's meaning
+(glyphs become words, nothing is reworded).
+
+## Decision
+
+Words, not glyphs, everywhere printed. The manual entry
+(T-1332) inherits ASCII output from this one.
+
+## Prove
+
+`./experiments/352-ascii-output.sh` exits 0, with the
+existing suite green; the guard runs in the gate so a new
+glyph fails before it ships.
+
+## Done
 
 **Done 2026-09-23.** Words, not glyphs, as decided: every printed
 string across `crates/podvm/src`, `crates/podvm-probe/src`,
@@ -1264,58 +1502,73 @@ a glyph planted in `run.rs` goes red naming `U+26D4` and T-1336.
 The guard is the check plus the 352 experiment: a new glyph fails
 the gate before it ships and fails the binary drive beside it.
 
----
+# T-1337: Doctor, disk usage, and log tail for operators
 
-### T-1337 Doctor, disk usage, and log tail for operators
+**Source:** issue 38, beta.7 drive 2026-09-25 (no `doctor`, no `df`,
+  `logs` without `--tail`); `references/carlbomsdata__winquick`
+  `tree/src/main.rs:50` with `tree/src/facts.rs:125-180` (the shape
+  to copy, not the content)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      issue 38, beta.7 drive 2026-09-25 (no `doctor`, no `df`,
-             `logs` without `--tail`); `references/carlbomsdata__winquick`
-             `tree/src/main.rs:50` with `tree/src/facts.rs:125-180` (the shape
-             to copy, not the content)
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     Three operator gaps found while driving beta.7. `podvm
-             probe` prints the measurement half (legs, verdicts,
-             refusals) and never the setup half: a QEMU too old for
-             migration, firmware present or absent, helper tools
-             present, image installed, disk free against the ceiling.
-             No `system df` sums stored, extracted and reclaimable
-             bytes, which operators on small stores need beside the
-             prune path. `logs -f` replays from the start on every
-             reconnect, because there is no `--tail N` (and later no
-             `--since`).
-Premise:     Read on the lane-built binary 2026-09-25
-             (`experiments/results/triage-353.txt` clauses
-             `38-system-help` and `38-logs-help`): `system --help`
-             lists no doctor and no df, `logs --help` lists only
-             `-f|--follow`, and `probe --json` already carries every
-             leg a doctor would consume. `TODO/supervise.md`
-             already documents that `logs` has no `--tail`.
-Approach:    Three small parity additions, each with its row and its
-             Prove through the shipped binary, and no spec change
-             beyond one row each. `podvm doctor` (or `probe --fix`)
-             reuses the machine legs with the T-1301 checks and prints
-             one fix line per missing piece, with the third-state
-             exits (0 ok, 1 problem, 2 could not run). `podvm system
-             df` (with image du rows) reports stored, extracted and
-             reclaimable bytes with the container gate applied, and
-             never exits non-zero for accounting alone. `logs --tail
-             N` (with `--since` as a second step) reads the same
-             captured file T-0605 owns, bounded like `-f`, with
-             byte-identical default output unchanged.
-Decision:    One entry, three verbs in order doctor, df, tail, each
-             shippable alone. The doctor copies the reference's shape
-             (check lines with fix lines) and none of its content.
+Three operator gaps found while driving beta.7. `podvm
+probe` prints the measurement half (legs, verdicts,
+refusals) and never the setup half: a QEMU too old for
+migration, firmware present or absent, helper tools
+present, image installed, disk free against the ceiling.
+No `system df` sums stored, extracted and reclaimable
+bytes, which operators on small stores need beside the
+prune path. `logs -f` replays from the start on every
+reconnect, because there is no `--tail N` (and later no
+`--since`).
+
+## Premise
+
+Read on the lane-built binary 2026-09-25
+(`experiments/results/triage-353.txt` clauses
+`38-system-help` and `38-logs-help`): `system --help`
+lists no doctor and no df, `logs --help` lists only
+`-f|--follow`, and `probe --json` already carries every
+leg a doctor would consume. `TODO/supervise.md`
+already documents that `logs` has no `--tail`.
+
+## Approach
+
+Three small parity additions, each with its row and its
+Prove through the shipped binary, and no spec change
+beyond one row each. `podvm doctor` (or `probe --fix`)
+reuses the machine legs with the T-1301 checks and prints
+one fix line per missing piece, with the third-state
+exits (0 ok, 1 problem, 2 could not run). `podvm system
+df` (with image du rows) reports stored, extracted and
+reclaimable bytes with the container gate applied, and
+never exits non-zero for accounting alone. `logs --tail
+N` (with `--since` as a second step) reads the same
+captured file T-0605 owns, bounded like `-f`, with
+byte-identical default output unchanged.
+
+## Decision
+
+One entry, three verbs in order doctor, df, tail, each
+shippable alone. The doctor copies the reference's shape
+(check lines with fix lines) and none of its content.
 Out of scope: a log stream split (T-0605), a network check needing
-             a registry, any new exit-code meaning.
-Prove:       `podvm doctor` on a kvm-less host exits 1 naming the
-             missing legs with one fix line each; `podvm system df`
-             sums to the store's own accounting; `podvm logs --tail 5`
-             prints the last five lines and `podvm logs` prints all
-             lines byte-identical to before.
+a registry, any new exit-code meaning.
+
+## Prove
+
+`podvm doctor` on a kvm-less host exits 1 naming the
+missing legs with one fix line each; `podvm system df`
+sums to the store's own accounting; `podvm logs --tail 5`
+prints the last five lines and `podvm logs` prints all
+lines byte-identical to before.
+
+## Done
 
 **Done, 2026-09-26.** Three verbs in commit order tail, df,
 doctor. Tail landed first: `logs --tail N`
@@ -1418,39 +1671,59 @@ unmeasured outranks failed), help and bad flags need no probe.
 With all three verbs driven and 364 fully green, issue 38
 closes below.
 
----
+# T-1414: The no-chroot path returns 127 and 126
 
-### T-1414 The no-chroot path returns 127 and 126
+**Source:** issue 75; `crates/podvm/src/lifecycle/entry.rs:184`;
+  `crates/podvm-probe/src/exit.rs:86`;
+  `experiments/330-exit-codes.sh`
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      issue 75; `crates/podvm/src/lifecycle/entry.rs:184`;
-             `crates/podvm-probe/src/exit.rs:86`;
-             `experiments/330-exit-codes.sh`
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     A missing command returns 125 on the userland rung. The
-             contract reserves 125 for podvm failing and 127 for not
-             found. Scripts branching on 127 misread the result.
-Premise:     `decide_entry` (`lifecycle.rs:1746`) returns 125
-             unconditionally, including the unresolvable-payload arms
-             (`lifecycle.rs:1774`, `lifecycle.rs:1831`). `EXIT_NOT_FOUND`
-             exists with its case row (`exit.rs:86`) and the chroot path
-             emits it from the child. Nothing in
-             `crates/podvm/src` references `EXIT_NOT_FOUND` or
-             `EXIT_CANNOT_INVOKE` (measured by grep: zero hits), so the
-             userland path cannot produce 127 or 126 by construction.
-             `330` covers not-found only through the absolute-path
-             chroot case.
-Approach:    Map `ResolveKind::Absent` to 127 and found-but-not-invocable
-             to 126 in the `no_chroot` arms. Add the bare-name trio to
-             `330` per rung.
-Decision:    The exit code follows the payload status on every rung. The
-             rung never changes the code's meaning.
-Prove:       `cargo test -p podvm` exits 0.
-             `sh experiments/330-exit-codes.sh` exits 0 with the userland
-             missing, not-invocable, and podvm-failure clauses.
+A missing command returns 125 on the userland rung. The
+contract reserves 125 for podvm failing and 127 for not
+found. Scripts branching on 127 misread the result.
+
+## Premise
+
+`decide_entry` (`lifecycle.rs:1746`) returns 125
+unconditionally, including the unresolvable-payload arms
+(`lifecycle.rs:1774`, `lifecycle.rs:1831`). `EXIT_NOT_FOUND`
+exists with its case row (`exit.rs:86`) and the chroot path
+emits it from the child. Nothing in
+`crates/podvm/src` references `EXIT_NOT_FOUND` or
+`EXIT_CANNOT_INVOKE` (measured by grep: zero hits), so the
+userland path cannot produce 127 or 126 by construction.
+`330` covers not-found only through the absolute-path
+chroot case.
+
+## Approach
+
+Map `ResolveKind::Absent` to 127 and found-but-not-invocable
+to 126 in the `no_chroot` arms. Add the bare-name trio to
+`330` per rung.
+
+## Decision
+
+The exit code follows the payload status on every rung. The
+rung never changes the code's meaning.
+
+## Prove
+
+`cargo test -p podvm` exits 0.
+`sh experiments/330-exit-codes.sh` exits 0 with the userland
+missing, not-invocable, and podvm-failure clauses.
+
+## Correction
+
+**Open 2026-09-30 (history).** Filed from issue 75. Extends [T-0802](cli.md),
+whose proof ran on the chroot rung only.
+
+## Done
 
 **Done 2026-09-30.** The `no_chroot` arms map `ResolveKind::Absent`
 to 127 and found-but-not-invocable to 126 (the T-0802 errno split);
@@ -1468,41 +1741,57 @@ The 330 drive itself gained a portability fix beside this entry: its
 gated on the shell name and `sh 330-exit-codes.sh` reaches the engine
 check ([the SKIP run](../experiments/results/exit-codes-2026-09-30.txt)).
 
-**Open 2026-09-30 (history).** Filed from issue 75. Extends [T-0802](cli.md),
-whose proof ran on the chroot rung only.
+# T-1415: Strict classifies degradations on the userland rung
 
----
+**Source:** issue 76; `crates/podvm/src/complete.rs:122`;
+  [T-0804](cli.md)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
 
-### T-1415 Strict classifies degradations on the userland rung
+## Problem
 
-Source:      issue 76; `crates/podvm/src/complete.rs:122`;
-             [T-0804](cli.md)
-Category:    cli
-Priority:    P1
-Effort:      M
-Status:      done
+`--strict` refuses every run where chroot is denied. The
+five unavoidable dev-shim substitutions each count as a
+degradation. The callers who want the gate most get
+nothing.
 
-Problem:     `--strict` refuses every run where chroot is denied. The
-             five unavoidable dev-shim substitutions each count as a
-             degradation. The callers who want the gate most get
-             nothing.
-Premise:     `strict_refusal` (`complete.rs:122`) pushes every
-             completion degradation and every step as a refusal reason
-             and refuses on the count. That is exactly what T-0804
-             specified before the userland rung existed. Its proof never
-             exercised `--strict` there.
-Approach:    Classify degradations. Safety-relevant ones (no path
-             virtualization, host and libc mixing, escape) still refuse.
-             Substitution ones (dev shims) warn. Add `--strict=all`
-             preserving the current behavior. The refusal line names the
-             class.
-Decision:    Kind decides, count no longer does. The current behavior
-             stays available under `--strict=all`.
-Prove:       `cargo test -p podvm` exits 0. A tracked drive runs
-             `--strict public.ecr.aws/docker/library/alpine:3.20 echo hi`
-             clean on a chroot-denying fixture, still refuses a
-             path-virtualization defect, and `--strict=all` still refuses
-             the dev-shim run.
+## Premise
+
+`strict_refusal` (`complete.rs:122`) pushes every
+completion degradation and every step as a refusal reason
+and refuses on the count. That is exactly what T-0804
+specified before the userland rung existed. Its proof never
+exercised `--strict` there.
+
+## Approach
+
+Classify degradations. Safety-relevant ones (no path
+virtualization, host and libc mixing, escape) still refuse.
+Substitution ones (dev shims) warn. Add `--strict=all`
+preserving the current behavior. The refusal line names the
+class.
+
+## Decision
+
+Kind decides, count no longer does. The current behavior
+stays available under `--strict=all`.
+
+## Prove
+
+`cargo test -p podvm` exits 0. A tracked drive runs
+`--strict public.ecr.aws/docker/library/alpine:3.20 echo hi`
+clean on a chroot-denying fixture, still refuses a
+path-virtualization defect, and `--strict=all` still refuses
+the dev-shim run.
+
+## Correction
+
+**Open 2026-09-30 (history).** Filed from issue 76. Extends [T-0804](cli.md).
+
+## Done
 
 **Done 2026-09-30.** Strict refusal classifies by kind, not by count:
 safety-relevant degradations (no path virtualization, host and libc
@@ -1516,44 +1805,62 @@ path-virtualization defect, and `--strict=all` refuses the dev-shim
 run. This extends T-0804, whose proof never exercised `--strict` on
 the userland rung.
 
-**Open 2026-09-30 (history).** Filed from issue 76. Extends [T-0804](cli.md).
+# T-1416: Quiet runs and a verbose banner
 
----
+**Source:** issues 77 and 79;
+  `crates/podvm/src/complete.rs:57`;
+  `crates/podvm/src/run/prepare.rs:210`; [T-0804](cli.md)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-### T-1416 Quiet runs and a verbose banner
+## Problem
 
-Source:      issues 77 and 79;
-             `crates/podvm/src/complete.rs:57`;
-             `crates/podvm/src/run/prepare.rs:210`; [T-0804](cli.md)
-Category:    cli
-Priority:    P2
-Effort:      S
-Status:      done
+Every successful run prints the rung narration to stderr
+with no per-run opt-out. Harnesses running hundreds of
+commands cannot silence it. Issue 79 asks for the stronger
+shape: quiet by default, full narration under `-v`, `-q` as
+force-off.
 
-Problem:     Every successful run prints the rung narration to stderr
-             with no per-run opt-out. Harnesses running hundreds of
-             commands cannot silence it. Issue 79 asks for the stronger
-             shape: quiet by default, full narration under `-v`, `-q` as
-             force-off.
-Premise:     `banner_quiet` reads only the store config, never argv or
-             env (`complete.rs:57`). `run` and `exec` parse no `-q`,
-             `--quiet`, `-v`, or `--verbose` flag (measured by grep:
-             zero hits). The never-quiet-by-default test pins the
-             current shape (`complete.rs:515`). T-0804 decided the banner
-             cannot be set from a single run's command line.
-Approach:    Implement the issue 79 shape: empty stderr on success at
-             default level, banner under `-v`, `-q` forces off, refusals
-             and payload stderr untouched. Record the reversed T-0804
-             decision in writing.
-Decision:    Ruled 2026-09-30 by the operator: the issue 79 shape.
-             Quiet by default, banner under `-v`, `-q` forces off. The
-             default output change touches every user; refusals and
-             payload stderr stay untouched, so no safety information is
-             lost. Issues 77 and 79 both close here. This reverses the
-             T-0804 command-line rule in writing.
-Prove:       `cargo test -p podvm` exits 0. A tracked drive shows
-             empty stderr on success, the banner under `-v`, silence
-             under `-q`, and a refused run printing at default level.
+## Premise
+
+`banner_quiet` reads only the store config, never argv or
+env (`complete.rs:57`). `run` and `exec` parse no `-q`,
+`--quiet`, `-v`, or `--verbose` flag (measured by grep:
+zero hits). The never-quiet-by-default test pins the
+current shape (`complete.rs:515`). T-0804 decided the banner
+cannot be set from a single run's command line.
+
+## Approach
+
+Implement the issue 79 shape: empty stderr on success at
+default level, banner under `-v`, `-q` forces off, refusals
+and payload stderr untouched. Record the reversed T-0804
+decision in writing.
+
+## Decision
+
+Ruled 2026-09-30 by the operator: the issue 79 shape.
+Quiet by default, banner under `-v`, `-q` forces off. The
+default output change touches every user; refusals and
+payload stderr stay untouched, so no safety information is
+lost. Issues 77 and 79 both close here. This reverses the
+T-0804 command-line rule in writing.
+
+## Prove
+
+`cargo test -p podvm` exits 0. A tracked drive shows
+empty stderr on success, the banner under `-v`, silence
+under `-q`, and a refused run printing at default level.
+
+## Correction
+
+**Open 2026-09-30 (history).** Filed from issues 77 and 79. Read the current
+source before implementation.
+
+## Done
 
 **Done 2026-09-30.** The operator-ruled issue-79 shape: runs are
 quiet by default (empty stderr on success), the banner prints under
@@ -1572,39 +1879,56 @@ the clause asserts banner-silence per stream, not total silence.
 This reverses the T-0804 command-line rule in writing; issues 77 and
 79 both close here.
 
-**Open 2026-09-30 (history).** Filed from issues 77 and 79. Read the current
-source before implementation.
+# T-1417: Inspect carries the OCI config
 
----
+**Source:** issue 82; `crates/podvm/src/images/inspect.rs:145`;
+  `src/spec.rs` of `pod-oci` (PodUtils/podcrates);
+  `crates/podvm-image/src/store.rs:127`; [T-1319](cli.md)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-### T-1417 Inspect carries the OCI config
+## Problem
 
-Source:      issue 82; `crates/podvm/src/images/inspect.rs:145`;
-             `src/spec.rs` of `pod-oci` (PodUtils/podcrates);
-             `crates/podvm-image/src/store.rs:127`; [T-1319](cli.md)
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      done
+`inspect` returns only podvm's record. Image defaults
+already applied at runtime, such as `Env`, are unreadable.
+The docker `inspect` contract breaks for `Config.Env`,
+`Cmd`, `Entrypoint`, `WorkingDir`, and `User`.
 
-Problem:     `inspect` returns only podvm's record. Image defaults
-             already applied at runtime, such as `Env`, are unreadable.
-             The docker `inspect` contract breaks for `Config.Env`,
-             `Cmd`, `Entrypoint`, `WorkingDir`, and `User`.
-Premise:     `INSPECT_FIELDS` is a closed enum with no `Config` branch
-             (`images.rs:1728`). `inspect_fields` and `inspect_json`
-             have no `Config` arm (`images.rs:1789`, `images.rs:1824`).
-             The config is parsed as `RunConfig` (`oci.rs:141`), its
-             digest is stored on the record (`store.rs:127`), and the
-             blob is re-readable (`store.rs:479`).
-Approach:    Read the config blob through the stored digest. Emit
-             `Config` with docker key names, null-safe where the image
-             omits a field. Keep the one-document contract from T-1319.
-Decision:    `inspect` reports what the image declares and what podvm
-             applied, side by side. It never merges the two silently.
-Prove:       `cargo test -p podvm` exits 0. A tracked drive matches
-             `.Config.Env` against the manifest and shows `Cmd`,
-             `Entrypoint`, `WorkingDir`, and `User` present.
+## Premise
+
+`INSPECT_FIELDS` is a closed enum with no `Config` branch
+(`images.rs:1728`). `inspect_fields` and `inspect_json`
+have no `Config` arm (`images.rs:1789`, `images.rs:1824`).
+The config is parsed as `RunConfig` (`oci.rs:141`), its
+digest is stored on the record (`store.rs:127`), and the
+blob is re-readable (`store.rs:479`).
+
+## Approach
+
+Read the config blob through the stored digest. Emit
+`Config` with docker key names, null-safe where the image
+omits a field. Keep the one-document contract from T-1319.
+
+## Decision
+
+`inspect` reports what the image declares and what podvm
+applied, side by side. It never merges the two silently.
+
+## Prove
+
+`cargo test -p podvm` exits 0. A tracked drive matches
+`.Config.Env` against the manifest and shows `Cmd`,
+`Entrypoint`, `WorkingDir`, and `User` present.
+
+## Correction
+
+**Open 2026-09-30 (history).** Filed from issue 82. Read the current source
+before implementation.
+
+## Done
 
 **Done 2026-09-30.** `inspect` reads the config blob through the
 stored digest and emits a `Config` object with docker key names,
@@ -1617,53 +1941,50 @@ exits 0 with the field-agreement and template tests.
 clause 2 matches `.Config.Env` (PATH=) and `.Config.Cmd` (/bin/sh)
 against the manifest and shows the `Config` object in the document.
 
-**Open 2026-09-30 (history).** Filed from issue 82. Read the current source
-before implementation.
+# T-1630: The symlink-escape script is converted, and its deletion has a condition
 
-### T-1630 The symlink-escape script is converted, and its deletion has a condition
+**Source:** `refactor/recon-c.md:177`, the plan's row, read off disk
+  2026-10-02
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      `refactor/recon-c.md:177`, the plan's row, read off disk
-             2026-10-02
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     `experiments/85-completion-symlink-escape.sh` is converted
-             and its deletion is blocked on another task, so the tree
-             reads as an unfinished port with no owner and no
-             condition.
-Premise:     The conversion is the two library tests the plan names in
-             the completion write module. The deletion condition is the
-             entry that writes those tests, named in the plan's row and
-             not yet a tracked entry, so it is recorded here rather than
-             cited as an id a reader cannot follow.
-Approach:     Record the converted state and the deletion condition, and
-             name what clears it. Do not delete the script here: this
-             row is a record, and deleting it widens the unit past the
-             record.
-Decision:     Record, not delete. The condition is another task's and a
-             deletion taken from under it loses its plant.
-Prove:       `grep -n "85-completion-symlink-escape" TODO/cli.md` names
-             the converted tests and the work whose landing clears the
-             deletion.
+`experiments/85-completion-symlink-escape.sh` is converted
+and its deletion is blocked on another task, so the tree
+reads as an unfinished port with no owner and no
+condition.
 
-**Done 2026-10-02.** Recorded the converted state of
-`experiments/85-completion-symlink-escape.sh` and the condition that
-clears its deletion. The six doors the script plants are carried by two
-tests in `src/write.rs` of `pod-rootfs` (PodUtils/podcrates):
-`a_write_replaces_an_out_link_with_a_regular_file` (`write.rs:752`) for
-clauses A to E, and
-`a_write_follows_a_directory_link_that_stays_inside` (`write.rs:779`)
-for clause F. The premise that the plan's row at
-`refactor/recon-c.md:110` is the whole conversion does not hold: the two
-library tests named at `refactor/01-audit/group-4.md:286` and `:288` are
-absent, and the reachability integration test asked for at
-`group-4.md:290` was never written. The record stands on that correction.
-The script is only partly converted, and the deletion stays blocked
-until the plan's library-test row and its reachability half land as
-tracked entries. `grep -n "85-completion-symlink-escape" TODO/cli.md`
-exits 0 and reports 6 matches.
+## Premise
+
+The conversion is the two library tests the plan names in
+the completion write module. The deletion condition is the
+entry that writes those tests, named in the plan's row and
+not yet a tracked entry, so it is recorded here rather than
+cited as an id a reader cannot follow.
+
+## Approach
+
+Record the converted state and the deletion condition, and
+name what clears it. Do not delete the script here: this
+row is a record, and deleting it widens the unit past the
+record.
+
+## Decision
+
+Record, not delete. The condition is another task's and a
+deletion taken from under it loses its plant.
+
+## Prove
+
+`grep -n "85-completion-symlink-escape" TODO/cli.md` names
+the converted tests and the work whose landing clears the
+deletion.
+
+## Correction
 
 **Recorded 2026-10-02.** `experiments/85-completion-symlink-escape.sh`
 stays on disk and is converted in the library. The script plants six
@@ -1716,67 +2037,84 @@ the only drive of the reach path. The deletion clears when the plan's
 library-test row and its reachability half land as tracked entries. Until
 then this row is the record, and no entry deletes the script.
 
----
+## Done
 
-### T-1649 A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
+**Done 2026-10-02.** Recorded the converted state of
+`experiments/85-completion-symlink-escape.sh` and the condition that
+clears its deletion. The six doors the script plants are carried by two
+tests in `src/write.rs` of `pod-rootfs` (PodUtils/podcrates):
+`a_write_replaces_an_out_link_with_a_regular_file` (`write.rs:752`) for
+clauses A to E, and
+`a_write_follows_a_directory_link_that_stays_inside` (`write.rs:779`)
+for clause F. The premise that the plan's row at
+`refactor/recon-c.md:110` is the whole conversion does not hold: the two
+library tests named at `refactor/01-audit/group-4.md:286` and `:288` are
+absent, and the reachability integration test asked for at
+`group-4.md:290` was never written. The record stands on that correction.
+The script is only partly converted, and the deletion stays blocked
+until the plan's library-test row and its reachability half land as
+tracked entries. `grep -n "85-completion-symlink-escape" TODO/cli.md`
+exits 0 and reports 6 matches.
 
-Source:      issue 92; issue 114 section 3.3 and section 6 item 7;
-             `crates/podvm/src/lifecycle/script.rs:105`;
-             `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
-             `crates/podvm/src/run/prepare.rs:234`;
-             A-V-04 of PodUtils/podcrates#39
-Category:    cli
-Priority:    P2
-Effort:      S
-Status:      done
+# T-1649: A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out
 
-Problem:     On a chroot-denied host this run exits 126:
-             `run node:alpine node -e 'console.log(1)'`. The entrypoint
-             `docker-entrypoint.sh` is a `#!` script, and its interpreter
-             resolves on the host root. The caller gave a command. The
-             way out, `--entrypoint node`, exists, and the refusal does
-             not name it, so a docker user cannot find it.
-Premise:     `run.rs:1236` builds argv from the image Entrypoint and Cmd,
-             the caller's command and `--entrypoint`, by docker's rule.
-             The image script stays the program and the caller's words
-             become its arguments. `decide_entry` refuses a script at
-             `lifecycle.rs:1879`. The message (`memfd.rs:199`, T-1413)
-             names the path and the `#!` line but no remedy.
-Approach:    Where the refused script is the image's own Entrypoint and
-             the caller gave a command, the refusal adds: retry with
-             `--entrypoint` followed by the caller's first word. For a
-             top-level `#!` payload, resolve the interpreter inside the
-             rootfs and run it on the loader family with the script path
-             as its argument. T-1646 does the same for a child.
-Decision:    docker's argv rule stays: podvm does not drop the image
-             Entrypoint on its own. The refusal names the remedy. Where
-             the interpreter resolves inside the rootfs, the script runs
-             and no refusal prints.
-Prove:       `cargo test -p podvm` exits 0 with a test: the script
-             refusal for an image Entrypoint plus a caller command
-             contains `--entrypoint` and the caller's first word.
-             `sh experiments/356-no-chroot-rung.sh` exits 0 with clause 13
-             changed: a `#!/bin/sh` script whose interpreter is in the
-             image runs at 0, and the node image run with a caller
-             command either reaches the payload or refuses naming
-             `--entrypoint`.
+**Source:** issue 92; issue 114 section 3.3 and section 6 item 7;
+  `crates/podvm/src/lifecycle/script.rs:105`;
+  `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
+  `crates/podvm/src/run/prepare.rs:234`;
+  A-V-04 of PodUtils/podcrates#39
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-**Done 2026-11-10.** For T-1649, the last clause of the partial record below is run. Experiment 356 exits 0 in full on 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt); T-1648 in `TODO/enter.md` records its inputs).
+## Problem
 
-**Partial, 2026-11-10.** On the no-chroot path `decide_entry` follows
-a `#!` payload through `script::follow` (`lifecycle/script.rs`): it reads
-the `#!` line as the kernel does, resolves the interpreter inside the
-rootfs (four levels), and runs the kernel's argv `interp [arg] script
-args` on the family of the interpreter. An interpreter outside the image
-refuses at 126, never on the host. Where the image Entrypoint is the
-refused script and the caller gave a command, the refusal adds "retry
-with `--entrypoint <first word>`". Both `exec` paths apply the
-interposer after the decision and run the same argv. `cargo test
---workspace` exits 0 (989 passed) with
-`an_entrypoint_script_refusal_names_the_entrypoint_flag`. [The drive](../experiments/results/script-entry-1649.txt):
-`run node:22-alpine node -e 'console.log(1)'` prints 1 at 0 on the
-chroot-denying fixture; an image without `/bin/sh` refuses at 126 with
-the retry line. Clause 13 of experiment 356 holds it. Remaining: one full run of the committed `sh experiments/356-no-chroot-rung.sh` (its pulls from `public.ecr.aws` answered HTTP 429 on 2026-11-09 and 2026-11-10; a copy with `mirror.gcr.io` images passed each step of the clause).
+On a chroot-denied host this run exits 126:
+`run node:alpine node -e 'console.log(1)'`. The entrypoint
+`docker-entrypoint.sh` is a `#!` script, and its interpreter
+resolves on the host root. The caller gave a command. The
+way out, `--entrypoint node`, exists, and the refusal does
+not name it, so a docker user cannot find it.
+
+## Premise
+
+`run.rs:1236` builds argv from the image Entrypoint and Cmd,
+the caller's command and `--entrypoint`, by docker's rule.
+The image script stays the program and the caller's words
+become its arguments. `decide_entry` refuses a script at
+`lifecycle.rs:1879`. The message (`memfd.rs:199`, T-1413)
+names the path and the `#!` line but no remedy.
+
+## Approach
+
+Where the refused script is the image's own Entrypoint and
+the caller gave a command, the refusal adds: retry with
+`--entrypoint` followed by the caller's first word. For a
+top-level `#!` payload, resolve the interpreter inside the
+rootfs and run it on the loader family with the script path
+as its argument. T-1646 does the same for a child.
+
+## Decision
+
+docker's argv rule stays: podvm does not drop the image
+Entrypoint on its own. The refusal names the remedy. Where
+the interpreter resolves inside the rootfs, the script runs
+and no refusal prints.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test: the script
+refusal for an image Entrypoint plus a caller command
+contains `--entrypoint` and the caller's first word.
+`sh experiments/356-no-chroot-rung.sh` exits 0 with clause 13
+changed: a `#!/bin/sh` script whose interpreter is in the
+image runs at 0, and the node image run with a caller
+command either reaches the payload or refuses naming
+`--entrypoint`.
+
+## Correction
 
 **Filed 2026-11-06.** Quoted from issue 92 and its comments, measured on
 release 0.1.0-beta.12 on the errand host:
@@ -1801,49 +2139,98 @@ with no root. This entry is one step of that chain: the entrypoint of the
 node image is a `#!` script (T-1661). Its clauses do not change. T-1646
 holds the end-to-end clause.
 
----
+## Done
 
-### T-1650 `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run
+**Done 2026-11-10.** For T-1649, the last clause of the partial record below is run. Experiment 356 exits 0 in full on 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt); T-1648 in `TODO/enter.md` records its inputs).
 
-Source:      issue 93; issue 114 section 3.7 and section 6 item 8;
-             `crates/podvm/src/complete/strict.rs:129`;
-             `crates/podvm/src/complete/strict.rs:174`;
-             `crates/podvm/src/lifecycle/entry.rs:449`; [T-1415](cli.md)
-Category:    cli
-Priority:    P1
-Effort:      M
-Status:      done
+**Partial, 2026-11-10.** On the no-chroot path `decide_entry` follows
+a `#!` payload through `script::follow` (`lifecycle/script.rs`): it reads
+the `#!` line as the kernel does, resolves the interpreter inside the
+rootfs (four levels), and runs the kernel's argv `interp [arg] script
+args` on the family of the interpreter. An interpreter outside the image
+refuses at 126, never on the host. Where the image Entrypoint is the
+refused script and the caller gave a command, the refusal adds "retry
+with `--entrypoint <first word>`". Both `exec` paths apply the
+interposer after the decision and run the same argv. `cargo test
+--workspace` exits 0 (989 passed) with
+`an_entrypoint_script_refusal_names_the_entrypoint_flag`. [The drive](../experiments/results/script-entry-1649.txt):
+`run node:22-alpine node -e 'console.log(1)'` prints 1 at 0 on the
+chroot-denying fixture; an image without `/bin/sh` refuses at 126 with
+the retry line. Clause 13 of experiment 356 holds it. Remaining: one full run of the committed `sh experiments/356-no-chroot-rung.sh` (its pulls from `public.ecr.aws` answered HTTP 429 on 2026-11-09 and 2026-11-10; a copy with `mirror.gcr.io` images passed each step of the clause).
 
-Problem:     No strictness level means "refuse a rung that cannot run
-             this command". `run --strict` of `sh -c '/bin/ls /'` warns,
-             then the shell fails `not found` at 127. `run --strict=all`
-             of `/bin/echo hi` refuses at 125 over five substitutions: the
-             namespace share and `dev/null`, `zero`, `random`, `urandom`.
-Premise:     `classify_strict` (`complete.rs:251`) has two kinds, safety
-             and substitution. Where chroot is denied the userland rung
-             is a substitution (`complete.rs:296`), by T-1415's decision.
-             No reason names a capability gap of the selected family. The
-             exec gap appears only in the banner (`lifecycle.rs:1984`).
-Approach:    Add a third kind, capability, for the gaps of the selected
-             family: a dynamic grandchild cannot exec (T-1646), a guest
-             object cannot load (T-1645), a relative path cannot resolve
-             (T-1643), a static payload cannot be reached (T-1648). A gap
-             leaves the list in the change that fixes it. `--strict`
-             refuses on a capability gap the payload will hit: a shell
-             given `-c` or a script runs children. Where podvm cannot
-             tell, it warns. The refusal names the gap and a rung that
-             runs the command, once T-1651 or T-1652 provides one.
-             `--strict=all` keeps its rule for substitutions.
-Decision:    T-1415 stays: the userland rung alone is a warning where no
-             better rung exists. A gap that decides whether the command
-             can run at all is safety-relevant, and `--strict` refuses
-             it.
-Prove:       `cargo test -p podvm` exits 0 with `classify_strict`
-             tests for the capability kind. `sh experiments/356-no-chroot-rung.sh`
-             exits 0 with a strict clause on the fixture: `run --strict`
-             of `sh -c '/bin/ls /'` exits 125 naming the exec gap, or 0
-             with the listing once T-1646 is done, and `run --strict` of
-             `/bin/echo hi` exits 0.
+# T-1650: `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run
+
+**Source:** issue 93; issue 114 section 3.7 and section 6 item 8;
+  `crates/podvm/src/complete/strict.rs:129`;
+  `crates/podvm/src/complete/strict.rs:174`;
+  `crates/podvm/src/lifecycle/entry.rs:449`; [T-1415](cli.md)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
+
+## Problem
+
+No strictness level means "refuse a rung that cannot run
+this command". `run --strict` of `sh -c '/bin/ls /'` warns,
+then the shell fails `not found` at 127. `run --strict=all`
+of `/bin/echo hi` refuses at 125 over five substitutions: the
+namespace share and `dev/null`, `zero`, `random`, `urandom`.
+
+## Premise
+
+`classify_strict` (`complete.rs:251`) has two kinds, safety
+and substitution. Where chroot is denied the userland rung
+is a substitution (`complete.rs:296`), by T-1415's decision.
+No reason names a capability gap of the selected family. The
+exec gap appears only in the banner (`lifecycle.rs:1984`).
+
+## Approach
+
+Add a third kind, capability, for the gaps of the selected
+family: a dynamic grandchild cannot exec (T-1646), a guest
+object cannot load (T-1645), a relative path cannot resolve
+(T-1643), a static payload cannot be reached (T-1648). A gap
+leaves the list in the change that fixes it. `--strict`
+refuses on a capability gap the payload will hit: a shell
+given `-c` or a script runs children. Where podvm cannot
+tell, it warns. The refusal names the gap and a rung that
+runs the command, once T-1651 or T-1652 provides one.
+`--strict=all` keeps its rule for substitutions.
+
+## Decision
+
+T-1415 stays: the userland rung alone is a warning where no
+better rung exists. A gap that decides whether the command
+can run at all is safety-relevant, and `--strict` refuses
+it.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with `classify_strict`
+tests for the capability kind. `sh experiments/356-no-chroot-rung.sh`
+exits 0 with a strict clause on the fixture: `run --strict`
+of `sh -c '/bin/ls /'` exits 125 naming the exec gap, or 0
+with the listing once T-1646 is done, and `run --strict` of
+`/bin/echo hi` exits 0.
+
+## Correction
+
+**Filed 2026-11-06.** Quoted from issue 93, measured on release
+0.1.0-beta.12 on the errand host with the exit codes read unpiped:
+
+```text
+$ podvm run --strict alpine:3.20 /bin/sh -c '/bin/ls /'
+podvm run: --strict warning [substitution]: unchanged dev/random ...
+sh: /bin/ls: not found
+[exit 127]                       # strict did not refuse the run
+$ podvm run --strict=all alpine:3.20 /bin/echo hi
+... --strict=all refused ... [substitution] unchanged dev/zero ...
+[exit 125]                       # refuses a run that would have worked
+```
+
+## Done
 
 **Done 2026-11-10.** For T-1650, the last clause of the partial record below is run. Experiment 356 exits 0 in full on 2026-11-10 ([the run](../experiments/results/no-chroot-rung.txt); T-1648 in `TODO/enter.md` records its inputs).
 
@@ -1863,67 +2250,91 @@ grandchild), `--strict npm --version` refuses at 125 naming T-1697, and
 `--strict=all /bin/echo hi` refuses at 125. Clause 24 of experiment 356
 holds it. Remaining: one full run of the committed `sh experiments/356-no-chroot-rung.sh` (its pulls from `public.ecr.aws` answered HTTP 429 on 2026-11-09 and 2026-11-10; a copy with `mirror.gcr.io` images passed each step of the clause).
 
-**Filed 2026-11-06.** Quoted from issue 93, measured on release
-0.1.0-beta.12 on the errand host with the exit codes read unpiped:
+# T-1654: Profiles: strict TOML recipes with `extends` and `-s` overrides
+
+**Source:** issue 166; #193; the owner's ruling of 2026-11-06
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** done
+
+## Problem
+
+podvm has the docker and podman command line and a tier flag,
+but no recipe layer. A caller cannot name a sandbox shape once
+and run it again. sand-net ran 43 shapes from TOML recipes, and
+each command line ran unchanged in every shape.
+
+## Premise
+
+The parity table is the only description of what `run`
+accepts (`crates/podvm/src/parity.rs:209-275`). `--podvm-tier`
+takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
+Resource flags refuse by name (`parity.rs:341`, T-0804). The
+identity calls are virtualised (T-0711, `parity.rs:338`). No
+source reads a profile file, and no verb lists one.
+
+## Approach
+
+Add `podvm profile list` and `podvm profile show NAME`, and
+`--profile NAME` on `run`. A profile is TOML with the tables
+`fs`, `limits`, `net` and `env.set`. `extends` merges the
+child's tables over the parent's. `-s key=value` sets one leaf
+and repeats; the value parses as TOML and falls back to a
+string. Built-in profiles live in the binary; user profiles
+live under the XDG config directory. Map `fs.backend` to the
+tier, `fs.user` to the identity of T-0711, `fs.wrap` to an
+entrypoint prefix, and `limits.file_max` to `RLIMIT_FSIZE`.
+`limits.memory` and `limits.cpus` keep the T-0804 refusal on a
+rootfs tier and become guest RAM and vCPUs on the machine tier.
+
+## Decision
+
+An unknown key and a wrong type are errors that name the key:
+"a misspelt key that is silently ignored leaves a cage looser
+than the recipe says" (issue 166). A profile that names a
+mechanism the probe reports absent refuses with the probe's
+reason, at load time where the host is known, else at run
+time. `--strict` keeps its meaning. On a host with no mount,
+`/workspace` and `/state` are path-map entries (T-1653,
+T-1652), not bind mounts.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests: an unknown key and a
+wrong type each refuse and name the key, a planted misspelt
+key is refused, and `extends` plus `-s` give the expected
+effective profile. `sh experiments/410-profiles.sh` exits 0:
+`podvm profile show NAME -s k=v` prints the effective profile,
+a profile that asks for an absent tier refuses with the
+probe's reason, `sh -c 'pwd; ls /workspace'` answers the same
+in every built-in profile that places `/workspace`, and
+`limits.memory` refuses by name on a rootfs tier.
+
+## Correction
+
+**Filed 2026-11-06.** The facts below are quoted from issue 166, so the
+entry stands if GitHub hides the issue. sand-net is the 0BSD tool that
+issue 193 describes; its source is deleted.
 
 ```text
-$ podvm run --strict alpine:3.20 /bin/sh -c '/bin/ls /'
-podvm run: --strict warning [substitution]: unchanged dev/random ...
-sh: /bin/ls: not found
-[exit 127]                       # strict did not refuse the run
-$ podvm run --strict=all alpine:3.20 /bin/echo hi
-... --strict=all refused ... [substitution] unchanged dev/zero ...
-[exit 125]                       # refuses a run that would have worked
+tables:   fs (backend, profile, read, write, execute, path_extra, disk_tmp,
+          as_root, image, runtime, user, wrap, persist, rw_root),
+          limits (file_max, tmp_size, shm_size, memory, cpus, pids),
+          net (mode, ports, allow, auth, resolv, netns), env.set
+defaults: backend bailey, net.mode broker, ports [443], tmp 256m, shm 250m,
+          file_max 1g
+-s 'net.ports=[80,443]'   -> a list (parsed as TOML)
+-s net.mode=open          -> a string (TOML parse failed)
+validation: broker and proxy-net need bailey; gvisor, bwrap, landrun take
+          none, open, netns; microvm none and netns; ports 1 to 65535
+F30: landrun has no mount namespace, so /workspace did not exist and
+          `sand run landrun-none -- sh /workspace/probe.sh` failed
+F24: a 0700 project made a rootless keep-id container fail to stat it
 ```
 
----
-
-### T-1654 Profiles: strict TOML recipes with `extends` and `-s` overrides
-
-Source:      issue 166; #193; the owner's ruling of 2026-11-06
-Category:    cli
-Priority:    P2
-Effort:      L
-Status:      done 2026-11-11
-
-Problem:     podvm has the docker and podman command line and a tier flag,
-             but no recipe layer. A caller cannot name a sandbox shape once
-             and run it again. sand-net ran 43 shapes from TOML recipes, and
-             each command line ran unchanged in every shape.
-Premise:     The parity table is the only description of what `run`
-             accepts (`crates/podvm/src/parity.rs:209-275`). `--podvm-tier`
-             takes `machine` or `chroot` (`crates/podvm/src/tier.rs:22`).
-             Resource flags refuse by name (`parity.rs:341`, T-0804). The
-             identity calls are virtualised (T-0711, `parity.rs:338`). No
-             source reads a profile file, and no verb lists one.
-Approach:    Add `podvm profile list` and `podvm profile show NAME`, and
-             `--profile NAME` on `run`. A profile is TOML with the tables
-             `fs`, `limits`, `net` and `env.set`. `extends` merges the
-             child's tables over the parent's. `-s key=value` sets one leaf
-             and repeats; the value parses as TOML and falls back to a
-             string. Built-in profiles live in the binary; user profiles
-             live under the XDG config directory. Map `fs.backend` to the
-             tier, `fs.user` to the identity of T-0711, `fs.wrap` to an
-             entrypoint prefix, and `limits.file_max` to `RLIMIT_FSIZE`.
-             `limits.memory` and `limits.cpus` keep the T-0804 refusal on a
-             rootfs tier and become guest RAM and vCPUs on the machine tier.
-Decision:    An unknown key and a wrong type are errors that name the key:
-             "a misspelt key that is silently ignored leaves a cage looser
-             than the recipe says" (issue 166). A profile that names a
-             mechanism the probe reports absent refuses with the probe's
-             reason, at load time where the host is known, else at run
-             time. `--strict` keeps its meaning. On a host with no mount,
-             `/workspace` and `/state` are path-map entries (T-1653,
-             T-1652), not bind mounts.
-Prove:       `cargo test -p podvm` exits 0 with tests: an unknown key and a
-             wrong type each refuse and name the key, a planted misspelt
-             key is refused, and `extends` plus `-s` give the expected
-             effective profile. `sh experiments/410-profiles.sh` exits 0:
-             `podvm profile show NAME -s k=v` prints the effective profile,
-             a profile that asks for an absent tier refuses with the
-             probe's reason, `sh -c 'pwd; ls /workspace'` answers the same
-             in every built-in profile that places `/workspace`, and
-             `limits.memory` refuses by name on a rootfs tier.
+## Done
 
 **Done 2026-11-11.** `cargo test -p podvm` exits 0 with the tests of
 `crates/podvm/src/profile/tests.rs`: `an_unknown_key_refuses_and_names_the_key`,
@@ -1971,108 +2382,78 @@ What podvm takes of issue 166, and what it leaves:
 * T-1728 came from clause 4: the machine tier gave the command a terminal,
   and `ls` coloured its output.
 
-**Filed 2026-11-06.** The facts below are quoted from issue 166, so the
-entry stands if GitHub hides the issue. sand-net is the 0BSD tool that
-issue 193 describes; its source is deleted.
+# T-1655: The sandbox hardening line: each `run` flag works on the tier or refuses by name
 
-```text
-tables:   fs (backend, profile, read, write, execute, path_extra, disk_tmp,
-          as_root, image, runtime, user, wrap, persist, rw_root),
-          limits (file_max, tmp_size, shm_size, memory, cpus, pids),
-          net (mode, ports, allow, auth, resolv, netns), env.set
-defaults: backend bailey, net.mode broker, ports [443], tmp 256m, shm 250m,
-          file_max 1g
--s 'net.ports=[80,443]'   -> a list (parsed as TOML)
--s net.mode=open          -> a string (TOML parse failed)
-validation: broker and proxy-net need bailey; gvisor, bwrap, landrun take
-          none, open, netns; microvm none and netns; ports 1 to 65535
-F30: landrun has no mount namespace, so /workspace did not exist and
-          `sand run landrun-none -- sh /workspace/probe.sh` failed
-F24: a 0700 project made a rootless keep-id container fail to stat it
-```
+**Source:** issue 167; #193; the owner's ruling of 2026-11-06;
+  A-V-07, G-12, G-06 of PodUtils/podcrates#39
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** done
 
----
+## Problem
 
-### T-1655 The sandbox hardening line: each `run` flag works on the tier or refuses by name
+sand-net ran podman and docker with one fixed hardening line.
+podvm refuses most of that line with status None, so the same
+command cannot run under podvm. Some of the refused flags have
+an unprivileged equivalent that podvm does not use.
 
-Source:      issue 167; #193; the owner's ruling of 2026-11-06;
-             A-V-07, G-12, G-06 of PodUtils/podcrates#39
-Category:    cli
-Priority:    P2
-Effort:      L
-Status:      done
+## Premise
 
-Problem:     sand-net ran podman and docker with one fixed hardening line.
-             podvm refuses most of that line with status None, so the same
-             command cannot run under podvm. Some of the refused flags have
-             an unprivileged equivalent that podvm does not use.
-Premise:     The parity table refuses `--read-only`
-             (`crates/podvm/src/parity.rs:257`), `--tmpfs`
-             (`crates/podvm/src/parity.rs:259`), `--ulimit`
-             (`crates/podvm/src/parity.rs:272`), `--cap-add, --cap-drop`
-             (`crates/podvm/src/parity.rs:227`), `--security-opt`
-             (`crates/podvm/src/parity.rs:276`), `--runtime`
-             (`crates/podvm/src/parity.rs:275`) and `--userns`
-             (`crates/podvm/src/parity.rs:273`). `-u, --user` is Degraded
-             through the interposer identity
-             (`crates/podvm/src/parity.rs:225`). `setrlimit`,
-             `PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
-             the probe already sets `PR_SET_NO_NEW_PRIVS` in a child
-             (`pod_hostprobe::probes`).
-Approach:    Write an experiment that runs the sand-net line through
-             `podvm run` and records each flag as passed or refused by
-             name. Then implement the unprivileged equivalents. `--ulimit
-             fsize` calls `setrlimit` before the exec. `--read-only` makes
-             a write outside the named writable paths fail with `EROFS` in
-             the interposer and in the T-1652 path layer. `--cap-drop ALL`
-             and `--security-opt no-new-privileges` set
-             `PR_SET_NO_NEW_PRIVS`. `--tmpfs` with a size becomes a store
-             directory under a size check. `--memory`, `--cpus` and
-             `--pids-limit` keep the T-0804 refusal on a rootfs tier and
-             set guest resources on the machine tier. Each parity row moves
-             with its change.
-Decision:    A flag works on the selected tier or refuses with a reason;
-             nothing in between. A flag that a path layer enforces is
-             Degraded, and its note says which layer, because the
-             interposer is not a boundary. `--userns keep-id` stays None:
-             there is no user namespace, and identity is virtualised, not
-             mapped. An image record carries its input digest, not a
-             timestamp (F33).
-Prove:       `cargo test -p podvm` exits 0 with parity tests for each
-             changed row. `sh experiments/411-hardening-line.sh` exits 0 on
-             a chroot-denied fixture: every flag of the line passes or
-             refuses by name, `--read-only` gives `EROFS` for a write to `/`
-             while `/workspace` and `/tmp` stay writable, `--user 993:990`
-             reports 993 from `id -u` and writes the project, a write past
-             `--ulimit fsize` fails with `EFBIG`, and `--memory 128m`
-             refuses by name on a rootfs tier, `--ulimit nofile=64` shows in
-             `ulimit -n` in the payload, and `--timeout 2` on `sh -c 'sleep 100 &
-             wait'` ends the whole tree, with each child gone, within 60 s.
+The parity table refuses `--read-only`
+(`crates/podvm/src/parity.rs:257`), `--tmpfs`
+(`crates/podvm/src/parity.rs:259`), `--ulimit`
+(`crates/podvm/src/parity.rs:272`), `--cap-add, --cap-drop`
+(`crates/podvm/src/parity.rs:227`), `--security-opt`
+(`crates/podvm/src/parity.rs:276`), `--runtime`
+(`crates/podvm/src/parity.rs:275`) and `--userns`
+(`crates/podvm/src/parity.rs:273`). `-u, --user` is Degraded
+through the interposer identity
+(`crates/podvm/src/parity.rs:225`). `setrlimit`,
+`PR_SET_NO_NEW_PRIVS` and a seccomp filter need no privilege;
+the probe already sets `PR_SET_NO_NEW_PRIVS` in a child
+(`pod_hostprobe::probes`).
 
-**Done 2026-11-11.** Each flag of the line works on the rung that podvm
-enters or refuses by name; the partial records below give each part:
-`--timeout` (the wall bound), `--ulimit` and `--security-opt
-no-new-privileges` (podcrates `v0.17.0`), `--cap-drop ALL`, the read-only
-layer of `--read-only` and `:ro`, and `--tmpfs` (a directory of a
-foreground run; a detached run refuses it by name). `--network`,
-`--userns`, `--memory`, `--cpus` and `--pids-limit` refuse by name. The
-Prove, on the cloud host, 2026-11-11: `cargo test --workspace` exits 0
-with the parse and parity tests of each changed row, and the interposer
-tests (75) with the read-only layer and the job-container table of the
-runner (`/__e` read-only beside `/__w` and `/__w/_temp`).
-`PODVM_411_MIRROR=1 sh experiments/411-hardening-line.sh` exits 0 on the
-chroot-denied fixture ([the run](../experiments/results/hardening-line.txt)):
-each flag alone works or refuses by name; the line gives `EROFS` for a
-write to `/` while `/workspace` and `/tmp` take writes, `EFBIG` past
-`--ulimit fsize`, and `NoNewPrivs: 1` in the payload; `--user 993:990`
-prints 993 and writes the project; `--memory 128m` refuses by name;
-`--ulimit nofile=64` shows in `ulimit -n`; `--timeout 2` ends `sh -c
-'sleep N & wait'` in 2 s with no child left. Two clauses of the
-amendments ride with their own entries: the .NET case with SIGXFSZ under
-a small `fsize` is part of T-1706 (the help and the row of `--ulimit`
-name it), and the container-hook table of the runner is T-1711. The
-measures of the end (peak resident set, CPU) are in `.End` (T-1708) for
-the report of T-1695.
+## Approach
+
+Write an experiment that runs the sand-net line through
+`podvm run` and records each flag as passed or refused by
+name. Then implement the unprivileged equivalents. `--ulimit
+fsize` calls `setrlimit` before the exec. `--read-only` makes
+a write outside the named writable paths fail with `EROFS` in
+the interposer and in the T-1652 path layer. `--cap-drop ALL`
+and `--security-opt no-new-privileges` set
+`PR_SET_NO_NEW_PRIVS`. `--tmpfs` with a size becomes a store
+directory under a size check. `--memory`, `--cpus` and
+`--pids-limit` keep the T-0804 refusal on a rootfs tier and
+set guest resources on the machine tier. Each parity row moves
+with its change.
+
+## Decision
+
+A flag works on the selected tier or refuses with a reason;
+nothing in between. A flag that a path layer enforces is
+Degraded, and its note says which layer, because the
+interposer is not a boundary. `--userns keep-id` stays None:
+there is no user namespace, and identity is virtualised, not
+mapped. An image record carries its input digest, not a
+timestamp (F33).
+
+## Prove
+
+`cargo test -p podvm` exits 0 with parity tests for each
+changed row. `sh experiments/411-hardening-line.sh` exits 0 on
+a chroot-denied fixture: every flag of the line passes or
+refuses by name, `--read-only` gives `EROFS` for a write to `/`
+while `/workspace` and `/tmp` stay writable, `--user 993:990`
+reports 993 from `id -u` and writes the project, a write past
+`--ulimit fsize` fails with `EFBIG`, and `--memory 128m`
+refuses by name on a rootfs tier, `--ulimit nofile=64` shows in
+`ulimit -n` in the payload, and `--timeout 2` on `sh -c 'sleep 100 &
+wait'` ends the whole tree, with each child gone, within 60 s.
+
+## Correction
 
 **Filed 2026-11-06.** Quoted from issue 167. The host was Debian 13 in an
 unprivileged Incus container, podman 5.4.2, docker 26.1.5, with egress
@@ -2135,6 +2516,32 @@ parse and the parity rows of each flag, the `--read-only` layer of the
 interposer with the `:ro` volumes, and `--tmpfs` as a store directory
 under a size check.
 
+## Done
+
+**Done 2026-11-11.** Each flag of the line works on the rung that podvm
+enters or refuses by name; the partial records below give each part:
+`--timeout` (the wall bound), `--ulimit` and `--security-opt
+no-new-privileges` (podcrates `v0.17.0`), `--cap-drop ALL`, the read-only
+layer of `--read-only` and `:ro`, and `--tmpfs` (a directory of a
+foreground run; a detached run refuses it by name). `--network`,
+`--userns`, `--memory`, `--cpus` and `--pids-limit` refuse by name. The
+Prove, on the cloud host, 2026-11-11: `cargo test --workspace` exits 0
+with the parse and parity tests of each changed row, and the interposer
+tests (75) with the read-only layer and the job-container table of the
+runner (`/__e` read-only beside `/__w` and `/__w/_temp`).
+`PODVM_411_MIRROR=1 sh experiments/411-hardening-line.sh` exits 0 on the
+chroot-denied fixture ([the run](../experiments/results/hardening-line.txt)):
+each flag alone works or refuses by name; the line gives `EROFS` for a
+write to `/` while `/workspace` and `/tmp` take writes, `EFBIG` past
+`--ulimit fsize`, and `NoNewPrivs: 1` in the payload; `--user 993:990`
+prints 993 and writes the project; `--memory 128m` refuses by name;
+`--ulimit nofile=64` shows in `ulimit -n`; `--timeout 2` ends `sh -c
+'sleep N & wait'` in 2 s with no child left. Two clauses of the
+amendments ride with their own entries: the .NET case with SIGXFSZ under
+a small `fsize` is part of T-1706 (the help and the row of `--ulimit`
+name it), and the container-hook table of the runner is T-1711. The
+measures of the end (peak resident set, CPU) are in `.End` (T-1708) for
+the report of T-1695.
 
 **Partial, 2026-11-11.** `--timeout SECONDS` works (podman's spelling,
 whole seconds over 0): a detached run sets the wall bound of its launcher
@@ -2183,49 +2590,83 @@ call passes. Interposer tests: 75 passed, with
 `--tmpfs`, the guest resources of the machine tier (T-1656), the report of
 T-1695, and experiment 411.
 
----
+# T-1659: Provider shapes and bare userlands as built-in profiles
 
-### T-1659 Provider shapes and bare userlands as built-in profiles
+**Source:** issue 172; #193; the owner's ruling of 2026-11-06
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** partial
 
-Source:      issue 172; #193; the owner's ruling of 2026-11-06
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      partial 2026-11-11
+## Problem
 
-Problem:     A caller cannot run a tool in the shape of its production
-             host: the provider's user, limits and variables. sand-net had
-             seven such shapes. podvm pulls each image, and has no profile
-             to put the shape around it.
-Premise:     Profiles arrive with T-1654. The identity calls are virtualised
-             (T-0711), so `id -u` can answer 993 while the real owner of the
-             project stays the caller. Resource flags refuse by name on a
-             rootfs tier (`crates/podvm/src/parity.rs:228`, T-0804). The
-             Lambda and Vercel images are glibc, which the rootfs tier
-             declines today (T-1644).
-Approach:    Ship built-in profiles: `lambda-al2023`, `cloudflare-sandbox`,
-             `vercel-sandbox`, `busybox-bare`, `distroless-static` and
-             `node-shell`, each with the user, environment and limits of
-             issue 172. Memory and pids limits run on the machine tier or
-             refuse by name. A read-only root and a sized `/tmp` use the
-             T-1655 path layer. Each profile prints what it does not
-             model. A profile that needs a missing tool, curl for example,
-             detects it and says so.
-Decision:    A shape is a profile, not a tier. podvm never infers success
-             from a zero exit of a pipeline: `curl ... | sh` with no curl
-             exits 0 and installs nothing. `RLIMIT_NPROC` and
-             `RLIMIT_FSIZE` are partial stand-ins and the profile labels
-             them so. The Alpine and busybox shapes come first; the glibc
-             shapes follow T-1644.
-Prove:       `cargo test -p podvm` exits 0 with a test that every built-in
-             profile loads and lists what it leaves out.
-             `sh experiments/415-provider-shapes.sh` exits 0: the
-             `lambda-al2023` profile prints 993 for `id -u`, prints
-             `AWS_LAMBDA_FUNCTION_NAME`, gives a read-only error for
-             `touch /x` and leaves the project writable; `busybox-bare`
-             runs `wget`; `distroless-static` runs a static binary and
-             refuses `sh -c true` by name; the memory limit refuses by name
-             on a rootfs tier.
+A caller cannot run a tool in the shape of its production
+host: the provider's user, limits and variables. sand-net had
+seven such shapes. podvm pulls each image, and has no profile
+to put the shape around it.
+
+## Premise
+
+Profiles arrive with T-1654. The identity calls are virtualised
+(T-0711), so `id -u` can answer 993 while the real owner of the
+project stays the caller. Resource flags refuse by name on a
+rootfs tier (`crates/podvm/src/parity.rs:228`, T-0804). The
+Lambda and Vercel images are glibc, which the rootfs tier
+declines today (T-1644).
+
+## Approach
+
+Ship built-in profiles: `lambda-al2023`, `cloudflare-sandbox`,
+`vercel-sandbox`, `busybox-bare`, `distroless-static` and
+`node-shell`, each with the user, environment and limits of
+issue 172. Memory and pids limits run on the machine tier or
+refuse by name. A read-only root and a sized `/tmp` use the
+T-1655 path layer. Each profile prints what it does not
+model. A profile that needs a missing tool, curl for example,
+detects it and says so.
+
+## Decision
+
+A shape is a profile, not a tier. podvm never infers success
+from a zero exit of a pipeline: `curl ... | sh` with no curl
+exits 0 and installs nothing. `RLIMIT_NPROC` and
+`RLIMIT_FSIZE` are partial stand-ins and the profile labels
+them so. The Alpine and busybox shapes come first; the glibc
+shapes follow T-1644.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test that every built-in
+profile loads and lists what it leaves out.
+`sh experiments/415-provider-shapes.sh` exits 0: the
+`lambda-al2023` profile prints 993 for `id -u`, prints
+`AWS_LAMBDA_FUNCTION_NAME`, gives a read-only error for
+`touch /x` and leaves the project writable; `busybox-bare`
+runs `wget`; `distroless-static` runs a static binary and
+refuses `sh -c true` by name; the memory limit refuses by name
+on a rootfs tier.
+
+## Correction
+
+**Filed 2026-11-06.** Quoted from issue 172:
+
+```text
+lambda-al2023  public.ecr.aws/lambda/provided:al2023  user 993:990, memory 128m,
+               /tmp 512m, pids 1024, read-only root, AWS_LAMBDA_FUNCTION_NAME,
+               AWS_REGION=us-east-1, LAMBDA_TASK_ROOT=/var/task, TZ=:UTC
+vercel-sandbox amazonlinux:2023, user 1000:1000, USER=LOGNAME=vercel-sandbox
+busybox-bare   busybox:musl; wget prints "TLS certificate validation not
+               implemented", and expired, self-signed and wrong-host
+               certificates all exit 0
+distroless     gcr.io/distroless/static-debian12; `sh -c true` fails to start,
+               a static binary placed in the project runs
+install by `curl -fsSL URL | sh`: node-shell, cloudflare-sandbox and
+               busybox-bare had no curl, and the pipeline exited 0 with
+               nothing installed
+```
+
+## Done
 
 **Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
 `each_built_in_profile_checks_and_gives_its_flags` (each built-in profile
@@ -2253,66 +2694,81 @@ Remaining clause: `lambda-al2023`. `pod-extract` refuses a layer of
 empty name; COORD-042 (issue 261) asks podcrates for the fix of that
 frozen code. The clause runs again with the tag that has it.
 
-**Filed 2026-11-06.** Quoted from issue 172:
+# T-1660: `podvm notebook`: Jupyter and marimo cycles that keep one directory
+
+**Source:** issue 174; #193; the owner's ruling of 2026-11-06
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** done
+
+## Problem
+
+The owner names notebooks in the scope. podvm has no verb that
+runs a notebook, and no model of a hosted session that wipes
+its root on restart and keeps one directory.
+
+## Premise
+
+`run --rm` starts from the stored rootfs, so a fresh root for
+each cycle costs nothing. A kept directory needs a volume,
+which a host with no mount cannot give (T-1653); `cp` copies
+in and out (T-1323, `crates/podvm/src/parity.rs:155`). The
+supervisor holds one pidfd for the direct child
+(`pod_supervise::launcher` of PodUtils/podcrates, T-0601) and
+starts a session (`setsid` in the same launcher). A Jupyter kernel is a
+grandchild, which T-1646 must reach. python:3.13-slim is
+glibc (T-1644).
+
+## Approach
+
+Add `podvm notebook NB --persist DIR [--cycles N] [--kill-after
+S] [--restart-kernel-after CELL]`. Each cycle is a new
+container with a read-only root, a `/workspace` that holds
+only the notebook, a new kernel and `DIR` at `/persist`. Print
+each output line as `[N] text` and exit 1 when a cell raised.
+`--kill-after` ends the cycle with 143 and kills the whole
+process tree through the session. A `.py` notebook runs
+through `marimo export html`. Use an Alpine Python image
+until T-1644 admits glibc.
+
+## Decision
+
+The kept directory is the only state that crosses a cycle.
+Two concurrent notebooks share the host network on a rootfs
+tier, so each picks its own loopback ports; the banner says
+the ports are not private. A failed `!` line does not raise,
+so the verb does not report it as a failure.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests for the argument
+parse and the `[N]` line format.
+`sh experiments/416-notebook-cycles.sh` exits 0: three cycles
+keep only the `--persist` content, `--restart-kernel-after 1`
+loses variables and keeps `/persist`, `--kill-after 5` on a
+sleeping cell exits 143 and leaves no process, and a marimo
+file exports to HTML.
+
+## Correction
+
+**Filed 2026-11-06.** Quoted from issue 174:
 
 ```text
-lambda-al2023  public.ecr.aws/lambda/provided:al2023  user 993:990, memory 128m,
-               /tmp 512m, pids 1024, read-only root, AWS_LAMBDA_FUNCTION_NAME,
-               AWS_REGION=us-east-1, LAMBDA_TASK_ROOT=/var/task, TZ=:UTC
-vercel-sandbox amazonlinux:2023, user 1000:1000, USER=LOGNAME=vercel-sandbox
-busybox-bare   busybox:musl; wget prints "TLS certificate validation not
-               implemented", and expired, self-signed and wrong-host
-               certificates all exit 0
-distroless     gcr.io/distroless/static-debian12; `sh -c true` fails to start,
-               a static binary placed in the project runs
-install by `curl -fsSL URL | sh`: node-shell, cloudflare-sandbox and
-               busybox-bare had no curl, and the pipeline exited 0 with
-               nothing installed
+jupyter cage:  jupyter nbconvert --to notebook --execute --stdout --log-level=ERROR NB
+marimo cage:   marimo export html --no-include-code NB.py
+sand notebook NB --persist DIR [--cycles N] [--lab LAB] [--kill-after S]
+               [--restart-kernel-after CELL]... [--cage C]
+NotebookCycles: only /persist survives a cycle and a kernel restart;
+               variables do not survive the restart; /tmp does not survive
+               the cycle; /workspace holds only the notebook
+killing the client left the container running; leftover containers were
+               found by their project volume and killed; exit 143
+`curl -fsSL URL | sh` without curl: "curl: not found", exit 0, nothing installed
 ```
 
----
-
-### T-1660 `podvm notebook`: Jupyter and marimo cycles that keep one directory
-
-Source:      issue 174; #193; the owner's ruling of 2026-11-06
-Category:    cli
-Priority:    P2
-Effort:      L
-Status:      done 2026-11-11
-
-Problem:     The owner names notebooks in the scope. podvm has no verb that
-             runs a notebook, and no model of a hosted session that wipes
-             its root on restart and keeps one directory.
-Premise:     `run --rm` starts from the stored rootfs, so a fresh root for
-             each cycle costs nothing. A kept directory needs a volume,
-             which a host with no mount cannot give (T-1653); `cp` copies
-             in and out (T-1323, `crates/podvm/src/parity.rs:155`). The
-             supervisor holds one pidfd for the direct child
-             (`pod_supervise::launcher` of PodUtils/podcrates, T-0601) and
-             starts a session (`setsid` in the same launcher). A Jupyter kernel is a
-             grandchild, which T-1646 must reach. python:3.13-slim is
-             glibc (T-1644).
-Approach:    Add `podvm notebook NB --persist DIR [--cycles N] [--kill-after
-             S] [--restart-kernel-after CELL]`. Each cycle is a new
-             container with a read-only root, a `/workspace` that holds
-             only the notebook, a new kernel and `DIR` at `/persist`. Print
-             each output line as `[N] text` and exit 1 when a cell raised.
-             `--kill-after` ends the cycle with 143 and kills the whole
-             process tree through the session. A `.py` notebook runs
-             through `marimo export html`. Use an Alpine Python image
-             until T-1644 admits glibc.
-Decision:    The kept directory is the only state that crosses a cycle.
-             Two concurrent notebooks share the host network on a rootfs
-             tier, so each picks its own loopback ports; the banner says
-             the ports are not private. A failed `!` line does not raise,
-             so the verb does not report it as a failure.
-Prove:       `cargo test -p podvm` exits 0 with tests for the argument
-             parse and the `[N]` line format.
-             `sh experiments/416-notebook-cycles.sh` exits 0: three cycles
-             keep only the `--persist` content, `--restart-kernel-after 1`
-             loses variables and keeps `/persist`, `--kill-after 5` on a
-             sleeping cell exits 143 and leaves no process, and a marimo
-             file exports to HTML.
+## Done
 
 **Done 2026-11-11.** `cargo test -p podvm` exits 0 with
 `the_arguments_parse_and_a_wrong_one_is_named`,
@@ -2346,62 +2802,62 @@ A run killed during the copy of its container tree left the partial tree;
 a tree is now filled under `trees/.fill-PID-ID` and renamed when whole,
 and each fill removes a partial tree whose process is gone.
 
-**Filed 2026-11-06.** Quoted from issue 174:
+# T-1661: Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd
 
-```text
-jupyter cage:  jupyter nbconvert --to notebook --execute --stdout --log-level=ERROR NB
-marimo cage:   marimo export html --no-include-code NB.py
-sand notebook NB --persist DIR [--cycles N] [--lab LAB] [--kill-after S]
-               [--restart-kernel-after CELL]... [--cage C]
-NotebookCycles: only /persist survives a cycle and a kernel restart;
-               variables do not survive the restart; /tmp does not survive
-               the cycle; /workspace holds only the notebook
-killing the client left the container running; leftover containers were
-               found by their project volume and killed; exit 143
-`curl -fsSL URL | sh` without curl: "curl: not found", exit 0, nothing installed
-```
+**Source:** issue 176; #193; the owner's ruling of 2026-11-06;
+  A-V-05 of PodUtils/podcrates#39
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** partial
 
----
+## Problem
 
-### T-1661 Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd
+For a language runtime with its own permission model, the
+runtime is the boundary. podvm cannot start such a runtime
+with its flags from one statement of the paths, and cannot say
+which part the runtime enforces and which part podvm enforces.
 
-Source:      issue 176; #193; the owner's ruling of 2026-11-06;
-             A-V-05 of PodUtils/podcrates#39
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      partial 2026-11-11
+## Premise
 
-Problem:     For a language runtime with its own permission model, the
-             runtime is the boundary. podvm cannot start such a runtime
-             with its flags from one statement of the paths, and cannot say
-             which part the runtime enforces and which part podvm enforces.
-Premise:     None of these runtimes needs a privilege. Today they hit filed
-             limits: the Debian images are glibc (T-1644), `node` in
-             node:alpine is over the read ceiling (T-1647), its entrypoint
-             is a `#!` script (T-1649), and `npm` spawns children (T-1646).
-             An `fs.wrap` prefix arrives with T-1654.
-Approach:    Ship built-in profiles `node-permission`, `deno-permissions`,
-             `bun-runtime`, `wasmtime-wasi` and `workerd-test`. Generate the
-             runtime's flags (`--allow-fs-read`, `--allow-write`, `--dir`)
-             from the profile's `fs.read` and `fs.write`, so a profile
-             states each path once. Check the linkage of a host-style
-             binary before the rung is chosen. `profile show` prints the
-             runtime flags and podvm's path map side by side.
-Decision:    The WASI profile needs no interposer and no tier: the module
-             sees only its preopened directories. Bun has no permission
-             model, and its profile says so. A runtime check never stands
-             in for podvm's own path map.
-Prove:       `cargo test -p podvm` exits 0 with a test that one profile's
-             paths produce both the runtime flags and the path map.
-             `sh experiments/417-runtime-profiles.sh` exits 0 with the
-             fixtures of issue 176: `node-permission` prints `permission
-             on`, DENY for `/etc/hostname` and `/tmp`, ALLOW for
-             `/workspace`; `deno-permissions` prints `NotCapable` for the
-             outside read and for `Deno.env`; `wasmtime-wasi` prints `hello
-             from wasi`; `workerd-test` reports `typeof process =
-             undefined` and makes no connection: a `fetch` of a public URL from the
-             worker fails.
+None of these runtimes needs a privilege. Today they hit filed
+limits: the Debian images are glibc (T-1644), `node` in
+node:alpine is over the read ceiling (T-1647), its entrypoint
+is a `#!` script (T-1649), and `npm` spawns children (T-1646).
+An `fs.wrap` prefix arrives with T-1654.
+
+## Approach
+
+Ship built-in profiles `node-permission`, `deno-permissions`,
+`bun-runtime`, `wasmtime-wasi` and `workerd-test`. Generate the
+runtime's flags (`--allow-fs-read`, `--allow-write`, `--dir`)
+from the profile's `fs.read` and `fs.write`, so a profile
+states each path once. Check the linkage of a host-style
+binary before the rung is chosen. `profile show` prints the
+runtime flags and podvm's path map side by side.
+
+## Decision
+
+The WASI profile needs no interposer and no tier: the module
+sees only its preopened directories. Bun has no permission
+model, and its profile says so. A runtime check never stands
+in for podvm's own path map.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test that one profile's
+paths produce both the runtime flags and the path map.
+`sh experiments/417-runtime-profiles.sh` exits 0 with the
+fixtures of issue 176: `node-permission` prints `permission
+on`, DENY for `/etc/hostname` and `/tmp`, ALLOW for
+`/workspace`; `deno-permissions` prints `NotCapable` for the
+outside read and for `Deno.env`; `wasmtime-wasi` prints `hello
+from wasi`; `workerd-test` reports `typeof process =
+undefined` and makes no connection: a `fetch` of a public URL from the
+worker fails.
+
+## Correction
 
 **Filed 2026-11-06.** Quoted from issue 176:
 
@@ -2425,6 +2881,8 @@ a message from a peer session) wants a workerd profile with no network.
 `net.ports = []` for the confine layer of T-1658. Where Landlock is absent,
 the profile refuses by name, as T-1658 says. The Chromium half of the ask is
 T-1694.
+
+## Done
 
 **Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
 `one_profile_gives_the_runtime_flags_and_the_path_map` (the paths of
@@ -2460,56 +2918,71 @@ Remaining: `wasmtime-wasi` (wasmtime needs a download, recorded by hash on
 first use, F25 of issue 176) and `workerd-test` (it needs the confine layer
 of T-1658, which is blocked on COORD-040).
 
----
+# T-1694: Headless Chromium of Playwright runs as a proven payload with its flags in one profile
 
-### T-1694 Headless Chromium of Playwright runs as a proven payload with its flags in one profile
+**Source:** A-V-05 of PodUtils/podcrates#39 (COORD-015); T-1661 (the
+  runtime profiles); T-1655 (the hardening line);
+  T-1658 (the confine layer)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
 
-Source:      A-V-05 of PodUtils/podcrates#39 (COORD-015); T-1661 (the
-             runtime profiles); T-1655 (the hardening line);
-             T-1658 (the confine layer)
-Category:    cli
-Priority:    P2
-Effort:      L
-Status:      open
+## Problem
 
-Problem:     A browser test job needs headless Chromium, as Playwright
-             starts it. podvm has no profile that says how to start it on
-             a host that denies namespaces, and no proof that it runs.
-             Chromium starts many children, wants a shared-memory
-             directory, and is a large glibc binary. The table refuses a
-             `--tmpfs` and a `--shm-size`, so the usual answer to the
-             shared-memory need does not work.
-Premise:     Chromium's own sandbox needs user namespaces, which the
-             target host denies. Playwright turns it off with
-             `--no-sandbox`. Then the boundary is the confine layer of
-             T-1658 and not the browser. The parity table refuses
-             `--tmpfs` (`crates/podvm/src/parity.rs:259`) and
-             `--shm-size` (`crates/podvm/src/parity.rs:266`). The chain
-             of entries for a large dynamic payload is T-1643 to T-1646,
-             T-1647 and T-1649. No run of Chromium under podvm was
-             measured when this entry was filed.
-Approach:    Add the built-in profile `playwright-chromium` to the T-1654
-             profile table. It sets `--headless`, `--no-sandbox` and
-             `--disable-dev-shm-usage`, which moves the shared memory to
-             a store directory under a size check. It sets `fs.read` and
-             `fs.write` to the paths that the browser needs, and
-             `net.ports = []` unless the profile asks for a proxy. Pick
-             one image with Playwright's Chromium and record its digest
-             after the first run. Measure the first run, name each
-             failure by its filed entry, and refuse by name until the
-             chain works.
-Decision:    `--no-sandbox` is explicit in the profile and in the banner.
-             The profile refuses where the T-1658 layer is absent: it
-             never runs Chromium unconfined. Chromium under podvm is not
-             a boundary against a hostile page. The profile says so.
-Prove:       `cargo test -p podvm` exits 0 with tests
-             `chromium_profile_flags` and `chromium_profile_refuses_without_confine`.
-             `sh experiments/425-chromium.sh` exits 0 on a chroot-denied
-             fixture with the chain of entries done: headless Chromium
-             from the pinned image prints the DOM of a page in
-             `/workspace` with `--dump-dom`, writes a screenshot of more
-             than zero bytes, makes no network connection, and the run
-             leaves no child process.
+A browser test job needs headless Chromium, as Playwright
+starts it. podvm has no profile that says how to start it on
+a host that denies namespaces, and no proof that it runs.
+Chromium starts many children, wants a shared-memory
+directory, and is a large glibc binary. The table refuses a
+`--tmpfs` and a `--shm-size`, so the usual answer to the
+shared-memory need does not work.
+
+## Premise
+
+Chromium's own sandbox needs user namespaces, which the
+target host denies. Playwright turns it off with
+`--no-sandbox`. Then the boundary is the confine layer of
+T-1658 and not the browser. The parity table refuses
+`--tmpfs` (`crates/podvm/src/parity.rs:259`) and
+`--shm-size` (`crates/podvm/src/parity.rs:266`). The chain
+of entries for a large dynamic payload is T-1643 to T-1646,
+T-1647 and T-1649. No run of Chromium under podvm was
+measured when this entry was filed.
+
+## Approach
+
+Add the built-in profile `playwright-chromium` to the T-1654
+profile table. It sets `--headless`, `--no-sandbox` and
+`--disable-dev-shm-usage`, which moves the shared memory to
+a store directory under a size check. It sets `fs.read` and
+`fs.write` to the paths that the browser needs, and
+`net.ports = []` unless the profile asks for a proxy. Pick
+one image with Playwright's Chromium and record its digest
+after the first run. Measure the first run, name each
+failure by its filed entry, and refuse by name until the
+chain works.
+
+## Decision
+
+`--no-sandbox` is explicit in the profile and in the banner.
+The profile refuses where the T-1658 layer is absent: it
+never runs Chromium unconfined. Chromium under podvm is not
+a boundary against a hostile page. The profile says so.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests
+`chromium_profile_flags` and `chromium_profile_refuses_without_confine`.
+`sh experiments/425-chromium.sh` exits 0 on a chroot-denied
+fixture with the chain of entries done: headless Chromium
+from the pinned image prints the DOM of a page in
+`/workspace` with `--dump-dom`, writes a screenshot of more
+than zero bytes, makes no network connection, and the run
+leaves no child process.
+
+## Correction
 
 **Filed 2026-11-09.** From the ask A-V-05 of PodUtils/podcrates#39
 (COORD-015), a message from a peer session, priority P2: "headless
@@ -2517,66 +2990,81 @@ Chromium of Playwright; a workerd profile with no network". The workerd
 half is in T-1661. The ask is a new capability and nothing documented is
 broken, so the priority is P2.
 
----
+# T-1695: One JSON report for each run, and real labels on records
 
-### T-1695 One JSON report for each run, and real labels on records
+**Source:** A-V-09, A-V-07 and G-06 of PodUtils/podcrates#39 (COORD-015);
+  T-1655 (the peak resident set and the CPU time);
+  T-1319 (one `inspect` document);
+  `crates/podvm/src/parity.rs:254`
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** open
 
-Source:      A-V-09, A-V-07 and G-06 of PodUtils/podcrates#39 (COORD-015);
-             T-1655 (the peak resident set and the CPU time);
-             T-1319 (one `inspect` document);
-             `crates/podvm/src/parity.rs:254`
-Category:    cli
-Priority:    P1
-Effort:      L
-Status:      open
+## Problem
 
-Problem:     A caller that runs a job under podvm has no machine-readable
-             record of the run. The mechanism that podvm entered is a
-             banner on stderr. The caller cannot read the exit status,
-             the times and the peak memory from one place. `--label` also
-             does nothing: the container record carries no labels, so
-             `ps --filter label=` matches nothing, and a runner cannot
-             find its own jobs.
-Premise:     The `--label` flag is accepted and dropped
-             (`crates/podvm/src/run/parse.rs:222`). The parity table
-             marks it Stub (`crates/podvm/src/parity.rs:254`). The help
-             of `ps` says that a label filter matches nothing
-             (`crates/podvm/src/lifecycle.rs:41`), and so does the help of
-             `images` (`crates/podvm/src/images.rs:106`). The only JSON
-             that podvm writes for a caller today is `probe --json`
-             (`crates/podvm/src/main.rs:352`). The foreground run knows
-             the exit code at its end (`crates/podvm/src/run/foreground.rs:175`)
-             and its start is `crates/podvm/src/run/foreground.rs:204`.
-             The record that `run` prepares is
-             `crates/podvm/src/lifecycle/entry.rs:24`.
-Approach:    Keep each `--label KEY=VALUE` in the container record. Make
-             `ps --filter label=KEY[=VALUE]` and `inspect` use it. Take
-             the labels of an image from its OCI config for `images
-             --filter label=`. Add `run --report PATH`. The run writes
-             exactly one JSON document to PATH, with a rename, also when
-             it refuses before the start. The document holds: a schema
-             version, the podvm version, the image digest, the rung or
-             tier that the run entered and how it was measured, the
-             argument vector, the exit status or the signal, the start
-             and end times, the wall time, the CPU time and the peak
-             resident set of the tree (T-1655), whether a timeout ended
-             the run, the limits applied, the labels, and each
-             degradation. An unknown value is `null`.
-Decision:    The report goes to a file, never to standard output: that
-             belongs to the payload. The report holds no value of an
-             environment variable and no secret. One run writes one
-             report, and a runner that wants one report for each job
-             gives each job its own path (G-06). The `--strict` rule that
-             refuses a Stub no longer applies to `--label`, because the
-             flag works. The parity row moves from Stub to Native.
-Prove:       `cargo test -p podvm` exits 0 with tests
-             `label_reaches_ps_filter`, `label_reaches_inspect`,
-             `report_has_every_field` and `report_written_on_refusal`.
-             `sh experiments/426-run-report.sh` exits 0: a run with
-             `--label job=7 --report R.json` leaves one valid JSON file
-             that names the tier, exit 3 for `sh -c 'exit 3'`, a peak
-             resident set above zero, and the label; `ps -a --filter
-             label=job=7` lists the run.
+A caller that runs a job under podvm has no machine-readable
+record of the run. The mechanism that podvm entered is a
+banner on stderr. The caller cannot read the exit status,
+the times and the peak memory from one place. `--label` also
+does nothing: the container record carries no labels, so
+`ps --filter label=` matches nothing, and a runner cannot
+find its own jobs.
+
+## Premise
+
+The `--label` flag is accepted and dropped
+(`crates/podvm/src/run/parse.rs:222`). The parity table
+marks it Stub (`crates/podvm/src/parity.rs:254`). The help
+of `ps` says that a label filter matches nothing
+(`crates/podvm/src/lifecycle.rs:41`), and so does the help of
+`images` (`crates/podvm/src/images.rs:106`). The only JSON
+that podvm writes for a caller today is `probe --json`
+(`crates/podvm/src/main.rs:352`). The foreground run knows
+the exit code at its end (`crates/podvm/src/run/foreground.rs:175`)
+and its start is `crates/podvm/src/run/foreground.rs:204`.
+The record that `run` prepares is
+`crates/podvm/src/lifecycle/entry.rs:24`.
+
+## Approach
+
+Keep each `--label KEY=VALUE` in the container record. Make
+`ps --filter label=KEY[=VALUE]` and `inspect` use it. Take
+the labels of an image from its OCI config for `images
+--filter label=`. Add `run --report PATH`. The run writes
+exactly one JSON document to PATH, with a rename, also when
+it refuses before the start. The document holds: a schema
+version, the podvm version, the image digest, the rung or
+tier that the run entered and how it was measured, the
+argument vector, the exit status or the signal, the start
+and end times, the wall time, the CPU time and the peak
+resident set of the tree (T-1655), whether a timeout ended
+the run, the limits applied, the labels, and each
+degradation. An unknown value is `null`.
+
+## Decision
+
+The report goes to a file, never to standard output: that
+belongs to the payload. The report holds no value of an
+environment variable and no secret. One run writes one
+report, and a runner that wants one report for each job
+gives each job its own path (G-06). The `--strict` rule that
+refuses a Stub no longer applies to `--label`, because the
+flag works. The parity row moves from Stub to Native.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests
+`label_reaches_ps_filter`, `label_reaches_inspect`,
+`report_has_every_field` and `report_written_on_refusal`.
+`sh experiments/426-run-report.sh` exits 0: a run with
+`--label job=7 --report R.json` leaves one valid JSON file
+that names the tier, exit 3 for `sh -c 'exit 3'`, a peak
+resident set above zero, and the label; `ps -a --filter
+label=job=7` lists the run.
+
+## Correction
 
 **Filed 2026-11-09.** From the asks A-V-09 (priority P1), A-V-07 and G-06
 of PodUtils/podcrates#39 (COORD-015), a message from a peer session: "a
@@ -2599,75 +3087,81 @@ podvm cannot count. Fourth, an end by a signal names the signal (for
 example `SIGXFSZ`) beside the number. Bytes in and out are not podvm's to
 measure; the report does not carry them.
 
----
+# T-1696: `--secret` places a file with no argv and no env, and a read-once mode
 
-### T-1696 `--secret` places a file with no argv and no env, and a read-once mode
+**Source:** A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
+  T-1653 (the volume path map); the ruling of 2026-11-09 on
+  test accounts; `crates/podvm/src/run/parse.rs:91`
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-Source:      A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
-             T-1653 (the volume path map); the ruling of 2026-11-09 on
-             test accounts; `crates/podvm/src/run/parse.rs:91`
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      done
+## Problem
 
-Problem:     A job needs a credential. Today a caller passes it with `-e`,
-             which puts the value in the environment of the payload and
-             of each child, or in a file that a `-v` volume would place.
-             podvm has no flag that places one file, with a mode, for
-             the first process only.
-Premise:     `--env-file` reads a file at parse time
-             (`crates/podvm/src/run/parse.rs:91`, used at
-             `crates/podvm/src/run/parse.rs:203`) and the values go into
-             the environment (`crates/podvm/src/run/prepare.rs:239`). The
-             userland path map is one pair for the root
-             (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
-             A foreground run removes its files at the end
-             (`crates/podvm/src/run/foreground.rs:175`). The parity table
-             has no `--secret` row. The interposer is not a boundary, so
-             a claim about "only the runner process" has a limit that the
-             banner must state.
-Approach:    Add `run --secret src=PATH,target=GUEST,mode=0400[,once]`.
-             podvm reads `src` itself. The value never enters argv or the
-             environment. It stages the bytes under the run directory
-             (mode 0700 for the directory, the given mode for the file)
-             and adds one path-map pair from `target` (T-1653). Refuse a
-             `src` that group or other can read, and name its mode. With
-             `once`, the interposer serves the first `open` of `target`
-             from the first process of the payload (the runner) and
-             removes the staged file at once. A child, and any later
-             `open`, gets `ENOENT`. At the end of the run, also after a
-             failure, podvm removes the staged file. `inspect`, `ps`, the
-             banner, the logs and the report (T-1695) show the target and
-             the mode, never the value. The machine tier refuses
-             `--secret` by name until T-1656 carries a per-run file into
-             the guest.
-Decision:    The credential reaches the runner process through a file and
-             nothing else (G-03). A payload that bypasses the libc
-             interposer with raw system calls can read the staged file if
-             it learns its host path. The host path is in no variable, and
-             the banner names this limit. podvm stores no credential
-             between runs. No test account is a CI secret now (the ruling
-             of 2026-11-09), so a live step that needs one waits.
-Prove:       `cargo test -p podvm` exits 0 with tests
-             `secret_spec_parses`, `secret_refuses_group_readable_src`,
-             `secret_value_absent_from_argv_and_env` and
-             `secret_once_second_open_fails`.
-             `sh experiments/427-secret-flag.sh` exits 0 on a
-             chroot-denied fixture: the runner reads the target with mode
-             0400, `/proc/PID/cmdline` and `/proc/PID/environ` of the
-             payload hold no byte of the value, with `once` a second read
-             and a read from a child fail, and the staged file is gone
-             after the run, also after a payload that exits 1.
+A job needs a credential. Today a caller passes it with `-e`,
+which puts the value in the environment of the payload and
+of each child, or in a file that a `-v` volume would place.
+podvm has no flag that places one file, with a mode, for
+the first process only.
 
-**Done 2026-11-11 by withdrawal: the owner dropped this entry (the ruling
-"T-1696 dropped", the answer to Q5).** No code was built and the Prove did
-not run. podvm has no `--secret` flag and no read-once mode. podrunner
-stages the three credential files of the official runner itself, at mode
-0600, with no argv and no environment, and removes them at `destroy` (G-03
-as DR-6 restates it, PodUtils/podrunner#6). The clauses of other entries
-that named `--secret` are corrected in place: T-1695 (the report),
-T-1715 (the store modes) and T-1656 (the guest's tmpfs).
+## Premise
+
+`--env-file` reads a file at parse time
+(`crates/podvm/src/run/parse.rs:91`, used at
+`crates/podvm/src/run/parse.rs:203`) and the values go into
+the environment (`crates/podvm/src/run/prepare.rs:239`). The
+userland path map is one pair for the root
+(`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
+A foreground run removes its files at the end
+(`crates/podvm/src/run/foreground.rs:175`). The parity table
+has no `--secret` row. The interposer is not a boundary, so
+a claim about "only the runner process" has a limit that the
+banner must state.
+
+## Approach
+
+Add `run --secret src=PATH,target=GUEST,mode=0400[,once]`.
+podvm reads `src` itself. The value never enters argv or the
+environment. It stages the bytes under the run directory
+(mode 0700 for the directory, the given mode for the file)
+and adds one path-map pair from `target` (T-1653). Refuse a
+`src` that group or other can read, and name its mode. With
+`once`, the interposer serves the first `open` of `target`
+from the first process of the payload (the runner) and
+removes the staged file at once. A child, and any later
+`open`, gets `ENOENT`. At the end of the run, also after a
+failure, podvm removes the staged file. `inspect`, `ps`, the
+banner, the logs and the report (T-1695) show the target and
+the mode, never the value. The machine tier refuses
+`--secret` by name until T-1656 carries a per-run file into
+the guest.
+
+## Decision
+
+The credential reaches the runner process through a file and
+nothing else (G-03). A payload that bypasses the libc
+interposer with raw system calls can read the staged file if
+it learns its host path. The host path is in no variable, and
+the banner names this limit. podvm stores no credential
+between runs. No test account is a CI secret now (the ruling
+of 2026-11-09), so a live step that needs one waits.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests
+`secret_spec_parses`, `secret_refuses_group_readable_src`,
+`secret_value_absent_from_argv_and_env` and
+`secret_once_second_open_fails`.
+`sh experiments/427-secret-flag.sh` exits 0 on a
+chroot-denied fixture: the runner reads the target with mode
+0400, `/proc/PID/cmdline` and `/proc/PID/environ` of the
+payload hold no byte of the value, with `once` a second read
+and a read from a child fail, and the staged file is gone
+after the run, also after a payload that exits 1.
+
+## Correction
 
 **Filed 2026-11-09.** From the asks A-V-11 (priority P2) and G-03 of
 PodUtils/podcrates#39 (COORD-015), a message from a peer session:
@@ -2692,48 +3186,91 @@ and `rm` removes them also when the launcher is gone. Fourth, the staging
 directory is mode 0700 whatever the umask (T-1715, the store modes), and
 the tests use mode 0600 as well as 0400.
 
----
+## Done
 
-### T-1667 Doctor and installers: one check per scope capability, verified downloads, a space floor
+**Done 2026-11-11 by withdrawal: the owner dropped this entry (the ruling
+"T-1696 dropped", the answer to Q5).** No code was built and the Prove did
+not run. podvm has no `--secret` flag and no read-once mode. podrunner
+stages the three credential files of the official runner itself, at mode
+0600, with no argv and no environment, and removes them at `destroy` (G-03
+as DR-6 restates it, PodUtils/podrunner#6). The clauses of other entries
+that named `--secret` are corrected in place: T-1695 (the report),
+T-1715 (the store modes) and T-1656 (the guest's tmpfs).
 
-Source:      issue 188; #193; the owner's ruling of 2026-11-06
-Category:    cli
-Priority:    P2
-Effort:      L
-Status:      partial 2026-11-11
+# T-1667: Doctor and installers: one check per scope capability, verified downloads, a space floor
 
-Problem:     `podvm doctor` reports the rootfs and machine legs. It does
-             not cover the widened scope: Landlock, Syscall User Dispatch,
-             `openat2(RESOLVE_IN_ROOT)`, user-mode networking, labs in a
-             guest, proxy reach. Assets that the new scope downloads
-             (guest kernels, runtimes) have no stated verification rule.
-Premise:     The doctor is `crates/podvm/src/doctor.rs:149`, and it reads
-             the machine assessment (`doctor.rs:190`). The probe already
-             has a Landlock leg (`pod_hostprobe::probes`).
-             Space is checked before large writes
-             (`pod_hostprobe::space`, T-0806). Release
-             verification uses cosign and the workflow identity (T-1328).
-Approach:    Add one doctor group for each scope capability. Each check
-             prints `ok`, `MISSING` with a `fix:` line, or "cannot be fixed
-             on this host" with the reason. `--strict` exits 1 on a
-             MISSING. Each check proves the thing runs: a guest boots, a
-             payload enters. For each downloaded asset, verify a checksum
-             and a signature where upstream publishes them, else record a
-             first-use hash in the store and refuse a change. Fetch a
-             release through `gh`, and fall back to the public API when
-             the call fails, not when `gh auth status` fails.
-Decision:    A present file is not a working one (T-1301). An auth check is
-             not a working credential: a suspended token passes `gh auth
-             status` and then gets 403 (F34). A checksum proves integrity,
-             not who built the file, and the doctor says which of the two
-             it has.
-Prove:       `cargo test -p podvm` exits 0 with tests: a planted changed
-             asset is refused, a planted rejected `gh` token falls back to
-             the API, and a run below the space floor refuses and names the
-             path. `sh experiments/423-doctor-scope.sh` exits 0 on a
-             chroot-denied fixture: `podvm doctor` lists every scope
-             capability with one of the three answers, and `podvm doctor
-             --strict` exits 1 where one is MISSING.
+**Source:** issue 188; #193; the owner's ruling of 2026-11-06
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** partial
+
+## Problem
+
+`podvm doctor` reports the rootfs and machine legs. It does
+not cover the widened scope: Landlock, Syscall User Dispatch,
+`openat2(RESOLVE_IN_ROOT)`, user-mode networking, labs in a
+guest, proxy reach. Assets that the new scope downloads
+(guest kernels, runtimes) have no stated verification rule.
+
+## Premise
+
+The doctor is `crates/podvm/src/doctor.rs:149`, and it reads
+the machine assessment (`doctor.rs:190`). The probe already
+has a Landlock leg (`pod_hostprobe::probes`).
+Space is checked before large writes
+(`pod_hostprobe::space`, T-0806). Release
+verification uses cosign and the workflow identity (T-1328).
+
+## Approach
+
+Add one doctor group for each scope capability. Each check
+prints `ok`, `MISSING` with a `fix:` line, or "cannot be fixed
+on this host" with the reason. `--strict` exits 1 on a
+MISSING. Each check proves the thing runs: a guest boots, a
+payload enters. For each downloaded asset, verify a checksum
+and a signature where upstream publishes them, else record a
+first-use hash in the store and refuse a change. Fetch a
+release through `gh`, and fall back to the public API when
+the call fails, not when `gh auth status` fails.
+
+## Decision
+
+A present file is not a working one (T-1301). An auth check is
+not a working credential: a suspended token passes `gh auth
+status` and then gets 403 (F34). A checksum proves integrity,
+not who built the file, and the doctor says which of the two
+it has.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests: a planted changed
+asset is refused, a planted rejected `gh` token falls back to
+the API, and a run below the space floor refuses and names the
+path. `sh experiments/423-doctor-scope.sh` exits 0 on a
+chroot-denied fixture: `podvm doctor` lists every scope
+capability with one of the three answers, and `podvm doctor
+--strict` exits 1 where one is MISSING.
+
+## Correction
+
+**Filed 2026-11-06.** Quoted from issue 188:
+
+```text
+F34: `gh auth status` exits 0 for a suspended token while every
+     `gh release` call returns 403; the unauthenticated API allows 60
+     requests an hour per address, and an install script hit the limit
+F25: landrun, wasmtime and workerd publish no checksum, and
+     `gh release view --json assets` gives no digest for them
+F12: `apt-get install tayga` pulled apparmor; its pasta profile in enforce
+     mode made `pasta --version` exit 139
+F26: `pasta --version` succeeding does not mean pasta works
+F31: a run failed with "no space left on device" at 188 MiB free; the
+     disk guard warns below 1 GiB and refuses below 64 MiB
+```
+
+## Done
 
 **Partial 2026-11-11.** Done: `cargo test -p podvm` exits 0 with
 `a_planted_changed_asset_is_refused` and
@@ -2766,53 +3303,60 @@ Remaining clauses:
 * "Labs in a guest": a check for it comes with the network entries
   T-1662 to T-1665.
 
-**Filed 2026-11-06.** Quoted from issue 188:
+# T-1690: The doctor disk-free row judges the soft `RLIMIT_FSIZE`
 
-```text
-F34: `gh auth status` exits 0 for a suspended token while every
-     `gh release` call returns 403; the unauthenticated API allows 60
-     requests an hour per address, and an install script hit the limit
-F25: landrun, wasmtime and workerd publish no checksum, and
-     `gh release view --json assets` gives no digest for them
-F12: `apt-get install tayga` pulled apparmor; its pasta profile in enforce
-     mode made `pasta --version` exit 139
-F26: `pasta --version` succeeding does not mean pasta works
-F31: a run failed with "no space left on device" at 188 MiB free; the
-     disk guard warns below 1 GiB and refuses below 64 MiB
-```
+**Source:** issue 214; T-1301 leg 3; T-1305
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
 
-### T-1690 The doctor disk-free row judges the soft `RLIMIT_FSIZE`
+## Problem
 
-Source:      issue 214; T-1301 leg 3; T-1305
-Category:    cli
-Priority:    P2
-Effort:      S
-Status:      done
+`podvm doctor` reads the hard `RLIMIT_FSIZE` in the row "disk
+free against the file-size ceiling". The kernel raises SIGXFSZ
+at the soft limit, and each other reader of the limit reads
+the soft one. With a soft limit of 1 GB and a hard limit of
+infinity, doctor prints a note and exits 0, and a machine-tier
+run refuses on the same host.
 
-Problem:     `podvm doctor` reads the hard `RLIMIT_FSIZE` in the row "disk
-             free against the file-size ceiling". The kernel raises SIGXFSZ
-             at the soft limit, and each other reader of the limit reads
-             the soft one. With a soft limit of 1 GB and a hard limit of
-             infinity, doctor prints a note and exits 0, and a machine-tier
-             run refuses on the same host.
-Premise:     `crates/podvm/src/doctor.rs:317` keeps the hard limit. The
-             infinity test is at `crates/podvm/src/doctor.rs:329` and the
-             comparison at `crates/podvm/src/doctor.rs:343`. The soft
-             readers are `crates/podvm/src/tier.rs:114`,
-             `crates/podvm/src/machine/ssh/qemu.rs:260`,
-             `crates/podvm/src/windows/plan.rs:88`,
-             `crates/podvm-probe/src/nongoals.rs:190` and
-             `pod_hostprobe::space`. The function reads `prlimit` itself, so
-             a test cannot drive it.
-Approach:    Keep the soft limit and use it for the infinity test and the
-             comparison. Print the hard limit as well when it differs. Move
-             the judgement into a pure function over the soft limit, the
-             hard limit and the free bytes.
-Decision:    The enforced bound is the soft limit. Doctor and the machine
-             tier print the same number on one machine.
-Prove:       `cargo test -p podvm` exits 0 with tests: a soft 1 GB and a
-             hard infinity give the 1 GB ceiling; the same limits with less
-             free space fail with a fix line; both infinite stay a note.
+## Premise
+
+`crates/podvm/src/doctor.rs:317` keeps the hard limit. The
+infinity test is at `crates/podvm/src/doctor.rs:329` and the
+comparison at `crates/podvm/src/doctor.rs:343`. The soft
+readers are `crates/podvm/src/tier.rs:114`,
+`crates/podvm/src/machine/ssh/qemu.rs:260`,
+`crates/podvm/src/windows/plan.rs:88`,
+`crates/podvm-probe/src/nongoals.rs:190` and
+`pod_hostprobe::space`. The function reads `prlimit` itself, so
+a test cannot drive it.
+
+## Approach
+
+Keep the soft limit and use it for the infinity test and the
+comparison. Print the hard limit as well when it differs. Move
+the judgement into a pure function over the soft limit, the
+hard limit and the free bytes.
+
+## Decision
+
+The enforced bound is the soft limit. Doctor and the machine
+tier print the same number on one machine.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with tests: a soft 1 GB and a
+hard infinity give the 1 GB ceiling; the same limits with less
+free space fail with a fix line; both infinite stay a note.
+
+## Correction
+
+**Filed 2026-11-09.** From issue 214 (an outside account). The triage of
+2026-11-09 confirmed each claim at `2be31b2`.
+
+## Done
 
 **Done 2026-11-09.** `examine_ceiling` keeps the soft limit and judges
 it; the comparison is the pure function `judge_ceiling`, which names the
@@ -2824,71 +3368,91 @@ limit). [The drive](../experiments/results/doctor-soft-fsize.txt): with
 judges the 2 GiB ceiling, where it printed "no file-size ceiling"
 before; at 64 GiB, above the free space, the row fails with its fix line.
 
-**Filed 2026-11-09.** From issue 214 (an outside account). The triage of
-2026-11-09 confirmed each claim at `2be31b2`.
+# T-1706: The unmodified official `actions/runner` starts on the userland rung
 
----
+**Source:** issue 231; the podrunner design review (the owner's design
+  review of PodUtils/podcrates#47), SPEC sections 10.4, 10.5, WP-V1
+  and milestone M-B, its measurements M1 and M2; A-V-04 of
+  PodUtils/podcrates#39; T-1704 (`realpath` of
+  `/proc/self/exe`); T-1705 (the doubled prefix); T-1707 (a
+  first program relative to `-w`); T-1655 (`--ulimit`);
+  `crates/podvm/src/tier.rs:114`
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
 
-### T-1706 The unmodified official `actions/runner` starts on the userland rung
+## Problem
 
-Source:      issue 231; the podrunner design review (the owner's design
-             review of PodUtils/podcrates#47), SPEC sections 10.4, 10.5, WP-V1
-             and milestone M-B, its measurements M1 and M2; A-V-04 of
-             PodUtils/podcrates#39; T-1704 (`realpath` of
-             `/proc/self/exe`); T-1705 (the doubled prefix); T-1707 (a
-             first program relative to `-w`); T-1655 (`--ulimit`);
-             `crates/podvm/src/tier.rs:114`
-Category:    cli
-Priority:    P2
-Effort:      M
-Status:      done
+The official runner (linux-x64, glibc, .NET) does not start
+under podvm on a chroot-denied host: exit 154, then 137 after
+a workaround. It runs only under `--unsafe-host-paths` with
+the runner at its real host path, which is not isolation. A
+.NET payload also dies at start with SIGXFSZ (exit 153) under
+each soft `RLIMIT_FSIZE` below 2 TiB, and podvm says only "the
+payload died on signal 25".
 
-Problem:     The official runner (linux-x64, glibc, .NET) does not start
-             under podvm on a chroot-denied host: exit 154, then 137 after
-             a workaround. It runs only under `--unsafe-host-paths` with
-             the runner at its real host path, which is not isolation. A
-             .NET payload also dies at start with SIGXFSZ (exit 153) under
-             each soft `RLIMIT_FSIZE` below 2 TiB, and podvm says only "the
-             payload died on signal 25".
-Premise:     M2 at `36b15ec`, one host, runner v2.338.2, 3 runs for each
-             case. Blocker 1 is the `realpath` answer (T-1704), blocker 2
-             the doubled prefix (T-1705). A third layer after `--help` is
-             possible: no job ran. M1: the runtime calls `ftruncate` on a
-             memfd with 2199023255552 bytes; under a smaller limit that
-             is `EFBIG` and SIGXFSZ, in the listener, in `config.sh` and in
-             the Worker; with `DOTNET_EnableWriteXorExecute=0` it starts.
-             M2: a `prlimit` on the podvm process reaches the payload. M1:
-             the runner needs ICU or
-             `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`, `libssl.so.3`, and
-             a glibc loader with symbols up to `GLIBC_2.28`. podvm reads
-             the soft limit for guests (`crates/podvm/src/tier.rs:114`)
-             and not for a payload. No podvm record names .NET.
-Approach:    Build a test image:
-             `public.ecr.aws/debian/debian:bookworm-slim`, the runner's
-             libraries, and the runner tarball checked against a pinned
-             SHA-256; build it where chroot is permitted and `podvm
-             import` it. Close T-1704, T-1705 and T-1707. Then drive, on
-             the chroot-denying fixture: `Runner.Listener --version`,
-             `config.sh --help`, and `run.sh` with the three credential
-             files of a synthetic blob pre-staged at mode 0600 against a
-             loopback stand-in that serves `POST /oauth/token`, `POST
-             /session` and `GET /message` (the shape of M1). File each new
-             blocker as an entry. When a payload dies on SIGXFSZ, print
-             the soft `RLIMIT_FSIZE`; for a payload with a `.dll` beside
-             it or a `DOTNET_` variable, also name
-             `DOTNET_EnableWriteXorExecute=0`.
-Decision:    The runner is a payload, not a special case: podvm adds no
-             runner flag and ships no runner. `--unsafe-host-paths` is not
-             a pass. podvm does not raise or drop the caller's
-             `RLIMIT_FSIZE`; it names it. The stand-in server is test code.
-Prove:       `sh experiments/428-actions-runner.sh` exits 0 on the
-             chroot-denying fixture with no `--unsafe-host-paths`:
-             `--version` prints the pinned version, `config.sh --help`
-             exits 0, `run.sh` with the pre-staged files reaches the long
-             poll of the stand-in and ends within 30 s of SIGTERM, and
-             under `prlimit --fsize=1073741824` a run with W^X on exits
-             153 with a message that names `RLIMIT_FSIZE`, while the same
-             run with `-e DOTNET_EnableWriteXorExecute=0` exits 0.
+## Premise
+
+M2 at `36b15ec`, one host, runner v2.338.2, 3 runs for each
+case. Blocker 1 is the `realpath` answer (T-1704), blocker 2
+the doubled prefix (T-1705). A third layer after `--help` is
+possible: no job ran. M1: the runtime calls `ftruncate` on a
+memfd with 2199023255552 bytes; under a smaller limit that
+is `EFBIG` and SIGXFSZ, in the listener, in `config.sh` and in
+the Worker; with `DOTNET_EnableWriteXorExecute=0` it starts.
+M2: a `prlimit` on the podvm process reaches the payload. M1:
+the runner needs ICU or
+`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`, `libssl.so.3`, and
+a glibc loader with symbols up to `GLIBC_2.28`. podvm reads
+the soft limit for guests (`crates/podvm/src/tier.rs:114`)
+and not for a payload. No podvm record names .NET.
+
+## Approach
+
+Build a test image:
+`public.ecr.aws/debian/debian:bookworm-slim`, the runner's
+libraries, and the runner tarball checked against a pinned
+SHA-256; build it where chroot is permitted and `podvm
+import` it. Close T-1704, T-1705 and T-1707. Then drive, on
+the chroot-denying fixture: `Runner.Listener --version`,
+`config.sh --help`, and `run.sh` with the three credential
+files of a synthetic blob pre-staged at mode 0600 against a
+loopback stand-in that serves `POST /oauth/token`, `POST
+/session` and `GET /message` (the shape of M1). File each new
+blocker as an entry. When a payload dies on SIGXFSZ, print
+the soft `RLIMIT_FSIZE`; for a payload with a `.dll` beside
+it or a `DOTNET_` variable, also name
+`DOTNET_EnableWriteXorExecute=0`.
+
+## Decision
+
+The runner is a payload, not a special case: podvm adds no
+runner flag and ships no runner. `--unsafe-host-paths` is not
+a pass. podvm does not raise or drop the caller's
+`RLIMIT_FSIZE`; it names it. The stand-in server is test code.
+
+## Prove
+
+`sh experiments/428-actions-runner.sh` exits 0 on the
+chroot-denying fixture with no `--unsafe-host-paths`:
+`--version` prints the pinned version, `config.sh --help`
+exits 0, `run.sh` with the pre-staged files reaches the long
+poll of the stand-in and ends within 30 s of SIGTERM, and
+under `prlimit --fsize=1073741824` a run with W^X on exits
+153 with a message that names `RLIMIT_FSIZE`, while the same
+run with `-e DOTNET_EnableWriteXorExecute=0` exits 0.
+
+## Correction
+
+**Filed 2026-11-10.** From issue 231 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), WP-V1: "Official runner starts on
+the userland rung without `--unsafe-host-paths` (exit 154, then 137)".
+The entry is a new proven payload, so it is P2; its defects T-1704,
+T-1705 and T-1707 are P1 and are podvm's own.
+
+## Done
 
 **Done 2026-11-11.** `experiments/428-actions-runner.sh` builds the test
 image on the capable rung (debian bookworm-slim, `ca-certificates`,
@@ -2920,123 +3484,154 @@ path": an empty path now passes to the kernel, which answers `ENOENT`
 `an_empty_path_passes_unchanged`). The runner sent no `DELETE /session`
 before it ended on SIGTERM; an ephemeral runner needs none.
 
-**Filed 2026-11-10.** From issue 231 and the podrunner design review
-(the ruling "podrunner", 2026-11-10), WP-V1: "Official runner starts on
-the userland rung without `--unsafe-host-paths` (exit 154, then 137)".
-The entry is a new proven payload, so it is P2; its defects T-1704,
-T-1705 and T-1707 are P1 and are podvm's own.
+# T-1711: The calls of the four container-hook commands run through podvm verbs on the userland rung
 
----
+**Source:** issue 236; the podrunner design review (the owner's design
+  review of PodUtils/podcrates#47), SPEC sections 7.2, 10.1, its
+  unknown U19 and its hook contract; its R4:2.6 (the official
+  docker hook); G-09 of PodUtils/podcrates#39; T-1653
+  (volumes); T-1655 (`:ro`); T-1707; T-1709; T-1710;
+  `crates/podvm/src/parity.rs:222`;
+  `crates/podvm/src/exec/enter.rs:203`
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
 
-### T-1711 The calls of the four container-hook commands run through podvm verbs on the userland rung
+## Problem
 
-Source:      issue 236; the podrunner design review (the owner's design
-             review of PodUtils/podcrates#47), SPEC sections 7.2, 10.1, its
-             unknown U19 and its hook contract; its R4:2.6 (the official
-             docker hook); G-09 of PodUtils/podcrates#39; T-1653
-             (volumes); T-1655 (`:ro`); T-1707; T-1709; T-1710;
-             `crates/podvm/src/parity.rs:222`;
-             `crates/podvm/src/exec/enter.rs:203`
-Category:    cli
-Priority:    P2
-Effort:      L
-Status:      open
+A container job of the official runner calls its container
+hook. podrunner's hook asks the host to start a job container,
+run each step in it, run a container action, read logs and
+exit codes, and remove the containers. On a podvm unit those
+are podvm verbs. No test drives that sequence, so nobody knows
+which call fails first.
 
-Problem:     A container job of the official runner calls its container
-             hook. podrunner's hook asks the host to start a job container,
-             run each step in it, run a container action, read logs and
-             exit codes, and remove the containers. On a podvm unit those
-             are podvm verbs. No test drives that sequence, so nobody knows
-             which call fails first.
-Premise:     `run -d`, `--entrypoint`, `-e`, `-w`, `--name` and
-             `--add-host` are Native (`crates/podvm/src/parity.rs:210` to
-             `crates/podvm/src/parity.rs:235`); `-v` is Degraded and
-             refuses `:ro` (`crates/podvm/src/parity.rs:222`); `exec -e`
-             and `-w` are Native, `exec -d` is None
-             (`crates/podvm/src/parity.rs:289` to
-             `crates/podvm/src/parity.rs:295`); `logs` is one interleaved
-             file (`crates/podvm/src/parity.rs:153`); `network` and `-p`
-             are None. `exec` checks its workdir through the container's
-             volume table (`crates/podvm/src/exec/enter.rs:203`), not yet
-             driven. The official docker hook calls `network create`,
-             `port` and `exec -i`, so it cannot run over podvm (Inferred).
-             Each `exec` runs the probe and completion again; the cost is
-             not measured.
-Approach:    Write an experiment that replays the podvm calls of the
-             hook for a job with `container:` and one container action:
-             a job container with `run -d --entrypoint tail` and the seven
-             mounts of the job-container table (`/__w`, `/__w/_temp`,
-             `/__w/_actions`, `/__w/_tool`, `/__e` read-only,
-             `/github/home`, `/github/workflow`) from directories under a
-             runner root; a step with `exec -e K=V -w /__w/repo J sh -e
-             /__w/_temp/step.sh`; a container action with `run --rm`, the
-             five mounts of the container-action table and `-w
-             /github/workspace`; `logs`; `wait`; `rm -f`. Use a job image
-             that differs from the runner's image. Record each call as
-             passed or refused by name, and file each defect. Measure the
-             time of 20 `exec` steps.
-Decision:    podvm stays a command line. It adds no hook, no socket
-             server and no word of podrunner (the ruling "New projects",
-             2026-11-09). The hook and its control socket belong to
-             podrunner.
-Prove:       `sh experiments/431-hook-verbs.sh` exits 0 on the
-             chroot-denying fixture: each call of the sequence exits as
-             the experiment records, a step sees its `-e` value and its
-             workdir, a write to `/__e` fails with `EROFS`, a write to
-             `/__w` lands in the runner root, the container action reads
-             `/github/workspace`, `rm -f` leaves no process, and the time
-             of 20 steps is printed.
+## Premise
+
+`run -d`, `--entrypoint`, `-e`, `-w`, `--name` and
+`--add-host` are Native (`crates/podvm/src/parity.rs:210` to
+`crates/podvm/src/parity.rs:235`); `-v` is Degraded and
+refuses `:ro` (`crates/podvm/src/parity.rs:222`); `exec -e`
+and `-w` are Native, `exec -d` is None
+(`crates/podvm/src/parity.rs:289` to
+`crates/podvm/src/parity.rs:295`); `logs` is one interleaved
+file (`crates/podvm/src/parity.rs:153`); `network` and `-p`
+are None. `exec` checks its workdir through the container's
+volume table (`crates/podvm/src/exec/enter.rs:203`), not yet
+driven. The official docker hook calls `network create`,
+`port` and `exec -i`, so it cannot run over podvm (Inferred).
+Each `exec` runs the probe and completion again; the cost is
+not measured.
+
+## Approach
+
+Write an experiment that replays the podvm calls of the
+hook for a job with `container:` and one container action:
+a job container with `run -d --entrypoint tail` and the seven
+mounts of the job-container table (`/__w`, `/__w/_temp`,
+`/__w/_actions`, `/__w/_tool`, `/__e` read-only,
+`/github/home`, `/github/workflow`) from directories under a
+runner root; a step with `exec -e K=V -w /__w/repo J sh -e
+/__w/_temp/step.sh`; a container action with `run --rm`, the
+five mounts of the container-action table and `-w
+/github/workspace`; `logs`; `wait`; `rm -f`. Use a job image
+that differs from the runner's image. Record each call as
+passed or refused by name, and file each defect. Measure the
+time of 20 `exec` steps.
+
+## Decision
+
+podvm stays a command line. It adds no hook, no socket
+server and no word of podrunner (the ruling "New projects",
+2026-11-09). The hook and its control socket belong to
+podrunner.
+
+## Prove
+
+`sh experiments/431-hook-verbs.sh` exits 0 on the
+chroot-denying fixture: each call of the sequence exits as
+the experiment records, a step sees its `-e` value and its
+workdir, a write to `/__e` fails with `EROFS`, a write to
+`/__w` lands in the runner root, the container action reads
+`/github/workspace`, `rm -f` leaves no process, and the time
+of 20 steps is printed.
+
+## Correction
 
 **Filed 2026-11-10.** From issue 236 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), section 7.2: the hook relays to a host
 socket, and the host-side server calls podvm. A new use with nothing
 wrong without it is P2.
 
----
+# T-1712: `--podvm-tier=chroot` does nothing: it runs the ladder
 
-### T-1712 `--podvm-tier=chroot` does nothing: it runs the ladder
+**Source:** issue 237; the podrunner design review (the owner's design
+  review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
+  M2 (`01-probe-rung.log`); T-1302; call C2 of
+  `docs/decisions.md`; `crates/podvm/src/tier.rs:86`;
+  `crates/podvm/src/parity.rs:245`
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-Source:      issue 237; the podrunner design review (the owner's design
-             review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
-             M2 (`01-probe-rung.log`); T-1302; call C2 of
-             `docs/decisions.md`; `crates/podvm/src/tier.rs:86`;
-             `crates/podvm/src/parity.rs:245`
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done
+## Problem
 
-Problem:     The parity row says that `--podvm-tier=chroot` selects the
-             chroot tier. It runs the ladder. On a chroot-denied host it
-             enters the userland rung with exit 0; where the probe selects
-             the namespace rung it enters that. A caller that asks for one
-             mechanism gets another, and only the banner says so.
-Premise:     `resolve` maps the value to `Tier::Chroot`
-             (`crates/podvm/src/tier.rs:86`). Each caller compares the tier
-             with `Tier::Machine` only
-             (`crates/podvm/src/run/prepare.rs:25`,
-             `crates/podvm/src/exec/command.rs:42`). T-1302 made `chroot`
-             the override of the argv0 default `podvm` = machine. Call C2
-             (2026-11-06) removed that default, so the value has no effect
-             now. M2 observed exit 0 and `mode=userland`.
-Approach:    Take one of two forms and record it. (a) Remove the value
-             `chroot`; `--podvm-tier` takes `machine` only, and the ladder
-             is the default. (b) Make `chroot` enter the chroot sequence
-             and nothing else: where chroot is denied, refuse at 125 with
-             the T-1317 text; where the probe selects the namespace rung,
-             enter chroot without the namespace. The recommendation is
-             (a): a caller reads the entered rung from the report
-             (T-1695) and from `.EnteredRung` (T-1713), and needs no force.
-             Correct the parity row in the same change.
-Decision:    A flag that names a tier selects it or refuses by name. No
-             compatibility is kept (the ruling "Compatibility",
-             2026-11-05).
-Prove:       `cargo test -p podvm` exits 0 with a test of the chosen form.
-             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
-             exits 0 with a new clause: on the fixture,
-             `--podvm-tier=chroot public.ecr.aws/docker/library/alpine:3.20
-             true` is refused by name (form a: an unknown value; form b:
-             chroot denied).
+The parity row says that `--podvm-tier=chroot` selects the
+chroot tier. It runs the ladder. On a chroot-denied host it
+enters the userland rung with exit 0; where the probe selects
+the namespace rung it enters that. A caller that asks for one
+mechanism gets another, and only the banner says so.
+
+## Premise
+
+`resolve` maps the value to `Tier::Chroot`
+(`crates/podvm/src/tier.rs:86`). Each caller compares the tier
+with `Tier::Machine` only
+(`crates/podvm/src/run/prepare.rs:25`,
+`crates/podvm/src/exec/command.rs:42`). T-1302 made `chroot`
+the override of the argv0 default `podvm` = machine. Call C2
+(2026-11-06) removed that default, so the value has no effect
+now. M2 observed exit 0 and `mode=userland`.
+
+## Approach
+
+Take one of two forms and record it. (a) Remove the value
+`chroot`; `--podvm-tier` takes `machine` only, and the ladder
+is the default. (b) Make `chroot` enter the chroot sequence
+and nothing else: where chroot is denied, refuse at 125 with
+the T-1317 text; where the probe selects the namespace rung,
+enter chroot without the namespace. The recommendation is
+(a): a caller reads the entered rung from the report
+(T-1695) and from `.EnteredRung` (T-1713), and needs no force.
+Correct the parity row in the same change.
+
+## Decision
+
+A flag that names a tier selects it or refuses by name. No
+compatibility is kept (the ruling "Compatibility",
+2026-11-05).
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test of the chosen form.
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+exits 0 with a new clause: on the fixture,
+`--podvm-tier=chroot public.ecr.aws/docker/library/alpine:3.20
+true` is refused by name (form a: an unknown value; form b:
+chroot denied).
+
+## Correction
+
+**Filed 2026-11-10.** From issue 237 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), M2 surprise 7: "`--podvm-tier=chroot`
+on a chroot-denied host silently enters userland". The cause is wider:
+the value has no effect on any host. A flag that does nothing is P1.
+
+## Done
 
 **Done 2026-11-11, form (a)** (call C14 of `docs/decisions.md`).
 `--podvm-tier` takes `machine` only: `tier::want` knows no `chroot`, and
@@ -3056,51 +3651,68 @@ on the chroot-denied fixture `run --rm --podvm-tier=chroot` of the pinned
 alpine digest exits 125 with that message. `cargo clippy --workspace
 --all-targets -- -D warnings` exits 0.
 
-**Filed 2026-11-10.** From issue 237 and the podrunner design review
-(the ruling "podrunner", 2026-11-10), M2 surprise 7: "`--podvm-tier=chroot`
-on a chroot-denied host silently enters userland". The cause is wider:
-the value has no effect on any host. A flag that does nothing is P1.
+# T-1713: `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied
 
----
+**Source:** issue 238; the podrunner design review (the owner's design
+  review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
+  M2 (`01-probe-rung.log`); T-0804 rule 4; T-1317;
+  `crates/podvm/src/system/df_info.rs:307`;
+  `crates/podvm/src/run/acquire.rs:23`
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-### T-1713 `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied
+## Problem
 
-Source:      issue 238; the podrunner design review (the owner's design
-             review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
-             M2 (`01-probe-rung.log`); T-0804 rule 4; T-1317;
-             `crates/podvm/src/system/df_info.rs:307`;
-             `crates/podvm/src/run/acquire.rs:23`
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done
+On a host where the probe selects `supervise` (the listener,
+the argument channel and ptrace work) and chroot is denied,
+`system info` gives `.EnteredRung` = `chroot`. `run` enters
+the userland rung there. A caller that reads the field before
+a run reads the wrong mechanism.
 
-Problem:     On a host where the probe selects `supervise` (the listener,
-             the argument channel and ptrace work) and chroot is denied,
-             `system info` gives `.EnteredRung` = `chroot`. `run` enters
-             the userland rung there. A caller that reads the field before
-             a run reads the wrong mechanism.
-Premise:     `crates/podvm/src/system/df_info.rs:307` takes the word from
-             `entered_word` of `pod-enter`, which maps each selection but
-             `interpose` and `namespace` to `chroot` (`src/lib.rs` of
-             `pod-enter` v0.12.0). `run` adds its own userland decision
-             (`crates/podvm/src/run/acquire.rs:23`). The help of `system
-             info` says that the field reads `userland` where chroot is
-             denied. The tests cover the `interpose` and `namespace`
-             selections only. M2 observed `.Rung`=`supervise`,
-             `.EnteredRung`=`chroot` and the banner `mode=userland`. The
-             errand host denies ptrace, so it selects `interpose` and reads
-             correctly.
-Approach:    Derive `.EnteredRung` from the same facts that `run` uses:
-             where the `chroot(/tmp)` finding is denied, the word is
-             `userland`, whatever the selection. If the rule belongs in
-             `pod-enter`, send it to podcrates as a COORD issue
-             (`AGENTS.md`, section 9, item 4); else keep it in
-             `df_info.rs`.
-Decision:    The field names what `run` enters, never what the probe
-             selected (T-0804 rule 4).
-Prove:       `cargo test -p podvm` exits 0 with a test that a `supervise`
-             selection with a denied chroot reads `userland`.
+## Premise
+
+`crates/podvm/src/system/df_info.rs:307` takes the word from
+`entered_word` of `pod-enter`, which maps each selection but
+`interpose` and `namespace` to `chroot` (`src/lib.rs` of
+`pod-enter` v0.12.0). `run` adds its own userland decision
+(`crates/podvm/src/run/acquire.rs:23`). The help of `system
+info` says that the field reads `userland` where chroot is
+denied. The tests cover the `interpose` and `namespace`
+selections only. M2 observed `.Rung`=`supervise`,
+`.EnteredRung`=`chroot` and the banner `mode=userland`. The
+errand host denies ptrace, so it selects `interpose` and reads
+correctly.
+
+## Approach
+
+Derive `.EnteredRung` from the same facts that `run` uses:
+where the `chroot(/tmp)` finding is denied, the word is
+`userland`, whatever the selection. If the rule belongs in
+`pod-enter`, send it to podcrates as a COORD issue
+(`AGENTS.md`, section 9, item 4); else keep it in
+`df_info.rs`.
+
+## Decision
+
+The field names what `run` enters, never what the probe
+selected (T-0804 rule 4).
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test that a `supervise`
+selection with a denied chroot reads `userland`.
+
+## Correction
+
+**Filed 2026-11-10.** From issue 238 and the podrunner design review
+(the ruling "podrunner", 2026-11-10), M2 question Q1: "`system info`
+gives `.Rung`=`supervise`, `.EnteredRung`=`chroot`; the first `run`
+banner says `mode=userland`". A wrong answer is P1.
+
+## Done
 
 **Done 2026-11-11.** The rule stays in podvm (`df_info.rs`), because the
 decision that it mirrors is podvm's: `decide_entry` asks `chroot_usable`
@@ -3120,43 +3732,57 @@ of experiment 356 exits 0 ([the run](../experiments/results/no-chroot-rung.txt))
 `system info --format '{{.Rung}} {{.EnteredRung}}'` under the fixture
 prints `namespace userland`.
 
-**Filed 2026-11-10.** From issue 238 and the podrunner design review
-(the ruling "podrunner", 2026-11-10), M2 question Q1: "`system info`
-gives `.Rung`=`supervise`, `.EnteredRung`=`chroot`; the first `run`
-banner says `mode=userland`". A wrong answer is P1.
+# T-1726: `exec` into a container ignores its `:ro` volumes and `--read-only`
 
----
+**Source:** PodUtils/podrunner#62 (COORD-008 of podrunner, a message from
+  a peer session); measured on the cloud host, 2026-11-11
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
 
-### T-1726 `exec` into a container ignores its `:ro` volumes and `--read-only`
+## Problem
 
-Source:      PodUtils/podrunner#62 (COORD-008 of podrunner, a message from
-             a peer session); measured on the cloud host, 2026-11-11
-Category:    cli
-Priority:    P1
-Effort:      S
-Status:      done
+On the loader family, `podvm run --rm -v DIR:/e:ro IMAGE sh -c
+'echo x > /e/r.txt'` fails the write (EROFS), but after `podvm
+run -d --name c -v DIR:/e:ro IMAGE sleep 30`, `podvm exec c sh
+-c 'echo x > /e/w.txt'` exits 0 and `DIR/w.txt` exists
+(measured, 2026-11-11). podrunner mounts the externals of the
+runner as `/__e:ro`, so one step can change the code of the
+next.
 
-Problem:     On the loader family, `podvm run --rm -v DIR:/e:ro IMAGE sh -c
-             'echo x > /e/r.txt'` fails the write (EROFS), but after `podvm
-             run -d --name c -v DIR:/e:ro IMAGE sleep 30`, `podvm exec c sh
-             -c 'echo x > /e/w.txt'` exits 0 and `DIR/w.txt` exists
-             (measured, 2026-11-11). podrunner mounts the externals of the
-             runner as `/__e:ro`, so one step can change the code of the
-             next.
-Premise:     `run` sets the read-only table `PODVM_RO` of the interposer
-             (`lifecycle::volume::read_only_env`, T-1655). An `exec` enters
-             the container's rootfs with the container's table of volumes.
-Approach:    Keep the read-only part of the run in the container record and
-             set `PODVM_RO` for each `exec` of the container as `run` does;
-             an entry that cannot serve it refuses by name, as `run` does.
-Decision:    No entry of a container serves a write under a `:ro` volume or
-             under `--read-only`.
-Prove:       `cargo test -p podvm` exits 0 with a test of the exec
-             environment of a container with a `:ro` volume, and
-             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
-             exits 0 with a clause where `exec` into a container with a
-             `:ro` volume fails a write there with EROFS and leaves no file
-             in the host directory.
+## Premise
+
+`run` sets the read-only table `PODVM_RO` of the interposer
+(`lifecycle::volume::read_only_env`, T-1655). An `exec` enters
+the container's rootfs with the container's table of volumes.
+
+## Approach
+
+Keep the read-only part of the run in the container record and
+set `PODVM_RO` for each `exec` of the container as `run` does;
+an entry that cannot serve it refuses by name, as `run` does.
+
+## Decision
+
+No entry of a container serves a write under a `:ro` volume or
+under `--read-only`.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with a test of the exec
+environment of a container with a `:ro` volume, and
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+exits 0 with a clause where `exec` into a container with a
+`:ro` volume fails a write there with EROFS and leaves no file
+in the host directory.
+
+## Correction
+
+**Filed 2026-11-11.** From PodUtils/podrunner#62, reproduced the same day.
+
+## Done
 
 **Done 2026-11-11.** `cargo test -p podvm` exits 0 with
 `an_exec_takes_the_read_only_table_of_its_container`, and
@@ -3171,5 +3797,3 @@ exits 0 with `an_exec_takes_the_read_only_table_of_its_container`. On the
 fixture, `exec` of a container with `-v DIR:/e:ro` answers "Read-only file
 system" and DIR stays empty. Remaining: the run of experiment 356 with
 clause 35.
-
-**Filed 2026-11-11.** From PodUtils/podrunner#62, reproduced the same day.

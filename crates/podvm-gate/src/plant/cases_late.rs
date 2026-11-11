@@ -83,12 +83,15 @@ pub(super) fn continue_run(
         scratch,
         &|| {
             let text = read_file(root, "TODO/probe.md");
+            // TODO/gate.md T-1672: a line of a section `## Prove`.
+            let mut in_prove = false;
             let out: Vec<String> = text
                 .split('\n')
                 .map(|line| {
-                    if line.starts_with("Prove:")
-                        && line.contains("public.ecr.aws/docker/library/alpine:3.20")
-                    {
+                    if line.starts_with("## ") || line.starts_with("# T-") {
+                        in_prove = line == "## Prove";
+                    }
+                    if in_prove && line.contains("public.ecr.aws/docker/library/alpine:3.20") {
                         line.replacen(
                             "public.ecr.aws/docker/library/alpine:3.20",
                             "alpine:latest",
@@ -110,12 +113,15 @@ pub(super) fn continue_run(
         scratch,
         &|| {
             let text = read_file(root, "TODO/probe.md");
+            // TODO/gate.md T-1672: a line of a section `## Prove`.
+            let mut in_prove = false;
             let out: Vec<String> = text
                 .split('\n')
                 .map(|line| {
-                    if line.starts_with("Prove:")
-                        && line.contains("public.ecr.aws/docker/library/alpine:3.20")
-                    {
+                    if line.starts_with("## ") || line.starts_with("# T-") {
+                        in_prove = line == "## Prove";
+                    }
+                    if in_prove && line.contains("public.ecr.aws/docker/library/alpine:3.20") {
                         line.replacen(
                             "public.ecr.aws/docker/library/alpine:3.20",
                             "docker.io/library/alpine:latest",
@@ -290,7 +296,7 @@ pub(super) fn continue_run(
             append_file(
                 root,
                 "TODO/probe.md",
-                "\n---\n\n### T-9998 Cluster plant\n\nSource: plant\nCategory: probe\nPriority: P3\nEffort: S\nStatus: done\n\nProblem: plant\nPremise: plant\nApproach: plant\nDecision: plant\nProve: `podvm ps -aZ`\n\n**Done.** plant.\n",
+                "\n# T-9998: Cluster plant\n\n**Source:** plant\n**Category:** probe\n**Milestone:** none\n**Priority:** P3\n**Effort:** S\n**Status:** done\n\n## Problem\n\nplant\n\n## Premise\n\nplant\n\n## Approach\n\nplant\n\n## Decision\n\nplant\n\n## Prove\n\n`podvm ps -aZ`\n\n## Done\n\n**Done 2026-01-01.** plant.\n",
             );
             true
         },

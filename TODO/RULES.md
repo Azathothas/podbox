@@ -63,10 +63,12 @@ result independently.
 
 ## 5. Entry closure
 
-Keep the ten entry fields defined by
-[authoring.md](../docs/methodology/authoring.md).
-Run the entry's proof. Save the result and its limits.
-For a done entry, the first paragraph after Prove starts with bold Done.
+Keep the header fields and the sections that
+[authoring.md](../docs/methodology/authoring.md) defines, in the format
+of `pod-todo`. Run the entry's proof. Save the result and its limits.
+A done entry has a section `## Done`, and its first paragraph starts with
+bold Done and a date. `./target/x86_64-unknown-linux-musl/release/podvm-todo check`
+reads the record as `pod-todo` reads it.
 
 Keep the title when a premise is disproved. Put the correction below it.
 A blocked entry names the blocker and the condition that clears it.

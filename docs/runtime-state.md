@@ -27,6 +27,7 @@ Declared version: `0.2.0-beta.3`.
 | `podvm-supervise` | [crates/podvm-supervise/Cargo.toml](../crates/podvm-supervise/Cargo.toml) |
 | `podvm-windows` | [crates/podvm-windows/Cargo.toml](../crates/podvm-windows/Cargo.toml) |
 | `podvm-ssh` | [crates/podvm-ssh/Cargo.toml](../crates/podvm-ssh/Cargo.toml) |
+| `podvm-todo` | [crates/podvm-todo/Cargo.toml](../crates/podvm-todo/Cargo.toml) |
 
 Separate crate: `crates/podvm-interpose`.
 
@@ -67,6 +68,7 @@ Separate crate: `crates/podvm-interpose`.
 | `pod-supervise` | `0.22.0` |
 | `pod-term` | `0.22.0` |
 | `pod-tls` | `0.22.0` |
+| `pod-todo` | `0.22.0` |
 | `rustls` | `0.23.46` |
 | `rustls-pki-types` | `1.15.1` |
 | `serde` | `1.0.229` |
