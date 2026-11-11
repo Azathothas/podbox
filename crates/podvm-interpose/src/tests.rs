@@ -310,3 +310,6 @@ mod exe_realpath;
 
 // TODO/cli.md T-1655.
 mod readonly;
+
+// TODO/interpose.md T-1710.
+mod sock;

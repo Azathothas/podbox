@@ -49,6 +49,16 @@
     system;
     popen;
     pclose;
+    bind;
+    connect;
+    sendto;
+    sendmsg;
+    getsockname;
+    getpeername;
+    accept;
+    accept4;
+    recvfrom;
+    recvmsg;
     posix_spawn;
     posix_spawnp;
     chdir;

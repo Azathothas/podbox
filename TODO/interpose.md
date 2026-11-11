@@ -2745,7 +2745,7 @@ Source:      issue 235; the podrunner design review (the owner's design
 Category:    interpose
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     On the userland rung a payload names a Unix socket by a
              guest path. The interposer does not rewrite
@@ -2779,6 +2779,37 @@ Prove:       `cargo test --manifest-path crates/podvm-interpose/Cargo.toml --tar
              host `/tmp/t.sock`, a second `exec` connects to it, and with
              `-v HOSTDIR:/run/ctl` a connect to `/run/ctl/s.sock` reaches a
              host listener.
+
+**Done 2026-11-11.** `crates/podvm-interpose/src/sock_calls.rs` exports
+`bind`, `connect`, `sendto` and `sendmsg`, which rewrite a path address of
+`AF_UNIX` through the table as `open` does; `bind` makes a node, so a
+read-only prefix of `PODVM_RO` answers `EROFS` for it. Where the host path
+does not fit the 108 bytes of `sun_path` (a store path under the default
+store does not), the call opens the parent directory with `O_PATH` and
+uses `/proc/self/fd/N/NAME`, then closes the descriptor. A bind through
+that long form keeps its guest name in a fixed table of the process
+(`crates/podvm-interpose/src/sock_calls/names.rs`), and `getsockname`,
+`getpeername`, `accept`, `accept4`, `recvfrom` and `recvmsg` answer the
+guest name. An abstract or unnamed address passes unchanged.
+
+⚠ The clause of the Prove ran in experiment 432, not 356: it needs the
+probe program that 432 builds with zig cc. The measurement before the
+change was not run; the premise stays Inferred from the absence of the
+calls.
+
+Proof: `cargo test --manifest-path crates/podvm-interpose/Cargo.toml
+--target x86_64-unknown-linux-gnu -- --test-threads=1` passed 81 tests,
+with `a_socket_path_binds_in_the_rootfs_and_reads_back_its_guest_name`,
+`a_long_host_path_binds_through_the_parent_descriptor` (the long form,
+and the guest name from `getsockname`) and
+`an_abstract_name_passes_and_a_read_only_bind_answers_erofs`.
+`PODVM_432_MIRROR=1 sh experiments/432-exec-routes.sh` exited 0 on the
+chroot-denying fixture (`experiments/results/exec-routes.txt`): clause 5
+bound `/tmp/tNNN.sock` through the long form, `getsockname` printed
+`bound /tmp/tNNN.sock`, a second exec connected by the guest name and
+read `sock-hi`, and no socket was at the host path; clause 6 connected
+to `/run/ctl/s.sock` through `-v HOSTDIR:/run/ctl` and read `sock-hi`
+from a listener of the host.
 
 **Filed 2026-11-10.** From issue 235 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), U21: "`curl` under the interposer,

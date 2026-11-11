@@ -10,7 +10,7 @@ They describe their recorded revision, not the current build.
 
 ### Fixed: children that libc starts on the userland rung, 2026-11-11
 
-Record: T-1703.
+Record: T-1703, T-1710; issue 235.
 Deployed: not deployed; no version change.
 
 - On the userland loader family, a child that the payload starts through
@@ -20,6 +20,10 @@ Deployed: not deployed; no version change.
   the host.
 - A child ELF of another machine fails its exec with `ENOEXEC` and a
   line that names it, not a run through the host.
+- A Unix socket path in `bind`, `connect`, `sendto` and `sendmsg` takes
+  the path table (T-1710, issue 235): a payload's socket is inside the
+  rootfs, and `-v HOSTDIR:/run/ctl` puts a host socket at a guest path.
+  `getsockname` and the other answers give the guest name.
 
 ### Fixed: `wait` of a payload that ends at once, 2026-11-11
 

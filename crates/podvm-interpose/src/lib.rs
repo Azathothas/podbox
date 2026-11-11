@@ -443,5 +443,8 @@ pub use exec::calls::*;
 mod raw_calls;
 pub use raw_calls::*;
 
+mod sock_calls;
+pub use sock_calls::*;
+
 #[cfg(test)]
 mod tests;

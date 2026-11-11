@@ -383,7 +383,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1707](enter.md) | P1 | enter | open | A relative first program resolves against the image root, not against `-w` |
 | [T-1708](supervise.md) | P1 | supervise | done | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
 | [T-1709](image.md) | P1 | image | open | Each container gets its own rootfs: a write in one container is not read by another |
-| [T-1710](interpose.md) | P1 | interpose | open | A Unix socket path in `connect` and `bind` passes the path table |
+| [T-1710](interpose.md) | P1 | interpose | done | A Unix socket path in `connect` and `bind` passes the path table |
 | [T-1711](cli.md) | P2 | cli | open | The calls of the four container-hook commands run through podvm verbs on the userland rung |
 | [T-1712](cli.md) | P1 | cli | done | `--podvm-tier=chroot` does nothing: it runs the ladder |
 | [T-1713](cli.md) | P1 | cli | done | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
@@ -397,7 +397,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-329 items: 32 open, 7 partial, 4 blocked, 286 done.
+329 items: 31 open, 7 partial, 4 blocked, 287 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -407,10 +407,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 4 | 6 | 0 | 136 | 146 |
+| P1 | 3 | 6 | 0 | 137 | 146 |
 | P2 | 28 | 0 | 4 | 77 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **32** | **7** | **4** | **286** | **329** |
+| **All** | **31** | **7** | **4** | **287** | **329** |
 
 ## Work order
 

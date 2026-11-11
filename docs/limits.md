@@ -21,6 +21,10 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   `/proc/self/fd/N`, so the started program keeps that descriptor. A
   child ELF of another machine or class (also i386) fails its exec with
   `ENOEXEC` and one line.
+- A Unix socket path takes the path table (T-1710), also through `-v`. A
+  socket whose host path is longer than 108 bytes binds as
+  `/proc/self/fd/N/NAME`; the process that bound it reads its guest name
+  back, and another process reads that kernel name.
 - A raw call through libc's `syscall()` takes the path table, so libuv's
   `statx` resolves inside the rootfs (T-1697). A raw call with a path that
   the table cannot map, and `io_uring_setup`, answer `ENOSYS`. A program
