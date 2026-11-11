@@ -18,9 +18,9 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #91 | [T-1409] a static Go payload is declined and then run into a GOROOT error instead of a named refusal | closed | T-1648 |
 | #92 | [QOL] node:alpine is unusable without an undocumented --entrypoint; the #! refusal should name the way out | closed | T-1649 |
 | #93 | [CLI] --strict does not refuse the userland grandchild limit, while --strict=all refuses every run | closed | T-1650 |
-| #94 | [T-1317] static payloads have no rung: add an emulate tier on a prefix-preserving qemu-user | open | T-1651 |
-| #109 | [T-1317] static payloads can have a native rung with no ptrace and no qemu: userland-execve + Syscall User Dispatch + openat2(RESOLVE_IN_ROOT) | open | T-1652 |
-| #114 | [Reference] Dossier: podbox on the constrained errand host: every limit -> mechanism -> workaround (measured) | open | T-1643 to T-1653 |
+| #94 | [T-1317] static payloads have no rung: add an emulate tier on a prefix-preserving qemu-user | closed | T-1651 |
+| #109 | [T-1317] static payloads can have a native rung with no ptrace and no qemu: userland-execve + Syscall User Dispatch + openat2(RESOLVE_IN_ROOT) | closed | T-1652 |
+| #114 | [Reference] Dossier: podbox on the constrained errand host: every limit -> mechanism -> workaround (measured) | closed (lesson taken in T-1643 to T-1653) | T-1643 to T-1653 |
 | #127 | [Recovered #95] a dynamic grandchild re-enters through the host loader: the loader substitution must cover children | closed | T-1646 |
 | #128 | [Recovered #96] the absolute lib64/ld-linux-x86-64.so.2 symlink resolves on the host and decides the libc | closed | T-1644 |
 | #129 | [Recovered #97] the libc ABI union omits ld-linux-x86-64.so.2 and libdl.so.2, so every glibc payload is refused | closed | T-1644 |
@@ -61,8 +61,8 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #164 | [Reference] multikernel/sandlock @ 841265d: anti-pattern: filtered read, false report | closed (lesson taken in T-0107, T-0606, T-0804, T-0903; podcrates pod-hostprobe) | none: a reference (references/README.md) |
 | #165 | [Reference] novafacing/memfd-exec @ 0a15efe: upstream baseline for the memfd fork | closed (lesson taken in T-0909; not vendored) | none: a reference (references/README.md) |
 | #166 | [Scope] Cage recipes: podvm profiles in strict TOML with extends and -s overrides | closed | T-1654 |
-| #167 | [Scope] Container cages: docker/podman run parity for the sandbox hardening flags | open | T-1655 |
-| #168 | [Scope] MicroVMs: fast disposable guests from an OCI image, on KVM or TCG | open | T-1656 |
+| #167 | [Scope] Container cages: docker/podman run parity for the sandbox hardening flags | closed | T-1655 |
+| #168 | [Scope] MicroVMs: fast disposable guests from an OCI image, on KVM or TCG | closed | T-1656 |
 | #169 | [Scope] User-space kernels (gVisor): a syscall-interpreting tier without user namespaces | closed | T-1657, T-1729 |
 | #170 | [Scope] Wrapper sandboxes (bwrap, landrun, bailey): unprivileged Landlock and seccomp confinement | open | T-1658 |
 | #171 | [Reference] pkgforge-dev/cross-libc-dlopen @ 34482c7: cross-libc loading rules | closed (lesson taken in T-0701, T-0702, T-0706) | none: a reference (references/README.md) |
@@ -127,7 +127,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #230 | [podrunner] interpose: a host path that a loaded object reports gets the rootfs prefix a second time, so CoreCLR exits 137 | closed | T-1705 |
 | #231 | [podrunner] the userland rung runs the unmodified actions/runner: it exits 154, then 137, and it dies on SIGXFSZ under a finite RLIMIT_FSIZE | closed | T-1706; T-1655 (amended) |
 | #232 | [podrunner] enter: a relative first program resolves against the image root, not against -w, so -w /opt/runner ./run.sh exits 127 | closed | T-1707 |
-| #233 | [podrunner] supervise: stop and rm -f signal the payload only, so orphaned grandchildren keep running after the container is gone | open | T-1708; T-1655 (amended) |
+| #233 | [podrunner] supervise: stop and rm -f signal the payload only, so orphaned grandchildren keep running after the container is gone | closed | T-1708; T-1655 (amended) |
 | #234 | [podrunner] image: all containers of one image share one mutable rootfs, so a write in one container is read by another and --rm is not a fresh start | closed | T-1709 |
 | #235 | [podrunner] interpose: a Unix socket path in connect and bind passes the path table, so bind creates the socket on the host and a -v pair does not apply | closed | T-1710 |
 | #236 | [podrunner] cli: drive the podvm calls of the four container-hook commands on the userland rung, with the runner's mount table | open | T-1711; T-1653 and T-1655 (amended) |
@@ -136,25 +136,25 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates podcrates@T-107) | open | T-1714; T-1670 (amended) |
 | #240 | [podrunner] supervise: the container table keeps -e values in a file that the umask leaves readable to other users | closed | T-1715; T-1696 (amended, then dropped 2026-11-11) |
 | #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | closed (podcrates#56: podcrates@T-173) | T-1684 (amended), T-1696 |
-| #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of podcrates@T-155 (to podcrates) | open | T-1716 |
-| #243 | COORD-025: the answer to COORD-031: T-1656 moves up for podrunner; incus is a study (T-1717), then an API back end (T-1718) (to podcrates) | open | T-1656 (amended), T-1717, T-1718 |
+| #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of podcrates@T-155 (to podcrates) | closed (podcrates#52 and #54) | T-1716 |
+| #243 | COORD-025: the answer to COORD-031: T-1656 moves up for podrunner; incus is a study (T-1717), then an API back end (T-1718) (to podcrates) | closed (podcrates#56) | T-1656 (amended), T-1717, T-1718 |
 | #244 | COORD-026: pod-supervise: private modes for the table, the logs and each container directory (T-1715); a tag with podcrates@T-162 for T-1708 (to podcrates) | closed (podcrates v0.16.0, taken 894cf13) | T-1708, T-1715 |
 | #245 | COORD-027: pod-enter: resource limits and no_new_privs in the child before the exec (T-1655) (to podcrates) | closed (podcrates v0.17.0, taken 522b437) | T-1655 (amended) |
-| #246 | COORD-028: the answer to PodUtils/podrunner#49: wait reads the record again until it has the exit code (to podrunner) | open | T-1720 |
+| #246 | COORD-028: the answer to PodUtils/podrunner#49: wait reads the record again until it has the exit code (to podrunner) | closed (podrunner#49; in v0.2.0-beta.3) | T-1720 |
 | #247 | COORD-029: pod-enter: lib_dirs takes /usr/local/lib and the image's loader configuration (T-1719) (to podcrates) | closed | T-1719 |
 | #248 | COORD-030: the official runner starts on the userland rung; the shape of M1's stand-in for run.sh (T-1706) (to podrunner) | closed | T-1706 |
-| #249 | COORD-031: podvm takes podcrates v0.19.0 (to podcrates) | open | T-1719 |
-| #250 | COORD-032: the answer to PodUtils/podrunner#51: a unix socket path takes the table on main (T-1710) (to podrunner) | open | T-1710 |
-| #251 | [reference] Azathothas/errand-box: incus without root (route A) and its costs | open | T-1717, T-1718 (open while T-1718 is open) |
+| #249 | COORD-031: podvm takes podcrates v0.19.0 (to podcrates) | closed (podcrates#62) | T-1719 |
+| #250 | COORD-032: the answer to PodUtils/podrunner#51: a unix socket path takes the table on main (T-1710) (to podrunner) | closed (podrunner#51) | T-1710 |
+| #251 | [reference] Azathothas/errand-box: incus without root (route A) and its costs | closed (lesson taken in T-1717 and T-1718) | T-1717, T-1718 (open while T-1718 is open) |
 | #252 | COORD-033: the answer to PodUtils/podrunner#52: no aarch64 interposer yet; podvm T-1721 (to podrunner) | open | T-1721 |
-| #253 | COORD-034: a client of the incus REST API as a podcrates crate (T-1718) (to podcrates) | open | T-1718 |
-| #254 | COORD-035: the answer to PodUtils/podrunner#53: podvm v0.2.0-beta.3 is released (to podrunner) | open | T-1706, T-1720, T-1710 |
+| #253 | COORD-034: a client of the incus REST API as a podcrates crate (T-1718) (to podcrates) | closed (pod-incus, taken 1ffe87e) | T-1718 |
+| #254 | COORD-035: the answer to PodUtils/podrunner#53: podvm v0.2.0-beta.3 is released (to podrunner) | closed (podrunner#53) | T-1706, T-1720, T-1710 |
 | #255 | COORD-036: the answer to PodUtils/podrunner#61: an absolute symlink of the rootfs resolves on the host; podvm T-1725 fixes it (to podrunner) | closed | T-1725 |
 | #256 | COORD-037: the answer to PodUtils/podrunner#62: exec ignores a :ro volume; podvm T-1726 fixes it (to podrunner) | closed | T-1726 |
-| #257 | COORD-038: podvm takes podcrates v0.21.0 and pod-incus (the answer to PodUtils/podcrates#63) (to podcrates) | open | T-1727 |
+| #257 | COORD-038: podvm takes podcrates v0.21.0 and pod-incus (the answer to PodUtils/podcrates#63) (to podcrates) | closed (podcrates#63 and #65) | T-1727 |
 | #258 | COORD-039: each container has its own rootfs (T-1709, issue 234) (to podrunner) | open | T-1709 |
 | #259 | COORD-040: ask for pod-confine and a confine step of pod-enter's child (podvm T-1658, issue 170) (to podcrates) | open | T-1658 |
 | #260 | COORD-041: ask for pod-netlab, and who reads the guest's modloop (podvm T-1662, issues 178, 180, 182) (to podcrates) | open | T-1662 |
 | #261 | COORD-042: pod-extract refuses a layer whose root directory entry has an empty name (public.ecr.aws/lambda/provided:al2023) (to podcrates) | open | T-1659 |
-| #262 | COORD-043: podvm takes podcrates v0.22.0; a detached payload ends with its launcher (the answer to PodUtils/podcrates#71) (to all) | open | T-1732 |
+| #262 | COORD-043: podvm takes podcrates v0.22.0; a detached payload ends with its launcher (the answer to PodUtils/podcrates#71) (to all) | closed (podcrates#71) | T-1732 |
 | #263 | COORD-044: three gaps of podvm's inventory in pod-services: gcr.io, mirror.gcr.io and the NIC modules of the guest (podvm T-1679) (to podcrates) | open | T-1679 |
