@@ -17,8 +17,11 @@
 #      on exits 153, and podvm names RLIMIT_FSIZE and
 #      DOTNET_EnableWriteXorExecute=0; with
 #      `-e DOTNET_EnableWriteXorExecute=0` it exits 0.
-# Not here yet: run.sh against a loopback stand-in of the service (the
-# remaining clause of T-1706).
+#   4. `./run.sh` with the three credential files of a synthetic blob
+#      (mode 0600, staged in the image) against a loopback stand-in of the
+#      service (experiments/runner-standin.py: POST /_apis/oauth2/token,
+#      POST /session, GET /message) reaches the long poll ("Listening for
+#      Jobs"), and the run ends within 30 s of SIGTERM to podvm.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no download, no namespaces).
@@ -49,7 +52,7 @@ echo "runner            $TARBALL sha256 $SHA"
 echo "libraries         $LIBS"
 } >"$REPORT"
 
-for t in cargo cc curl sha256sum prlimit tar; do
+for t in cargo cc curl sha256sum prlimit tar openssl python3 pgrep; do
 	command -v "$t" >/dev/null 2>&1 || { echo "$t missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 done
 unshare -Urm true >/dev/null 2>&1 || { echo "user+mount namespaces refused: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
@@ -84,6 +87,11 @@ timeout 1200 "$PB" run --name build428 -e DEBIAN_FRONTEND=noninteractive "$DEBIA
 tar -C "$DROOT" --exclude=./proc --exclude=./sys -cf "$WORK/out/root.tar" . || exit 2
 mkdir -p "$WORK/add/opt/runner"
 tar -xzf "$WORK/$TARBALL" -C "$WORK/add/opt/runner" || exit 2
+# The port of the stand-in, and the three files of a synthetic blob.
+PORT=$((18000 + $$ % 1000))
+python3 -I "$REPO/experiments/runner-standin.py" files "$PORT" "$WORK/add/opt/runner" ||
+	{ echo "credential files FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+chmod 0600 "$WORK/add/opt/runner/.runner" "$WORK/add/opt/runner/.credentials" "$WORK/add/opt/runner/.credentials_rsaparams"
 tar -rf "$WORK/out/root.tar" -C "$WORK/add" ./opt || exit 2
 timeout 300 "$PB" import "$WORK/out/root.tar" runner-428:1 >>"$REPORT" 2>&1 || { echo "import FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 rm -f "$WORK/out/root.tar"
@@ -103,6 +111,9 @@ echo "fixture rung      $(cat "$WORK/rung.txt")" >>"$REPORT"
 fail=0
 grep -qx userland "$WORK/rung.txt" || { echo "the fixture does not deny chroot" >>"$REPORT"; fail=1; }
 note() { echo "$*" >>"$REPORT"; }
+# The report is ASCII (docs/conventions/prose.md): the runner prints
+# glyphs such as U+221A, and each other byte goes.
+ascii() { LC_ALL=C tr -cd '\11\12\15\40-\176'; }
 NOISE="Extracted\|cannot apply\|restore ownership\|no mapping\|not mapped\|intended metadata\|reads as a bad"
 
 # One step: $1 the name, $2 the wanted exit, the rest the command.
@@ -111,7 +122,7 @@ step() {
 	out="$WORK/out-$name.txt"
 	timeout 300 "$@" >"$out" 2>&1
 	rc=$?
-	{ echo ""; echo "== $name"; echo "exit              $rc"; grep -v "$NOISE" "$out" | tail -20 | sed 's/^/  /'; } >>"$REPORT"
+	{ echo ""; echo "== $name"; echo "exit              $rc"; grep -v "$NOISE" "$out" | tail -20 | ascii | sed 's/^/  /'; } >>"$REPORT"
 	[ "$rc" -eq "$want" ] || { note "$name: wanted exit $want, got $rc"; fail=1; }
 }
 
@@ -123,6 +134,30 @@ step fsize-wx 153 prlimit --fsize=1073741824 $FX $RUN runner-428:1 ./bin/Runner.
 grep -q "RLIMIT_FSIZE of 1073741824 bytes" "$WORK/out-fsize-wx.txt" || { note "fsize-wx: RLIMIT_FSIZE not named"; fail=1; }
 grep -q "DOTNET_EnableWriteXorExecute=0" "$WORK/out-fsize-wx.txt" || { note "fsize-wx: the W^X switch not named"; fail=1; }
 step fsize-nowx 0 prlimit --fsize=1073741824 $FX $RUN -e DOTNET_EnableWriteXorExecute=0 runner-428:1 ./bin/Runner.Listener --version
+
+# Clause 4: run.sh to the long poll of the stand-in, then SIGTERM.
+LOG="$WORK/standin.log"; : >"$LOG"
+python3 -I "$REPO/experiments/runner-standin.py" serve "$PORT" "$LOG" &
+sp=$!
+sleep 1
+out="$WORK/out-run.txt"
+$FX $RUN runner-428:1 ./run.sh >"$out" 2>&1 &
+rp=$!
+i=0; while [ "$i" -lt 180 ] && ! grep -q "GET /message" "$LOG"; do sleep 1; i=$((i + 1)); done
+grep -q "GET /message" "$LOG" || { note "run: the long poll was not reached in 180 s"; fail=1; }
+sleep 3
+pv=$(pgrep -n -f "podvm run --rm .*runner-428:1 ./run.sh") || pv=""
+start=$(date +%s)
+if [ -n "$pv" ]; then kill -TERM "$pv"; else note "run: podvm not found"; fail=1; fi
+i=0; while [ "$i" -lt 60 ] && kill -0 "$rp" 2>/dev/null; do sleep 1; i=$((i + 1)); done
+took=$(( $(date +%s) - start ))
+kill -0 "$rp" 2>/dev/null && { note "run: still running 60 s after SIGTERM"; pkill -9 -f "runner-428:1 ./run.sh"; fail=1; }
+wait "$rp" 2>/dev/null
+kill "$sp" 2>/dev/null; wait "$sp" 2>/dev/null
+{ echo ""; echo "== run"; echo "stand-in          $(cut -d' ' -f2- "$LOG" | sort | uniq -c | tr '\n' ';')"; echo "end after SIGTERM ${took} s"; grep -v "$NOISE" "$out" | tail -15 | ascii | sed 's/^/  /'; } >>"$REPORT"
+grep -q "Listening for Jobs" "$out" || { note "run: no 'Listening for Jobs'"; fail=1; }
+[ "$took" -le 30 ] || { note "run: the end took ${took} s after SIGTERM, over 30"; fail=1; }
+pgrep -f "Runner.Listener" >/dev/null 2>&1 && { note "run: a Runner.Listener stayed"; pkill -9 -f Runner.Listener; fail=1; }
 
 {
 echo ""

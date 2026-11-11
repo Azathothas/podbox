@@ -395,7 +395,11 @@ pub unsafe fn prepare_mode(
     if t.n == 0 {
         return path;
     }
-    if strnlen(path, OUT) >= OUT {
+    // An empty path reaches the kernel, which answers ENOENT for it: the
+    // .NET runtime asks `realpath("")` and `access("")` at each start, and
+    // a line of podvm for each would be noise (TODO/cli.md T-1706).
+    let n = strnlen(path, OUT);
+    if n == 0 || n >= OUT {
         return path;
     }
     let relative = unsafe { *(path as *const u8) } != b'/';

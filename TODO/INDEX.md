@@ -379,7 +379,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1703](interpose.md) | P2 | interpose | done | The exec routes that T-1646 does not take still enter through the host |
 | [T-1704](interpose.md) | P1 | interpose | done | `realpath` of `/proc/self/exe` names the image's loader, while `readlink` names the program |
 | [T-1705](interpose.md) | P1 | interpose | done | A host path that a loaded object reports gets the rootfs prefix a second time |
-| [T-1706](cli.md) | P2 | cli | partial | The unmodified official `actions/runner` starts on the userland rung |
+| [T-1706](cli.md) | P2 | cli | done | The unmodified official `actions/runner` starts on the userland rung |
 | [T-1707](enter.md) | P1 | enter | done | A relative first program resolves against the image root, not against `-w` |
 | [T-1708](supervise.md) | P1 | supervise | done | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
 | [T-1709](image.md) | P1 | image | open | Each container gets its own rootfs: a write in one container is not read by another |
@@ -397,7 +397,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-329 items: 28 open, 8 partial, 5 blocked, 288 done.
+329 items: 28 open, 7 partial, 5 blocked, 289 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -408,9 +408,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 26 | 1 | 5 | 77 | 109 |
+| P2 | 26 | 0 | 5 | 78 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **28** | **8** | **5** | **288** | **329** |
+| **All** | **28** | **7** | **5** | **289** | **329** |
 
 ## Work order
 

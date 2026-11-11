@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T05:12:49Z
+date              2026-11-11T05:31:32Z
 host kernel       Linux 6.18.44-fc-v378
 input             mirror.gcr.io/library/debian:bookworm-slim
 runner            actions-runner-linux-x64-2.338.2.tar.gz sha256 baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40
@@ -18,11 +18,6 @@ fixture rung      userland
 
 == version
 exit              0
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
-  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
-  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
   2.338.2
 
 == config-help
@@ -50,21 +45,23 @@ exit              0
 
 == fsize-wx
 exit              153
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
-  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
-  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
   the payload died on signal 25: exit 153
   podvm run: SIGXFSZ: a write or an ftruncate of the payload passed the soft RLIMIT_FSIZE of 1073741824 bytes (`ulimit -f` of the caller, or --ulimit fsize); podvm does not raise it (TODO/cli.md T-1706)
   podvm run: a .NET runtime with W^X on maps a memfd of 2 TiB at start, so it dies so under a smaller limit; -e DOTNET_EnableWriteXorExecute=0 turns that map off (TODO/cli.md T-1706)
 
 == fsize-nowx
 exit              0
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
-  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
-  podvm: interpose: realpath: podvm cannot resolve the path, so the call fails
-  podvm: interpose: access: podvm cannot resolve the path, so the call fails
   2.338.2
+
+== run
+stand-in                2 GET /message;      1 POST /_apis/oauth2/token;      1 POST /session;
+end after SIGTERM 1 s
+  
+   Connected to GitHub
+  
+  Current runner version: '2.338.2'
+  2026-11-11 05:35:22Z: Listening for Jobs
+  forwarded SIGTERM to the payload (pid 32383)
+  the payload died on SIGTERM: exit 143
 
 verdict           THE RUNNER STARTS ON THE USERLAND RUNG

@@ -431,3 +431,16 @@ fn open_flags_and_fopen_modes_that_write() {
     assert!(is_write_call(b"mkdir"));
     assert!(!is_write_call(b"stat"));
 }
+
+/// TODO/cli.md T-1706: an empty path passes to the kernel, which answers
+/// ENOENT, with no line of podvm; the .NET runtime asks for it at start.
+#[test]
+fn an_empty_path_passes_unchanged() {
+    // SAFETY: the interposer tests run with one thread (gate.yml).
+    unsafe { std::env::set_var("PODVM_MAPS", "/:/podvm-t1706-root") };
+    let empty = c"";
+    let mut out = [0u8; OUT];
+    let p = unsafe { prepare(b"access", AT_FDCWD, empty.as_ptr(), &mut out) };
+    unsafe { std::env::remove_var("PODVM_MAPS") };
+    assert_eq!(p, empty.as_ptr());
+}
