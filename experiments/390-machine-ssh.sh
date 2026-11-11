@@ -20,6 +20,9 @@
 # paths refuse with 125, the short timeout run proves the wait is
 # bounded, and nothing of the run remains.
 #
+# PODVM_390_WANT_KVM=1 (the kvm.yml workflow, TODO/machine.md T-1682)
+# requires the run to name the kvm accelerator.
+#
 # Exit 0 every clause held, 1 a clause disagreed, 2 the lane could not run.
 set -u
 
@@ -347,7 +350,17 @@ code=$?
 if [ "$code" -eq 0 ] && [ "$out" = "$(printf 'guest-42\nPLACED\n0')" ]; then
   ok "the guest ran the commands with exit 0, placed itself, and is root"
 else
-  miss "the guest run FAILED (exit $code, out: $out, err: $(head -1 "$work/ssh.err" 2>/dev/null))"
+  miss "the guest run FAILED (exit $code, out: $out, err: $(grep -v "^podvm machine ssh: accelerator" "$work/ssh.err" 2>/dev/null | head -1))"
+fi
+# TODO/machine.md T-1682: the accelerator the run took. PODVM_390_WANT_KVM=1
+# (kvm.yml) requires kvm; otherwise the line is a record.
+accel=$(sed -n 's/^podvm machine ssh: accelerator //p' "$work/ssh.err" | head -1)
+say "  accelerator: ${accel:-NOT NAMED}"
+if [ "${PODVM_390_WANT_KVM:-0}" = 1 ]; then
+  case "$accel" in
+    kvm) ok "the guest ran under KVM" ;;
+    *) miss "the guest did not run under KVM (accelerator: ${accel:-not named})" ;;
+  esac
 fi
 if [ "$fail" -eq 0 ]; then
   # The exit-code passthrough needs its own boot: an inetd-mode server

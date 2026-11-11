@@ -1,0 +1,71 @@
+# The machine tier's Linux guest under KVM, on a hosted runner.
+#
+# TODO/machine.md T-1682. The KVM proof ran only on the operator's host, and
+# one run there left an emulator that SIGKILL did not remove. A hosted
+# runner is the first choice: the job ends with its machine. A udev rule
+# gives the job /dev/kvm; experiment 390 boots the pinned Alpine guest with
+# `podvm machine ssh` and, with PODVM_390_WANT_KVM=1, requires the run to
+# name the kvm accelerator. A job with no /dev/kvm exits 2 at the check,
+# before any guest. Dispatched by hand (AGENTS.md, section 9, item 5).
+name: kvm
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kvm
+  cancel-in-progress: false
+
+jobs:
+  guest:
+    name: Linux guest under KVM (experiment 390)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: give the job /dev/kvm
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          if [ -w /dev/kvm ] && [ -r /dev/kvm ]; then
+            ls -l /dev/kvm
+          else
+            echo "no usable /dev/kvm on this runner: COULD NOT RUN"
+            exit 2
+          fi
+
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig openssh tools qemu vmtools
+
+      # 390 runs from /work and copies its partial evidence to /out, as in
+      # the lane that it was written for.
+      - name: experiment 390 under KVM
+        env:
+          PODVM_390_WANT_KVM: "1"
+        run: |
+          sudo ln -sfn "$GITHUB_WORKSPACE" /work
+          sudo mkdir -p /out && sudo chmod 0777 /out
+          rc=0
+          timeout 45m bash experiments/390-machine-ssh.sh || rc=$?
+          cat experiments/results/machine-ssh.txt || true
+          # Nothing of the guest may stay after the run.
+          if pgrep -a qemu-system; then
+            echo "an emulator stayed after the run"
+            pkill -9 qemu-system || true
+            rc=1
+          fi
+          exit "$rc"
+
+      - name: keep the transcript
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kvm-machine-ssh
+          path: experiments/results/machine-ssh.txt
+          if-no-files-found: warn

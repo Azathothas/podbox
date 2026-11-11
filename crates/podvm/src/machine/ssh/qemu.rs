@@ -297,6 +297,15 @@ pub fn ssh(args: &[String]) -> i32 {
     } else {
         Accel::Tcg
     };
+    // TODO/machine.md T-1682: the run says which accelerator it took, so a
+    // KVM proof cannot read a TCG run as KVM.
+    eprintln!(
+        "podvm machine ssh: accelerator {}",
+        match accel {
+            Accel::Kvm => "kvm",
+            Accel::Tcg => "tcg (an emulator, not hardware isolation)",
+        }
+    );
     // MiB, rounded up, without an addition that can overflow: a shift and
     // at most one more.
     let mem_mib = mem_mib(args.mem);
