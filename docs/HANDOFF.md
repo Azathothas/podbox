@@ -13,46 +13,57 @@ file when each step below is done.
 * The owner resumed podvm on 2026-11-11 and answered Q1 to Q7
   (`docs/decisions.md`, rows of 2026-11-11). No question is open.
 * The newest release is `v0.2.0-beta.3` (2026-11-11, release run
-  42980701550 on c62643d), the beta that podrunner asked for (issue 53 of
-  PodUtils/podrunner). A release starts
-  from `release.yml`; dispatch `nightly.yml` with `trial=true` on `main`
-  first.
-* podvm takes 12 crates of PodUtils/podcrates at `v0.21.0` (`ada3699`),
-  the last podcrates tag (`pod-incus` of T-1727, PodUtils/podcrates#65).
-* PodUtils/podrunner has a lead session since 2026-11-11 (DR-1 and DR-2
-  are yes). It writes to podvm by a COORD issue of podrunner titled
-  `(to podvm)`; the watcher of the organization reads it.
-* KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
+  42980701550 on c62643d). A release starts from `release.yml`; dispatch
+  `nightly.yml` with `trial=true` on `main` first.
+* podvm takes the crates of PodUtils/podcrates at `v0.22.0` (`93de04a`,
+  T-1732): `die_with_parent` in the launcher of `run -d`, and
+  `pod-services` (T-1679).
+* **The record is in the format of `pod-todo` since 2026-11-11** (T-1672,
+  call C17). An entry is `# T-NNNN: Title`, the header fields
+  `**Name:** value` (with `**Milestone:** none`), and the sections
+  `## Problem` to `## Prove`, then `## Blocker`, `## Correction` and
+  `## Done`. A row of `TODO/INDEX.md` has seven cells. `podvm-count --set
+  T-NNNN STATUS` writes the `**Status:**` line and the row; a done entry
+  needs `## Done` with a date. `podvm-gate` checks the record through a
+  view of the old layout (`crates/podvm-gate/src/gate/legacy.rs`), and
+  `podvm-todo check` (pod-todo's reader) reports 356 problems that are not
+  of form: those are T-1680.
+* PodUtils/podrunner has a lead session since 2026-11-11. It writes to
+  podvm by a COORD issue titled `(to podvm)`; the watcher reads it.
+* KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
+  the machine tier runs TCG there.
 
 ## Open COORD issues
 
 * COORD-001 (#194, to podcrates): the takes of `pod-relay` (T-1678,
-  blocked: no release), `pod-services` (T-1679, open) and `pod-todo`
-  (T-1680, blocked on T-1672).
-* COORD-024 (#242) and COORD-025 (#243, to podcrates): the take of
-  `v0.15.0`, and the answer to PodUtils/podcrates#56.
-* COORD-038 (#257, to podcrates): podvm takes `v0.21.0` (T-1727).
-* COORD-039 (#258, to podrunner): each container has its own rootfs
-  (T-1709).
-* COORD-040 (#259, to podcrates): `pod-confine` and `Plan.confine` for
-  T-1658. podcrates answered (PodUtils/podcrates#69, COORD-044): it writes
-  them for the tag after `v0.22.0`. T-1658 is blocked until that tag.
+  blocked: no release), `pod-services` (T-1679, partial) and `pod-todo`
+  (T-1680, open).
+* COORD-040 (#259): `pod-confine` for T-1658, in podcrates `v0.23.0`.
+* COORD-041 (#260): `pod-netlab` and the reader of the guest's modloop
+  for T-1662 (T-1663 and T-1664 wait with it).
+* COORD-042 (#261): pod-extract and the root entry with an empty name
+  (the lambda-al2023 clause of T-1659); the fix is in `v0.23.0`.
+* COORD-043 (#262, to all): podvm took `v0.22.0`.
+* COORD-044 (#263, to podcrates): `gcr.io`, `mirror.gcr.io` and the NIC
+  module sums of the guest for `pod-services` (T-1679).
+* COORD-038, COORD-039 and the takes before them stay open until their
+  peer answers.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`, step 8: the broker of
-   [T-1665](../TODO/net.md) (the rewrite half is done), then
-   [T-1662](../TODO/net.md), [T-1663](../TODO/net.md),
-   [T-1664](../TODO/net.md), the profiles [T-1659](../TODO/cli.md),
-   [T-1661](../TODO/cli.md) and [T-1660](../TODO/cli.md), and
-   [T-1668](../TODO/gate.md).
-2. Done on 2026-11-11 in this order: T-1604, T-0211, T-0204, T-1709,
-   T-1728, T-1654, T-1657, T-1666, T-1730; partial: T-1667 (the `gh`
-   fallback waits for an installer), T-1665. New open entries: T-1729
-   (`runsc`), T-1731 (a dynamic program under the handler).
-3. Before an entry is set done, run `cargo test -p podvm`: the test
-   `each_listed_gap_names_an_entry_that_is_not_done` reads the record, and
-   CI run 387 failed on it.
-4. CI: the runners of the organization queued each run for a long time on
-   2026-11-11, and each push cancels the run before it. Let one run finish
-   between pushes where it can.
+1. At podcrates `v0.23.0`: take it, then finish T-1658 (`pod-confine`),
+   the lambda clause of T-1659, `workerd-test` of T-1661, and T-1679
+   (empty the `WAITING` list of `crates/podvm/src/hosts_tests.rs`).
+2. The work order of `TODO/PROGRESS.md`, step 9: T-1680 (the 356
+   problems of `podvm-todo check`, then the record checks move to
+   pod-todo), T-1673, T-1683, T-1684, T-1685.
+3. Done on 2026-11-11 after the first handoff: T-1659 (partial),
+   T-1661 (partial), T-1660, T-1668, T-1672, T-1732, T-1679 (partial).
+   Defects fixed on the way: the hard links of a container tree and of the
+   guest's base archive, the removal of a read-only tree by a user that is
+   not root, a partial tree of a killed run, `--argv0` on the first exec
+   of the loader family, `lstat` of a volume's mount point.
+4. Before an entry is set done, run `cargo test -p podvm`: the test
+   `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
+5. CI: each push cancels the run before it. Let one run finish between
+   pushes where it can.
