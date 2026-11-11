@@ -17,7 +17,10 @@
 
 # podvm_base ROOTFS OUT: the rootfs as an uncompressed newc archive.
 podvm_base() {
-	(cd "$1" && find . -print0 | cpio --quiet -o -H newc --null >"$2") || return 1
+	# The owner is root in the archive: a guest's sshd refuses a key whose
+	# directory another uid owns, and a hosted runner builds as a user
+	# (kvm.yml run 42971081790: "Permission denied (publickey)").
+	(cd "$1" && find . -print0 | cpio --quiet -o -H newc --null -R 0:0 >"$2") || return 1
 }
 
 # podvm_extras INIT_FILE OUT: the appended archive for one /init override.
