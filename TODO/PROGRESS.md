@@ -7,7 +7,7 @@ start.
 
 ## State
 
-341 entries: 14 open, 8 partial, 7 blocked, 312 done.
+341 entries: 13 open, 9 partial, 7 blocked, 312 done.
 
 The state on 2026-11-11:
 
@@ -96,7 +96,7 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1659](cli.md) (partial: the lambda-al2023 clause waits for
    COORD-042, issue 261), [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset record, workerd-test for T-1658) and [T-1660](cli.md) (done), and
    [T-1668](gate.md) (done) beside them.
-9. The record and the tree: [T-1679](deps.md) (`pod-services`),
+9. The record and the tree: [T-1679](deps.md) (`pod-services`; partial: COORD-044, issue 263),
     [T-1672](gate.md) (the record in the format of `pod-todo`), then
     [T-1680](deps.md) (blocked on T-1672), [T-1673](gate.md) (the 29
     plan rows), [T-1683](gate.md) (retire the PowerShell twins),

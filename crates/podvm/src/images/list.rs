@@ -373,7 +373,7 @@ pub fn login(verb: &str, args: &[String]) -> i32 {
     let server = parsed
         .server
         .as_deref()
-        .unwrap_or("https://index.docker.io/v1/");
+        .unwrap_or_else(|| crate::images::default_login_server());
     let password = match read_password(verb, std::io::stdin().is_terminal(), &mut std::io::stdin())
     {
         Ok(p) => p,

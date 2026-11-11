@@ -12,10 +12,28 @@ use std::path::{Path, PathBuf};
 
 use podvm_image::net::{Limits, Net};
 
-pub const URL: &str =
-    "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-netboot-3.22.6-x86_64.tar.gz";
+/// The archive and the SHA-256 of its kernel file come from `pod-services`
+/// (`alpine-netboot`, TODO/deps.md T-1679): podvm keeps no second copy of a
+/// host of another party.
+fn netboot() -> &'static pod_services::Service {
+    pod_services::get("alpine-netboot")
+        .expect("pod-services holds alpine-netboot (TODO/deps.md T-1679)")
+}
+
+/// The URL of the netboot archive.
+pub fn url() -> String {
+    netboot()
+        .endpoint("archive")
+        .expect("alpine-netboot has the endpoint archive")
+        .url()
+}
+
 /// The SHA-256 of the kernel file, as experiment 390 pins it.
-pub const KERNEL_SHA256: &str = "6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51";
+pub fn kernel_sha256() -> &'static str {
+    netboot()
+        .text("vmlinuz-virt-sha256")
+        .expect("alpine-netboot has the fact vmlinuz-virt-sha256")
+}
 const MEMBER: &str = "boot/vmlinuz-virt";
 /// The archive is about 90 MB; a larger answer is not the pin.
 const MAX_ARCHIVE: u64 = 512 << 20;
@@ -51,7 +69,7 @@ pub struct Assets {
 }
 
 fn cached(dir: &Path) -> Option<Assets> {
-    let kernel = dir.join(format!("vmlinuz-{}", &KERNEL_SHA256[..16]));
+    let kernel = dir.join(format!("vmlinuz-{}", &kernel_sha256()[..16]));
     let modules: Vec<_> = MODULES
         .iter()
         .map(|(n, sha)| (*n, dir.join(format!("{n}-{}.ko", &sha[..16]))))
@@ -91,17 +109,18 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
     crate::assets::space_floor(&dir, "the guest kernel of the machine tier", 64 << 20)?;
     let (config, _roots) = podvm_image::tls::client_config();
     let mut net = Net::from_environment(config)?;
+    let url = url();
     let body = net
-        .send("GET", URL, &[], true, LIMITS)
-        .map_err(|e| format!("{URL}: {e}"))?;
+        .send("GET", &url, &[], true, LIMITS)
+        .map_err(|e| format!("{url}: {e}"))?;
     let gz = flate2::read::GzDecoder::new(body.take(MAX_ARCHIVE));
-    let mut got = tar_members(gz, &[MEMBER, INITRAMFS]).map_err(|e| format!("{URL}: {e}"))?;
+    let mut got = tar_members(gz, &[MEMBER, INITRAMFS]).map_err(|e| format!("{url}: {e}"))?;
     let initramfs = got
         .pop()
         .flatten()
-        .ok_or(format!("{URL}: no {INITRAMFS}"))?;
-    let kernel = got.pop().flatten().ok_or(format!("{URL}: no {MEMBER}"))?;
-    check(&kernel, KERNEL_SHA256, MEMBER)?;
+        .ok_or(format!("{url}: no {INITRAMFS}"))?;
+    let kernel = got.pop().flatten().ok_or(format!("{url}: no {MEMBER}"))?;
+    check(&kernel, kernel_sha256(), MEMBER)?;
     let mut cpio = Vec::new();
     flate2::read::GzDecoder::new(&initramfs[..])
         .read_to_end(&mut cpio)
@@ -119,7 +138,7 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
         check(bytes, sha, &format!("{n}.ko"))?;
         put(format!("{n}-{}.ko", &sha[..16]), bytes)?;
     }
-    put(format!("vmlinuz-{}", &KERNEL_SHA256[..16]), &kernel)?;
+    put(format!("vmlinuz-{}", &kernel_sha256()[..16]), &kernel)?;
     cached(&dir).ok_or_else(|| format!("{}: the assets did not stay", dir.display()))
 }
 
@@ -129,7 +148,8 @@ fn check(bytes: &[u8], want: &str, what: &str) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "{URL}: {what} has SHA-256 {got}, not the pin {want}"
+            "{}: {what} has SHA-256 {got}, not the pin {want}",
+            url()
         ))
     }
 }

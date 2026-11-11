@@ -63,6 +63,7 @@ Separate crate: `crates/podvm-interpose`.
 | `pod-oci` | `0.22.0` |
 | `pod-proxy` | `0.22.0` |
 | `pod-rootfs` | `0.22.0` |
+| `pod-services` | `0.22.0` |
 | `pod-supervise` | `0.22.0` |
 | `pod-term` | `0.22.0` |
 | `pod-tls` | `0.22.0` |

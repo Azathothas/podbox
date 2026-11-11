@@ -605,6 +605,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-services"
+version = "0.22.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
+dependencies = [
+ "pod-core",
+ "toml",
+]
+
+[[package]]
 name = "pod-supervise"
 version = "0.22.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.22.0#93de04a1643ef9dac55905acc6ca8b1e68d54c86"
@@ -671,6 +680,7 @@ dependencies = [
  "pod-core",
  "pod-incus",
  "pod-proxy",
+ "pod-services",
  "podvm-complete",
  "podvm-dispatch",
  "podvm-enter",
@@ -750,6 +760,9 @@ dependencies = [
 [[package]]
 name = "podvm-measure"
 version = "0.2.0-beta.3"
+dependencies = [
+ "pod-services",
+]
 
 [[package]]
 name = "podvm-probe"

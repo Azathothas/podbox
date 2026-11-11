@@ -69,7 +69,9 @@ pub(super) fn drive_inner(
     ));
     report.say(&format!("image             {}", alpine_ref()));
     report.say(&format!(
-        "kernel            {KURL} (sha256 {KERNEL_SHA256})"
+        "kernel            {} (sha256 {})",
+        kurl(),
+        kernel_sha256()
     ));
     report.say(&format!("qemu flags        {QEMU_FLAGS}"));
     report.say(&format!("payload cflags    gcc {BENCH_CFLAGS}"));
@@ -131,7 +133,7 @@ pub(super) fn drive_inner(
     // operator's store.
     let store = scratch.join("store").to_string_lossy().into_owned();
     let store_env = [("PODVM_STORE", store.as_str())];
-    match run_capture(binary, &["pull", alpine_ref()], root, &store_env, 900) {
+    match run_capture(binary, &["pull", &alpine_ref()], root, &store_env, 900) {
         Some((true, _, _)) => {}
         Some((false, stdout, stderr)) => {
             report.miss("the pull failed");
@@ -152,7 +154,7 @@ pub(super) fn drive_inner(
     }
     let mut rootfs = String::new();
     if !report.failed {
-        match run_capture(binary, &["extract", alpine_ref()], root, &store_env, 900) {
+        match run_capture(binary, &["extract", &alpine_ref()], root, &store_env, 900) {
             Some((true, stdout, _))
                 if !stdout.trim().is_empty() && Path::new(stdout.trim()).is_dir() =>
             {
@@ -201,7 +203,7 @@ pub(super) fn drive_inner(
                 // lines, so a short log fails the row below, not here.
                 match run_capture(
                     binary,
-                    &["run", "--pull=never", alpine_ref(), &guest_path],
+                    &["run", "--pull=never", &alpine_ref(), &guest_path],
                     &scratch.join("chroot"),
                     &store_env,
                     RUN_TIMEOUT,
@@ -284,7 +286,7 @@ pub(super) fn drive_inner(
                 &curl_timeout.to_string(),
                 "-o",
                 &archive.to_string_lossy(),
-                KURL,
+                &kurl(),
             ],
             root,
             &[],
@@ -320,7 +322,7 @@ pub(super) fn drive_inner(
         }
         if !report.failed {
             match run_capture("sha256sum", &[&kernel.to_string_lossy()], root, &[], 60) {
-                Some((true, stdout, _)) if stdout.starts_with(KERNEL_SHA256) => {
+                Some((true, stdout, _)) if stdout.starts_with(kernel_sha256()) => {
                     report.say("  kernel hash matches the pin");
                 }
                 Some((true, stdout, _)) => {

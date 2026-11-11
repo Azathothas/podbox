@@ -1511,7 +1511,7 @@ Source:      COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
 Category:    deps
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      partial 2026-11-11
 
 Problem:     The relay URL, the registry endpoints and the guest image
              sources are compiled into podvm in several places. A changed
@@ -1542,6 +1542,29 @@ second condition is dropped: the README says that podvm has no default
 relay, so the relay row needs no data file and this entry does not wait
 for T-1678. The status moves from `blocked` to `open`.
 
+
+**Partial 2026-11-11.** podvm takes `pod-services` at podcrates `v0.22.0`
+and reads each host of another party that the crate lists: the netboot
+archive of the machine tier and the SHA-256 of its kernel
+(`crates/podvm/src/machine/guest/kernel.rs`, `alpine-netboot`), the same
+values and the pinned image of the measure workload
+(`crates/podvm-measure/src/workload.rs`, `ecr-public-registry`
+`guest-userland`), and the default server of `podvm login` and `logout`
+(`docker-hub-registry` `credential-key`). The constants are gone.
+`cargo test -p podvm` exits 0 with `each_host_that_podvm_names_is_in_pod_services`
+(`crates/podvm/src/hosts_tests.rs`): it reads the Rust sources of the
+workspace (not `podvm-gate`, `podvm-release` and the tests, the tools of
+the repository), takes the host of each URL and the registry of each quoted
+image reference, and finds each in the crate, a name that RFC 2606 reserves
+aside. `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+
+Remaining: the crate does not list `gcr.io` (the profile
+`distroless-static`) and `mirror.gcr.io` (the mirror of the workload), nor
+the SHA-256 of the three NIC modules of the guest. COORD-044 (issue 263)
+asks podcrates for them. Until its tag, the test names the two hosts in a
+list of reported hosts, which fails the test when the crate lists one, so
+the list only shrinks; then the list goes, the module sums come from the
+crate, and this entry closes.
 ---
 
 ### T-1680 Take `pod-todo` for the record half of `podvm-gate`

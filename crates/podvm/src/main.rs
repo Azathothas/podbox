@@ -17,6 +17,8 @@ mod diagnose;
 mod doctor;
 mod exec;
 mod format;
+#[cfg(test)]
+mod hosts_tests; // TODO/deps.md T-1679
 mod images;
 mod incus;
 mod interpose;

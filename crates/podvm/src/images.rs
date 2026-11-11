@@ -313,6 +313,15 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
     }
 }
 
+/// The server of `podvm login` and `podvm logout` with no SERVER: docker's
+/// canonical key, from `pod-services` (`docker-hub-registry`, fact
+/// `credential-key`, TODO/deps.md T-1679).
+pub(crate) fn default_login_server() -> &'static str {
+    pod_services::get("docker-hub-registry")
+        .and_then(|s| s.text("credential-key"))
+        .expect("pod-services holds docker-hub-registry credential-key (TODO/deps.md T-1679)")
+}
+
 mod list;
 pub use list::*;
 

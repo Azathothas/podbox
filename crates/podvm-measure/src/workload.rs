@@ -32,22 +32,12 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
 
-// Every input pinned, as in the script's 146 shape.
-const ALPINE_REF: &str = "public.ecr.aws/docker/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764";
-/// The same digest from mirror.gcr.io, for a host where public.ecr.aws
-/// answers image pulls with HTTP 429 (TODO/deps.md T-1687, the cloud host
-/// of 2026-11-09 and 2026-11-10). `PODVM_WORKLOAD_MIRROR=1` selects it; the
-/// digest is the pin, so the image is the same.
-const ALPINE_MIRROR_REF: &str = "mirror.gcr.io/library/alpine@sha256:3e9b4b680bfc9fb5269227cffbd6d42be39fbf7c0b908123913864aa4447e764";
+// Every input pinned, as in the script's 146 shape: the image and the
+// kernel (TODO/deps.md T-1679).
+#[path = "workload/pins.rs"]
+mod pins;
+use pins::*;
 
-/// The image reference of this run: the pin, from the mirror when
-/// `PODVM_WORKLOAD_MIRROR=1`.
-fn alpine_ref() -> &'static str {
-    match std::env::var("PODVM_WORKLOAD_MIRROR").as_deref() {
-        Ok("1") => ALPINE_MIRROR_REF,
-        _ => ALPINE_REF,
-    }
-}
 // The netboot archive of 3.22.6, not `netboot/vmlinuz-virt`: that directory
 // follows each point release, and the pinned kernel is the one of 3.22.6
 // (T-1687, PodUtils/podcrates#6).
@@ -56,9 +46,7 @@ fn alpine_ref() -> &'static str {
 /// never exits; a reset with `-no-reboot` makes qemu exit at once (T-1702).
 const GUEST_INIT: &str = "#!/bin/sh\necho VMR-BENCH-READY\ncd /\nfor b in bench-int bench-sys bench-mem bench-io; do\n\tfor i in 1 2 3; do\n\t\t/bench/$b\n\tdone\ndone\necho VMR-BENCH-DONE\nreboot -f\n";
 
-const KURL: &str = "https://dl-cdn.alpinelinux.org/alpine/v3.22/releases/x86_64/alpine-netboot-3.22.6-x86_64.tar.gz";
 const KARCHIVE_MEMBER: &str = "boot/vmlinuz-virt";
-const KERNEL_SHA256: &str = "6b58e5d779e44e57c9efa20232da18650415eceb9d4f544e5c165c1f392c5d51";
 const QEMU_FLAGS: &str = "-M pc,acpi=off -m 256 -nographic -no-reboot -accel tcg,thread=multi";
 const BENCH_CFLAGS: &str = "-O2 -static";
 const RUN_TIMEOUT: u64 = 300;
