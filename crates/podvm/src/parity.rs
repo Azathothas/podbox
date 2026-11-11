@@ -206,7 +206,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "scan", flag: Option::None, status: NoneStatus, note: "podvm ships no image scanner" },
     Row { verb: "checkpoint", flag: Option::None, status: NoneStatus, note: "freezing a process group needs a cgroup this runtime does not grant, as `pause` says" },
     // ------------------------------------------------------- run's own flags
-    Row { verb: "run", flag: Some("--rm"), status: Native, note: "removes the extracted rootfs when the payload exits, unless a container record references it (TODO/image.md T-1322)" },
+    Row { verb: "run", flag: Some("--rm"), status: Native, note: "removes the container and its own rootfs when the payload exits; the image's extracted tree stays (TODO/image.md T-1709)" },
     Row { verb: "run", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
     Row { verb: "run", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },
     Row { verb: "run", flag: Some("--entrypoint"), status: Native, note: "as docker: replacing it also drops the image's Cmd" },

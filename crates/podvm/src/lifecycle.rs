@@ -144,6 +144,7 @@ pub fn create(args: &[String]) -> i32 {
                 }
                 Err(e) => {
                     let _ = std::fs::remove_file(&p.memo_host_path);
+                    crate::run::drop_unrecorded(&s, &p.rootfs); // T-1709
                     fail("create", e)
                 }
             }

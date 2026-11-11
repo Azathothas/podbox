@@ -60,6 +60,20 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   out of reach.
 - A denied terminal operation produces a named refusal.
 - Host CA completion changes payload trust data and can be disabled.
+- Each container has its own rootfs (T-1709): `run` and `create` copy
+  the extracted image into `<store>/trees/<id>/`, and completion and the
+  payload write only in that copy. A write in one container is not read
+  by another container or by a later run. The copy is a `FICLONE` of each
+  file where the store's filesystem supports it (XFS, btrfs), else a
+  kernel copy of the bytes. The cost on the cloud host (experiment 430):
+  alpine 3.20, 7.4 MiB, 12 to 114 ms by copy on ext4 and 5 ms by
+  `FICLONE` on XFS; golang 1.24.7-bookworm, 814 MiB, 2.3 to 7.9 s by copy
+  (two runs, the second on a loaded host) and 0.8 s by `FICLONE`. A copy uses the disk of the image again, a clone
+  does not. `rm` and `--rm` remove the copy. The copy keeps no extended
+  attribute, no time of a directory and no hard link inside the image.
+  The image's own tree is the source. `exec` with an image reference,
+  `cp` with an image reference, `extract`, and the machine and incus
+  tiers use the image's own tree.
 
 Forced FUSE mode enters through a rung-complete read-only server; its live
 entry arm and the permitted-tmpfs entry arm prove automatically where a

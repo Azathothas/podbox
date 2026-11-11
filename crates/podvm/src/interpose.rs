@@ -434,7 +434,7 @@ pub fn apply<G: GuestRoot + ?Sized>(
                     note.push_str(&format!(
                         "podvm: interpose: {GUEST_PATH} ({} object) is preloaded \
                          for this payload. refused: podvm WROTE that file into the \
-                         image's own rootfs and the payload can see it\n",
+                         rootfs of this entry and the payload can see it\n",
                         libc.word()
                     ));
                     if let Some(id) = &identity {

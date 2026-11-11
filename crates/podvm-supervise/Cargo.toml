@@ -10,6 +10,8 @@ repository.workspace = true
 podvm-probe = { path = "../podvm-probe" }
 podvm-image = { path = "../podvm-image" }
 podvm-enter = { path = "../podvm-enter" }
+# TODO/image.md T-1709: `remove` takes the container's own tree with it.
+podvm-extract = { path = "../podvm-extract" }
 # The table, the launcher, the logs and the verbs of the lifecycle. This
 # crate keeps podvm's settings, its record fields, the entry of a payload and
 # the ownership memo.

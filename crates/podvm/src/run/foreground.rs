@@ -44,6 +44,7 @@ fn fg_begin(
     ) {
         Ok(c) => c,
         Err(e) => {
+            super::drop_unrecorded(store, &p.rootfs); // T-1709
             match &p.name {
                 Some(n) => {
                     eprintln!("podvm run: --name {n:?}: the run could not be recorded: {e}")
@@ -352,37 +353,11 @@ pub fn run(args: &[String]) -> i32 {
     drop(memo);
     let _ = std::fs::remove_file(&p.memo_host_path);
 
-    if p.rm {
-        // ⚠ The lock is dropped first: `remove_extracted` deletes the tree the
-        // lock exists to protect, and holding it while deleting would be podvm
-        // refusing its own request.
-        drop(held);
-        // ⭐ TODO/image.md T-1322. The rootfs is shared, so `--rm` removes it
-        // only where no container record references it: a failed run must
-        // not delete the rootfs `keeper` needs. The run's own record is
-        // already finalized above (removed under `--rm`), so it never
-        // counts itself. Where the query itself errors, the rootfs stays:
-        // deleting on an unanswered question is how the defect above
-        // happens.
-        match podvm_supervise::referencing(&store, &p.record.manifest_digest) {
-            Ok(referrers) if !referrers.is_empty() => {
-                let mut names: Vec<&str> = referrers.iter().map(|c| c.name.as_str()).collect();
-                names.sort_unstable();
-                eprintln!(
-                    "podvm run: --rm keeps the rootfs: it is referenced by container {}",
-                    names.join(", ")
-                );
-            }
-            Ok(_) => {
-                if let Err(e) = podvm_extract::remove_extracted(&store, &p.record.manifest_digest) {
-                    eprintln!("podvm run: --rm could not remove the rootfs: {e}");
-                }
-            }
-            Err(e) => {
-                eprintln!("podvm run: --rm could not check references: {e}");
-            }
-        }
-    }
+    // ⭐ TODO/image.md T-1709. `--rm` removed the record above, and its own
+    // tree with it (`podvm_supervise::remove`). The image's tree stays: it
+    // is the source of the next container, and `rmi` and `image prune`
+    // remove it.
+    drop(held);
     code
 }
 

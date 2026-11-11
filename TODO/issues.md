@@ -128,7 +128,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #231 | [podrunner] the userland rung runs the unmodified actions/runner: it exits 154, then 137, and it dies on SIGXFSZ under a finite RLIMIT_FSIZE | closed | T-1706; T-1655 (amended) |
 | #232 | [podrunner] enter: a relative first program resolves against the image root, not against -w, so -w /opt/runner ./run.sh exits 127 | closed | T-1707 |
 | #233 | [podrunner] supervise: stop and rm -f signal the payload only, so orphaned grandchildren keep running after the container is gone | open | T-1708; T-1655 (amended) |
-| #234 | [podrunner] image: all containers of one image share one mutable rootfs, so a write in one container is read by another and --rm is not a fresh start | open | T-1709 |
+| #234 | [podrunner] image: all containers of one image share one mutable rootfs, so a write in one container is read by another and --rm is not a fresh start | closed | T-1709 |
 | #235 | [podrunner] interpose: a Unix socket path in connect and bind passes the path table, so bind creates the socket on the host and a -v pair does not apply | closed | T-1710 |
 | #236 | [podrunner] cli: drive the podvm calls of the four container-hook commands on the userland rung, with the runner's mount table | open | T-1711; T-1653 and T-1655 (amended) |
 | #237 | [podrunner] cli: --podvm-tier=chroot does nothing; it runs the ladder, and on a chroot-denied host it enters the userland rung with exit 0 | closed | T-1712 |

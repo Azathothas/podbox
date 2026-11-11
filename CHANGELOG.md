@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: each container has its own rootfs, 2026-11-11
+
+Record: T-1709; issue 234.
+Deployed: not deployed; no version change.
+
+- `run` and `create` copy the extracted image into the container's own
+  tree, `<store>/trees/<id>/`, by `FICLONE` where the filesystem supports
+  it, else by a kernel copy. A write in one container is not read by
+  another container or by a later run, and `--add-host` values of two
+  concurrent runs stay apart. `rm` and `--rm` remove the tree; `--rm`
+  keeps the image's extracted tree. `--verbose` prints the cost of the
+  copy.
+
 ### Added: the emulate tier, 2026-11-11
 
 Record: T-1651; issue 94.

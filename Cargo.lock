@@ -697,6 +697,7 @@ version = "0.2.0-beta.3"
 dependencies = [
  "pod-core",
  "pod-extract",
+ "pod-hostprobe",
  "podvm-image",
  "podvm-probe",
 ]
@@ -760,6 +761,7 @@ dependencies = [
  "pod-core",
  "pod-supervise",
  "podvm-enter",
+ "podvm-extract",
  "podvm-image",
  "podvm-probe",
  "serde",

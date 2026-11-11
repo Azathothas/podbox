@@ -150,8 +150,10 @@ pub(crate) fn prepare(
     if !podvm_extract::is_extracted(store, &record.manifest_digest) {
         extract_now(verb, store, &record)?;
     }
-    let (rootfs, _) = podvm_extract::paths(store, &record.manifest_digest);
-    let rootfs = rootfs.to_string_lossy().to_string();
+    // ⭐ TODO/image.md T-1709: the container's own copy of the image. Each
+    // write below (the object, the fixups, the payload) lands in it.
+    let tree = super::tree::Tree::fill(verb, store, &record.manifest_digest)?;
+    let rootfs = tree.rootfs();
 
     // ---------------------------------------------------- the foreign platform
     let emulate = tier == crate::tier::Tier::Emulate; // T-1651: qemu, not binfmt
@@ -333,6 +335,7 @@ pub(crate) fn prepare(
         &userland_note,
     );
     banner.push_str(&store_note(store));
+    banner.push_str(&tree.fill.line());
     // ⭐ M5. The completion layer runs HERE: after the rootfs exists and the
     // image lock is held, and before anything is entered. Its report is part of
     // the banner, because every one of these is an edit podvm made inside
@@ -410,6 +413,7 @@ pub(crate) fn prepare(
     // from being deleted between the extraction check and now; the process that
     // ENTERS takes its own, and for `-d` that is the launcher rather than this.
     drop(held);
+    tree.keep();
     Ok(crate::lifecycle::Prepared {
         record,
         image,

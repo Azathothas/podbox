@@ -173,8 +173,19 @@ pub fn wait(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, Op
 }
 
 /// Remove a container's record and its own directory.
+///
+/// TODO/image.md T-1709: the container's own tree goes with its record. A
+/// record whose rootfs is not a container tree (an image's own tree, from
+/// an older podvm) leaves that tree to the image verbs.
 pub fn remove(store: &Store, want: &str, force: bool) -> Result<Container> {
-    Ok(pod_supervise::remove(&settings(store), want, force)?)
+    let c: Container = pod_supervise::remove(&settings(store), want, force)?;
+    if let Err(e) = podvm_extract::tree::remove(store, &c.of.rootfs) {
+        return Err(Error(format!(
+            "{} is removed, and its rootfs {} stays: {e}",
+            c.name, c.of.rootfs
+        )));
+    }
+    Ok(c)
 }
 
 /// Every container, reconciled.

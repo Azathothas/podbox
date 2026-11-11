@@ -49,7 +49,7 @@ pub(super) fn support(
                          interpreter {} is registered WITHOUT the binfmt F flag, so \
                          the kernel opens it by path at exec time and that path is \
                          inside the container. refused: podvm has COPIED it to {} inside \
-                         the image's own rootfs; the payload can see that file.",
+                         the container's own rootfs; the payload can see that file.",
                         record.os,
                         record.architecture,
                         host,

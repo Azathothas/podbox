@@ -2794,7 +2794,7 @@ Source:      issue 234; the podrunner design review (the owner's design
 Category:    image
 Priority:    P1
 Effort:      L
-Status:      open
+Status:      done 2026-11-11
 
 Problem:     All containers of one image run in one mutable tree,
              `<store>/rootfs/<manifest digest>/`. A concurrent container
@@ -2842,6 +2842,44 @@ Prove:       `cargo test -p podvm` exits 0 with tests
              write of the other container, a later run does not see it,
              two concurrent `--add-host svc:` runs each read their own
              value, and the cost of each form is printed.
+
+**Done 2026-11-11.** `cargo test -p podvm` exits 0, with
+`two_containers_of_one_image_have_two_trees` and
+`rm_removes_the_container_tree` (`crates/podvm/src/run/tree_tests.rs`).
+`PODVM_430_MIRROR=1 sh experiments/430-container-rootfs.sh` exits 0 on
+the chroot-denying fixture, on ext4 (`experiments/results/container-rootfs.txt`)
+and with the store on an XFS loop mount with reflink
+(`experiments/results/container-rootfs-xfs.txt`).
+
+| clause | reading |
+| --- | --- |
+| 1, a concurrent reader | B, started after A wrote `/etc/marker`, reads `absent` |
+| 2, a later run | reads `absent`; A's tree, `trees/<id>/rootfs`, keeps `from-a` |
+| 3, two `--add-host svc:` runs | each reads its own value, 10.0.0.1 and 10.0.0.2 |
+| 4, `rm` and `--rm` | no tree stays |
+| 5, the cost, ext4 | alpine 7.4 MiB by copy in 12 to 114 ms; golang 814 MiB (29059 files) by copy in 2.3 to 7.9 s |
+| 5, the cost, XFS | alpine by FICLONE in 5 ms; golang by FICLONE in 770 ms |
+
+The mechanism: `prepare` copies the extracted image into
+`<store>/trees/<id>/` (`crates/podvm-extract/src/tree.rs`) after the image
+lock is held and before anything writes, so the interposer object, the
+completion fixups and the payload write in the copy. A guard removes the
+copy when `prepare` refuses after the fill. `podvm_supervise::remove`
+removes the copy with the record, so `rm`, `--rm` and each failed record
+take it. The image's own tree stays as the source, under T-1322 and
+T-0204. `exec` of a container enters the container's tree (its record
+names it).
+
+A deviation from the Approach, recorded as a decision: the tree is keyed
+by its own id under `<store>/trees/`, not under the container's
+directory. `pod_supervise::create` (podcrates) makes the container id after
+`prepare`, and the environment of the run already names the rootfs path,
+so a rename after the record would leave stale paths. The record names the
+tree. The fallback where FICLONE fails is a kernel copy of the bytes
+(`copy_file_range` through `std::io::copy`), not a fresh extraction: the
+source is verified and complete, and the copy decompresses nothing.
+`docs/limits.md` names what the copy does not keep. The tree of `rmi` after a new
+pull (M2, Unverified) is not changed by this entry.
 
 **Filed 2026-11-10.** From issue 234 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), correction C30 and WP-V5: "one

@@ -18,6 +18,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 pub mod error;
+pub mod tree;
 
 use std::io::Write;
 use std::path::PathBuf;

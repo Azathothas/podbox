@@ -123,7 +123,7 @@
 231 issue closed
 232 issue closed
 233 issue open
-234 issue open
+234 issue closed
 235 issue closed
 236 issue open
 237 issue closed

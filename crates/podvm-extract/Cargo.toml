@@ -17,3 +17,5 @@ podvm-image = { path = "../podvm-image" }
 # `flate2`'s Rust backend and `ruzstd`.
 pod-extract = { git = "https://github.com/PodUtils/podcrates", tag = "v0.21.0" }
 pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.21.0", default-features = false }
+# TODO/image.md T-1709: the FICLONE of the container tree (`tree.rs`).
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.21.0" }

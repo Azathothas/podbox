@@ -1,0 +1,39 @@
+== conditions
+date              2026-11-11T11:26:18Z
+host kernel       Linux 6.18.44-fc-v378
+store filesystem  ext2/ext3
+podvm             podvm 0.2.0-beta.3
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+image             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+== clause 1  a concurrent reader does not read the write of A
+  B read            absent
+  A exited          0  (want 0)
+
+== clause 2  a later run does not read the write of A
+  the later run read absent
+  A's rootfs        trees/372ebd71116ed87e70462895975103ea/rootfs
+
+== clause 3  two concurrent --add-host svc: runs read their own value
+  run 1 read        10.0.0.1 svc 
+  run 2 read        10.0.0.2 svc 
+
+== clause 4  rm and --rm remove the container's tree
+  trees before rm   1  (want 1: A)
+  trees after rm    0  (want 0)
+
+== clause 5  the cost of the copy
+  FICLONE           not available on ext2/ext3: each file is copied
+  alpine 3.20
+    run exited      0  (want 0)
+    fill            the container's own rootfs: 87 files, 7.4 MiB, by copy, in 114 ms (TODO/image.md T-1709)
+    image tree      9 MiB
+  big image         mirror.gcr.io/library/golang:1.24.7-bookworm
+    digest          sha256:a429249eb2242c3727aa4cba431e1163c1212802ec8980b83cb0dfb2e6c6ab50
+  golang 1.24.7-bookworm, second run
+    run exited      0  (want 0)
+    fill            the container's own rootfs: 29059 files, 813.9 MiB, by copy, in 7886 ms (TODO/image.md T-1709)
+    image tree      897 MiB
+  trees after       0  (want 0)
+
+verdict: EACH CONTAINER HAS ITS OWN ROOTFS

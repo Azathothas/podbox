@@ -167,6 +167,9 @@ pub use foreground::*;
 mod prepare;
 pub(crate) use prepare::*;
 
+mod tree;
+pub(crate) use tree::drop_unrecorded;
+
 mod acquire;
 pub(crate) use acquire::*;
 
