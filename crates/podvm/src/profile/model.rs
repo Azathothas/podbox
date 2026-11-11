@@ -21,6 +21,7 @@ const TOP: &[&str] = &[
 ];
 const FS: &[&str] = &[
     "image",
+    "entrypoint",
     "backend",
     "user",
     "wrap",
@@ -54,6 +55,9 @@ pub struct Checked {
     pub write: Vec<String>,
     /// The image of the shape.
     pub image: Option<String>,
+    /// The entrypoint of the run: `""` clears the image's own, as
+    /// `--entrypoint=` does (TODO/cli.md T-1659).
+    pub entrypoint: Option<String>,
     pub backend: Option<String>,
     pub user: Option<String>,
     pub wrap: Vec<String>,
@@ -254,6 +258,7 @@ pub fn check(t: &Table) -> Result<Checked, String> {
     if let Some(fs) = want_table(t, "fs")? {
         only(fs, "fs", FS)?;
         c.image = string(fs, "fs", "image")?;
+        c.entrypoint = string(fs, "fs", "entrypoint")?;
         c.backend = string(fs, "fs", "backend")?;
         if let Some(b) = &c.backend
             && !BACKENDS.contains(&b.as_str())
@@ -369,6 +374,8 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
     // entrypoint (a `#!` script of most runtime images) does not run.
     if c.runtime.is_some() {
         a.push("--entrypoint=".into());
+    } else if let Some(e) = &c.entrypoint {
+        a.push(format!("--entrypoint={e}"));
     }
     if c.read_only {
         a.push("--read-only".into());

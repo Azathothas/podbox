@@ -81,6 +81,7 @@ leaves_out = [
 ]
 [fs]
 image = "public.ecr.aws/lambda/provided:al2023"
+entrypoint = ""
 user = "993:990"
 read_only = true
 tmpfs = ["/tmp:size=512m"]

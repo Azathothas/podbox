@@ -1,11 +1,16 @@
 == conditions
-date              2026-11-11T13:01:58Z
+date              2026-11-11T17:07:05Z
 host kernel       Linux 6.18.44-fc-v378
-podvm             podvm 0.2.0-beta.3
+podvm             podvm 0.2.0-beta.4
 fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
 
 == clause 1  lambda-al2023
-  WAITS: pod-extract refuses a layer of the image (the root entry has an empty name); COORD-042, issue 261
+      gid 12 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+      extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep415-work/store/rootfs/sha256_5c2304c3fd4ffe54bb86a058b634a47f838963d8aa2cf072c137bc00ec4d10ec/.meta.jsonl
+    993
+    fn=podvm
+    touch: cannot touch '/x': Read-only file system
+    project-writable
 
 == clause 2  busybox-bare
     BusyBox v1.38.0 (2026-05-13 02:21:49 UTC) multi-call binary.
@@ -38,5 +43,8 @@ fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
   busybox-bare: leaves_out = ["TLS validation of busybox wget: expired, self-signed and wrong-host certificates exit 0", "curl
   distroless-static: leaves_out = ["a shell: sh -c refuses by name; a static program of /workspace runs"]
   node-shell: leaves_out = ["curl: the image has none"]
+  node-permission: leaves_out = ["the network: Node's permission model has no network rule (net.mode = broker on a tier that hold
+  deno-permissions: leaves_out = ["a grant of env, net, run or ffi: give it with fs.wrap and no runtime"]
+  bun-runtime: leaves_out = ["a permission model: Bun has none, so each path of the guest is open to the payload", "a rootfs 
 
 verdict: THE PROVIDER SHAPES RUN AS PROFILES (a WAITS clause aside)

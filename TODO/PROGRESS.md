@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 9 open, 9 partial, 5 blocked, 323 done.
+346 entries: 9 open, 8 partial, 5 blocked, 324 done.
 
 The state on 2026-11-11:
 
@@ -58,8 +58,7 @@ that is not done. Read its Prove before you start. Set its status with
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
-   wait with T-1662); the profiles [T-1659](cli.md) (partial: the
-   lambda-al2023 clause waits for COORD-042, issue 261) and
+   wait with T-1662); the profile entry
    [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset
    record, workerd-test for T-1658).
 3. The record and the tree: the plan row [T-1737](packaging.md) (partial: a trial nightly run),

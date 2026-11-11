@@ -10,6 +10,16 @@ They describe their recorded revision, not the current build.
 
 ## 0.2.0-beta.4 (2026-11-11)
 
+### Fixed: the profile lambda-al2023 runs, 2026-11-11
+
+Record: T-1659; issue 172.
+Deployed: version 0.2.0-beta.4.
+
+- The layers of `public.ecr.aws/lambda/provided:al2023` apply, and the
+  profile clears the image's entrypoint (a new key `fs.entrypoint`), so
+  `podvm run --profile lambda-al2023 -- CMD` runs CMD as user 993 on a
+  read-only root.
+
 ### Changed: podcrates v0.24.0, 2026-11-11
 
 Record: T-1679; issue 263.

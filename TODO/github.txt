@@ -150,7 +150,7 @@
 258 issue open
 259 issue open
 260 issue open
-261 issue open
+261 issue closed
 262 issue closed
 263 issue closed
 264 issue open

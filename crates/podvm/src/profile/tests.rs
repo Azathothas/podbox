@@ -215,6 +215,10 @@ fn a_provider_shape_names_its_image_and_its_identity() {
     let a = run_args(&c, &std::env::temp_dir()).unwrap();
     assert!(a.contains(&"--user=993:990".to_string()), "{a:?}");
     assert!(a.contains(&"--tmpfs=/tmp:size=512m".to_string()), "{a:?}");
+    // The image's entrypoint is Lambda's invocation protocol, which the
+    // profile leaves out: the command runs as the program.
+    assert_eq!(c.entrypoint.as_deref(), Some(""));
+    assert!(a.contains(&"--entrypoint=".to_string()), "{a:?}");
     let (mut t, _) = resolve("busybox-bare", None).unwrap();
     set(&mut t, "needs=[\"curl\"]").unwrap();
     assert_eq!(check(&t).unwrap().needs, vec!["curl".to_string()]);

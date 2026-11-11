@@ -2599,7 +2599,7 @@ T-1695, and experiment 411.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2669,6 +2669,22 @@ install by `curl -fsSL URL | sh`: node-shell, cloudflare-sandbox and
 ```
 
 ## Done
+
+**Done 2026-11-11.** The last clause, `lambda-al2023`, runs. podcrates
+`v0.24.0` applies a layer whose root entry has an empty name (`pod-extract`,
+`safety::is_root_entry`, the answer to COORD-042, issue 261), and podvm
+takes the tag (T-1679). The run then met the image's entrypoint,
+`/lambda-entrypoint.sh`, which wants a handler name: that script is
+Lambda's invocation protocol, which the profile leaves out. A new key
+`fs.entrypoint` gives `run --entrypoint=VALUE`, and `lambda-al2023` sets it
+to `""`, so the command runs as the program
+(`crates/podvm/src/profile/model.rs`). `PODVM_415_MIRROR=1 sh
+experiments/415-provider-shapes.sh` exits 0 on the cloud host: clause 1
+prints 993 for `id -u` and `fn=podvm`, `touch /x` fails with "Read-only
+file system", and the project is writable; clauses 2 to 7 hold.
+`cargo test -p podvm` exits 0 with
+`a_provider_shape_names_its_image_and_its_identity`, which now asserts the
+cleared entrypoint.
 
 **Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
 `each_built_in_profile_checks_and_gives_its_flags` (each built-in profile
