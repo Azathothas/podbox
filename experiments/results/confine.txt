@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T17:17:07Z
+date              2026-11-11T18:14:08Z
 host kernel       Linux 6.18.44-fc-v378
 podvm             podvm 0.2.0-beta.4
 rung              namespace
@@ -10,8 +10,8 @@ listeners         127.0.0.1:A and 127.0.0.1:B
     2013d9003084: Extracted (430 entries, 0 whiteouts)
     root:x:0:0:root:/root:/bin/sh
     cat: can't open '/etc/shadow': Permission denied
-    sh: line 0: can't create /tmp/w: Permission denied
     shadow=1
+    sh: line 0: can't create /tmp/w: Permission denied
     write=1
     hello-A
     a=0

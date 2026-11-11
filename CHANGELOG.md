@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.25.0, 2026-11-11
+
+Record: T-1658; PodUtils/podcrates#76.
+Deployed: not deployed; no version change.
+
+- The confine layer closes the Landlock scopes (signals, abstract Unix
+  sockets), MPTCP under a port list and io_uring, and a confined root
+  payload keeps docker's default capabilities only.
+
 ## 0.2.0-beta.4 (2026-11-11)
 
 ### Added: the confine layer, 2026-11-11

@@ -2505,6 +2505,14 @@ and the refusals. Two readings of the Prove changed: busybox:musl has no
 cloud host is a proxy only, so the TCP clause uses two listeners of the
 host loopback in place of ports 22 and 443.
 
+podvm takes podcrates `v0.25.0` (COORD-051, PodUtils/podcrates#76): the
+layer now closes the Landlock scopes of ABI 6, denies MPTCP under a TCP
+list and io_uring, and `apply` drops each capability outside docker's
+default set (`Spec::new()`), so a confined root keeps no `CAP_SYS_ADMIN`
+with which it read the environment of its unconfined ancestors past the
+domain. Experiment 414 exits 0 again at that tag; `cargo test --workspace`
+exits 0.
+
 Remaining: the layer on the rungs with no chroot (the loader family and
 the syscall tier, with host paths through the path map and `-v`), `run
 -d` and `exec`, the Landlock ABI in `podvm probe` and in the report of
