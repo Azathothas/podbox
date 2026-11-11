@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the scope group of the doctor, and the asset rule, 2026-11-11
+
+Record: T-1667; issue 188.
+Deployed: not deployed; no version change.
+
+- `podvm doctor` checks each capability of the widened scope (the
+  native-static rung by a run, the syscall tier, openat2, Landlock,
+  user-mode networking, the emulate and incus tiers, the proxy, the space
+  of the store, the assets) with ok, MISSING and a fix, or cannot be fixed
+  on this host. `--strict` exits 1 on a MISSING.
+- A kernel that `PODVM_MACHINE_KERNEL` names is recorded at its first use,
+  and a change of it refuses. The fetch of the guest kernel checks the
+  free space first.
+
 ### Added: the probe inside the payload, and compare, 2026-11-11
 
 Record: T-1666; issue 186.

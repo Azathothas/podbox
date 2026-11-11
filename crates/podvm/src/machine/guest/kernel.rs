@@ -66,6 +66,10 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
     if let Some(p) = std::env::var_os("PODVM_MACHINE_KERNEL") {
         let p = PathBuf::from(p);
         return if p.is_file() {
+            // TODO/cli.md T-1667: a kernel of the caller has no pin, so its
+            // first use is recorded and a change refuses.
+            crate::assets::verify(store_root, "machine-kernel", &p, None)
+                .map_err(|e| format!("PODVM_MACHINE_KERNEL: {e}"))?;
             Ok(Assets {
                 kernel: p,
                 modules: Vec::new(),
@@ -82,6 +86,9 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
         return Ok(a);
     }
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    // TODO/cli.md T-1667: the floor before the download (the kernel and its
+    // modules are some 15 MB; the floor leaves room for them twice over).
+    crate::assets::space_floor(&dir, "the guest kernel of the machine tier", 64 << 20)?;
     let (config, _roots) = podvm_image::tls::client_config();
     let mut net = Net::from_environment(config)?;
     let body = net

@@ -13,19 +13,19 @@ fn doctor_usage_is_plain_ascii() {
 #[test]
 fn health_agrees_with_the_problem_list() {
     let mut d = Doctor::default();
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     d.ok("emu", "qemu=ok".to_string());
     d.note("kvm", "missing under tcg".to_string());
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     d.fail("accel", "denied".to_string(), "install QEMU".to_string());
-    assert_eq!(d.exit_code(), 1);
+    assert_eq!(d.exit_code(false), 1);
     let text = d.render("tcg");
     assert!(text.contains("fail accel: denied\n"));
     assert!(text.contains("fix: install QEMU\n"));
     assert!(text.contains("profile: tcg\n"));
     assert_eq!(d.fixes.len(), 1);
     d.unrunnable("prlimit(RLIMIT_FSIZE)");
-    assert_eq!(d.exit_code(), 2);
+    assert_eq!(d.exit_code(false), 2);
     assert!(d.render("refused").contains("unmeasured: "));
 }
 
@@ -89,7 +89,7 @@ fn the_memfd_exec_row_follows_the_probe() {
     };
     let mut d = Doctor::default();
     examine_memfd_exec(false, &sealed, &mut d);
-    assert_eq!(d.exit_code(), 1);
+    assert_eq!(d.exit_code(false), 1);
     let text = d.render("tcg");
     assert!(
         text.contains("fail memfd_exec: denied by vm.memfd_noexec=2"),
@@ -99,7 +99,7 @@ fn the_memfd_exec_row_follows_the_probe() {
 
     let mut d = Doctor::default();
     examine_memfd_exec(true, &sealed, &mut d);
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     let text = d.render("tcg");
     assert!(
         text.contains("note memfd_exec: denied by vm.memfd_noexec=2"),
@@ -113,7 +113,7 @@ fn the_memfd_exec_row_follows_the_probe() {
 
     let mut d = Doctor::default();
     examine_memfd_exec(false, &MemfdExec::Exec { sysctl: Some(1) }, &mut d);
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     assert!(d.render("tcg").contains("ok memfd_exec: a memfd executes"));
 
     let mut d = Doctor::default();
@@ -122,7 +122,7 @@ fn the_memfd_exec_row_follows_the_probe() {
         why: "EAGAIN (11)".to_string(),
     };
     examine_memfd_exec(false, &un, &mut d);
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     assert!(d.render("tcg").contains("note memfd_exec: not measured"));
 }
 
@@ -134,7 +134,7 @@ fn the_store_mode_row_names_an_exposed_root() {
     let root = std::path::Path::new("/s/podvm");
     let mut d = Doctor::default();
     examine_store_mode(root, Some(0o755), &mut d);
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     let text = d.render("tcg");
     assert!(
         text.contains("note store_mode: /s/podvm is mode 755"),
@@ -146,8 +146,27 @@ fn the_store_mode_row_names_an_exposed_root() {
 
     let mut d = Doctor::default();
     examine_store_mode(root, None, &mut d);
-    assert_eq!(d.exit_code(), 0);
+    assert_eq!(d.exit_code(false), 0);
     assert!(d
         .render("tcg")
         .contains("ok store_mode: /s/podvm is reachable by its owner only"));
+}
+
+/// TODO/cli.md T-1667: a MISSING of the scope group fails only under
+/// `--strict`, with its fix; "cannot be fixed on this host" never fails.
+#[test]
+fn a_missing_scope_capability_fails_only_under_strict() {
+    let mut d = Doctor::default();
+    d.ok("scope.openat2", "answers".into());
+    d.cannot("scope.native-static", "the kernel refuses the prctl".into());
+    assert_eq!((d.exit_code(false), d.exit_code(true)), (0, 0));
+    d.missing("scope.incus", "no incusd".into(), "start one".into());
+    assert_eq!((d.exit_code(false), d.exit_code(true)), (0, 1));
+    let r = d.render("tcg");
+    assert!(r.contains("MISSING scope.incus: no incusd"), "{r}");
+    assert!(
+        r.contains("cannot scope.native-static: cannot be fixed on this host: the kernel"),
+        "{r}"
+    );
+    assert!(r.contains("fix: scope.incus: start one"), "{r}");
 }

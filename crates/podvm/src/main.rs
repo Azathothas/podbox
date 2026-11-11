@@ -10,6 +10,7 @@
 //! exits 2, and a runtime failure exits 125.
 #![forbid(unsafe_op_in_unsafe_fn)]
 
+mod assets;
 mod complete;
 mod diagnose;
 mod doctor;

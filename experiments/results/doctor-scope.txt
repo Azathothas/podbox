@@ -1,0 +1,36 @@
+== conditions
+date              2026-11-11T12:31:10Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+
+== fixture: doctor exit 0, doctor --strict exit 1
+    ok scope.native-static: a static payload entered and ran (podvm 0.2.0-beta.3)
+    ok scope.syscall-tier: a static payload entered with the tier's count of /tmp mapped
+    ok scope.openat2: openat2(RESOLVE_IN_ROOT) answers
+    ok scope.landlock: Landlock ABI 7; the confine layer (TODO/enter.md T-1658) takes it when podcrates releases pod-confine
+    ok scope.user-net: /usr/bin/qemu-system-x86_64 has the user netdev
+    ok scope.emulate: /usr/bin/qemu-aarch64-static is a static qemu-user
+    MISSING scope.incus: no incusd answers at WORK/no-incus/unix.socket: No such file or directory (os error 2)
+    ok scope.proxy: the proxy http://127.0.0.1:41967 answers
+    ok scope.space: 7.37 GiB free at WORK/store
+    ok scope.assets: the guest kernel and its modules: integrity against podvm's pin (SHA-256), not who built the file
+    fix: scope.incus: start an incusd as in docs/incus.md (route A), or set INCUS_DIR (TODO/machine.md T-1718)
+== clause 1  one answer for each capability
+== clause 2  MISSING and --strict
+== clause 3  the rung by a run
+
+== fixture-deny-dispatch: doctor exit 0, doctor --strict exit 1
+    cannot scope.native-static: cannot be fixed on this host: prctl(PR_SET_SYSCALL_USER_DISPATCH) gives errno 1
+    cannot scope.syscall-tier: cannot be fixed on this host: the tier runs on the native-static rung, and prctl(PR_SET_SYSCALL_USER_DISPATCH) gives errno 1
+    ok scope.openat2: openat2(RESOLVE_IN_ROOT) answers
+    ok scope.landlock: Landlock ABI 7; the confine layer (TODO/enter.md T-1658) takes it when podcrates releases pod-confine
+    ok scope.user-net: /usr/bin/qemu-system-x86_64 has the user netdev
+    ok scope.emulate: /usr/bin/qemu-aarch64-static is a static qemu-user
+    MISSING scope.incus: no incusd answers at WORK/no-incus/unix.socket: No such file or directory (os error 2)
+    ok scope.proxy: the proxy http://127.0.0.1:41967 answers
+    ok scope.space: 7.37 GiB free at WORK/store
+    ok scope.assets: the guest kernel and its modules: integrity against podvm's pin (SHA-256), not who built the file
+    fix: scope.incus: start an incusd as in docs/incus.md (route A), or set INCUS_DIR (TODO/machine.md T-1718)
+
+verdict: EACH SCOPE CAPABILITY HAS ONE OF THE THREE ANSWERS, AND --strict FAILS ON A MISSING

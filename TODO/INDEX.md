@@ -340,7 +340,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1664](net.md) | P2 | net | open | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
 | [T-1665](net.md) | P2 | net | open | An egress broker, and the guest's view of a loopback-only proxy |
 | [T-1666](probe.md) | P2 | probe | done | A security probe inside the payload, and a compare against a reference report |
-| [T-1667](cli.md) | P2 | cli | open | Doctor and installers: one check per scope capability, verified downloads, a space floor |
+| [T-1667](cli.md) | P2 | cli | partial | Doctor and installers: one check per scope capability, verified downloads, a space floor |
 | [T-1668](gate.md) | P2 | gate | open | A findings page for the scope: observed or inferred, with host conditions per row |
 | [T-1669](deps.md) | P1 | deps | done | Pin the stable Rust of the day and edition 2024, before the first `pod-*` crate |
 | [T-1670](probe.md) | P1 | probe | done | The first cloud session measures its host and saves the result |
@@ -408,7 +408,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-340 items: 23 open, 4 partial, 4 blocked, 309 done.
+340 items: 22 open, 5 partial, 4 blocked, 309 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -419,9 +419,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 145 | 149 |
-| P2 | 19 | 0 | 4 | 91 | 114 |
+| P2 | 18 | 1 | 4 | 91 | 114 |
 | P3 | 3 | 0 | 0 | 9 | 12 |
-| **All** | **23** | **4** | **4** | **309** | **340** |
+| **All** | **22** | **5** | **4** | **309** | **340** |
 
 ## Work order
 

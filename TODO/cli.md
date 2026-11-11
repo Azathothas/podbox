@@ -2608,7 +2608,7 @@ Source:      issue 188; #193; the owner's ruling of 2026-11-06
 Category:    cli
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      partial 2026-11-11
 
 Problem:     `podvm doctor` reports the rootfs and machine legs. It does
              not cover the widened scope: Landlock, Syscall User Dispatch,
@@ -2642,6 +2642,37 @@ Prove:       `cargo test -p podvm` exits 0 with tests: a planted changed
              chroot-denied fixture: `podvm doctor` lists every scope
              capability with one of the three answers, and `podvm doctor
              --strict` exits 1 where one is MISSING.
+
+**Partial 2026-11-11.** Done: `cargo test -p podvm` exits 0 with
+`a_planted_changed_asset_is_refused` and
+`a_run_below_the_space_floor_refuses_and_names_the_path`
+(`crates/podvm/src/assets.rs`), and
+`a_missing_scope_capability_fails_only_under_strict`.
+`sh experiments/423-doctor-scope.sh` exits 0 on the chroot-denying
+fixture (`experiments/results/doctor-scope.txt`): each of the ten scope
+capabilities (`native-static`, `syscall-tier`, `openat2`, `landlock`,
+`user-net`, `emulate`, `incus`, `proxy`, `space`, `assets`) has one
+line with ok, MISSING or cannot; `scope.incus` is MISSING with its fix;
+`doctor` exits 0 and `doctor --strict` exits 1; with
+`--deny-dispatch`, the native-static rung and the syscall tier read
+"cannot be fixed on this host". The native-static check proves the rung by
+a run: podvm enters itself in a root of its own and prints its version.
+
+Downloads: `crates/podvm/src/assets.rs` checks an asset against podvm's
+pin, or records its SHA-256 at the first use in `<store>/assets/` and
+refuses a change, naming the record to remove. `PODVM_MACHINE_KERNEL`, a
+kernel of the caller with no pin, takes the first-use rule; the pinned
+guest kernel keeps its pin. The fetch of the guest kernel checks a space
+floor of 64 MiB first and names the path. `scope.assets` says what each
+check proves: integrity, not who built the file.
+
+Remaining clauses:
+* The `gh` fetch with the fallback to the public API, and its planted
+  rejected token: podvm fetches no GitHub release today. The first
+  installer that does (a runtime of T-1661 or T-1660) takes the rule and
+  the test.
+* "Labs in a guest": a check for it comes with the network entries
+  T-1662 to T-1665.
 
 **Filed 2026-11-06.** Quoted from issue 188:
 

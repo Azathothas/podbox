@@ -25,7 +25,7 @@ use podvm_probe::machine::{self, Assessment};
 use podvm_probe::verdict::Verdict;
 
 pub const DOCTOR_USAGE: &str = "\
-usage: podvm doctor [store_exec]
+usage: podvm doctor [--strict] [store_exec]
 
   Check what this machine can run and say how to fix what it cannot:
   the machine legs with one fix line per missing piece, the disk free
@@ -34,6 +34,13 @@ usage: podvm doctor [store_exec]
   note, not a failure: that is the TCG profile, not a refusal
   (TODO/machine.md T-1301, T-1306).
 
+  The scope group checks each capability of the widened scope (the
+  native-static rung, the syscall tier, openat2, Landlock, user-mode
+  networking, the emulate and incus tiers, the proxy, the space of the
+  store, the downloaded assets): ok, MISSING with a fix line, or cannot
+  be fixed on this host (TODO/cli.md T-1667).
+
+  --strict     exit 1 on a MISSING of the scope group as well.
   store_exec   print one row: whether files created under the store
                execute (`yes` or `no` with the detail). A `noexec`
                store refuses the first run before pulling (TODO/image.md
@@ -51,6 +58,11 @@ pub enum Status {
     Ok,
     Note,
     Fail,
+    /// The scope group (T-1667): absent, with a fix; a failure under
+    /// `--strict` only.
+    Missing,
+    /// The scope group (T-1667): absent, and this host cannot get it.
+    Cannot,
 }
 
 impl Status {
@@ -59,6 +71,8 @@ impl Status {
             Status::Ok => "ok",
             Status::Note => "note",
             Status::Fail => "fail",
+            Status::Missing => "MISSING",
+            Status::Cannot => "cannot",
         }
     }
 }
@@ -106,6 +120,25 @@ impl Doctor {
         self.fixes.push(fix);
     }
 
+    /// A capability of the scope group that is absent, with its fix.
+    pub fn missing(&mut self, name: &str, detail: String, fix: String) {
+        self.checks.push(Check {
+            name: name.to_string(),
+            status: Status::Missing,
+            detail,
+        });
+        self.fixes.push(format!("{name}: {fix}"));
+    }
+
+    /// A capability of the scope group that this host cannot get.
+    pub fn cannot(&mut self, name: &str, detail: String) {
+        self.checks.push(Check {
+            name: name.to_string(),
+            status: Status::Cannot,
+            detail: format!("cannot be fixed on this host: {detail}"),
+        });
+    }
+
     /// True exactly where the assessment is incomplete: a required leg
     /// the findings never measured. The caller exits 2, because a fix
     /// list built on missing measurements is a guess.
@@ -117,10 +150,15 @@ impl Doctor {
     /// Health agrees with the problem list: a fail without a fix, or
     /// a fix without a fail, is a defect in the caller, asserted
     /// below.
-    pub fn exit_code(&self) -> i32 {
+    /// Under `strict`, a MISSING of the scope group fails too (T-1667).
+    pub fn exit_code(&self, strict: bool) -> i32 {
         if !self.unrunnable.is_empty() {
             2
-        } else if self.checks.iter().any(|c| c.status == Status::Fail) {
+        } else if self
+            .checks
+            .iter()
+            .any(|c| c.status == Status::Fail || (strict && c.status == Status::Missing))
+        {
             1
         } else {
             0
@@ -163,9 +201,11 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
     // refused as before.
     let mut help = false;
     let mut store_exec = false;
+    let mut strict = false;
     for a in args {
         match a.as_str() {
             "-h" | "--help" => help = true,
+            "--strict" => strict = true,
             "store_exec" if !store_exec => store_exec = true,
             other if other.starts_with('-') => {
                 if let Err(c) = crate::parity::admit(verb, other, DOCTOR_USAGE) {
@@ -202,15 +242,17 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
         podvm_enter::memfd::memfd_exec(),
         &mut report,
     );
-    match podvm_image::open_store() {
+    let store = podvm_image::open_store();
+    match &store {
         Ok(store) => examine_store_mode(store.root(), store.exposed_mode(), &mut report),
         Err(e) => report.note(
             "store_mode",
             format!("podvm cannot open its store to read the mode of its root: {e}"),
         ),
     }
+    scope::examine(store.as_ref().ok().map(|s| s.root()), &mut report); // T-1667
     print!("{}", report.render(profile));
-    report.exit_code()
+    report.exit_code(strict)
 }
 
 /// TODO/supervise.md T-1715. The store root keeps the container table, and
@@ -442,6 +484,8 @@ fn examine_memfd_exec(chroot_ok: bool, probe: &podvm_enter::memfd::MemfdExec, re
         _ => report.note(NAME, a.detail),
     }
 }
+
+mod scope;
 
 #[cfg(test)]
 mod tests;

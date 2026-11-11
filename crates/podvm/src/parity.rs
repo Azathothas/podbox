@@ -150,6 +150,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "profile", flag: Some("-s, --set"), status: Native, note: "with `profile show NAME`: KEY=VALUE sets one key of the profile, as `run --profile NAME -s` does (TODO/cli.md T-1654)" },
     Row { verb: "probe", flag: Option::None, status: Native, note: "podvm's own verb, with no docker equivalent: what this machine permits, and the rung podvm selects" },
     Row { verb: "doctor", flag: Option::None, status: Native, note: "podvm's own verb, with no docker equivalent: the setup half beside probe, with one fix line per missing piece (T-1337)" },
+    Row { verb: "doctor", flag: Some("--strict"), status: Native, note: "exit 1 on a MISSING of the scope group as well: a capability of the widened scope that this host could have and does not (TODO/cli.md T-1667)" },
     Row { verb: "doctor", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "extract", flag: Option::None, status: Native, note: "podvm's own verb, with no docker equivalent: unpack the layers and write the ownership sidecar" },
     // ⭐ M4, and each says the difference from docker's rather than implying
