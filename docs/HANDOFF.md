@@ -31,6 +31,8 @@ file when each step below is done.
 * COORD-024 (#242, to podcrates): the take of `v0.15.0` (T-1716).
 * COORD-026 (#244, to podcrates): a tag with T-162 (T-1708) and the
   private modes of `pod-supervise` (T-1715).
+* COORD-027 (#245, to podcrates): resource limits and `no_new_privs` in
+  the child of `pod-enter` (T-1655).
 * COORD-025 (#243, to podcrates): the answer to PodUtils/podcrates#56
   (COORD-031): T-1656 moves up, and the incus entries T-1717 and T-1718.
   COORD-023 (#241) is closed.

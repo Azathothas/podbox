@@ -2052,6 +2052,18 @@ needs (`/__e` read-only beside `/__w` and `/__w/_temp`, T-1711); the Prove
 adds that table. Fourth, the Premise cited parity lines that moved; they
 are corrected in place.
 
+**Amended 2026-11-11.** `Plan` of `pod-enter` has no field for a resource
+limit or for `no_new_privs` at `v0.15.0`, and podvm cannot set either in
+its own process before the fork (an `fsize` limit would bind podvm's own
+writes, and `PR_SET_NO_NEW_PRIVS` cannot be undone). The child-side part
+(`Plan::limits`, `Plan::no_new_privs`, set after the `chdir` and before
+the exec in each entry, a refused call named by its step) is asked of
+podcrates by COORD-027 (issue 245). The `--timeout` clause waits for
+T-1708 (podcrates T-162). The parts in podvm alone: experiment 411, the
+parse and the parity rows of each flag, the `--read-only` layer of the
+interposer with the `:ro` volumes, and `--tmpfs` as a store directory
+under a size check.
+
 ---
 
 ### T-1659 Provider shapes and bare userlands as built-in profiles

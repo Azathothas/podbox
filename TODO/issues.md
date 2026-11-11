@@ -139,3 +139,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of T-155 (to podcrates) | open | T-1716 |
 | #243 | COORD-025: the answer to COORD-031: T-1656 moves up for podrunner; incus is a study (T-1717), then an API back end (T-1718) (to podcrates) | open | T-1656 (amended), T-1717, T-1718 |
 | #244 | COORD-026: pod-supervise: private modes for the table, the logs and each container directory (T-1715); a tag with T-162 for T-1708 (to podcrates) | open | T-1708, T-1715 |
+| #245 | COORD-027: pod-enter: resource limits and no_new_privs in the child before the exec (T-1655) (to podcrates) | open | T-1655 (amended) |
