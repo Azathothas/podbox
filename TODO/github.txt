@@ -147,10 +147,12 @@
 255 issue closed
 256 issue closed
 257 issue closed
-258 issue open
+258 issue closed
 259 issue open
 260 issue open
 261 issue closed
 262 issue closed
 263 issue closed
 264 issue open
+265 issue open
+266 issue open

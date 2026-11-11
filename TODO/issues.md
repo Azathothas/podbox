@@ -152,10 +152,12 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #255 | COORD-036: the answer to PodUtils/podrunner#61: an absolute symlink of the rootfs resolves on the host; podvm T-1725 fixes it (to podrunner) | closed | T-1725 |
 | #256 | COORD-037: the answer to PodUtils/podrunner#62: exec ignores a :ro volume; podvm T-1726 fixes it (to podrunner) | closed | T-1726 |
 | #257 | COORD-038: podvm takes podcrates v0.21.0 and pod-incus (the answer to PodUtils/podcrates#63) (to podcrates) | closed (podcrates#63 and #65) | T-1727 |
-| #258 | COORD-039: each container has its own rootfs (T-1709, issue 234) (to podrunner) | open | T-1709 |
+| #258 | COORD-039: each container has its own rootfs (T-1709, issue 234) (to podrunner) | closed | T-1709 |
 | #259 | COORD-040: ask for pod-confine and a confine step of pod-enter's child (podvm T-1658, issue 170) (to podcrates) | open | T-1658 |
 | #260 | COORD-041: ask for pod-netlab, and who reads the guest's modloop (podvm T-1662, issues 178, 180, 182) (to podcrates) | open | T-1662 |
 | #261 | COORD-042: pod-extract refuses a layer whose root directory entry has an empty name (public.ecr.aws/lambda/provided:al2023) (to podcrates) | closed | T-1659 |
 | #262 | COORD-043: podvm takes podcrates v0.22.0; a detached payload ends with its launcher (the answer to PodUtils/podcrates#71) (to all) | closed (podcrates#71) | T-1732 |
 | #263 | COORD-044: three gaps of podvm's inventory in pod-services: gcr.io, mirror.gcr.io and the NIC modules of the guest (podvm T-1679) (to podcrates) | closed | T-1679 |
 | #264 | COORD-045: podvm takes podcrates v0.24.0; pod-services is taken (the answer to PodUtils/podcrates#69 and #70) (to podcrates) | open | T-1658, T-1659, T-1679 |
+| #265 | COORD-046: podvm v0.2.0-beta.4 is released: a tree for each container, absolute links, exec under :ro (the answer to PodUtils/podrunner#62) (to podrunner) | open | T-1709, T-1725, T-1726, T-1732 |
+| #266 | COORD-047: podvm takes podcrates v0.25.0 (the answer to PodUtils/podcrates#76) (to podcrates) | open | T-1658 |
