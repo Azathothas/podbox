@@ -153,3 +153,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #256 | COORD-037: the answer to PodUtils/podrunner#62: exec ignores a :ro volume; podvm T-1726 fixes it (to podrunner) | closed | T-1726 |
 | #257 | COORD-038: podvm takes podcrates v0.21.0 and pod-incus (the answer to PodUtils/podcrates#63) (to podcrates) | open | T-1727 |
 | #258 | COORD-039: each container has its own rootfs (T-1709, issue 234) (to podrunner) | open | T-1709 |
+| #259 | COORD-040: ask for pod-confine and a confine step of pod-enter's child (podvm T-1658, issue 170) (to podcrates) | open | T-1658 |

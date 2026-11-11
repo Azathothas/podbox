@@ -7,7 +7,7 @@ start.
 
 ## State
 
-337 entries: 24 open, 4 partial, 3 blocked, 306 done.
+337 entries: 23 open, 4 partial, 4 blocked, 306 done.
 
 The state on 2026-11-11:
 
@@ -81,7 +81,8 @@ that is not done. Read its Prove before you start. Set its status with
    container has its own rootfs under `<store>/trees/` (experiment 430).
 8. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1654](cli.md) (profiles over the flags of T-1655) is done,
-   [T-1658](enter.md) and [T-1657](enter.md) (on T-1652),
+   [T-1658](enter.md) (blocked on `pod-confine` of podcrates, COORD-040,
+   issue 259) and [T-1657](enter.md) (on T-1652),
    [T-1666](probe.md) and [T-1667](cli.md) (the probe and the doctor),
    the network entries [T-1665](net.md), [T-1662](net.md),
    [T-1663](net.md) and [T-1664](net.md) (on T-1656), the profiles

@@ -1959,7 +1959,7 @@ Source:      issue 170; #193; the owner's ruling of 2026-11-06;
 Category:    enter
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      blocked
 
 Problem:     bwrap and bailey confine a host process with user and mount
              namespaces, which the target host denies. Landlock needs no
@@ -1997,6 +1997,15 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm-probe`
              to port 22 fail with `EACCES` and port 443 pass;
              `/proc/self/status` shows `NoNewPrivs 1` and `Seccomp 2`; with
              Landlock absent the profile refuses by name.
+
+**Blocked 2026-11-11 on podcrates.** The confine step must run in the
+payload's child after the root change, the `chdir`, the rlimits and
+`no_new_privs`, and before the exec. That child is `pod-enter`'s, which
+podvm takes frozen, and its `Plan` has no step for a ruleset or a filter.
+COORD-040 (issue 259) asks podcrates for `pod-confine` and for
+`Plan.confine`, as the Decision says. Measured here: the cloud host
+(Linux 6.18) answers Landlock ABI 7. The condition that clears the block:
+a podcrates tag with `pod-confine` and `Plan.confine`.
 
 **Filed 2026-11-06.** Quoted from issue 170:
 

@@ -331,7 +331,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1655](cli.md) | P2 | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
 | [T-1656](machine.md) | P2 | machine | done | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
 | [T-1657](enter.md) | P2 | enter | open | A syscall-interpreting tier: the gVisor capability without user namespaces |
-| [T-1658](enter.md) | P2 | enter | open | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
+| [T-1658](enter.md) | P2 | enter | blocked | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
 | [T-1659](cli.md) | P2 | cli | open | Provider shapes and bare userlands as built-in profiles |
 | [T-1660](cli.md) | P2 | cli | open | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
 | [T-1661](cli.md) | P2 | cli | open | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
@@ -405,7 +405,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-337 items: 24 open, 4 partial, 3 blocked, 306 done.
+337 items: 23 open, 4 partial, 4 blocked, 306 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -416,9 +416,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 144 | 148 |
-| P2 | 21 | 0 | 3 | 89 | 113 |
+| P2 | 20 | 0 | 4 | 89 | 113 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **24** | **4** | **3** | **306** | **337** |
+| **All** | **23** | **4** | **4** | **306** | **337** |
 
 ## Work order
 
