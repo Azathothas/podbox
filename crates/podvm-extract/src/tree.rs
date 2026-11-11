@@ -102,26 +102,62 @@ pub fn fill(store: &Store, digest: &str) -> io::Result<Fill> {
     let (src, sidecar) = crate::paths(store, digest);
     let id = new_id()?;
     fs::create_dir_all(trees(store))?;
+    sweep(store);
+    // The copy is made under a name of this process and renamed when it is
+    // whole: a process killed during the copy leaves `.fill-PID-ID`, which
+    // the next fill removes, and never a tree that a record could name.
+    let partial = trees(store).join(format!("{FILLING}{}-{id}", std::process::id()));
     let dir = trees(store).join(&id);
-    fs::create_dir(&dir)?;
+    fs::create_dir(&partial)?;
     let started = Instant::now();
-    let mut fill = Fill {
-        rootfs: dir.join("rootfs"),
-        dir: dir.clone(),
-        ..Fill::default()
-    };
-    let done = copy_dir(&src, &fill.rootfs.clone(), &mut fill).and_then(|_| {
-        match (sidecar.is_file(), sidecar.file_name()) {
-            (true, Some(name)) => fs::copy(&sidecar, dir.join(name)).map(|_| ()),
+    let mut fill = Fill::default();
+    let done = copy_dir(&src, &partial.join("rootfs"), &mut fill)
+        .and_then(|_| match (sidecar.is_file(), sidecar.file_name()) {
+            (true, Some(name)) => fs::copy(&sidecar, partial.join(name)).map(|_| ()),
             _ => Ok(()),
-        }
-    });
+        })
+        .and_then(|_| fs::rename(&partial, &dir));
     if let Err(e) = done {
-        let _ = pod_extract::remove_tree(&dir);
+        let _ = open_dirs(&partial);
+        let _ = pod_extract::remove_tree(&partial);
         return Err(e);
     }
+    fill.rootfs = dir.join("rootfs");
+    fill.dir = dir;
     fill.ms = started.elapsed().as_millis();
     Ok(fill)
+}
+
+/// The prefix of a tree that a process is filling.
+pub const FILLING: &str = ".fill-";
+
+/// Remove each partial tree whose process is gone: a run that was killed
+/// during its copy. A partial tree of a live process stays. The count of
+/// the removed trees.
+pub fn sweep(store: &Store) -> usize {
+    let Ok(rd) = fs::read_dir(trees(store)) else {
+        return 0;
+    };
+    let mut n = 0;
+    for e in rd.flatten() {
+        let name = e.file_name();
+        let Some(pid) = name
+            .to_str()
+            .and_then(|s| s.strip_prefix(FILLING))
+            .and_then(|s| s.split('-').next())
+            .and_then(|p| p.parse::<u32>().ok())
+        else {
+            continue;
+        };
+        if pid == std::process::id() || Path::new(&format!("/proc/{pid}")).exists() {
+            continue;
+        }
+        let p = e.path();
+        if open_dirs(&p).is_ok() && pod_extract::remove_tree(&p).is_ok() {
+            n += 1;
+        }
+    }
+    n
 }
 
 /// The tree directory of `rootfs` when it is a container tree of this

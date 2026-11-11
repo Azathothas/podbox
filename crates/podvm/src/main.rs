@@ -25,6 +25,7 @@ mod lifecycle;
 mod machine;
 mod man;
 mod names;
+mod notebook;
 mod parity;
 mod profile;
 mod remote;
@@ -62,6 +63,7 @@ usage: podvm <command> [options]
   machine      a guest podvm runs: ssh into it (podman parity)
   man          render this manual from the binary's own usage strings
   profile      list and show the profiles that `run --profile` takes
+  notebook     run cycles of a notebook that keep only one directory
   probe-inside run podvm's probe inside an image and write what it gets there
   compare      compare a report of probe-inside with a reference
   pull         fetch an image into the content-addressed store
@@ -176,6 +178,7 @@ fn main() -> std::process::ExitCode {
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("profile") => exit(profile::main(rest)), // TODO/cli.md T-1654
+        Some("notebook") => exit(notebook::main(rest)), // TODO/cli.md T-1660
         Some("probe-inside") => exit(sandprobe::probe_inside(rest)), // T-1666
         Some("compare") => exit(sandprobe::compare(rest)), // T-1666
         Some("pull") => exit(images::pull("pull", rest)),

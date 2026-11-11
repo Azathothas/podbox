@@ -175,3 +175,23 @@ fn a_tree_with_read_only_directories_is_removed_and_no_link_is_followed() {
     fs::set_permissions(&outside, fs::Permissions::from_mode(0o700)).unwrap();
     clean(&s);
 }
+
+/// A partial tree of a process that is gone (a run killed during its copy)
+/// goes at the next fill; a partial tree of a live process stays.
+#[test]
+fn a_partial_tree_of_a_dead_process_is_swept() {
+    let s = store("sweep");
+    fs::create_dir_all(trees(&s)).unwrap();
+    // A pid above the kernel's maximum is never alive.
+    let dead = trees(&s).join(format!("{FILLING}4194305-ab"));
+    let live = trees(&s).join(format!("{FILLING}{}-cd", std::process::id()));
+    fs::create_dir_all(dead.join("rootfs/ro")).unwrap();
+    fs::set_permissions(dead.join("rootfs/ro"), fs::Permissions::from_mode(0o555)).unwrap();
+    fs::create_dir_all(&live).unwrap();
+    let f = fill(&s, DIGEST).unwrap();
+    assert!(!dead.exists(), "the partial tree of a dead process stays");
+    assert!(live.exists(), "the partial tree of a live process went");
+    assert!(f.rootfs.join("etc/hosts").is_file());
+    assert_eq!(f.dir.parent().unwrap(), trees(&s));
+    clean(&s);
+}

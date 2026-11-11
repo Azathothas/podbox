@@ -333,7 +333,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1657](enter.md) | P2 | enter | done | A syscall-interpreting tier: the gVisor capability without user namespaces |
 | [T-1658](enter.md) | P2 | enter | blocked | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
 | [T-1659](cli.md) | P2 | cli | partial | Provider shapes and bare userlands as built-in profiles |
-| [T-1660](cli.md) | P2 | cli | open | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
+| [T-1660](cli.md) | P2 | cli | done | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
 | [T-1661](cli.md) | P2 | cli | partial | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
 | [T-1662](net.md) | P2 | net | blocked | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
 | [T-1663](net.md) | P2 | net | blocked | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
@@ -409,7 +409,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-341 items: 16 open, 8 partial, 7 blocked, 310 done.
+341 items: 15 open, 8 partial, 7 blocked, 311 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -420,9 +420,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
-| P2 | 12 | 4 | 7 | 91 | 114 |
+| P2 | 11 | 4 | 7 | 92 | 114 |
 | P3 | 3 | 0 | 0 | 9 | 12 |
-| **All** | **16** | **8** | **7** | **310** | **341** |
+| **All** | **15** | **8** | **7** | **311** | **341** |
 
 ## Work order
 

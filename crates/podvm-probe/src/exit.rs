@@ -48,6 +48,11 @@ pub const EXIT_CANNOT_INVOKE: i32 = 126;
 /// The command was not found.
 pub const EXIT_NOT_FOUND: i32 = 127;
 
+/// A bound of podvm ended the command: 128 + SIGTERM, as a shell reports a
+/// process that SIGTERM ended (`podvm notebook --kill-after`, TODO/cli.md
+/// T-1660). Not a case of docker's table below.
+pub const EXIT_KILLED: i32 = 143;
+
 /// ⭐ **THE TABLE, AS DATA**, for the same reason the verb and flag parity
 /// table is: a caller decides from it, and a measurement asserts against it
 /// rather than against a number somebody typed into a shell script.

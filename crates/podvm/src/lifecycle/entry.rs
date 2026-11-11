@@ -458,11 +458,9 @@ pub fn decide_entry(
         argv0,
         f.argv.get(1..).unwrap_or(&[]),
     );
-    // TODO/enter.md T-1719: a glibc loader from 2.16 reads no ld.so.cache
-    // of the host.
-    if plan.inhibit_cache {
-        loader_argv.insert(1, "--inhibit-cache".to_string());
-    }
+    // T-1719 (no ld.so.cache of the host) and T-1660 (argv[0] is the guest name).
+    let (host, cache) = (&plan.loader_host, plan.inhibit_cache);
+    super::argv0::options(&mut loader_argv, host, cache, argv0, applet);
     Ok(Some(Userland {
         family: podvm_enter::userland::Family::Loader,
         loader_argv,

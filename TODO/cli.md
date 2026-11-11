@@ -2278,7 +2278,7 @@ Source:      issue 174; #193; the owner's ruling of 2026-11-06
 Category:    cli
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-11-11
 
 Problem:     The owner names notebooks in the scope. podvm has no verb that
              runs a notebook, and no model of a hosted session that wipes
@@ -2313,6 +2313,38 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the argument
              loses variables and keeps `/persist`, `--kill-after 5` on a
              sleeping cell exits 143 and leaves no process, and a marimo
              file exports to HTML.
+
+**Done 2026-11-11.** `cargo test -p podvm` exits 0 with
+`the_arguments_parse_and_a_wrong_one_is_named`,
+`each_output_is_a_line_of_its_cycle_and_an_error_raises` (the `[N]` line
+format, and a failed `!` line that does not raise),
+`a_restart_cuts_the_notebook_after_its_cell` and
+`each_kernel_runs_with_a_read_only_root_and_only_persist_kept`. `sh
+experiments/416-notebook-cycles.sh` exits 0 on the chroot-denying fixture
+(`experiments/results/notebook-cycles.txt`): `--cycles 3
+--restart-kernel-after 1` prints `[N] persist N tmp 1` and `[N] workspace
+['c.ipynb']` for each cycle, `x kept False` after the restart with
+`/persist` kept, and exits 1 for the raise; the control with no restart
+keeps `x`; `--kill-after 5` on a sleeping cell exits 143 with no process
+and no container tree left; `--kill-after 45` exits 143 after a kernel ran;
+a marimo file exports to HTML that holds the output of its cell.
+
+The verb: each cycle, and each part after a restart, is a new `podvm run
+--rm` of the same binary with a read-only root, `--tmpfs /tmp`, a
+`/workspace` with only the notebook and `--persist` at `/persist`; a
+`.ipynb` runs through `jupyter nbconvert --execute --allow-errors
+--stdout` of quay.io/jupyter/base-notebook, a `.py` through `marimo export
+html` of ghcr.io/marimo-team/marimo. The images are glibc: the userland
+rung runs them since T-1644, so no Alpine image is needed.
+
+Two defects were found and fixed. The first exec of the loader family gave
+the payload the host path of the loader's file as `argv[0]`, so the
+`#!/opt/venv/bin/python3` of the marimo script lost its virtual
+environment; the loader now gets `--argv0` with the invoked name, as the
+interposer's exec route gives a child (`crates/podvm/src/lifecycle/argv0.rs`).
+A run killed during the copy of its container tree left the partial tree;
+a tree is now filled under `trees/.fill-PID-ID` and renamed when whole,
+and each fill removes a partial tree whose process is gone.
 
 **Filed 2026-11-06.** Quoted from issue 174:
 

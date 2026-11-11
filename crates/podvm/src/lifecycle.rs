@@ -410,6 +410,8 @@ mod copy_tree;
 pub use copy_tree::*;
 
 mod entry;
+// TODO/cli.md T-1660: the loader's --argv0 on the first exec.
+mod argv0;
 pub use entry::*;
 
 mod userland;
