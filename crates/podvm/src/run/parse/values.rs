@@ -42,3 +42,19 @@ pub(super) fn security_opt(verb: &str, a: &str) -> Result<bool, i32> {
         }
     }
 }
+
+/// One `--cap-drop`: `ALL` sets no-new-privileges in the child, which is
+/// what podvm can enforce without a privilege; a named capability is
+/// refused by name, because podvm does not change the capability sets.
+/// TODO/cli.md T-1655.
+pub(super) fn cap_drop(verb: &str, a: &str) -> Result<bool, i32> {
+    if a.eq_ignore_ascii_case("all") {
+        return Ok(true);
+    }
+    eprintln!(
+        "podvm {verb}: --cap-drop {a:?} is refused: podvm takes ALL only, as \
+         no-new-privileges in the payload; it does not change the capability \
+         sets (TODO/cli.md T-1655)"
+    );
+    Err(EXIT_FLAG_ERROR)
+}

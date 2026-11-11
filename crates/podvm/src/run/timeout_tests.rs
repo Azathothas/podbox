@@ -51,6 +51,26 @@ fn the_limits_of_the_hardening_line_parse() {
     assert_eq!(o.hardening.limits().len(), 2);
     let o = parse("run", &v(&["--security-opt=no-new-privileges:true", "img"])).unwrap();
     assert!(o.hardening.no_new_privs);
+    assert!(
+        parse("run", &v(&["--cap-drop", "ALL", "img"]))
+            .unwrap()
+            .hardening
+            .no_new_privs
+    );
+    assert!(
+        parse("run", &v(&["--cap-drop=all", "img"]))
+            .unwrap()
+            .hardening
+            .no_new_privs
+    );
+    assert_eq!(
+        parse("run", &v(&["--cap-drop", "CHOWN", "img"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert_eq!(
+        parse("run", &v(&["--cap-add", "NET_ADMIN", "img"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
     assert!(!parse("run", &v(&["img"])).unwrap().hardening.no_new_privs);
     for bad in [
         &["--ulimit", "files=1", "img"][..],

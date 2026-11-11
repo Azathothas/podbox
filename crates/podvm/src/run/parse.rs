@@ -259,6 +259,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                 "--timeout" => o.timeout = Some(timeout(verb, a)?),
                 "--ulimit" => o.hardening.ulimits.push(ulimit(verb, a)?),
                 "--security-opt" => o.hardening.no_new_privs |= security_opt(verb, a)?,
+                "--cap-drop" => o.hardening.no_new_privs |= cap_drop(verb, a)?,
                 "--device" => match podvm_enter::device::parse(a) {
                     Ok(_) => o.devices.push(a.clone()),
                     Err(why) => {
@@ -338,6 +339,10 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             "--timeout" => expecting = Some("--timeout"),
             "--ulimit" => expecting = Some("--ulimit"),
             "--security-opt" => expecting = Some("--security-opt"),
+            "--cap-drop" => expecting = Some("--cap-drop"),
+            other if other.starts_with("--cap-drop=") => {
+                o.hardening.no_new_privs |= cap_drop(verb, &other["--cap-drop=".len()..])?
+            }
             other if other.starts_with("--ulimit=") => o
                 .hardening
                 .ulimits

@@ -2093,10 +2093,14 @@ filter); `--ulimit nofile=99999999:99999999` refuses with
 `setrlimit(RLIMIT_NOFILE): EPERM`. `cargo test -p podvm -p podvm-enter`
 exits 0 with `a_ulimit_reads_as_docker_writes_it` and
 `the_limits_of_the_hardening_line_parse`; experiment 355 and
-`curated_refusals` refuse 38 flags now. Remaining: `--cap-drop ALL`,
+`curated_refusals` refuse 38 flags now. `--cap-drop ALL` sets the same
+bit (row Degraded: podvm does not change the capability sets), a named
+capability and `--cap-add` are refused by name (`cap_drop` in
+`crates/podvm/src/run/parse/values.rs`). `--memory`, `--cpus` and
+`--pids-limit` stay refused by name on a rootfs tier. Remaining:
 `--read-only` with `:ro` volumes,
-`--tmpfs`, the refusals of `--memory`, `--cpus` and `--pids-limit` by name,
-the report of T-1695, and experiment 411.
+`--tmpfs`, the guest resources of the machine tier (T-1656), the report of
+T-1695, and experiment 411.
 ---
 
 ### T-1659 Provider shapes and bare userlands as built-in profiles

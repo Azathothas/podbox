@@ -120,6 +120,8 @@ pub const RUN_OPTIONS: &str = "\
   --security-opt no-new-privileges
                    PR_SET_NO_NEW_PRIVS in the payload; each other option is
                    refused by name (TODO/cli.md T-1655)
+  --cap-drop ALL   the same bit; a named capability is refused
+                   (TODO/cli.md T-1655)
   --timeout S      podman's: at S seconds the payload and its tree are
                    killed with SIGKILL; `.End.Reason` reads wall
                    (TODO/cli.md T-1655)

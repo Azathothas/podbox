@@ -17,7 +17,8 @@ Deployed: not deployed; no version change.
   NAME=SOFT[:HARD]` sets a resource limit of the payload, and
   `--security-opt no-new-privileges` sets `PR_SET_NO_NEW_PRIVS` in it, on
   each rung, for a foreground and a detached run. Each other
-  `--security-opt` is refused by name.
+  `--security-opt` is refused by name. `--cap-drop ALL` sets the same
+  bit; a named capability and `--cap-add` are refused.
 - `run --timeout SECONDS` (podman's spelling) kills the payload and its
   tree with SIGKILL at the bound, in a detached run and in a foreground
   run; `.End.Reason` reads `wall`.
