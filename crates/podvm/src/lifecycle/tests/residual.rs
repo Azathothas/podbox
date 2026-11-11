@@ -79,3 +79,26 @@ fn an_unknown_residual_reads_unknown_and_a_record_with_no_end_reads_dashes() {
     assert_eq!(pick("End.RunMs"), "-");
     let _ = std::fs::remove_dir_all(&d);
 }
+
+/// TODO/supervise.md T-1720. `wait` settles: a code passes through; a
+/// record that says running with no launcher (the launcher went before
+/// its write) is read again until the reconcile ends it, never answered
+/// "Up" at once.
+#[test]
+fn wait_settles_a_record_that_still_says_running() {
+    let d = std::env::temp_dir().join(format!("podvm-settle-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    let id = stopped_with_residual(&d, 0.into());
+    let s = podvm_image::Store::open(&d).unwrap();
+    let c = podvm_supervise::get(&s, &id).unwrap();
+    let (_, code) = super::super::wait_rm_cp::settle(&s, c.clone(), Some(0));
+    assert_eq!(code, Some(0));
+    let mut running = c;
+    running.state = podvm_supervise::table::State::Running;
+    let start = std::time::Instant::now();
+    let (now, code) = super::super::wait_rm_cp::settle(&s, running, None);
+    assert_ne!(now.state, podvm_supervise::table::State::Running);
+    assert_eq!(code, Some(0), "the record's own code");
+    assert!(start.elapsed() < std::time::Duration::from_secs(5));
+    let _ = std::fs::remove_dir_all(&d);
+}

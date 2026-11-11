@@ -1096,3 +1096,44 @@ carries it.
 (the ruling "podrunner", 2026-11-10), R1:1.6: "A credential given with
 `-e` or `--env-file` is therefore at rest in the table, in a file created
 with default modes".
+
+---
+
+### T-1720 `wait` gives no exit code for a payload that ends at once
+
+Source:      PodUtils/podrunner#49 (COORD-002 of podrunner, a message from
+             a peer session); `crates/podvm/src/lifecycle/wait_rm_cp.rs`
+Category:    supervise
+Priority:    P1
+Effort:      S
+Status:      done
+
+Problem:     podrunner measured, with the released `v0.2.0-beta.2` on a
+             host with no root and no user namespace, that `podvm wait` of
+             a detached payload that ends at once exits 125 with "has no
+             exit code podvm measured: it is Up" in 4 of 5 runs. Its jobs
+             then read no exit code.
+Premise:     `wait` of `pod-supervise` reads the record again when the
+             launcher is gone; a record that still says running there
+             gives no code. In `v0.12.0` (the crates of beta.2) the
+             launcher can go between its answer and its write of the
+             record (Inferred); since `v0.16.0` it writes the record
+             first (its T-162).
+Approach:    Settle in `wait`: where the answer has no code and the record
+             still says running, read the record again every 50 ms for up
+             to 10 s, until it has the code or is not running.
+Decision:    `wait` never answers "Up" for a payload that ended; a bound
+             still ends with no code, never a made-up one.
+Prove:       `cargo test -p podvm` exits 0 with
+             `wait_settles_a_record_that_still_says_running`, and ten
+             `run -d` of `sh -c 'exit 3'` then `wait` print 3.
+
+**Done 2026-11-11.** `settle` in `crates/podvm/src/lifecycle/wait_rm_cp.rs`.
+On the cloud host (the chroot-denied fixture of experiment 356, userland),
+ten `run -d` of `sh -c 'exit 3'` then `wait` printed 3 in 10 of 10 runs,
+with the current tree and with the released beta.2 (digest
+`0af41a96233c7f9f3ed48b80ebb3271fe9eaa1295616ea0375625f8035baf6a9`): the
+race does not show on this host, so the guard is the fix of the cause
+that the Premise infers. `cargo test -p podvm` exits 0 with
+`wait_settles_a_record_that_still_says_running`.
+

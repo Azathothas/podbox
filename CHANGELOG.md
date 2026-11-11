@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `wait` of a payload that ends at once, 2026-11-11
+
+Record: T-1720; PodUtils/podrunner#49.
+Deployed: not deployed; no version change.
+
+- `wait` reads the record again, for up to 10 s, where the launcher went
+  before the record had the exit code, so it no longer answers "it is Up"
+  for a payload that ended.
+
 ### Added: `--read-only` and `:ro` volumes, 2026-11-11
 
 Record: T-1655 (partial), T-1653; issue 130.

@@ -393,10 +393,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1717](machine.md) | P2 | machine | open | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
 | [T-1718](machine.md) | P2 | machine | blocked | An incus back end: podvm drives incus over its REST API |
 | [T-1719](enter.md) | P2 | enter | open | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
+| [T-1720](supervise.md) | P1 | supervise | done | `wait` gives no exit code for a payload that ends at once |
 
 ## Counts
 
-328 items: 33 open, 8 partial, 4 blocked, 283 done.
+329 items: 33 open, 8 partial, 4 blocked, 284 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -406,10 +407,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 4 | 6 | 0 | 135 | 145 |
+| P1 | 4 | 6 | 0 | 136 | 146 |
 | P2 | 29 | 1 | 4 | 75 | 109 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **33** | **8** | **4** | **283** | **328** |
+| **All** | **33** | **8** | **4** | **284** | **329** |
 
 ## Work order
 

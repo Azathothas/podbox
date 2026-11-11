@@ -60,7 +60,7 @@ pub fn wait(args: &[String]) -> i32 {
     };
     let mut code = 0;
     for want in args {
-        match podvm_supervise::wait(&s, want, WAIT_BOUND_MS) {
+        match podvm_supervise::wait(&s, want, WAIT_BOUND_MS).map(|(c, n)| settle(&s, c, n)) {
             Ok((_, Some(n))) => println!("{n}"),
             Ok((c, None)) => {
                 // ⛔ THE BOUND, OR AN UNWATCHED EXIT, AND NEVER A NUMBER. A `0`
@@ -79,6 +79,38 @@ pub fn wait(args: &[String]) -> i32 {
     }
     code
 }
+
+/// ⛔ TODO/supervise.md T-1720. A wait that ends with no code while the
+/// record still says running is a launcher that went between its answer and
+/// its write of the record: read the record again until it has the code or
+/// is not running, within [`SETTLE_MS`]. PodUtils/podrunner#49 measured the
+/// "it is Up" answer with a payload that ends at once.
+pub(super) fn settle(
+    s: &podvm_image::Store,
+    c: podvm_supervise::table::Container,
+    code: Option<i32>,
+) -> (podvm_supervise::table::Container, Option<i32>) {
+    if code.is_some() || c.state != podvm_supervise::table::State::Running {
+        return (c, code);
+    }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_millis(SETTLE_MS);
+    let mut last = c;
+    while std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        let Ok(now) = podvm_supervise::get(s, &last.id) else {
+            break;
+        };
+        if now.exit_code.is_some() || now.state != podvm_supervise::table::State::Running {
+            let code = now.exit_code;
+            return (now, code);
+        }
+        last = now;
+    }
+    (last, None)
+}
+
+/// How long `wait` reads the record again after the launcher went.
+const SETTLE_MS: u64 = 10_000;
 
 /// `podvm rm [-f] <container>...`
 pub fn rm(args: &[String]) -> i32 {
