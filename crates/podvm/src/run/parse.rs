@@ -103,11 +103,8 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                         return Err(EXIT_FLAG_ERROR);
                     }
                 },
-                "--label" => {
-                    // ⚠ Stub by the table: accepted and dropped. Podvm
-                    // records carry no labels, so there is nowhere to keep
-                    // it, and `ps --filter label=` says so out loud.
-                }
+                // TODO/cli.md T-1695: the record keeps each label.
+                "--label" => o.hardening.labels.push(label(verb, a)?),
                 "-w" => o.workdir = Some(a.clone()),
                 "--entrypoint" => o.entrypoint = Some(a.clone()),
                 "--platform" => o.platform = Some(a.clone()),
@@ -303,9 +300,10 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
                 let es = read_env_file(verb, &other[11..])?;
                 o.env.extend(es);
             }
-            other if other.starts_with("--label=") => {
-                // ⚠ As above: Stub, accepted and dropped.
-            }
+            other if other.starts_with("--label=") => o
+                .hardening
+                .labels
+                .push(label(verb, &other["--label=".len()..])?),
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--device=") => {

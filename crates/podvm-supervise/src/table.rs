@@ -76,9 +76,22 @@ pub struct Hardening {
     /// `run -d` and each `exec` apply the same layer.
     #[serde(default)]
     pub confine: Option<String>,
+    /// Each `--label KEY=VALUE` of the run (TODO/cli.md T-1695): `ps
+    /// --filter label=` and `inspect` read them.
+    #[serde(default)]
+    pub labels: Vec<String>,
 }
 
 impl Hardening {
+    /// Whether the labels match a `--filter label=` value: `KEY` matches a
+    /// label with that key, `KEY=VALUE` the label exactly (docker's rule).
+    pub fn matches_label(&self, want: &str) -> bool {
+        self.labels.iter().any(|l| match want.split_once('=') {
+            Some(_) => l == want,
+            None => l.split('=').next() == Some(want),
+        })
+    }
+
     /// The confine layer of the record with host paths, for the loader
     /// family: each guest path through `maps` (TODO/enter.md T-1658).
     pub fn confine_host_spec(

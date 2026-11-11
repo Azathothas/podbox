@@ -42,7 +42,16 @@ fn fg_begin(
         p.completion_degraded,
         crate::lifecycle::detached_drive(p.userland.as_ref()),
     ) {
-        Ok(c) => c,
+        // TODO/cli.md T-1695: the labels and the options of the run join
+        // the record, as for `run -d`.
+        Ok(c) => match podvm_supervise::set_hardening(store, &c.id, p.hardening.clone()) {
+            Ok(()) => c,
+            Err(e) => {
+                let _ = podvm_supervise::remove(store, &c.id, true);
+                eprintln!("podvm run: the run could not be recorded: {e}");
+                return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
+            }
+        },
         Err(e) => {
             super::drop_unrecorded(store, &p.rootfs); // T-1709
             match &p.name {

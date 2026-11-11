@@ -171,6 +171,16 @@ pub(super) fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<S
     Ok(out)
 }
 
+/// `--label KEY[=VALUE]` as `KEY=VALUE` (TODO/cli.md T-1695).
+pub(super) fn label(verb: &str, a: &str) -> std::result::Result<String, i32> {
+    let (k, v) = a.split_once('=').unwrap_or((a, ""));
+    if k.is_empty() || k.contains(char::is_whitespace) {
+        eprintln!("podvm {verb}: --label takes KEY=VALUE with a key, not {a:?}");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    Ok(format!("{k}={v}"))
+}
+
 /// The SPEC of `--podvm-confine` (TODO/enter.md T-1658).
 pub(super) fn confine(verb: &str, a: &str) -> std::result::Result<podvm_enter::confine::Ask, i32> {
     podvm_enter::confine::parse(a).map_err(|why| {

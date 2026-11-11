@@ -353,6 +353,9 @@ pub(super) fn container_fields(
                 .to_string(),
         ),
         ("Rung", c.rung.clone()),
+        // TODO/cli.md T-1695: the labels of the run, KEY=VALUE, one comma
+        // between two.
+        ("Labels", c.hardening.labels.join(",")),
         // ⭐ T-0804 rule 3. The mode a caller reads includes the shims, or the
         // report says devices exist when they do not.
         ("Complete.Fixups", c.completion_note()),

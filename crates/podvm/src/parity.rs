@@ -275,7 +275,7 @@ pub const TABLE: &[Row] = &[
     // refused with its reason. `--env-file` is real behavior; `--label`,
     // `--attach` and `--expose` are Stub; the rest are None.
     Row { verb: "run", flag: Some("--env-file"), status: Native, note: "repeatable; entries load at the flag's position, so a later -e wins over the file and a later file over an earlier flag. Lines are KEY=VALUE, `#` comments and blank lines ignored, one matching quote pair stripped, a line without `=` refused naming its number" },
-    Row { verb: "run", flag: Some("--label"), status: Stub, note: "accepted and does nothing: podvm records carry no labels, so `ps --filter label=` matches nothing, and --strict refuses" },
+    Row { verb: "run", flag: Some("--label"), status: Native, note: "KEY=VALUE, repeatable: the container record keeps each label, `ps --filter label=KEY[=VALUE]` matches it, and `inspect` prints .Labels (TODO/cli.md T-1695)" },
     Row { verb: "run", flag: Some("--attach"), status: Stub, note: "accepted and does nothing: podvm always captures the payload's stdout and stderr together (TODO/supervise.md T-0605), and --strict refuses" },
     Row { verb: "run", flag: Some("--expose"), status: Stub, note: "accepted and does nothing: docker's --expose only documents ports and podvm publishes none, so the run is unchanged, and --strict refuses" },
     Row { verb: "run", flag: Some("--read-only"), status: Degraded, note: "the read-only layer of the interposer: a write to a guest path outside a writable volume fails with EROFS, on the userland loader family; each other entry refuses by name. The interposer is not a boundary: a raw system call passes (T-1655)" },

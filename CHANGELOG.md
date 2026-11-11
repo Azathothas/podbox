@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: labels on container records, 2026-11-11
+
+Record: T-1695.
+Deployed: not deployed; no version change.
+
+- `run --label KEY=VALUE` and `create --label` are kept in the record:
+  `ps --filter label=KEY[=VALUE]` finds the container, and `inspect
+  --format '{{.Labels}}'` prints them. Before, the flag did nothing.
+
 ### Added: the confine layer on the loader family, 2026-11-11
 
 Record: T-1658; issue 170.

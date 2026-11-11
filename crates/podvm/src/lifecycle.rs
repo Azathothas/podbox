@@ -38,8 +38,8 @@ usage: podvm ps [-a|--all] [-q|--quiet] [--format T] [--no-trunc]
   Fields: .ID .Names .Image .Command .CreatedAt .Status .State .Ports .Pid
 
   --filter takes name=<substring>, matched against the name (or the id
-  prefix), and label=<key>[=<value>], which matches nothing: podvm
-  records carry no labels. Repeatable; every filter must match.
+  prefix), and label=<key>[=<value>], matched against the labels of the
+  run (TODO/cli.md T-1695). Repeatable; every filter must match.
 
   refused: .Ports is always empty and is not an oversight: the payload shares this
     machine's network namespace, so there is nothing to publish.
@@ -60,6 +60,7 @@ pub const CONTAINER_INSPECT_FIELDS: &[&str] = &[
     "RootfsPath",
     "LogPath",
     "Rung",
+    "Labels",
     "Complete.Fixups",
     "Complete.Degraded",
     "Command",
@@ -356,6 +357,8 @@ pub fn ps(args: &[String]) -> i32 {
         .filter(|c| {
             filters.iter().all(|f| match f.key.as_str() {
                 "name" => c.name.contains(&f.value) || c.id.starts_with(&f.value),
+                // TODO/cli.md T-1695: the labels of the run.
+                "label" => c.of.hardening.matches_label(&f.value),
                 _ => false,
             })
         })

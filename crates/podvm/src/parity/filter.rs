@@ -17,9 +17,8 @@ pub fn refuse_member(verb: &str, member: &str, usage: &str) -> i32 {
 /// One `--filter key=value` predicate, for `ps` and `images`.
 ///
 /// TODO/cli.md T-1331: caller-side, no new query language. `name=`
-/// matches a substring; `label=` matches nothing, because no record
-/// podvm keeps carries labels, and that is said in the usage rather
-/// than hidden. Anything else is the caller's mistake and refuses
+/// matches a substring; `label=` matches the labels of a container record
+/// (T-1695) and nothing on an image, whose record keeps none. Anything else is the caller's mistake and refuses
 /// naming the two keys that exist.
 pub struct Filter {
     pub key: String,
@@ -45,8 +44,7 @@ pub fn parse_filter(raw: &str) -> Result<Filter, String> {
         }
         _ => Err(format!(
             "--filter takes key=value, not {raw:?}: `name=<substring>` selects, \
-             `label=<key>[=<value>]` matches nothing because podvm records \
-             carry no labels"
+             `label=<key>[=<value>]` matches the labels of a run"
         )),
     }
 }

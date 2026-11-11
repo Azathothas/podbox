@@ -3013,12 +3013,12 @@ broken, so the priority is P2.
 **Source:** A-V-09, A-V-07 and G-06 of PodUtils/podcrates#39 (COORD-015);
   T-1655 (the peak resident set and the CPU time);
   T-1319 (one `inspect` document);
-  `crates/podvm/src/parity.rs:254`
+  `crates/podvm/src/parity.rs` line 278 at `9962ba77`
 **Category:** cli
 **Milestone:** none
 **Priority:** P1
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3033,15 +3033,15 @@ find its own jobs.
 ## Premise
 
 The `--label` flag is accepted and dropped
-(`crates/podvm/src/run/parse.rs:227`). The parity table
-marks it Stub (`crates/podvm/src/parity.rs:254`). The help
+(`crates/podvm/src/run/parse.rs` line 106 at `9962ba77`). The parity table
+marks it Stub (`crates/podvm/src/parity.rs` line 278 at `9962ba77`). The help
 of `ps` says that a label filter matches nothing
-(`crates/podvm/src/lifecycle.rs:41`), and so does the help of
+(`crates/podvm/src/lifecycle.rs` line 41 at `9962ba77`), and so does the help of
 `images` (`crates/podvm/src/images.rs:106`). The only JSON
 that podvm writes for a caller today is `probe --json`
 (`crates/podvm/src/main.rs:352`). The foreground run knows
-the exit code at its end (`crates/podvm/src/run/foreground.rs:175`)
-and its start is `crates/podvm/src/run/foreground.rs:204`.
+the exit code at its end (`crates/podvm/src/run/foreground.rs:184`)
+and its start is `crates/podvm/src/run/foreground.rs:213`.
 The record that `run` prepares is
 `crates/podvm/src/lifecycle/entry.rs:24`.
 
@@ -3105,6 +3105,24 @@ podvm cannot count. Fourth, an end by a signal names the signal (for
 example `SIGXFSZ`) beside the number. Bytes in and out are not podvm's to
 measure; the report does not carry them.
 
+## Done
+
+**Partial 2026-11-11.** Labels are real for containers: each `--label
+KEY[=VALUE]` of `run` and `create` joins the record (`Hardening.labels` of
+`crates/podvm-supervise/src/table.rs`; the foreground record now stores
+the options of its run, as `run -d` does), `ps --filter label=KEY` and
+`label=KEY=VALUE` match them with docker's rule, and `inspect` prints
+`.Labels` (`KEY=VALUE`, a comma between two). A label with no key is a
+flag error (125). The parity row of `--label` moves from Stub to Native.
+`cargo test -p podvm --test labels` exits 0 with `label_reaches_ps_filter`
+and `label_reaches_inspect`, on an image that `podvm import` records and a
+container that `create` writes, with no registry.
+
+Remaining: the labels of an image from its OCI config for `images --filter
+label=`, and `run --report PATH` (`report_has_every_field`,
+`report_written_on_refusal`, experiment 426).
+
+
 # T-1696: `--secret` places a file with no argv and no env, and a read-once mode
 
 **Source:** A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
@@ -3128,12 +3146,12 @@ the first process only.
 
 `--env-file` reads a file at parse time
 (`crates/podvm/src/run/parse.rs:91`, used at
-`crates/podvm/src/run/parse.rs:208`) and the values go into
+`crates/podvm/src/run/parse.rs:205`) and the values go into
 the environment (`crates/podvm/src/run/prepare.rs:242`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
 A foreground run removes its files at the end
-(`crates/podvm/src/run/foreground.rs:175`). The parity table
+(`crates/podvm/src/run/foreground.rs:184`). The parity table
 has no `--secret` row. The interposer is not a boundary, so
 a claim about "only the runner process" has a limit that the
 banner must state.

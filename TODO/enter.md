@@ -1037,7 +1037,7 @@ image (clause 19), both recorded with their pulled digests.
 
 **Source:** issue 74; `crates/podvm-interpose/src/path_calls.rs:63`;
   `src/ladder.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/foreground.rs:278`
+  `crates/podvm/src/run/foreground.rs:287`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -1169,7 +1169,7 @@ fixture.
 # T-1411: A detached launcher for the no-chroot family
 
 **Source:** issue 72; `crates/podvm/src/run/prepare.rs:47`;
-  `crates/podvm/src/lifecycle.rs:213`; [T-1317](enter.md)
+  `crates/podvm/src/lifecycle.rs:214`; [T-1317](enter.md)
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -1241,7 +1241,7 @@ against the chroot control at 0.
 # T-1412: A missing workdir refuses naming the path
 
 **Source:** issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/parse.rs:210`
+  `crates/podvm/src/run/parse.rs:207`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
