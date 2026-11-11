@@ -28,12 +28,16 @@ file when each step below is done.
 * COORD-001 (#194, to podcrates): the takes of `pod-relay` (T-1678,
   blocked: no release), `pod-services` (T-1679, open) and `pod-todo`
   (T-1680, blocked on T-1672).
-* COORD-023 (#241, to podcrates): podvm resumes, the fuzz targets of the
-  podcrates parsers (T-1684), T-1696 dropped.
-* From podcrates to podvm: PodUtils/podcrates#52 (COORD-027) and #54
-  (COORD-029): podvm's part is T-1716, done; COORD-024 gives the take.
+* COORD-024 (#242, to podcrates): the take of `v0.15.0` (T-1716).
+* COORD-025 (#243, to podcrates): the answer to PodUtils/podcrates#56
+  (COORD-031): T-1656 moves up, and the incus entries T-1717 and T-1718.
+  COORD-023 (#241) is closed.
+* From podcrates to podvm: PodUtils/podcrates#54 (COORD-029): podvm's
+  part is T-1716, done. PodUtils/podcrates#56 (COORD-031): DR-5 and incus,
+  recorded.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1652). T-1716,
-   T-1712 and T-1713 are done on 2026-11-11.
+1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1708 and
+   T-1715, the needs of podrunner first). T-1716, T-1712 and T-1713 are
+   done on 2026-11-11.

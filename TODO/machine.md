@@ -1312,9 +1312,15 @@ the boundary (`kvm` or `tcg`) and the boot id of the guest. The acceptance
 adds a guest that runs `--version` of a glibc .NET payload. The KVM leg
 runs where `/dev/kvm` opens (T-1682). The position of this entry in the
 work order stays as it is: if the owner answers DR-5 with "wait", this
-entry blocks the `untrusted` tier of podrunner, and its place is a
-question for the owner when DR-5 is answered (DR-1 and DR-2 are yes since
-2026-11-11).
+entry blocks the `untrusted` tier of podrunner.
+
+**Amended 2026-11-11, by the owner's answers to DR-5 and to its place.**
+podrunner builds no microVM driver of its own: it waits for this entry, and
+its `microvm` unit kind is an adapter over podvm (DR-5, PodUtils/podrunner#5,
+relayed by PodUtils/podcrates#56). The owner answered "podrunner needs
+first" for the place of this entry: it comes after the runner fixes on the
+userland rung and after T-1682, before T-1652 (`TODO/PROGRESS.md`, item
+3). T-1717 and T-1718 (incus) come after it.
 
 ---
 
@@ -1413,3 +1419,112 @@ process stays after either run.
 
 **Filed 2026-11-10.** Found by the run of T-1687.
 
+---
+
+### T-1717 Study incus without root and without heavy overhead, with errand-box, before an incus back end
+
+Source:      PodUtils/podcrates#56 (COORD-031, the owner's word relayed:
+             "it must also support/have an adapter for incus since it seems
+             to be best of both microvms & dockers"); the owner's answer of
+             2026-11-11 ("study, and also study this:
+             https://github.com/Azathothas/errand-box, find a way to use
+             incus without root & without heavy overhead/performance loss,
+             then api back end"); Azathothas/errand-box at `1ad2fc1`:
+             `errand-box:docs/research/rootless.md`,
+             `errand-box:docs/research/engines.md` and
+             `errand-box:docs/incus-backend.md`
+Category:    machine
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     podvm has no incus back end. incus runs system containers
+             and virtual machines through one REST API on a local Unix
+             socket, but a standard install runs `incusd` as root, and
+             podvm's hosts give no root. Nobody in PodUtils has measured
+             which route gives incus to podvm without root and without a
+             large loss of speed.
+Premise:     errand-box runs each session in an incus system container
+             and ranks two readings of "without root"
+             (`errand-box:docs/research/rootless.md`, measured 2026-10-23
+             on its own host). A: root prepares the host once (subordinate id ranges,
+             a btrfs file system that the user owns, cgroup delegation);
+             then `incusd` 6.0.6 runs as root of a user namespace at 0.6
+             to 1.1 times the cost of runc. It loses the disk quota, a new
+             instance takes 0.9 to 3.5 s in place of 0.5 s, a proxy device
+             cannot reach the host's loopback, and on cgroup v1 with no
+             init the cgroup delegation is a root step at each boot. B: no
+             root ever: no subordinate ids, so only a guest kernel without
+             KVM (User-Mode Linux or QEMU's TCG) runs a full system, at 18
+             to 53 times the cost of runc. Its scripts are under
+             `errand-box:research/experiments/rootless/` and
+             `errand-box:research/experiments/x92-rootless-cost.sh`. The cloud host of
+             2026-11-11 is uid 0 in a container, with user namespaces and
+             `/dev/fuse` and no `/dev/kvm` (`sh scripts/cloud-setup.sh`).
+             T-1656 is podvm's own route of reading B.
+Approach:    Record errand-box as a reference issue (label `reference`,
+             `docs/methodology/references.md`). Read its rootless pages,
+             its survey (`errand-box:docs/research/rootless-survey.md`) and
+             its incus client specification. Rerun route A on the cloud host as a
+             non-root user with a new tracked script under `experiments/`
+             (`NNN-incus-rootless.sh`) and a pinned incus
+             version, and measure the cost against runc and against
+             podvm's own rungs with the workloads of errand-box. Answer
+             each question with a measurement or a cited source: the host
+             preconditions of each route (subordinate ids, `newuidmap`,
+             cgroup delegation, a storage pool that the user owns,
+             `/dev/kvm` for a VM); whether podvm can start and own an
+             `incusd` of its own (a static build of `incusd` and liblxc
+             with zig) or must use the socket of an `incusd` of the host;
+             which docker verbs and OCI image pulls map to the API; and
+             which part is generic enough to be a podcrates crate.
+Decision:    The study gives the form of T-1718; it adds no code to the
+             podvm binary. A route that needs root at run time is recorded
+             with its reason and is not taken without a ruling of the
+             owner. podvm stays one static binary.
+Prove:       A new page `incus.md` under `docs/` names each route with
+             its preconditions and its measured cost, and cites each
+             source. The new script `NNN-incus-rootless.sh` under
+             `experiments/` exits 0 (or 2 with the missing precondition
+             named) and saves its run under `experiments/results/`.
+
+**Filed 2026-11-11.** From the owner's ask relayed by COORD-031 and the
+owner's answer in the session of 2026-11-11.
+
+---
+
+### T-1718 An incus back end: podvm drives incus over its REST API
+
+Source:      PodUtils/podcrates#56 (COORD-031); the owner's answer of
+             2026-11-11 ("... then api back end"); T-1717
+Category:    machine
+Priority:    P2
+Effort:      XL
+Status:      blocked
+
+Problem:     The owner asks that podvm support incus or have an adapter
+             for it, "since it seems to be best of both microvms &
+             dockers". podvm has no back end that drives an incus.
+Premise:     incus serves its REST API on a local Unix socket. podvm is one
+             static musl binary and speaks HTTP through `pod-proxy`. A
+             client of the incus API is generic: podcrates offers to hold
+             it as a crate (COORD-031). T-1717 gives the route and its
+             preconditions.
+Approach:    Build the back end that T-1717 names: a client of the incus
+             REST API (the generic part as a podcrates crate, asked by a
+             COORD issue `(to podcrates)`), the map of `run`, `exec`, `ps`,
+             `stop`, `rm` and `pull` to incus instances and images, the
+             selection of the back end by the ladder and by
+             `--podvm-tier`, and a refusal by name where the host gives no
+             usable incus. The banner and `.EnteredRung` name the back end.
+Decision:    incus is a host service, as KVM is: podvm drives it and never
+             installs it as root. Each refusal names the missing
+             precondition.
+Prove:       `cargo test --workspace` exits 0 with tests of the client
+             against a stand-in API server on a Unix socket. An experiment
+             runs the pinned image `ALPINE` of
+             `experiments/356-no-chroot-rung.sh` through the back end where
+             an `incusd` answers, and refuses by name where none answers.
+
+**Blocked 2026-11-11.** Blocker: T-1717 (the study gives the route).
+Clears when: T-1717 is done and names the route.

@@ -390,10 +390,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1714](probe.md) | P2 | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
 | [T-1715](supervise.md) | P2 | supervise | open | The container table keeps `-e` values in a file that other users can read |
 | [T-1716](enter.md) | P2 | enter | done | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
+| [T-1717](machine.md) | P2 | machine | open | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
+| [T-1718](machine.md) | P2 | machine | blocked | An incus back end: podvm drives incus over its REST API |
 
 ## Counts
 
-325 items: 36 open, 8 partial, 3 blocked, 278 done.
+327 items: 37 open, 8 partial, 4 blocked, 278 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -404,9 +406,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 7 | 6 | 0 | 132 | 145 |
-| P2 | 29 | 1 | 3 | 73 | 106 |
+| P2 | 30 | 1 | 4 | 73 | 108 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **36** | **8** | **3** | **278** | **325** |
+| **All** | **37** | **8** | **4** | **278** | **327** |
 
 ## Work order
 
