@@ -29,7 +29,9 @@ Deployed: not deployed; no version change.
   cloud host). `PODVM_MACHINE_ACCEL=kvm` refuses by name without KVM.
   The guest kernel and its network modules are pinned and fetched into
   the store; the guest reaches the host's loopback at 10.0.2.2. `-v` is a
-  copy into the guest, and the run says so. No stdin yet.
+  copy into the guest, and the run says so. stderr comes back apart; piped
+  stdin reaches the guest. About 0.6 s for each run under KVM on a hosted
+  runner.
 - `podvm machine ssh` prints the accelerator that it took.
 - `.github/workflows/kvm.yml` runs the guest of experiment 390 on a hosted
   runner with `/dev/kvm`, dispatched by hand.

@@ -83,6 +83,13 @@ pub(super) fn machine_tier(
         .iter()
         .map(|v| (std::path::PathBuf::from(&v.host), v.guest.clone()))
         .collect();
+    let stdin = match crate::machine::guest::read_stdin() {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("podvm {verb}: machine tier: {e}");
+            return podvm_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
     crate::machine::guest::boot(&crate::machine::guest::Request {
         verb,
         store_root: store.root(),
@@ -95,5 +102,6 @@ pub(super) fn machine_tier(
         timeout: o.timeout.map(std::time::Duration::from_secs),
         qemu_args: o.qemu_args.clone(),
         copies,
+        stdin,
     })
 }

@@ -100,7 +100,8 @@ podvm fetches into the store. The image needs `/bin/sh`. The guest
 has QEMU's user-mode network: it reaches the host's loopback at
 10.0.2.2. `-v HOST:GUEST` is a copy into the guest: the run says so, and a
 write in the guest does not return to the host. stderr comes back on its own
-serial port. Not yet: stdin. `create` and `exec`
+serial port. stdin reaches the guest where it is a pipe or a file (at
+most 64 MiB, read before the boot); a terminal does not. `create` and `exec`
 with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).

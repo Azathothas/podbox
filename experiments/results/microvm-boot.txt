@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T06:34:36Z
+date              2026-11-11T06:37:19Z
 host kernel       Linux 6.18.44-fc-v378
 input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 boots             20
@@ -31,7 +31,7 @@ exit              0
 
 == 3. boots in a row
 reached           20 of 20
-seconds           55
+seconds           56
 
 == 4. KVM asked
 exit              125
@@ -54,5 +54,10 @@ exit              4
     out-412
   stderr:
     err-412
+
+== 8. stdin
+host sha256       238b95a5878dd5e03c35be1c74df65cd90de1c04efb5a5a01421c9bcd9f5750c
+guest sha256      238b95a5878dd5e03c35be1c74df65cd90de1c04efb5a5a01421c9bcd9f5750c
+from /dev/null    eof-ok
 
 verdict           THE GUEST RUNS THE COMMAND

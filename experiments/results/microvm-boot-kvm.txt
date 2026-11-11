@@ -1,0 +1,43 @@
+Experiment 412 (`run --podvm-tier=machine`) under KVM on a hosted runner.
+Source: the job log of kvm.yml run 42973225343 (job 130366281535),
+2026-11-11, commit b8a7896, runner ubuntu-latest (kernel 7.0.0-1019-azure),
+QEMU 10.2.1. The clauses of 412 at that commit were 1 to 6 (stderr and
+stdin came later). Time stamps and the extraction notes are left out
+(TODO/machine.md T-1656).
+
+== conditions
+input             public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+boots             20
+/dev/kvm          opens
+qemu              QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.3)
+podvm             podvm 0.2.0-beta.2
+
+== 1. one command
+exit              7
+seconds           3 (with the kernel fetch and the base archive)
+  6.12.110-0-virt
+  podvm run: machine tier: a guest under KVM (hardware virtualization), base archive built now (TODO/machine.md T-1656)
+
+== 2. the cache
+exit              0
+  podvm run: machine tier: a guest under KVM (hardware virtualization), base archive from the cache (TODO/machine.md T-1656)
+
+== 3. boots in a row
+reached           20 of 20
+seconds           12
+
+== 4. KVM asked
+exit              0
+  booted
+  podvm run: machine tier: a guest under KVM (hardware virtualization), base archive from the cache (TODO/machine.md T-1656)
+
+== 5. the guest network
+exit              0
+  proxied http://podvm-412.invalid/through-the-proxy
+
+== 6. a volume
+exit              0
+  host-file
+  wrote
+
+verdict           THE GUEST RUNS THE COMMAND

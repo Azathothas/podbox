@@ -38,6 +38,8 @@ pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str, net: 
     }
     // stderr on the second serial port (T-1656), where the node is there.
     s.push_str("[ -c /dev/ttyS1 ] && exec 2>/dev/ttyS1\n");
+    // stdin: the bytes of podvm's stdin where there were some, else none.
+    s.push_str("if [ -f /podvm/stdin ]; then exec 0</podvm/stdin; else exec 0</dev/null; fi\n");
     let words: Vec<String> = argv.iter().map(|a| sh_quote(a)).collect();
     s.push_str(&format!("set -- {}\n", words.join(" ")));
     s.push_str("\"$@\"\nrc=$?\n");

@@ -43,6 +43,7 @@ fn the_run_archive_carries_init_and_the_console_nodes() {
             modules: vec![("virtio_net", b"KO".to_vec())],
         }),
         &[],
+        None,
     )
     .unwrap();
     assert_eq!(cpio::member(&a, "podvm/podvm"), Some(&b"ELF"[..]));
@@ -154,6 +155,7 @@ fn a_volume_is_a_copy_at_its_guest_path() {
         "#!/bin/sh\n",
         None,
         &[(d.join("proj"), "/srv/workspace".to_string())],
+        None,
     )
     .unwrap();
     let text = String::from_utf8_lossy(&a);
@@ -185,4 +187,14 @@ fn stderr_has_its_own_port() {
     assert_eq!(stderr::strip_cr(b"e1\r\ne2\r\n"), b"e1\ne2\n");
     let s = init::script("n", &["true".into()], &[], "/", false);
     assert!(s.contains("exec 2>/dev/ttyS1"));
+}
+
+/// stdin of the guest: the bytes ride in the run archive, and the script
+/// reads them, or `/dev/null` where there are none.
+#[test]
+fn stdin_rides_in_the_run_archive() {
+    let a = run_archive("#!/bin/sh\n", None, &[], Some(b"in-bytes")).unwrap();
+    assert_eq!(cpio::member(&a, "podvm/stdin"), Some(&b"in-bytes"[..]));
+    let s = init::script("n", &["cat".into()], &[], "/", false);
+    assert!(s.contains("exec 0</podvm/stdin") && s.contains("exec 0</dev/null"));
 }

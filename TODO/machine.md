@@ -1321,9 +1321,22 @@ tty's `\r` (`crates/podvm/src/machine/guest/stderr.rs`). Clause 7 of
 experiment 412 passes: `echo out; echo err >&2; exit 4` gives `out` on
 stdout alone, `err` on stderr, and exit 4.
 
-Remaining: stdin; the cold and warm times under KVM (kvm.yml runs 412
-now); the `microvm` machine type; a shared `/workspace` (9p or
-virtiofs).
+stdin, the same day: where podvm's stdin is a pipe or a file, podvm reads
+it (at most 64 MiB) into the run archive as `/podvm/stdin`, and
+`/podvm-init` gives it to the command; else the command reads
+`/dev/null`. A terminal does not reach the guest, so no interactive
+stdin. Clause 8 of experiment 412 passes: 100000 random bytes give the
+same SHA-256 in the guest.
+
+Times under KVM: kvm.yml run 42973225343 ran experiment 412 on a hosted
+runner ([the transcript](../experiments/results/microvm-boot-kvm.txt)):
+the first run, with the kernel fetch and the base archive, took 3 s; 20
+runs in a row took 12 s, about 0.6 s from `run` to the exit code; under
+TCG on the cloud host the same 20 took 48 to 59 s.
+
+Remaining: the `microvm` machine type (Firecracker's kernel did not boot
+under TCG; under KVM not tried); a shared `/workspace` (9p or virtiofs);
+an interactive stdin.
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:

@@ -49,6 +49,38 @@ pub struct Request<'a> {
     /// `-v HOST:GUEST`: each host path, copied into the guest at GUEST.
     /// Writes in the guest do not return to the host.
     pub copies: Vec<(PathBuf, String)>,
+    /// podvm's stdin where it is a pipe or a file, read to its end: the
+    /// command's stdin in the guest (`/podvm/stdin`).
+    pub stdin: Option<Vec<u8>>,
+}
+
+/// The most bytes of stdin that a guest takes.
+pub const MAX_STDIN: u64 = 64 << 20;
+
+/// podvm's stdin for the guest: its bytes where it is a pipe or a regular
+/// file; `None` for a terminal or anything else, which gives the guest
+/// `/dev/null`. More than [`MAX_STDIN`] bytes is an error.
+pub fn read_stdin() -> Result<Option<Vec<u8>>, String> {
+    use std::io::Read;
+    use std::os::unix::fs::FileTypeExt;
+    let Ok(md) = std::fs::metadata("/proc/self/fd/0") else {
+        return Ok(None);
+    };
+    if !(md.file_type().is_fifo() || md.is_file()) {
+        return Ok(None);
+    }
+    let mut buf = Vec::new();
+    std::io::stdin()
+        .lock()
+        .take(MAX_STDIN + 1)
+        .read_to_end(&mut buf)
+        .map_err(|e| format!("stdin: {e}"))?;
+    if buf.len() as u64 > MAX_STDIN {
+        return Err(format!(
+            "stdin holds more than {MAX_STDIN} bytes, the most that the guest takes"
+        ));
+    }
+    Ok(Some(buf))
 }
 
 /// The cache file of the base archive of `digest`.
@@ -100,10 +132,15 @@ pub fn run_archive(
     script: &str,
     tools: Option<&Tools>,
     copies: &[(PathBuf, String)],
+    stdin: Option<&[u8]>,
 ) -> std::io::Result<Vec<u8>> {
     let mut w = cpio::Newc::new(Vec::new());
     for (host, guest) in copies {
         w.tree_at(host, guest)?;
+    }
+    if let Some(bytes) = stdin {
+        w.entry("podvm", cpio::DIR | 0o755, &[], (0, 0))?;
+        w.entry("podvm/stdin", cpio::REG | 0o600, bytes, (0, 0))?;
     }
     w.entry("dev", cpio::DIR | 0o755, &[], (0, 0))?;
     w.entry("dev/console", cpio::CHR | 0o600, &[], (5, 1))?;
@@ -243,7 +280,7 @@ pub fn boot(r: &Request) -> i32 {
         .and_then(|()| std::fs::copy(&base, &initrd))
         .and_then(|_| {
             let script = init::script(&nonce, &r.argv, &r.env, &r.workdir, tools.is_some());
-            run_archive(&script, tools.as_ref(), &r.copies)
+            run_archive(&script, tools.as_ref(), &r.copies, r.stdin.as_deref())
         })
         .and_then(|extra| {
             let mut f = std::fs::OpenOptions::new().append(true).open(&initrd)?;

@@ -25,7 +25,9 @@
 #      writes there is not on the host.
 #   7. stderr comes back apart from stdout: `echo out; echo err >&2`
 #      gives `out` on podvm's stdout and `err` on its stderr only.
-#   8. no emulator stays after the runs.
+#   8. stdin: 100000 random bytes piped in give the same SHA-256 in the
+#      guest; stdin from /dev/null reads its end at once.
+#   9. no emulator stays after the runs.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no qemu).
@@ -150,9 +152,18 @@ rc=$?
 [ "$(cat "$WORK/c7.out")" = "out-412" ] || { note "7: stdout is not out-412 alone"; fail=1; }
 grep -qx "err-412" "$WORK/c7.err" || { note "7: err-412 is not on stderr"; fail=1; }
 
-# Clause 8.
-if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "8: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
-ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "8: a run directory stayed"; fail=1; }
+# Clause 8: stdin.
+head -c 100000 /dev/urandom >"$WORK/in.bin"
+want=$(sha256sum <"$WORK/in.bin" | cut -d' ' -f1)
+got=$(timeout 300 "$PB" run --podvm-tier=machine -i "$ALPINE" sha256sum <"$WORK/in.bin" 2>"$WORK/c8.err" | cut -d' ' -f1)
+eof=$(timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" sh -c 'cat; echo eof-ok' </dev/null 2>>"$WORK/c8.err")
+{ echo ""; echo "== 8. stdin"; echo "host sha256       $want"; echo "guest sha256      $got"; echo "from /dev/null    $eof"; } >>"$REPORT"
+[ -n "$got" ] && [ "$got" = "$want" ] || { note "8: the guest read other bytes"; fail=1; }
+[ "$eof" = "eof-ok" ] || { note "8: stdin from /dev/null did not end"; fail=1; }
+
+# Clause 9.
+if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "9: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
+ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "9: a run directory stayed"; fail=1; }
 
 {
 echo ""
