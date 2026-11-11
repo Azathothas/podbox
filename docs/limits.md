@@ -96,9 +96,10 @@ image and gives the command's exit code (T-1656, in progress). The guest
 runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
 `PODVM_MACHINE_ACCEL=kvm` asks for KVM and refuses by name without it.
 The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
-podvm fetches into the store. The image needs `/bin/sh`. Not yet: the
-guest network (the kernel modules are not in the initrd), volumes and
-`/workspace`, stdin, and a stderr apart from stdout. `create` and `exec`
+podvm fetches into the store. The image needs `/bin/sh`. The guest
+has QEMU's user-mode network: it reaches the host's loopback at
+10.0.2.2. Not yet: volumes and `/workspace`, stdin, and a stderr apart
+from stdout. `create` and `exec`
 with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).

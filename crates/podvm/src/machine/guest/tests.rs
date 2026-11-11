@@ -36,7 +36,16 @@ fn the_base_archive_is_keyed_by_the_digest_and_the_format() {
 
 #[test]
 fn the_run_archive_carries_init_and_the_console_nodes() {
-    let a = run_archive("#!/bin/sh\necho hi\n").unwrap();
+    let a = run_archive(
+        "#!/bin/sh\necho hi\n",
+        Some(&Tools {
+            podvm: b"ELF".to_vec(),
+            modules: vec![("virtio_net", b"KO".to_vec())],
+        }),
+    )
+    .unwrap();
+    assert_eq!(cpio::member(&a, "podvm/podvm"), Some(&b"ELF"[..]));
+    assert_eq!(cpio::member(&a, "/virtio_net.ko"), Some(&b"KO"[..]));
     let text = String::from_utf8_lossy(&a);
     assert!(text.contains("dev/console\0") && text.contains("dev/ttyS0\0"));
     assert!(text.contains("podvm-init\0") && text.contains("echo hi"));
@@ -79,7 +88,9 @@ fn the_init_script_quotes_each_word() {
         &["sh".into(), "-c".into(), "echo 'a b'; exit 7".into()],
         &["A=x y".into(), "1BAD-=z".into()],
         "/w d",
+        true,
     );
+    assert!(s.contains("/podvm/podvm guest-net"));
     assert!(
         s.contains("set -- 'sh' '-c' 'echo '\\''a b'\\''; exit 7'"),
         "{s}"
@@ -108,11 +119,9 @@ fn the_tar_reader_finds_a_member() {
         t.extend_from_slice(&d);
     }
     t.extend_from_slice(&[0u8; 1024]);
-    assert_eq!(
-        kernel::tar_member(&t[..], "boot/vmlinuz-virt").unwrap(),
-        b"KERNEL"
-    );
-    assert!(kernel::tar_member(&t[..], "boot/absent").is_err());
+    let got = kernel::tar_members(&t[..], &["boot/vmlinuz-virt", "boot/absent"]).unwrap();
+    assert_eq!(got[0].as_deref(), Some(&b"KERNEL"[..]));
+    assert_eq!(got[1], None);
 }
 
 #[test]

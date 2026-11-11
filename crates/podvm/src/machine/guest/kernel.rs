@@ -24,13 +24,52 @@ const LIMITS: Limits = Limits {
     idle: std::time::Duration::from_secs(120),
 };
 
-/// The kernel file of a guest: the variable's file, or the pinned kernel
-/// in `store_root/machine/`, fetched where it is not there yet.
-pub fn ensure(store_root: &Path) -> Result<PathBuf, String> {
+/// The modules of the network, out of `boot/initramfs-virt` of the same
+/// archive, each with its SHA-256 (T-1656). The NIC driver of the pinned
+/// kernel is a module.
+pub const MODULES: [(&str, &str); 3] = [
+    (
+        "failover",
+        "6abca214c939b70af47d83380251e0ea16a1d8e47490ddb0521e64abcad3e1a1",
+    ),
+    (
+        "net_failover",
+        "0ede1d375546f9b177cc1d4250bc71d74e9a8444a83f5da7d1f92b7479b6c036",
+    ),
+    (
+        "virtio_net",
+        "fd93a908f5cc37eeb446c7255d614af90ab13dcadd21ddd7bada67a77cb1d177",
+    ),
+];
+const INITRAMFS: &str = "boot/initramfs-virt";
+
+/// What a guest boots with: the kernel, and the module files of the
+/// network (none where `PODVM_MACHINE_KERNEL` names the kernel).
+pub struct Assets {
+    pub kernel: PathBuf,
+    pub modules: Vec<(&'static str, PathBuf)>,
+}
+
+fn cached(dir: &Path) -> Option<Assets> {
+    let kernel = dir.join(format!("vmlinuz-{}", &KERNEL_SHA256[..16]));
+    let modules: Vec<_> = MODULES
+        .iter()
+        .map(|(n, sha)| (*n, dir.join(format!("{n}-{}.ko", &sha[..16]))))
+        .collect();
+    let all = kernel.is_file() && modules.iter().all(|(_, p)| p.is_file());
+    all.then_some(Assets { kernel, modules })
+}
+
+/// The guest's kernel and modules: the variable's kernel, or the pin in
+/// `store_root/machine/`, fetched where it is not there yet.
+pub fn ensure(store_root: &Path) -> Result<Assets, String> {
     if let Some(p) = std::env::var_os("PODVM_MACHINE_KERNEL") {
         let p = PathBuf::from(p);
         return if p.is_file() {
-            Ok(p)
+            Ok(Assets {
+                kernel: p,
+                modules: Vec::new(),
+            })
         } else {
             Err(format!(
                 "PODVM_MACHINE_KERNEL names {}, which is not a file",
@@ -39,9 +78,8 @@ pub fn ensure(store_root: &Path) -> Result<PathBuf, String> {
         };
     }
     let dir = store_root.join("machine");
-    let path = dir.join(format!("vmlinuz-{}", &KERNEL_SHA256[..16]));
-    if path.is_file() && sha256_file(&path)? == KERNEL_SHA256 {
-        return Ok(path);
+    if let Some(a) = cached(&dir) {
+        return Ok(a);
     }
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let (config, _roots) = podvm_image::tls::client_config();
@@ -50,28 +88,71 @@ pub fn ensure(store_root: &Path) -> Result<PathBuf, String> {
         .send("GET", URL, &[], true, LIMITS)
         .map_err(|e| format!("{URL}: {e}"))?;
     let gz = flate2::read::GzDecoder::new(body.take(MAX_ARCHIVE));
-    let kernel = tar_member(gz, MEMBER).map_err(|e| format!("{URL}: {e}"))?;
-    let got = sha256_hex(&kernel);
-    if got != KERNEL_SHA256 {
-        return Err(format!(
-            "{URL}: {MEMBER} has SHA-256 {got}, not the pin {KERNEL_SHA256}"
-        ));
+    let mut got = tar_members(gz, &[MEMBER, INITRAMFS]).map_err(|e| format!("{URL}: {e}"))?;
+    let initramfs = got
+        .pop()
+        .flatten()
+        .ok_or(format!("{URL}: no {INITRAMFS}"))?;
+    let kernel = got.pop().flatten().ok_or(format!("{URL}: no {MEMBER}"))?;
+    check(&kernel, KERNEL_SHA256, MEMBER)?;
+    let mut cpio = Vec::new();
+    flate2::read::GzDecoder::new(&initramfs[..])
+        .read_to_end(&mut cpio)
+        .map_err(|e| format!("{INITRAMFS}: {e}"))?;
+    let put = |name: String, bytes: &[u8]| {
+        let path = dir.join(name);
+        let tmp = path.with_extension("partial");
+        std::fs::write(&tmp, bytes)
+            .and_then(|()| std::fs::rename(&tmp, &path))
+            .map_err(|e| format!("{}: {e}", path.display()))
+    };
+    for (n, sha) in MODULES {
+        let want = format!("/{n}.ko");
+        let bytes = super::cpio::member(&cpio, &want).ok_or(format!("{INITRAMFS}: no {n}.ko"))?;
+        check(bytes, sha, &format!("{n}.ko"))?;
+        put(format!("{n}-{}.ko", &sha[..16]), bytes)?;
     }
-    let tmp = path.with_extension("partial");
-    std::fs::write(&tmp, &kernel).map_err(|e| format!("{}: {e}", tmp.display()))?;
-    std::fs::rename(&tmp, &path).map_err(|e| format!("{}: {e}", path.display()))?;
-    Ok(path)
+    put(format!("vmlinuz-{}", &KERNEL_SHA256[..16]), &kernel)?;
+    cached(&dir).ok_or_else(|| format!("{}: the assets did not stay", dir.display()))
 }
 
-/// The bytes of the member `name` of a tar stream (ustar or GNU headers).
-pub fn tar_member<R: Read>(mut r: R, name: &str) -> Result<Vec<u8>, String> {
+fn check(bytes: &[u8], want: &str, what: &str) -> Result<(), String> {
+    let got = sha256_hex(bytes);
+    if got == want {
+        Ok(())
+    } else {
+        Err(format!(
+            "{URL}: {what} has SHA-256 {got}, not the pin {want}"
+        ))
+    }
+}
+
+/// The bytes of each member of `names` of a tar stream, in that order.
+pub fn tar_members<R: Read>(mut r: R, names: &[&str]) -> Result<Vec<Option<Vec<u8>>>, String> {
+    let mut out: Vec<Option<Vec<u8>>> = vec![None; names.len()];
+    loop {
+        if out.iter().all(Option::is_some) {
+            return Ok(out);
+        }
+        match next_member(&mut r)? {
+            None => return Ok(out),
+            Some((name, data)) => {
+                if let Some(i) = names.iter().position(|n| *n == name) {
+                    out[i] = Some(data);
+                }
+            }
+        }
+    }
+}
+
+/// The next regular member of a tar stream, `./` taken off its name;
+/// `None` at the end.
+fn next_member<R: Read>(r: &mut R) -> Result<Option<(String, Vec<u8>)>, String> {
     let mut head = [0u8; 512];
     let mut long_name: Option<String> = None;
     loop {
-        r.read_exact(&mut head)
-            .map_err(|e| format!("the archive ends before {name}: {e}"))?;
-        if head.iter().all(|&b| b == 0) {
-            return Err(format!("the archive has no {name}"));
+        if r.read_exact(&mut head).is_err() || head.iter().all(|&b| b == 0) {
+            return Ok(None);
         }
         let field = |a: usize, n: usize| {
             let f = &head[a..a + n];
@@ -102,7 +183,7 @@ pub fn tar_member<R: Read>(mut r: R, name: &str) -> Result<Vec<u8>, String> {
                         .to_string(),
                 )
             }
-            b'0' | 0 if member.trim_start_matches("./") == name => return Ok(data),
+            b'0' | 0 => return Ok(Some((member.trim_start_matches("./").to_string(), data))),
             _ => {}
         }
     }
@@ -114,10 +195,4 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect()
-}
-
-fn sha256_file(p: &Path) -> Result<String, String> {
-    std::fs::read(p)
-        .map(|b| sha256_hex(&b))
-        .map_err(|e| format!("{}: {e}", p.display()))
 }

@@ -1282,11 +1282,31 @@ on the cloud host under TCG ([the run](../experiments/results/microvm-boot.txt))
 the base archive from the cache, 20 of 20 boots reach the command (48 s,
 about 2.4 s for each), and the KVM ask refuses with 125.
 
-Remaining: the guest fetches a URL through the host's loopback proxy (the
-initrd has no kernel modules, so the virtio NIC has no driver yet: the
-modloop of the pin, as experiment 361 takes it); `/workspace` and volumes
-(refused by name now); a second channel for stderr; the cold and warm
-times under KVM (on the runner of T-1682); the `microvm` machine type.
+The guest network, the same day: the pinned kernel keeps `virtio_net` in
+a module. `boot/initramfs-virt` of the same archive carries
+`failover.ko`, `net_failover.ko` and `virtio_net.ko`, uncompressed; podvm
+takes the three from it, each checked against its own SHA-256, and keeps
+them in the store. The run archive carries podvm itself and the modules;
+`/podvm-init` runs `podvm guest-net`
+(`crates/podvm/src/machine/guest/net.rs`), which loads them with
+`finit_module(2)`, configures `lo`, `eth0` (10.0.2.15/24) and the default
+route through 10.0.2.2 with ioctls, and writes `/etc/resolv.conf`
+(10.0.2.3). So no tool of the image is needed. Clause 5 of experiment 412
+passes: `-e http_proxy=http://10.0.2.2:PORT` sends busybox wget to a
+stand-in proxy on the host's loopback, which answers the guest.
+
+Measured and left: Firecracker's CI kernel 6.1.102 (virtio-mmio and
+virtio-net built in) for `-M microvm` did not boot under TCG. With
+`pit=off,pic=off` it hung after "ACPI: Core revision"; with the PIT on and
+ACPI it stopped in `kmem_cache_init_late` with a divide error (F15 of
+issue 168); with ACPI off it booted, but it found no virtio-mmio device,
+because it has no `CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES`. `tsc_early_khz`
+and `lpj` did not help. The machine stays `-M pc,acpi=off`.
+
+Remaining: `/workspace` and volumes (refused by name now; `virtiofs.ko`
+and the 9p modules are in the same initramfs); a second channel for
+stderr; stdin; the cold and warm times under KVM (on the runner of
+T-1682); the `microvm` machine type.
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:

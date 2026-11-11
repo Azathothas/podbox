@@ -16,7 +16,9 @@ pub fn sh_quote(w: &str) -> String {
 }
 
 /// The init script for `argv` with `env` (`NAME=VALUE`) in `workdir`.
-pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str) -> String {
+/// `net` runs `podvm guest-net` first, which loads the NIC driver and
+/// configures the network; a failure of it is a line of output.
+pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str, net: bool) -> String {
     let mut s = String::from("#!/bin/sh\n");
     s.push_str("mount -t proc proc /proc 2>/dev/null\n");
     s.push_str("mount -t sysfs sysfs /sys 2>/dev/null\n");
@@ -31,6 +33,9 @@ pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str) -> St
     }
     s.push_str(&format!("cd {} || exit 125\n", sh_quote(workdir)));
     s.push_str(&format!("echo PODVM-READY-{nonce}\n"));
+    if net {
+        s.push_str("/podvm/podvm guest-net\n");
+    }
     let words: Vec<String> = argv.iter().map(|a| sh_quote(a)).collect();
     s.push_str(&format!("set -- {}\n", words.join(" ")));
     s.push_str("\"$@\"\nrc=$?\n");

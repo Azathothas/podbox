@@ -17,8 +17,9 @@ Deployed: not deployed; no version change.
   image and exits with the command's code: under KVM where `/dev/kvm`
   opens, under TCG elsewhere (about 2.4 s for each boot under TCG on the
   cloud host). `PODVM_MACHINE_ACCEL=kvm` refuses by name without KVM.
-  The guest kernel is pinned and fetched into the store. No guest network,
-  volume or stdin yet.
+  The guest kernel and its network modules are pinned and fetched into
+  the store; the guest reaches the host's loopback at 10.0.2.2. No volume
+  or stdin yet.
 - `podvm machine ssh` prints the accelerator that it took.
 - `.github/workflows/kvm.yml` runs the guest of experiment 390 on a hosted
   runner with `/dev/kvm`, dispatched by hand.

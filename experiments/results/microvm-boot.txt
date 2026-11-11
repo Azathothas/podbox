@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T05:46:37Z
+date              2026-11-11T06:07:24Z
 host kernel       Linux 6.18.44-fc-v378
 input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 boots             20
@@ -15,7 +15,7 @@ podvm: probed this machine rather than using the cache: /workspace/podvm/experim
 
 == 1. one command
 exit              7
-seconds           4 (with the kernel fetch and the base archive)
+seconds           6 (with the kernel fetch and the base archive)
   6.12.110-0-virt
   25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep412-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
@@ -31,10 +31,14 @@ exit              0
 
 == 3. boots in a row
 reached           20 of 20
-seconds           48
+seconds           59
 
 == 4. KVM asked
 exit              125
   podvm run: machine tier: PODVM_MACHINE_ACCEL=kvm asks for KVM, and /dev/kvm does not open for this user: podvm does not fall back to TCG (TODO/machine.md T-1656)
+
+== 5. the guest network
+exit              0
+  proxied http://podvm-412.invalid/through-the-proxy
 
 verdict           THE GUEST RUNS THE COMMAND

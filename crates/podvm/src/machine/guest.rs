@@ -17,6 +17,7 @@
 pub(crate) mod cpio;
 pub(crate) mod init;
 pub(crate) mod kernel;
+pub(crate) mod net;
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -82,14 +83,51 @@ pub fn base_archive(
     Ok((path, false))
 }
 
-/// The archive of one run: `/podvm-init` and the console nodes.
-pub fn run_archive(script: &str) -> std::io::Result<Vec<u8>> {
+/// podvm's own bytes and the modules of the network, for a guest
+/// ([`net`]).
+pub struct Tools {
+    pub podvm: Vec<u8>,
+    pub modules: Vec<(&'static str, Vec<u8>)>,
+}
+
+/// The archive of one run: `/podvm-init`, the console nodes, and, where
+/// `tools` gives them, podvm itself and the modules of the network.
+pub fn run_archive(script: &str, tools: Option<&Tools>) -> std::io::Result<Vec<u8>> {
     let mut w = cpio::Newc::new(Vec::new());
     w.entry("dev", cpio::DIR | 0o755, &[], (0, 0))?;
     w.entry("dev/console", cpio::CHR | 0o600, &[], (5, 1))?;
     w.entry("dev/ttyS0", cpio::CHR | 0o660, &[], (4, 64))?;
+    if let Some(t) = tools {
+        w.entry("podvm", cpio::DIR | 0o755, &[], (0, 0))?;
+        w.entry("podvm/podvm", cpio::REG | 0o755, &t.podvm, (0, 0))?;
+        w.entry("podvm/modules", cpio::DIR | 0o755, &[], (0, 0))?;
+        for (n, bytes) in &t.modules {
+            w.entry(
+                &format!("podvm/modules/{n}.ko"),
+                cpio::REG | 0o644,
+                bytes,
+                (0, 0),
+            )?;
+        }
+    }
     w.entry("podvm-init", cpio::REG | 0o755, script.as_bytes(), (0, 0))?;
     w.finish()
+}
+
+/// podvm's own bytes and the module files, for the run archive.
+fn tools(modules: &[(&'static str, PathBuf)]) -> Result<Option<Tools>, String> {
+    if modules.is_empty() {
+        return Ok(None);
+    }
+    let podvm = std::fs::read("/proc/self/exe").map_err(|e| format!("/proc/self/exe: {e}"))?;
+    let mut m = Vec::new();
+    for (n, p) in modules {
+        m.push((
+            *n,
+            std::fs::read(p).map_err(|e| format!("{}: {e}", p.display()))?,
+        ));
+    }
+    Ok(Some(Tools { podvm, modules: m }))
 }
 
 /// The accelerator: `Err` where KVM was asked for and does not open.
@@ -168,10 +206,15 @@ pub fn boot(r: &Request) -> i32 {
     if std::fs::symlink_metadata(r.rootfs.join("bin/sh")).is_err() {
         return fail("the image has no /bin/sh, which runs /podvm-init in the guest".to_string());
     }
-    let kernel = match kernel::ensure(r.store_root) {
+    let assets = match kernel::ensure(r.store_root) {
         Ok(k) => k,
         Err(e) => return fail(format!("the guest kernel: {e}")),
     };
+    let tools = match tools(&assets.modules) {
+        Ok(t) => t,
+        Err(e) => return fail(e),
+    };
+    let kernel = assets.kernel;
     let (base, cached) = match base_archive(r.store_root, r.digest, r.rootfs) {
         Ok(b) => b,
         Err(e) => return fail(e),
@@ -187,7 +230,10 @@ pub fn boot(r: &Request) -> i32 {
     let initrd = dir.join("initrd.cpio");
     let made = std::fs::create_dir_all(&dir)
         .and_then(|()| std::fs::copy(&base, &initrd))
-        .and_then(|_| run_archive(&init::script(&nonce, &r.argv, &r.env, &r.workdir)))
+        .and_then(|_| {
+            let script = init::script(&nonce, &r.argv, &r.env, &r.workdir, tools.is_some());
+            run_archive(&script, tools.as_ref())
+        })
         .and_then(|extra| {
             let mut f = std::fs::OpenOptions::new().append(true).open(&initrd)?;
             f.write_all(&extra)

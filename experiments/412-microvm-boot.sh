@@ -17,9 +17,12 @@
 #   4. PODVM_MACHINE_ACCEL=kvm where /dev/kvm does not open exits 125 by
 #      name and boots nothing (where /dev/kvm opens, the clause records
 #      that it ran under KVM).
-#   5. no emulator stays after the runs.
-# Not here yet (T-1656 keeps them): the guest network through the host's
-# loopback proxy, /workspace, and a second channel for stderr.
+#   5. the guest fetches a URL through an HTTP proxy that listens on the
+#      host's loopback (10.0.2.2 in the guest): `http_proxy` sends busybox
+#      wget there, and the proxy answers with the URL that it got.
+#   6. no emulator stays after the runs.
+# Not here yet (T-1656 keeps them): /workspace, and a second channel for
+# stderr.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no qemu).
@@ -102,9 +105,31 @@ else
 	grep -q "booted" "$WORK/c4.out" && { note "4: a guest booted"; fail=1; }
 fi
 
-# Clause 5.
-if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "5: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
-ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "5: a run directory stayed"; fail=1; }
+# Clause 5: a stand-in proxy on the host's loopback answers each GET of
+# an absolute URL with that URL.
+PORT=$((19000 + $$ % 1000))
+python3 -I -c '
+import http.server, sys
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        b = ("proxied " + self.path + "\n").encode()
+        self.send_response(200); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+    def log_message(self, *a): pass
+http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
+' "$PORT" &
+pp=$!
+sleep 1
+timeout 300 "$PB" run --podvm-tier=machine -e "http_proxy=http://10.0.2.2:$PORT" "$ALPINE" \
+	wget -q -O- http://podvm-412.invalid/through-the-proxy >"$WORK/c5.out" 2>"$WORK/c5.err"
+rc=$?
+kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
+{ echo ""; echo "== 5. the guest network"; echo "exit              $rc"; sed 's/^/  /' "$WORK/c5.out"; grep -v "machine tier: a guest" "$WORK/c5.err" | sed 's/^/  /'; } >>"$REPORT"
+[ "$rc" -eq 0 ] || { note "5: wanted exit 0, got $rc"; fail=1; }
+grep -qx "proxied http://podvm-412.invalid/through-the-proxy" "$WORK/c5.out" || { note "5: the proxy did not answer the guest"; fail=1; }
+
+# Clause 6.
+if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "6: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi
+ls -d "$WORK"/store/machine/run-* >/dev/null 2>&1 && { note "6: a run directory stayed"; fail=1; }
 
 {
 echo ""

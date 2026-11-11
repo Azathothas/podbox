@@ -127,3 +127,23 @@ impl<W: Write> Newc<W> {
         Ok(())
     }
 }
+
+/// The data of the first regular member of the `newc` archive `a` whose
+/// name ends with `suffix`.
+pub fn member<'a>(a: &'a [u8], suffix: &str) -> Option<&'a [u8]> {
+    let hex = |s: &[u8]| u32::from_str_radix(std::str::from_utf8(s).ok()?, 16).ok();
+    let mut i = 0usize;
+    while i + 110 <= a.len() && &a[i..i + 6] == b"070701" {
+        let mode = hex(&a[i + 14..i + 22])?;
+        let size = hex(&a[i + 54..i + 62])? as usize;
+        let nsize = hex(&a[i + 94..i + 102])? as usize;
+        let name = a.get(i + 110..i + 110 + nsize.saturating_sub(1))?;
+        let start = (i + 110 + nsize + 3) & !3;
+        let data = a.get(start..start + size)?;
+        if mode & 0o170_000 == REG && name.ends_with(suffix.as_bytes()) {
+            return Some(data);
+        }
+        i = (start + size + 3) & !3;
+    }
+    None
+}

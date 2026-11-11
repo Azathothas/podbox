@@ -1,11 +1,7 @@
 //! TOOL.md section 6.8: the docker and podman argument surface, the parity table, exit codes.
 //!
-//! Milestones M0 ([`TODO/milestones.md`](../../../TODO/milestones.md) T-1101)
-//! and M1 (T-1102) implement `probe`, `pull`, `images`, `rmi`, `tag`,
-//! `image prune` and `inspect`. Every other verb is unimplemented and says so
-//! on stderr with exit 125, which is docker's code for "the runtime could not
-//! run the command". The work is in
-//! [`TODO/cli.md`](../../../TODO/cli.md).
+//! Each verb dispatches here; [`TODO/cli.md`](../../../TODO/cli.md) holds
+//! their work.
 //!
 //! ⚠ The full verb and flag parity table is [`TODO/cli.md`](../../../TODO/cli.md)
 //! T-0801 and docker's own exit codes are T-0802, both of which land with M3.
@@ -157,6 +153,7 @@ fn main() -> std::process::ExitCode {
         Some("ssh") => ssh_refusal(),
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("machine") => exit(machine::machine(rest)),
+        Some("guest-net") => exit(machine::guest::net::main()), // in a guest, T-1656
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("pull") => exit(images::pull("pull", rest)),
