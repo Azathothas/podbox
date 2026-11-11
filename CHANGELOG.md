@@ -8,10 +8,32 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.4 (2026-11-11)
+
+### Added: a payload that ignores the proxy variables reaches the broker, 2026-11-11
+
+Record: T-1665; issue 184.
+Deployed: version 0.2.0-beta.4.
+
+- With `--network broker` on the syscall tier, each exact name of
+  `--allow` is in the container's `/etc/hosts` with a fake address
+  `198.18.0.N`. A `connect` to it becomes a tunnel of the broker, with the
+  credential of the run, so a program that reads no proxy variable reaches
+  the allowed host, and the broker's policy still applies.
+
+### Changed: the SSH archive is packaged by `podvm-package-ssh`, 2026-11-11
+
+Record: T-1737.
+Deployed: version 0.2.0-beta.4.
+
+- The release archive of the SSH helpers comes from a Rust binary of
+  `podvm-release` in place of a shell script. The archive is
+  byte-identical, with the same names, notices and checks.
+
 ### Added: provider shapes as profiles, 2026-11-11
 
 Record: T-1659; issue 172.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - Six built-in profiles put a tool in the shape of its production host:
   `lambda-al2023`, `vercel-sandbox`, `cloudflare-sandbox`, `busybox-bare`,
@@ -24,7 +46,7 @@ Deployed: not deployed; no version change.
 ### Added: the egress broker, 2026-11-11
 
 Record: T-1665; issue 184.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `run --network broker --ports P --allow HOST` holds the payload to an
   egress broker of the run (`pod-broker`), chained to the host's proxy:
@@ -35,7 +57,7 @@ Deployed: not deployed; no version change.
 ### Added: a loopback proxy reaches a guest of the machine tier, 2026-11-11
 
 Record: T-1665; issue 184.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - On the machine tier, a proxy variable of the payload that names the
   host's loopback (`127.0.0.1`, `localhost`, `::1`) names the gateway
@@ -46,7 +68,7 @@ Deployed: not deployed; no version change.
 ### Added: the scope group of the doctor, and the asset rule, 2026-11-11
 
 Record: T-1667; issue 188.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `podvm doctor` checks each capability of the widened scope (the
   native-static rung by a run, the syscall tier, openat2, Landlock,
@@ -60,7 +82,7 @@ Deployed: not deployed; no version change.
 ### Added: the probe inside the payload, and compare, 2026-11-11
 
 Record: T-1666; issue 186.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `podvm probe-inside [--podvm-tier T] [--profile P] -o FILE IMAGE` runs
   podvm's static probe as the payload and writes what it gets there:
@@ -74,7 +96,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a detached thread on the native-static rung, 2026-11-11
 
 Record: T-1730.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - A static payload whose thread ends detached (musl unmaps the thread's
   own stack) no longer dies with SIGSEGV on the native-static rung and
@@ -83,7 +105,7 @@ Deployed: not deployed; no version change.
 ### Added: the syscall tier, 2026-11-11
 
 Record: T-1657; issue 169.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `run --podvm-tier=syscall` runs a static program on the native-static
   rung with the view of a syscall-interpreting tier: `uname -r` names the
@@ -95,7 +117,7 @@ Deployed: not deployed; no version change.
 ### Added: profiles, 2026-11-11
 
 Record: T-1654; issue 166.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `podvm run --profile NAME [-s KEY=VALUE]` runs with a TOML recipe of run
   flags: built in (`default`, `workspace`, `readonly`, `machine`,
@@ -108,7 +130,7 @@ Deployed: not deployed; no version change.
 ### Fixed: no terminal in a guest without -t, 2026-11-11
 
 Record: T-1728.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - On the machine tier, the command's stdout and stderr are pipes, as
   docker's are without `-t`. Before, they were the serial terminals, and
@@ -117,7 +139,7 @@ Deployed: not deployed; no version change.
 ### Changed: each container has its own rootfs, 2026-11-11
 
 Record: T-1709; issue 234.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `run` and `create` copy the extracted image into the container's own
   tree, `<store>/trees/<id>/`, by `FICLONE` where the filesystem supports
@@ -130,7 +152,7 @@ Deployed: not deployed; no version change.
 ### Added: the emulate tier, 2026-11-11
 
 Record: T-1651; issue 94.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `run --podvm-tier=emulate` runs the payload under a static qemu-user of
   `PATH` on the native-static rung: each path stays in the image (a path
@@ -141,7 +163,7 @@ Deployed: not deployed; no version change.
 ### Changed: podcrates v0.21.0, and pod-incus for the incus tier, 2026-11-11
 
 Record: T-1727; PodUtils/podcrates#63 and #65.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - Each `pod-*` crate is at podcrates `v0.21.0`. The incus tier calls the
   REST API through `pod-incus`; podvm's own client is gone.
@@ -150,7 +172,7 @@ Deployed: not deployed; no version change.
 ### Fixed: absolute links of the image, and exec under :ro, 2026-11-11
 
 Record: T-1725, T-1726; PodUtils/podrunner#61 and #62.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - On the loader family, a path call resolves each link of the image in
   guest names: an absolute link such as `/usr/bin/python3 ->
@@ -161,7 +183,7 @@ Deployed: not deployed; no version change.
 ### Added: a native-static rung, 2026-11-11
 
 Record: T-1652, T-1724; issue 109.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - Where chroot is denied, a static x86_64 payload runs in a podvm process
   of its own: Syscall User Dispatch gives each of its system calls to
@@ -180,7 +202,7 @@ Deployed: not deployed; no version change.
 ### Added: run on an incusd, 2026-11-11
 
 Record: T-1718; issues 243, 251 and 253.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.4.
 
 - `run --podvm-tier=incus IMAGE CMD` runs the command in a disposable
   instance of an incusd that answers on `PODVM_INCUS_SOCKET` or on
