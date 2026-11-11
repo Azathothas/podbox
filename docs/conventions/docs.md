@@ -23,6 +23,8 @@ Source and verified runs establish behavior.
 | `docs/code-map.md` | Source ownership |
 | `docs/limits.md` | Current constraints and proof gaps |
 | `docs/findings.md` | Defects of third-party tools and host traits, observed or inferred, with the host of each row |
+| `docs/development.md` | Code, test and shell rules, in the form of podcrates |
+| `docs/maintenance.md` | Commits, releases and dependencies, in the form of podcrates |
 | `docs/runtime-state.md` | Generated source declarations |
 | `docs/agent-tooling.md` | Tools and source discovery |
 | `docs/containers.md` | Lane procedures |

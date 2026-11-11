@@ -29,15 +29,7 @@ Push without force. Verify the remote commit and its checks.
 
 ## 3. Commits
 
-Make a commit for a coherent change.
-Update its task and live record in the same commit.
-Use an imperative subject that names the change.
-Use a short body that explains the reason when needed.
-
-Write multiline messages through a file.
-Read [shell rules](shell.md) before passing prose to a process.
-Run the full gate before commit.
-Record an interrupted checkpoint honestly when the operator stops the work.
+The commit procedure is in [maintenance](../maintenance.md#commits).
 
 ## 4. Contents
 

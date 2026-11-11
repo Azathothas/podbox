@@ -234,15 +234,15 @@ Read each named page in full. Read the union when two rows apply.
 | --- | --- |
 | Find source or a caller | [Tool map](docs/agent-tooling.md); [Code map](docs/code-map.md) |
 | Product contract | [Architecture](docs/architecture.md); [Limits](docs/limits.md); TOOL.md of Azathothas/container-research, sections 3, 4 and 6 (issue #135) |
-| Implement a task | Its `TODO/` entry; [Gate](docs/methodology/gate.md); [Code](docs/conventions/code.md); [Patterns](docs/conventions/forbidden-patterns.md) |
+| Implement a task | Its `TODO/` entry; [Gate](docs/methodology/gate.md); [Code](docs/development.md#code); [Patterns](docs/conventions/forbidden-patterns.md) |
 | Author work or fix a defect | [Authoring](docs/methodology/authoring.md); [TODO rules](TODO/RULES.md) |
 | Take a measurement | [Experiments](docs/methodology/experiments.md); a related experiment |
 | Add a check | [Gate](docs/methodology/gate.md); `./target/x86_64-unknown-linux-musl/release/podvm-plant` |
 | Study another repository | [References](docs/methodology/references.md); [Reference map](TODO/reference-map.md) |
 | Change carried source | [Vendoring](docs/methodology/vendoring.md); [Third-party notice](THIRD_PARTY.md) |
 | Edit a document | [Prose](docs/conventions/prose.md); [Document roles](docs/conventions/docs.md) |
-| Commit | [Git](docs/conventions/git.md) |
-| Shell or quoting | [Shell](docs/conventions/shell.md) |
+| Commit | [Git](docs/conventions/git.md); [Maintenance](docs/maintenance.md) |
+| Shell or quoting | [Shell](docs/development.md#shell) |
 | Remote operations or credentials | [Remote rules](docs/security/remote-ops.md); [Secret rules](docs/security/secrets.md) |
 | Windows or a container | [Container procedures](docs/containers.md) |
 | Hosted or temporary machine | [Hosted sessions](docs/hosted-sessions.md) |

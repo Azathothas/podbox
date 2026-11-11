@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 12 open, 10 partial, 6 blocked, 318 done.
+346 entries: 11 open, 10 partial, 6 blocked, 319 done.
 
 The state on 2026-11-11:
 
@@ -68,8 +68,7 @@ that is not done. Read its Prove before you start. Set its status with
    the plan rows
    [T-1735](complete.md) and [T-1737](packaging.md),
    [T-1684](gate.md) (fuzzing and the
-   vendor watch) and [T-1685](gate.md) (the two pages in the sibling
-   form).
+   vendor watch).
 4. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
    release. [T-1406](podssh.md), partial, proves live-relay pairing
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.

@@ -4993,7 +4993,7 @@ upstream watch as written.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5030,3 +5030,22 @@ rule change is its own entry.
 `sh scripts/common/check-one-home.sh` exit 0, and
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 with the two pages in
 the tree.
+
+## Done
+
+**Done 2026-11-11.** `docs/development.md` holds the code rules and their
+verification and the shell rules, moved word for word from
+`docs/conventions/code.md` and `docs/conventions/shell.md`, with the
+checks before a push, the toolchain and the file size as pointers to
+`AGENTS.md`. `docs/maintenance.md` holds the commit procedure of section 3
+of `docs/conventions/git.md`, with the releases and the dependencies as
+pointers. The two old pages and section 3 of `git.md` point at the new
+homes, so each of their callers still resolves; the task routing of
+`AGENTS.md` and the document roles (`docs/conventions/docs.md`) name the
+new pages, and the three line citations of the old `code.md` name their
+lines in `docs/development.md`. No rule changed. `sh
+scripts/common/check-docs.sh` (98 files, 1232 links) and `sh
+scripts/common/check-one-home.sh` (67 documents) exit 0, and
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+
+

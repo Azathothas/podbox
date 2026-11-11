@@ -1221,7 +1221,7 @@ a deployment proof. Both stand in the same record because correcting the
 verdict alone leaves the level wrong.
 
 ⭐ **The level is deployment proof, not a unit test**, under
-`docs/conventions/code.md:29`, "Use integration and deployment proof for the
+`docs/development.md:46`, "Use integration and deployment proof for the
 actual default path." The subject is podman's own storage option, not podvm
 code, so no Rust test can replace it.
 

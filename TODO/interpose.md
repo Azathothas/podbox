@@ -2005,7 +2005,7 @@ the refutation and the live `Prove` that settles it.
 `refactor/06-entries/PLAN.md:22-27` is the stated scope of the change, so
 `refactor/recon-c.md:175` and
 `refactor/06-entries/verdict-ledger.tsv` still carry the pre-correction form
-by design. `docs/conventions/code.md:25-30` names the level: a script that
+by design. `docs/development.md:42-47` names the level: a script that
 drives a real tarball carrying symlinks through the shipped binary is
 deployment proof, so it stays shell. The proof is
 `grep -n "162-tar-symlink-modes" TODO/interpose.md`, which matches 9 lines
@@ -2027,7 +2027,7 @@ still carries the pre-correction ledger row, and
 who takes the ledger over the section 2 table lands this script in the wrong
 wave, which is what the plan's own constraint warns against.
 
-**It is a deployment proof, and `docs/conventions/code.md:25-30` is the level
+**It is a deployment proof, and `docs/development.md:42-47` is the level
 it belongs to.** That section names three kinds and requires each to be stated:
 pure tests for deterministic logic, fault tests for conditions a real service
 cannot produce on demand, and integration and deployment proof for the actual

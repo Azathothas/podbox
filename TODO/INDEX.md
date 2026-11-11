@@ -359,7 +359,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1682](machine.md) | P2 | M | none | machine | done | A `kvm.yml` workflow that runs the machine tier's Linux guest on a hosted runner |
 | [T-1683](gate.md) | P2 | M | none | gate | done | Retire the PowerShell twins of `scripts/common/` and `check-twins.sh` |
 | [T-1684](gate.md) | P2 | L | none | gate | open | Fuzz the parsers that read untrusted input, and watch `vendor/` upstream |
-| [T-1685](gate.md) | P2 | M | none | gate | open | A maintenance page and a development page in the sibling form |
+| [T-1685](gate.md) | P2 | M | none | gate | done | A maintenance page and a development page in the sibling form |
 | [T-1686](complete.md) | P2 | S | none | complete | done | The device tests of a stand-in fail where `mknod` is permitted |
 | [T-1687](deps.md) | P2 | S | none | deps | done | Fetch the Alpine netboot kernel and modloop from the 3.22.6 archive |
 | [T-1688](enter.md) | P2 | M | none | enter | done | The memfd rung measures whether a memfd executes, names `vm.memfd_noexec`, and refuses before staging |
@@ -415,7 +415,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-346 entries: 12 open, 10 partial, 6 blocked, 318 done.
+346 entries: 11 open, 10 partial, 6 blocked, 319 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -426,9 +426,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
-| P2 | 7 | 6 | 6 | 96 | 115 |
+| P2 | 6 | 6 | 6 | 97 | 115 |
 | P3 | 4 | 0 | 0 | 12 | 16 |
-| **All** | 12 | 10 | 6 | 318 | 346 |
+| **All** | 11 | 10 | 6 | 319 | 346 |
 
 ## Work order
 
