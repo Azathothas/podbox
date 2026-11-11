@@ -3077,7 +3077,7 @@ still unsupported.
 **Source:** Two read-only audits run 2026-10-02, both reading the live
   tree; `docs/code-map.md` `:5` and `:23`;
   `docs/agent-tooling.md` `:31`; `docs/limits.md` `:33`;
-  `README.md` `:103`; `scripts/README.md` `:21`
+  `README.md` `:104`; `scripts/README.md` `:21`
 **Category:** gate
 **Milestone:** none
 **Priority:** P1
@@ -3097,7 +3097,7 @@ give `scripts/build-state.py` and `scripts/document-state.py`
 as the owners of behaviour that moved to
 `crates/podvm-buildstate` and the `document-state` binary;
 each file is an exec shim and says so in its own header.
-`README.md:103` and `scripts/README.md:21` still name
+`README.md:104` and `scripts/README.md:21` still name
 `verify-release.sh` as the verifier where the logic is now
 `podvm-verify`. `docs/limits.md:43` points T-1405 at
 release packaging for helpers that beta.10 already ships.

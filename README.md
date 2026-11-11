@@ -12,8 +12,9 @@ payload entry, lifecycle control, interposition, and a machine tier.
 The CLI also provides remote and machine SSH commands.
 Most mechanisms are shared crates of
 [PodUtils/podcrates](https://github.com/PodUtils/podcrates); [the code map](docs/code-map.md) names them.
-The machine tier boots Windows, DOS, and `machine ssh` guests. It does not
-yet boot a Linux guest from an OCI image.
+The machine tier boots a Linux guest from an OCI image (`run
+--podvm-tier=machine`, TODO/machine.md T-1656), and Windows, DOS, and
+`machine ssh` guests.
 
 Read [the architecture](docs/architecture.md) for the execution paths.
 Read [the limits](docs/limits.md) before you select a path.

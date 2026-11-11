@@ -354,7 +354,7 @@ fn run(argv: &[String]) -> ExitCode {
 
     let mut block = vec![
         format!(
-            "{} items: {} open, {} partial, {} blocked, {} done.",
+            "{} entries: {} open, {} partial, {} blocked, {} done.",
             total, derived[0], derived[1], derived[2], derived[3]
         ),
         String::new(),
@@ -378,7 +378,7 @@ fn run(argv: &[String]) -> ExitCode {
         ));
     }
     block.push(format!(
-        "| **All** | **{}** | **{}** | **{}** | **{}** | **{}** |",
+        "| **All** | {} | {} | {} | {} | {} |",
         derived[0], derived[1], derived[2], derived[3], total
     ));
 

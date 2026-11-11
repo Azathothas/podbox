@@ -231,7 +231,7 @@ pub(super) fn check_index_counts<'a>(
 
     *gate.seen.entry("counts").or_insert(0) = 1 + PRIORITIES.len() as u64;
     let want = format!(
-        "{total} items: {} open, {} partial, {} blocked, {} done.",
+        "{total} entries: {} open, {} partial, {} blocked, {} done.",
         derived["open"], derived["partial"], derived["blocked"], derived["done"]
     );
     if !index.contains(&want) {
@@ -255,7 +255,7 @@ pub(super) fn check_index_counts<'a>(
         }
     }
     let want_all = format!(
-        "| **All** | **{}** | **{}** | **{}** | **{}** | **{total}** |",
+        "| **All** | {} | {} | {} | {} | {total} |",
         derived["open"], derived["partial"], derived["blocked"], derived["done"]
     );
     if !index.contains(&want_all) {

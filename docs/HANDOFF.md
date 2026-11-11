@@ -26,7 +26,7 @@ file when each step below is done.
   T-NNNN STATUS` writes the `**Status:**` line and the row; a done entry
   needs `## Done` with a date. `podvm-gate` checks the record through a
   view of the old layout (`crates/podvm-gate/src/gate/legacy.rs`), and
-  `podvm-todo check` (pod-todo's reader) reports 356 problems that are not
+  `podvm-todo check` (pod-todo's reader) reports the problems that are not
   of form: those are T-1680.
 * PodUtils/podrunner has a lead session since 2026-11-11. It writes to
   podvm by a COORD issue titled `(to podvm)`; the watcher reads it.
@@ -37,7 +37,7 @@ file when each step below is done.
 
 * COORD-001 (#194, to podcrates): the takes of `pod-relay` (T-1678,
   blocked: no release), `pod-services` (T-1679, partial) and `pod-todo`
-  (T-1680, open).
+  (T-1680, partial).
 * COORD-040 (#259): `pod-confine` for T-1658, in podcrates `v0.23.0`.
 * COORD-041 (#260): `pod-netlab` and the reader of the guest's modloop
   for T-1662 (T-1663 and T-1664 wait with it).
@@ -54,7 +54,7 @@ file when each step below is done.
 1. At podcrates `v0.23.0`: take it, then finish T-1658 (`pod-confine`),
    the lambda clause of T-1659, `workerd-test` of T-1661, and T-1679
    (empty the `WAITING` list of `crates/podvm/src/hosts_tests.rs`).
-2. The work order of `TODO/PROGRESS.md`, step 9: T-1680 (the 356
+2. The work order of `TODO/PROGRESS.md`, step 9: T-1680 (partial: the remaining
    problems of `podvm-todo check`, then the record checks move to
    pod-todo), T-1673, T-1683, T-1684, T-1685.
 3. Done on 2026-11-11 after the first handoff: T-1659 (partial),

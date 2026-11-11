@@ -410,7 +410,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-341 items: 12 open, 10 partial, 6 blocked, 313 done.
+341 entries: 12 open, 10 partial, 6 blocked, 313 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -423,7 +423,7 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P1 | 1 | 3 | 0 | 146 | 150 |
 | P2 | 8 | 6 | 6 | 94 | 114 |
 | P3 | 3 | 0 | 0 | 9 | 12 |
-| **All** | **12** | **10** | **6** | **313** | **341** |
+| **All** | 12 | 10 | 6 | 313 | 341 |
 
 ## Work order
 

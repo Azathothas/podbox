@@ -256,7 +256,7 @@ pub(super) fn run() -> i32 {
             let out: Vec<String> = text
                 .split('\n')
                 .map(|line| {
-                    let mut parts = line.splitn(2, " items: ");
+                    let mut parts = line.splitn(2, " entries: ");
                     if let (Some(head), Some(tail)) = (parts.next(), parts.next())
                         && !head.is_empty()
                         && head.bytes().all(|b| b.is_ascii_digit())
@@ -264,7 +264,7 @@ pub(super) fn run() -> i32 {
                     {
                         let mut tail_parts = tail.splitn(2, ' ');
                         if let (Some(_), Some(rest)) = (tail_parts.next(), tail_parts.next()) {
-                            return format!("{head} items: 999 {rest}");
+                            return format!("{head} entries: 999 {rest}");
                         }
                     }
                     line.to_string()
