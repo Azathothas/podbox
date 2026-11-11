@@ -80,7 +80,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #183 | [Reference] talaria0101/dropssh @ 0aafa21: concurrent relay and SSH server | closed (lesson taken by PodUtils/podssh) | none: a reference (references/README.md) |
 | #184 | [Scope] Egress broker: a policy proxy and the guest's view of a loopback-only proxy | open | T-1665 |
 | #185 | [Reference] talaria0101/nix-experiment @ d8835f2: litmus payload and version forensics | closed (lesson taken in T-0414, T-1111) | none: a reference (references/README.md) |
-| #186 | [Scope] Security probe and compare: an inside-the-payload report diffed against a reference | open | T-1666 |
+| #186 | [Scope] Security probe and compare: an inside-the-payload report diffed against a reference | closed | T-1666 |
 | #187 | [Reference] talaria0101/sandbox-insights @ 0889f5f: probe discipline and the four walls | closed (lesson taken in T-0415, T-0712, T-1308) | none: a reference (references/README.md) |
 | #188 | [Scope] Doctor and installers: host readiness, verified downloads, disk guard | open | T-1667 |
 | #189 | [Scope] Findings ledger: tool defects and host traits that change how a result reads | open | T-1668 |

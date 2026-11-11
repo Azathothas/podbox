@@ -8,6 +8,29 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the probe inside the payload, and compare, 2026-11-11
+
+Record: T-1666; issue 186.
+Deployed: not deployed; no version change.
+
+- `podvm probe-inside [--podvm-tier T] [--profile P] -o FILE IMAGE` runs
+  podvm's static probe as the payload and writes what it gets there:
+  records `SECTION TARGET VERDICT DETAIL` for identity, escalation, escape
+  surface, procfs, raw sockets, proxy, DNS and the network paths, with
+  each secret-shaped value REDACTED. It needs no shell in the image.
+- `podvm compare REPORT --reference REF [--expected FILE] [--strict]`
+  compares two reports; `--strict` fails only on a difference in an
+  invariant section that the expected-differences file does not explain.
+
+### Fixed: a detached thread on the native-static rung, 2026-11-11
+
+Record: T-1730.
+Deployed: not deployed; no version change.
+
+- A static payload whose thread ends detached (musl unmaps the thread's
+  own stack) no longer dies with SIGSEGV on the native-static rung and
+  the syscall tier.
+
 ### Added: the syscall tier, 2026-11-11
 
 Record: T-1657; issue 169.

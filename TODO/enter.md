@@ -2549,3 +2549,39 @@ Prove:       `cargo test -p podvm-dispatch` exits 0 with a test that runs a dyna
 **Filed 2026-11-11.** Split from T-1657, so that the `--strict` gap of the
 loader family names an entry that is not done.
 
+---
+
+### T-1730 A detached thread of a static payload ends with SIGSEGV on the native-static rung
+
+Source:      Found by T-1666: the probe inside the payload died on signal 11 on the chroot-denying fixture
+Category:    enter
+Priority:    P1
+Effort:      S
+Status:      done 2026-11-11
+
+Problem:     musl ends a detached thread with `__unmapself`: `munmap` of
+             the thread's own stack, then `exit`. On the native-static rung
+             the `munmap` traps into the SIGSYS handler, which runs on that
+             stack (a thread has no alternate stack). The handler unmapped
+             it, and its return faulted: the whole payload died with
+             SIGSEGV. Each static program that drops the handle of a thread
+             (Rust's `std::thread::spawn`, a DNS resolve with a bound) hits
+             it.
+Premise:     Measured on 2026-11-11 with `strace -f`: the thread called
+             `munmap(0x7f61d59fd000, 2109440)` and took SIGSEGV at
+             `0x7f61d5bfec50`, in the range it had unmapped.
+Approach:    Where a `munmap` takes the stack that the handler runs on, the
+             handler makes the `munmap` and the `exit` of the thread in one
+             routine of assembly that touches no stack
+             (`podvm_dispatch_unmap_exit`).
+Decision:    A call that unmaps the handler's own stack cannot return, so
+             its only valid next call is the exit; musl makes it.
+Prove:       `cargo test -p podvm-dispatch` exits 0 with `a_detached_thread_ends_and_the_process_goes_on`, and the test fails with the new arm taken out
+
+**Done 2026-11-11.** `cargo test -p podvm-dispatch` exits 0, 9 tests of
+`tests/dispatch.rs`. The plant: with the arm of `MUNMAP` taken out
+(`if false &&`), `a_detached_thread_ends_and_the_process_goes_on` failed;
+with it back, it passed.
+
+**Filed 2026-11-11.** Found by T-1666.
+

@@ -242,3 +242,12 @@ fn a_missing_file_of_the_root_is_enoent_and_not_the_hosts() {
     let (got, _) = probe(&r, &["cat", "/bin/../../etc/passwd"]);
     assert!(got.starts_with("ERR No such file"), "{got}");
 }
+
+/// T-1652, found by T-1666: a detached thread unmaps its own stack and
+/// exits (musl's `__unmapself`); the handler runs on that stack, so it
+/// makes the unmap and the exit in one step, and the process goes on.
+#[test]
+fn a_detached_thread_ends_and_the_process_goes_on() {
+    let Some(r) = root("detached") else { return };
+    assert_eq!(probe(&r, &["detached"]), ("detached ok".into(), 0));
+}

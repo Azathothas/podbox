@@ -1,0 +1,66 @@
+== conditions
+date              2026-11-11T12:23:32Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+/dev/kvm          absent
+image             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sha256:bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
+image             mirror.gcr.io/library/busybox:latest sha256:aaef90e065235eb0b2d9938be85d1b81add2902cf89affe2cdfa19be33476ac0
+image             gcr.io/distroless/static-debian12 sha256:536c3e7d9d1eb07d7c33b5d7e53d49a5366c5d528339aedc5dff5d5e8bf18d9b
+
+== clause 1  a report in each row
+  alpine-ladder: exit 0, 60 records,  ALLOW 30, DENY 4, ABSENT 21, UNKNOWN 5
+  alpine-ladder-2: exit 0, 60 records,  ALLOW 30, DENY 4, ABSENT 21, UNKNOWN 5
+  busybox-ladder: exit 0, 60 records,  ALLOW 29, DENY 4, ABSENT 22, UNKNOWN 5
+  distroless-ladder: exit 0, 61 records,  ALLOW 31, DENY 4, ABSENT 21, UNKNOWN 5
+  alpine-fixture: exit 0, 61 records,  ALLOW 37, DENY 12, ABSENT 12
+  alpine-syscall: exit 0, 61 records,  ALLOW 37, DENY 12, ABSENT 12
+  alpine-machine: exit 0, 60 records,  ALLOW 46, DENY 3, ABSENT 11
+
+== clause 2  two reports of one tier
+  exit 0  (want 0): 60 same, 0 differ (0 explained, 0 unexplained in an invariant section), 0 only in the reference, 0 only here
+
+== clause 3  a planted escape
+  exit 1  (want 1)
+    59 same, 1 differ (0 explained, 1 unexplained in an invariant section), 0 only in the reference, 0 only here
+    escape-surface	host-store	ALLOW here, ABSENT in the reference	UNEXPLAINED in an invariant section
+
+== clause 4  the chroot rung against the machine tier, with the causes
+  exit 0  (want 0)
+    38 same, 18 differ (13 explained, 0 unexplained in an invariant section), 4 only in the reference, 4 only here
+    escalation	read-pid1-memory	ALLOW here, ABSENT in the reference	explained: the guest: PID 1 is podvm's init in the guest, not a process of the host
+    escalation	unshare-user	ALLOW here, DENY in the reference	explained: the guest: the payload is root of the guest's own kernel
+    escape-surface	/dev/kmsg	ALLOW here, ABSENT in the reference	explained: the guest: the kernel log of the guest's own kernel
+    escape-surface	/dev/mem	ALLOW here, ABSENT in the reference	explained: the guest: the memory of the guest, not of the host
+    escape-surface	/proc/1/environ	ALLOW here, ABSENT in the reference	explained: the guest: PID 1 is podvm's init in the guest
+    escape-surface	/proc/1/mem	ALLOW here, ABSENT in the reference	explained: the guest: PID 1 is podvm's init in the guest
+    escape-surface	/proc/1/root/etc/hostname	ALLOW here, ABSENT in the reference	explained: the guest: the root of the guest's init is the guest's
+    escape-surface	/proc/sysrq-trigger	ALLOW here, ABSENT in the reference	explained: the guest: the sysrq of the guest's own kernel
+    escape-surface	/sys/kernel/security	ALLOW here, ABSENT in the reference	explained: the guest: the sysfs of the guest's own kernel
+    identity	capbnd	ALLOW here, UNKNOWN in the reference	not an invariant section
+    identity	capeff	ALLOW here, UNKNOWN in the reference	not an invariant section
+    identity	nonewprivs	ALLOW here, UNKNOWN in the reference	not an invariant section
+    identity	seccomp	ALLOW here, UNKNOWN in the reference	not an invariant section
+    identity	tracerpid	ALLOW here, UNKNOWN in the reference	not an invariant section
+    procfs	/proc/1/cmdline	ALLOW here, ABSENT in the reference	explained: the guest mounts its own /proc; the chroot rung mounts none in the image
+    procfs	/proc/1/status	ALLOW here, ABSENT in the reference	explained: the guest mounts its own /proc; the chroot rung mounts none in the image
+    procfs	/proc/self/status	ALLOW here, ABSENT in the reference	explained: the guest mounts its own /proc; the chroot rung mounts none in the image
+    raw-socket	packet	ABSENT here, ALLOW in the reference	explained: the guest's kernel has no AF_PACKET (EAFNOSUPPORT)
+
+== clause 5  the matrix
+section          alpine-ladder      busybox-ladder     distroless-ladder  alpine-fixture     alpine-syscall     alpine-machine    
+identity         AL:4,UN:5          AL:4,UN:5          AL:4,UN:5          AL:9               AL:9               AL:9              
+escalation       AB:1,AL:9,DE:3     AB:1,AL:9,DE:3     AB:1,AL:9,DE:3     AL:8,DE:5          AL:8,DE:5          AL:11,DE:2        
+escape-surface   AB:12              AB:12              AB:12              AB:7,AL:1,DE:4     AB:7,AL:1,DE:4     AB:5,AL:7         
+procfs           AB:4,AL:1          AB:5               AB:4,AL:1          AB:1,AL:4          AB:1,AL:4          AB:1,AL:4         
+raw-socket       AL:3,DE:1          AL:3,DE:1          AL:3,DE:1          AL:1,DE:3          AL:1,DE:3          AB:1,AL:2,DE:1    
+proxy            AB:4               AB:4               AB:4               AB:4               AB:4               AB:4              
+dns              AL:1               AL:1               AL:1               AL:1               AL:1               AL:1              
+tcp-direct       AL:1               AL:1               AL:1               AL:1               AL:1               AL:1              
+tcp-direct-ip    AL:1               AL:1               AL:1               AL:1               AL:1               AL:1              
+udp-direct       AL:1               AL:1               AL:1               AL:1               AL:1               AL:1              
+loopback         AL:1               AL:1               AL:1               AL:1               AL:1               AL:1              
+metadata         AL:1               AL:1               AL:1               AL:1               AL:1               AL:1              
+
+AL ALLOW, DE DENY, AB ABSENT, UN UNKNOWN, TI TIMEOUT, UR UNRESOLVED, RE REFUSED, DR DROPPED, EX EXHAUSTED (the first two letters; the reports under experiments/results/probe-inside/ hold each verdict)
+
+verdict: THE PROBE WRITES A REPORT IN EACH ROW, AND COMPARE FAILS ONLY ON AN UNEXPLAINED ESCAPE

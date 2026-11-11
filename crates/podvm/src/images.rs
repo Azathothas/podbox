@@ -327,3 +327,38 @@ pub use inspect::*;
 
 #[cfg(test)]
 mod tests;
+
+/// docker's `image` sub-command group.
+pub fn group(args: &[String]) -> i32 {
+    let rest = if args.len() > 1 { &args[1..] } else { &[] };
+    match args.first().map(String::as_str) {
+        Some(s) if s == "ls" || s == "list" => images(&format!("image {s}"), rest),
+        Some(s) if s == "rm" || s == "remove" => rmi(&format!("image {s}"), rest),
+        Some("prune") => prune("image prune", rest),
+        Some("tag") => tag("image tag", rest),
+        Some("inspect") => inspect("image inspect", rest),
+        Some("pull") => pull("image pull", rest),
+        Some("extract") => extract("image extract", rest),
+        Some("-h") | Some("--help") | None => {
+            println!("usage: podvm image ls | rm | prune | tag | inspect | pull");
+            0
+        }
+        Some(first) if first.starts_with('-') => {
+            // ⛔ TODO/cli.md T-0801. The table decides: `image` takes
+            // subverbs, never flags, so a flag has no row and is refused
+            // rather than reaching the subverb match below.
+            if let Err(c) = crate::parity::admit(
+                "image",
+                first,
+                "usage: podvm image ls | rm | prune | tag | inspect | pull",
+            ) {
+                return c;
+            }
+            crate::parity::no_arm("image", first)
+        }
+        Some(other) => {
+            eprintln!("podvm image: {other:?}: not implemented yet");
+            EXIT_RUNTIME_ERROR
+        }
+    }
+}

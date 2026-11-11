@@ -48,9 +48,21 @@ pub mod reg {
 unsafe extern "C" {
     pub(crate) fn podvm_dispatch_restorer();
     fn podvm_dispatch_clone_thread(flags: i64, sp: i64, ptid: i64, ctid: i64, tls: i64) -> i64;
+    fn podvm_dispatch_unmap_exit(addr: i64, len: i64) -> !;
 }
 
 core::arch::global_asm!(
+    // munmap(addr, len), then exit(0) of the thread, with no access to the
+    // stack between them: the stack is in the range (musl's `__unmapself`
+    // of a detached thread). TODO/enter.md T-1652, found by T-1666.
+    ".globl podvm_dispatch_unmap_exit",
+    "podvm_dispatch_unmap_exit:",
+    "mov eax, 11",
+    "syscall",
+    "xor edi, edi",
+    "mov eax, 60",
+    "syscall",
+    "ud2",
     ".globl podvm_dispatch_restorer",
     "podvm_dispatch_restorer:",
     "mov eax, 15",
@@ -246,6 +258,15 @@ fn guard_fd(n: i64, a: [i64; 6]) -> Option<i64> {
     }
 }
 
+/// True where `munmap(addr, len)` takes the stack that this handler runs
+/// on: the return of the handler would fault. musl ends a detached thread
+/// so (`__unmapself`: `munmap` of its own stack, then `exit`).
+fn unmaps_this_stack(addr: i64, len: i64) -> bool {
+    let here = 0u8;
+    let sp = core::ptr::addr_of!(here) as i64;
+    len > 0 && addr <= sp && sp < addr.saturating_add(len)
+}
+
 /// The SIGSYS handler.
 ///
 /// # Safety
@@ -291,6 +312,11 @@ fn call(n: i64, a: [i64; 6], g: *mut i64) -> i64 {
         // SAFETY: g is the gregs of this frame.
         nr::SIGALTSTACK => unsafe { sigaltstack(a[0], a[1], g) },
         nr::BRK => brk(a[0]),
+        nr::MUNMAP if unmaps_this_stack(a[0], a[1]) => {
+            // SAFETY: the payload unmaps the stack that this handler runs
+            // on, and its next call is the exit of the thread.
+            unsafe { podvm_dispatch_unmap_exit(a[0], a[1]) }
+        }
         nr::PRCTL if a[0] == PR_SET_SYSCALL_USER_DISPATCH => -sys::EINVAL,
         // SAFETY: each other call runs as the payload gave it.
         _ => crate::calls::path_call(n, a)

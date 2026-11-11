@@ -1,0 +1,57 @@
+# image mirror.gcr.io/library/busybox:latest
+# flags 
+# sandprobe of podvm (TODO/probe.md T-1666)
+# records 60: ALLOW 29, DENY 4, ABSENT 22, UNKNOWN 5
+identity	uid	ALLOW	0
+identity	gid	ALLOW	0
+identity	capeff	UNKNOWN	no /proc/self/status here
+identity	capbnd	UNKNOWN	no /proc/self/status here
+identity	nonewprivs	UNKNOWN	no /proc/self/status here
+identity	seccomp	UNKNOWN	no /proc/self/status here
+identity	tracerpid	UNKNOWN	no /proc/self/status here
+identity	kernel	ALLOW	6.18.44-fc-v378
+identity	pid	ALLOW	1984
+escalation	unshare-user	DENY	EPERM
+escalation	unshare-mount	ALLOW	the call succeeded
+escalation	unshare-pid	ALLOW	the call succeeded
+escalation	unshare-net	ALLOW	the call succeeded
+escalation	setuid-0	ALLOW	the call succeeded
+escalation	chroot	ALLOW	the call succeeded
+escalation	mount-tmpfs	ALLOW	the call succeeded
+escalation	bpf	ALLOW	reached the kernel's argument check (EINVAL)
+escalation	keyctl	ALLOW	the call succeeded
+escalation	perf_event_open	ALLOW	reached the kernel's argument check (EFAULT)
+escalation	init_module	DENY	ENOSYS
+escalation	kexec_load	DENY	ENOSYS
+escalation	read-pid1-memory	ABSENT	/proc/1/maps: ENOENT
+escape-surface	/proc/1/root/etc/hostname	ABSENT	ENOENT
+escape-surface	/proc/1/environ	ABSENT	ENOENT
+escape-surface	/proc/1/mem	ABSENT	ENOENT
+escape-surface	/proc/kcore	ABSENT	ENOENT
+escape-surface	/proc/sysrq-trigger	ABSENT	ENOENT
+escape-surface	/dev/mem	ABSENT	ENOENT
+escape-surface	/dev/kmsg	ABSENT	ENOENT
+escape-surface	/sys/kernel/security	ABSENT	ENOENT
+escape-surface	/var/run/docker.sock	ABSENT	ENOENT
+escape-surface	/run/podman/podman.sock	ABSENT	ENOENT
+escape-surface	/run/containerd/containerd.sock	ABSENT	ENOENT
+escape-surface	host-store	ABSENT	ENOENT
+procfs	pids-visible	ABSENT	ENOENT
+procfs	/proc/1/cmdline	ABSENT	ENOENT
+procfs	/proc/1/status	ABSENT	ENOENT
+procfs	/proc/self/status	ABSENT	ENOENT
+procfs	/proc/sys/kernel/yama/ptrace_scope	ABSENT	ENOENT
+raw-socket	packet	ALLOW	opened
+raw-socket	inet-raw-icmp	ALLOW	opened
+raw-socket	inet-dgram-icmp	DENY	EACCES
+raw-socket	netlink-route	ALLOW	opened
+proxy	HTTPS_PROXY	ABSENT	unset
+proxy	HTTP_PROXY	ABSENT	unset
+proxy	ALL_PROXY	ABSENT	unset
+proxy	NO_PROXY	ABSENT	unset
+dns	example.com:443	ALLOW	172.66.147.243
+tcp-direct	example.com:443	ALLOW	172.66.147.243:443
+tcp-direct-ip	1.1.1.1:443	ALLOW	1.1.1.1:443
+udp-direct	1.1.1.1:53	ALLOW	61 bytes from 1.1.1.1:53
+loopback	127.0.0.1	ALLOW	127.0.0.1:44955
+metadata	169.254.169.254:80	ALLOW	169.254.169.254:80

@@ -27,6 +27,7 @@ mod parity;
 mod profile;
 mod remote;
 mod run;
+mod sandprobe;
 mod system;
 mod tier;
 mod version;
@@ -59,6 +60,8 @@ usage: podvm <command> [options]
   machine      a guest podvm runs: ssh into it (podman parity)
   man          render this manual from the binary's own usage strings
   profile      list and show the profiles that `run --profile` takes
+  probe-inside run podvm's probe inside an image and write what it gets there
+  compare      compare a report of probe-inside with a reference
   pull         fetch an image into the content-addressed store
   save         write one image as an OCI-layout tarball
   load         read an OCI-layout tarball into the store
@@ -117,6 +120,11 @@ fn main() -> std::process::ExitCode {
     podvm_dispatch::main_if_entered("podvm"); // T-1652, the native-static rung
     let argv: Vec<String> = std::env::args().collect();
 
+    // TODO/probe.md T-1666: the probe inside a payload prints its report.
+    if argv.get(1).map(String::as_str) == Some(podvm_probe::inside::ARG) {
+        print!("{}", podvm_probe::inside::run("podvm"));
+        return exit(0);
+    }
     // ⛔ First, before the ordinary argument surface. A probe child must never
     // fall through into a verb, and nothing here may print before it does.
     if argv.get(1).map(String::as_str) == Some(podvm_probe::CHILD_FLAG) {
@@ -162,6 +170,8 @@ fn main() -> std::process::ExitCode {
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("profile") => exit(profile::main(rest)), // TODO/cli.md T-1654
+        Some("probe-inside") => exit(sandprobe::probe_inside(rest)), // T-1666
+        Some("compare") => exit(sandprobe::compare(rest)), // T-1666
         Some("pull") => exit(images::pull("pull", rest)),
         Some("save") => exit(images::save("save", rest)),
         Some("load") => exit(images::load("load", rest)),
@@ -174,7 +184,7 @@ fn main() -> std::process::ExitCode {
         Some("tag") => exit(images::tag("tag", rest)),
         Some("inspect") => exit(images::inspect("inspect", rest)),
         Some("verify") => exit(images::verify("verify", rest)),
-        Some("image") => exit(image_group(rest)),
+        Some("image") => exit(images::group(rest)),
         Some("system") => exit(system::system(rest)),
         Some("info") => exit(system::info("info", rest)),
         Some("version") | Some("--version") | Some("-v") => {
@@ -285,41 +295,6 @@ fn ssh_refusal() -> std::process::ExitCode {
          (see docs/decisions/remote-verb.md)"
     );
     exit(EXIT_RUNTIME_ERROR)
-}
-
-/// docker's `image` sub-command group.
-fn image_group(args: &[String]) -> i32 {
-    let rest = if args.len() > 1 { &args[1..] } else { &[] };
-    match args.first().map(String::as_str) {
-        Some(s) if s == "ls" || s == "list" => images::images(&format!("image {s}"), rest),
-        Some(s) if s == "rm" || s == "remove" => images::rmi(&format!("image {s}"), rest),
-        Some("prune") => images::prune("image prune", rest),
-        Some("tag") => images::tag("image tag", rest),
-        Some("inspect") => images::inspect("image inspect", rest),
-        Some("pull") => images::pull("image pull", rest),
-        Some("extract") => images::extract("image extract", rest),
-        Some("-h") | Some("--help") | None => {
-            println!("usage: podvm image ls | rm | prune | tag | inspect | pull");
-            0
-        }
-        Some(first) if first.starts_with('-') => {
-            // ⛔ TODO/cli.md T-0801. The table decides: `image` takes
-            // subverbs, never flags, so a flag has no row and is refused
-            // rather than reaching the subverb match below.
-            if let Err(c) = crate::parity::admit(
-                "image",
-                first,
-                "usage: podvm image ls | rm | prune | tag | inspect | pull",
-            ) {
-                return c;
-            }
-            crate::parity::no_arm("image", first)
-        }
-        Some(other) => {
-            eprintln!("podvm image: {other:?}: not implemented yet");
-            EXIT_RUNTIME_ERROR
-        }
-    }
 }
 
 fn probe(args: &[String]) -> i32 {

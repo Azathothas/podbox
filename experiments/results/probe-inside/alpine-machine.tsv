@@ -1,0 +1,57 @@
+# image mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+# flags --podvm-tier machine
+# sandprobe of podvm (TODO/probe.md T-1666)
+# records 60: ALLOW 46, DENY 3, ABSENT 11
+identity	uid	ALLOW	0
+identity	gid	ALLOW	0
+identity	capeff	ALLOW	000001ffffffffff
+identity	capbnd	ALLOW	000001ffffffffff
+identity	nonewprivs	ALLOW	0
+identity	seccomp	ALLOW	0
+identity	tracerpid	ALLOW	0
+identity	kernel	ALLOW	6.12.110-0-virt
+identity	pid	ALLOW	427
+escalation	unshare-user	ALLOW	the call succeeded
+escalation	unshare-mount	ALLOW	the call succeeded
+escalation	unshare-pid	ALLOW	the call succeeded
+escalation	unshare-net	ALLOW	the call succeeded
+escalation	setuid-0	ALLOW	the call succeeded
+escalation	chroot	ALLOW	the call succeeded
+escalation	mount-tmpfs	ALLOW	the call succeeded
+escalation	bpf	ALLOW	reached the kernel's argument check (EINVAL)
+escalation	keyctl	ALLOW	the call succeeded
+escalation	perf_event_open	ALLOW	reached the kernel's argument check (EFAULT)
+escalation	init_module	DENY	E8
+escalation	kexec_load	DENY	EPERM
+escalation	read-pid1-memory	ALLOW	the call succeeded
+escape-surface	/proc/1/root/etc/hostname	ALLOW	opened
+escape-surface	/proc/1/environ	ALLOW	opened
+escape-surface	/proc/1/mem	ALLOW	opened
+escape-surface	/proc/kcore	ABSENT	ENOENT
+escape-surface	/proc/sysrq-trigger	ALLOW	opened
+escape-surface	/dev/mem	ALLOW	opened
+escape-surface	/dev/kmsg	ALLOW	opened
+escape-surface	/sys/kernel/security	ALLOW	opened
+escape-surface	/var/run/docker.sock	ABSENT	ENOENT
+escape-surface	/run/podman/podman.sock	ABSENT	ENOENT
+escape-surface	/run/containerd/containerd.sock	ABSENT	ENOENT
+escape-surface	host-store	ABSENT	ENOENT
+procfs	pids-visible	ALLOW	59
+procfs	/proc/1/cmdline	ALLOW	/bin/sh
+procfs	/proc/1/status	ALLOW	Name: podvm-init
+procfs	/proc/self/status	ALLOW	Name: sandprobe
+procfs	/proc/sys/kernel/yama/ptrace_scope	ABSENT	ENOENT
+raw-socket	packet	ABSENT	E97
+raw-socket	inet-raw-icmp	ALLOW	opened
+raw-socket	inet-dgram-icmp	DENY	EACCES
+raw-socket	netlink-route	ALLOW	opened
+proxy	HTTPS_PROXY	ABSENT	unset
+proxy	HTTP_PROXY	ABSENT	unset
+proxy	ALL_PROXY	ABSENT	unset
+proxy	NO_PROXY	ABSENT	unset
+dns	example.com:443	ALLOW	104.20.23.154
+tcp-direct	example.com:443	ALLOW	104.20.23.154:443
+tcp-direct-ip	1.1.1.1:443	ALLOW	1.1.1.1:443
+udp-direct	1.1.1.1:53	ALLOW	61 bytes from 1.1.1.1:53
+loopback	127.0.0.1	ALLOW	127.0.0.1:38699
+metadata	169.254.169.254:80	ALLOW	169.254.169.254:80

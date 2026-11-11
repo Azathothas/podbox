@@ -1055,7 +1055,7 @@ Source:      issue 186; #193; the owner's ruling of 2026-11-06
 Category:    probe
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-11-11
 
 Problem:     `podvm probe` measures the host's mechanisms before a run. No
              tool reports what a payload actually gets inside a tier: which
@@ -1091,6 +1091,49 @@ Prove:       `cargo test -p podvm-probe` exits 0 with tests: a planted token
              writes a report inside a musl row of DISTRO_ROWS_M5, a busybox
              image and a distroless image, and inside a machine-tier guest, and
              the per-section matrix is saved under `experiments/results/`.
+
+**Done 2026-11-11.** `cargo test -p podvm-probe` exits 0 with
+`a_planted_token_is_redacted`, `the_compare_passes_one_tier_and_fails_a_planted_escape`
+and `a_line_parses_back_to_its_record` (`crates/podvm-probe/src/inside/tests.rs`).
+`PODVM_422_MIRROR=1 sh experiments/422-probe-inside.sh` exits 0
+(`experiments/results/probe-inside.txt`, and each report under
+`experiments/results/probe-inside/`):
+
+| clause | reading |
+| --- | --- |
+| a report in each row | alpine (the musl row), busybox and distroless on the ladder's rung; alpine on the chroot-denying fixture, on the syscall tier there, and in a TCG guest of the machine tier: exit 0, 60 or 61 records each |
+| two reports of one tier | 60 same, 0 differ; `--strict` exit 0 |
+| a planted escape (`escape-surface host-store ALLOW`) | `--strict` exit 1, the line reads UNEXPLAINED |
+| the chroot rung against the machine tier | 18 differ, 13 in invariant sections, each explained by `experiments/probe-inside-expected.tsv`; `--strict` exit 0 |
+| the matrix | saved, one column for each row |
+
+How it is built, and what differs from the Approach:
+
+* The probe is podvm's own static binary: `probe-inside` copies it into
+  the container's own tree (T-1709) at `/.podvm/sandprobe`, or into the
+  guest of the machine tier, and runs it as the payload with
+  `--podvm-sandprobe`. So no image needs a shell or an interpreter.
+* The checks (`crates/podvm-probe/src/inside/`) are the sections of the
+  issue: identity, escalation, escape-surface, procfs, raw-socket, proxy,
+  dns, tcp-direct, tcp-direct-ip, udp-direct, loopback, metadata, and env.
+  A check that can change a state runs in a disposable child; no check
+  attaches to, stops or signals another process (`ptrace` is measured by
+  `process_vm_readv` of one word of PID 1), and a mount that succeeds is
+  unmounted at once. `escape-surface host-store` asks whether the host's
+  store path is reachable from the payload.
+* The env section is in the report and not in the saved results: the
+  variables of a host do not belong in the repository.
+* podcrates has no `pod-sandprobe` (its M7, P3, after a study), so the
+  probe is built in `podvm-probe`, as T-1652 and T-1657 built the rung in
+  `podvm-dispatch`.
+* The emulate and incus tiers are not in the matrix: the lane installs no
+  qemu-user and no incusd.
+* The probe found T-1730: a detached thread of a static payload ended
+  with SIGSEGV on the native-static rung.
+* Findings of the matrix: the chroot rung mounts no `/proc` and no `/dev`
+  in the image (the identity fields that come from `/proc/self/status`
+  read UNKNOWN there), and on this host the payload of the ladder's rung
+  can unshare, mount and open raw sockets, because it is root of the host.
 
 **Filed 2026-11-06.** Quoted from issue 186:
 

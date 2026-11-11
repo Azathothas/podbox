@@ -119,18 +119,23 @@ pub(super) fn machine_tier(
         Err(c) => return c,
     };
     // `-v HOST:GUEST`: a copy into the guest (`:ro` changes nothing there).
-    let copies = o
+    let mut copies: Vec<_> = o
         .volumes
         .iter()
         .map(|v| (std::path::PathBuf::from(&v.host), v.guest.clone()))
         .collect();
-    crate::machine::guest::boot(&crate::machine::guest::Request {
+    // TODO/probe.md T-1666: the probe of probe-inside, at /.podvm.
+    let probe = crate::sandprobe::guest_copy(store.root());
+    copies.extend(probe.clone().map(|d| (d, "/.podvm".to_string())));
+    let mut env = p.env;
+    env.extend(crate::sandprobe::host_env(store.root()));
+    let code = crate::machine::guest::boot(&crate::machine::guest::Request {
         verb,
         store_root: store.root(),
         rootfs: &p.rootfs,
         digest: &p.digest,
         argv: p.argv,
-        env: p.env,
+        env,
         workdir: p.workdir,
         mem: o.mem,
         cpus: o.cpus,
@@ -138,7 +143,11 @@ pub(super) fn machine_tier(
         qemu_args: o.qemu_args.clone(),
         copies,
         stdin: p.stdin,
-    })
+    });
+    if let Some(d) = probe {
+        let _ = std::fs::remove_dir_all(d);
+    }
+    code
 }
 
 /// The incus tier (T-1718): `run` only; each other verb refuses by name.

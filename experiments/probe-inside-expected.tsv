@@ -1,0 +1,21 @@
+# The causes of the differences between the reports of probe-inside
+# (TODO/probe.md T-1666): SECTION<TAB>TARGET (or *)<TAB>REASON a line.
+# The machine tier against the chroot rung (experiment 422, 2026-11-11). The
+# guest has a kernel of its own: its /proc, /dev and /sys are the guest's,
+# PID 1 is podvm's init in the guest, and the payload is root of the guest.
+# The chroot rung mounts no /proc and no /dev in the image. Each target is
+# named; no line takes a whole section, so a host path (host-store) stays
+# unexplained.
+escalation	read-pid1-memory	the guest: PID 1 is podvm's init in the guest, not a process of the host
+escalation	unshare-user	the guest: the payload is root of the guest's own kernel
+escape-surface	/dev/kmsg	the guest: the kernel log of the guest's own kernel
+escape-surface	/dev/mem	the guest: the memory of the guest, not of the host
+escape-surface	/proc/1/environ	the guest: PID 1 is podvm's init in the guest
+escape-surface	/proc/1/mem	the guest: PID 1 is podvm's init in the guest
+escape-surface	/proc/1/root/etc/hostname	the guest: the root of the guest's init is the guest's
+escape-surface	/proc/sysrq-trigger	the guest: the sysrq of the guest's own kernel
+escape-surface	/sys/kernel/security	the guest: the sysfs of the guest's own kernel
+procfs	/proc/1/cmdline	the guest mounts its own /proc; the chroot rung mounts none in the image
+procfs	/proc/1/status	the guest mounts its own /proc; the chroot rung mounts none in the image
+procfs	/proc/self/status	the guest mounts its own /proc; the chroot rung mounts none in the image
+raw-socket	packet	the guest's kernel has no AF_PACKET (EAFNOSUPPORT)

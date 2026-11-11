@@ -7,7 +7,7 @@ start.
 
 ## State
 
-339 entries: 24 open, 4 partial, 4 blocked, 307 done.
+340 entries: 23 open, 4 partial, 4 blocked, 309 done.
 
 The state on 2026-11-11:
 
@@ -84,7 +84,8 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1658](enter.md) (blocked on `pod-confine` of podcrates, COORD-040,
    issue 259); [T-1657](enter.md) is done (`--podvm-tier=syscall`,
    experiment 413),
-   [T-1666](probe.md) and [T-1667](cli.md) (the probe and the doctor),
+   [T-1666](probe.md) is done (`probe-inside` and `compare`, experiment
+   422), then [T-1667](cli.md) (the doctor),
    the network entries [T-1665](net.md), [T-1662](net.md),
    [T-1663](net.md) and [T-1664](net.md) (on T-1656), the profiles
    [T-1659](cli.md), [T-1661](cli.md) and [T-1660](cli.md), and

@@ -119,6 +119,13 @@ fn main() {
                 Err(e) => println!("ERR {e}"),
             }
         }
+        // T-1652, found by T-1666: a detached thread ends (musl unmaps its
+        // stack and exits), and the process goes on.
+        "detached" => {
+            drop(std::thread::spawn(|| 7));
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            println!("detached ok");
+        }
         // T-1657: the release of uname(2).
         "uname" => {
             let mut u = [0u8; 390];
