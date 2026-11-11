@@ -16,6 +16,7 @@ mod doctor;
 mod exec;
 mod format;
 mod images;
+mod incus;
 mod interpose;
 mod ladder;
 mod lifecycle;
@@ -154,6 +155,7 @@ fn main() -> std::process::ExitCode {
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("machine") => exit(machine::machine(rest)),
         Some("guest-net") => exit(machine::guest::net::main()), // in a guest, T-1656
+        Some("guest-hold") => exit(incus::hold()),              // an incus init, T-1718
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("pull") => exit(images::pull("pull", rest)),

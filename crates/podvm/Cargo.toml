@@ -19,6 +19,8 @@ name = "podvm"
 path = "src/main.rs"
 
 [dependencies]
+# TODO/machine.md T-1718: the unified tarball of an incus image.
+tar.workspace = true
 # TODO/machine.md T-1656: the pinned guest kernel (a .tar.gz, by SHA-256).
 flate2.workspace = true
 sha2.workspace = true

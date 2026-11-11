@@ -1,0 +1,202 @@
+#!/bin/sh
+# Question: does `podvm run --podvm-tier=incus` run an OCI image on an
+# incusd that a user with no root runs (route A), with docker's stdout,
+# stderr, exit code, stdin, environment and working directory, and does
+# nothing of the run stay in incus?
+#
+# TODO/machine.md T-1718. The incusd is the one of experiment 433 (route A
+# of docs/incus.md): root prepares the host once, then the user starts
+# incusd as root of the user's own user namespace. podvm talks to it over
+# its unix socket (INCUS_DIR), as the same user. Run as root, which is the
+# one preparation.
+#
+# Pinned inputs:
+#   incus     the Ubuntu package 6.0.0-1ubuntu0.3 (apt)
+#   OCI       ALPINE of experiments/356-no-chroot-rung.sh (alpine 3.20 by
+#             digest), pulled by podvm as the same user
+#
+# Clauses:
+#   1. a run gives the stdout of the command, exit 0, and the stderr line
+#      that names the tier, the incusd version and the import of the image.
+#   2. the exit code of the command is the exit code of podvm (7).
+#   3. stdout and stderr stay apart.
+#   4. piped stdin reaches the command.
+#   5. -e and -w reach the command.
+#   6. PID 1 of the instance is podvm's hold, and the files of the instance
+#      have the owners that the image intended (/etc/passwd 0:0,
+#      /etc/shadow 0:42), from podvm's .meta.jsonl.
+#   7. a second run takes the image from incus (no import); the median
+#      milliseconds of RUNS runs of `true`.
+#   8. create and exec refuse the incus tier by name (exit 125).
+#   9. no instance stays in incus after the runs; after the cleanup, no
+#      process of the user or its range stays.
+#  10. where no incusd answers, a run refuses by name (exit 125).
+#
+# Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
+# run (not root, no user namespaces, no package).
+set -u
+
+REPO="$(pwd)"
+WORK="$REPO/experiments/.sweep434-work"
+rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
+REPORT="$WORK/out-434.txt"
+RUNS=${PODVM_434_RUNS:-5}
+U=podvm434
+B=/srv/$U
+INCUS_PKG=6.0.0-1ubuntu0.3
+OCI='public.ecr.aws/docker/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+# ⚠ PODVM_434_MIRROR=1 takes the same digest from mirror.gcr.io.
+[ "${PODVM_434_MIRROR:-0}" = 1 ] && OCI='mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc'
+{
+echo "== conditions"
+echo "date              $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "host kernel       $(uname -sr)"
+echo "cgroup            $(stat -fc %T /sys/fs/cgroup)"
+echo "incus package     $INCUS_PKG"
+echo "OCI               $OCI"
+echo "runs              $RUNS"
+} >"$REPORT"
+note() { echo "$*" >>"$REPORT"; }
+fail=0
+
+[ "$(id -u)" -eq 0 ] || { echo "not root: the one preparation needs root: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+unshare -Ur true 2>/dev/null || { echo "user namespaces refused: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+DEBIAN_FRONTEND=noninteractive timeout 600 apt-get install -y -qq "incus=$INCUS_PKG" uidmap >"$WORK/apt.log" 2>&1 ||
+	{ echo "apt-get install FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+INCUSD=/usr/libexec/incus/incusd
+[ -x "$INCUSD" ] || { echo "no $INCUSD: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+timeout 1800 cargo build >"$WORK/build.log" 2>&1 || { echo "build FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+
+# ---- the one preparation, by root (as in experiment 433) ---------------
+ranged() { ps -eo pid=,uid= | awk -v u="$(id -u "$U" 2>/dev/null || echo -1)" '$2 == u || ($2 >= 2000000000 && $2 < 2100000000) {print $1}'; }
+cleanup() {
+	i=0
+	while [ "$i" -lt 10 ] && [ -n "$(ranged)" ]; do
+		ranged | xargs -r kill -9 2>/dev/null; sleep 1; i=$((i + 1))
+	done
+	rm -rf "$B"
+	for c in /sys/fs/cgroup/*/"$U"; do rmdir "$c" 2>/dev/null; done
+}
+cleanup
+id "$U" >/dev/null 2>&1 || useradd -m -s /bin/sh "$U" || exit 2
+for f in /etc/subuid /etc/subgid; do sed -i "/^$U:/d" "$f"; echo "$U:2000000000:100000000" >>"$f"; done
+for c in /sys/fs/cgroup/*/; do
+	n=$(basename "$c"); [ "$n" = unified ] && continue
+	mkdir -p "$c$U" 2>/dev/null || continue
+	[ -f "$c/cpuset.cpus" ] && cat "$c/cpuset.cpus" >"$c$U/cpuset.cpus" && cat "$c/cpuset.mems" >"$c$U/cpuset.mems"
+	chown -R "$U:$U" "$c$U"
+done
+mkdir -p "$B/state" /var/log/incus /var/cache/incus
+cp "$REPO/target/x86_64-unknown-linux-musl/debug/podvm" "$B/podvm"
+cat >"$B/ns.sh" <<EOF
+#!/bin/sh
+set -u
+base=$B/state
+mkdir -p \$base/lib \$base/log \$base/cache \$base/run/cg
+mount --rbind /sys/fs/cgroup \$base/run/cg && mount --rbind \$base/run/cg /sys/fs/cgroup
+mount -t proc proc /proc
+mount -t tmpfs tmpfs /run && mkdir -p /run/incus
+mount --bind \$base/lib /var/lib/incus
+mount --bind \$base/log /var/log/incus
+mount --bind \$base/cache /var/cache/incus
+printf 'root:1000000:65536\n' >\$base/subid
+mount --bind \$base/subid /etc/subuid
+mount --bind \$base/subid /etc/subgid
+export INCUS_DIR=/var/lib/incus
+exec $INCUSD --group root --logfile /var/log/incus/incusd.log
+EOF
+cat >"$B/start.sh" <<EOF
+#!/bin/sh
+for h in /sys/fs/cgroup/*/$U; do echo \$\$ >"\$h/cgroup.procs" 2>/dev/null; done
+exec unshare --user --map-root-user --map-auto --mount --pid --fork --propagation private sh $B/ns.sh
+EOF
+chown -R "$U:$U" "$B"
+
+RI() { runuser -u "$U" -- env INCUS_DIR="$B/state/lib" incus "$@" </dev/null; }
+# podvm as the user, with the incusd of the user.
+P() { runuser -u "$U" -- env PODVM_STORE="$B/store" HOME="$B" INCUS_DIR="$B/state/lib" "$B/podvm" "$@"; }
+T() { P run --podvm-tier=incus "$@"; }
+ms() { echo $(( $(date +%s%N) / 1000000 )); }
+median() { tr ' ' '\n' | grep . | sort -n | awk '{a[NR]=$1} END {print (NR ? a[int((NR+1)/2)] : "-")}'; }
+
+(runuser -u "$U" -- sh "$B/start.sh" >"$WORK/start.log" 2>&1 &)
+i=0; while [ "$i" -lt 30 ] && [ ! -S "$B/state/lib/unix.socket" ]; do sleep 1; i=$((i + 1)); done
+RI storage create default dir >/dev/null 2>&1
+RI profile device add default root disk path=/ pool=default >/dev/null 2>&1
+P pull "$OCI" >"$WORK/pull.log" 2>&1 || { echo "podvm pull FAILED: COULD NOT RUN" | tee -a "$REPORT"; cleanup; exit 2; }
+
+# ---- clause 1 -----------------------------------------------------------
+t0=$(ms)
+out=$(T "$OCI" echo hello </dev/null 2>"$WORK/c1.err"); rc=$?
+t1=$(ms)
+{ echo ""; echo "== 1. a run"; echo "  stdout  $out"; echo "  exit    $rc"; echo "  ms      $((t1 - t0)) (with the import)"; sed 's/^/  stderr  /' "$WORK/c1.err"; } >>"$REPORT"
+[ "$out" = hello ] && [ "$rc" -eq 0 ] || { note "1: the run did not give hello and 0"; fail=1; }
+grep -q "incus tier: incusd 6.0.0 at .*imported now" "$WORK/c1.err" || { note "1: no stderr line that names the tier and the import"; fail=1; }
+
+# ---- clause 2 -----------------------------------------------------------
+T "$OCI" sh -c 'exit 7' </dev/null >/dev/null 2>&1; rc=$?
+{ echo ""; echo "== 2. the exit code"; echo "  exit    $rc"; } >>"$REPORT"
+[ "$rc" -eq 7 ] || { note "2: the exit code is not 7"; fail=1; }
+
+# ---- clause 3 -----------------------------------------------------------
+out=$(T "$OCI" sh -c 'echo out; echo err >&2' </dev/null 2>"$WORK/c3.err")
+{ echo ""; echo "== 3. stdout and stderr"; echo "  stdout  $out"; sed 's/^/  stderr  /' "$WORK/c3.err"; } >>"$REPORT"
+[ "$out" = out ] && grep -qx err "$WORK/c3.err" || { note "3: stdout and stderr do not stay apart"; fail=1; }
+
+# ---- clause 4 -----------------------------------------------------------
+out=$(echo piped | T "$OCI" cat 2>"$WORK/c4.err")
+{ echo ""; echo "== 4. stdin"; echo "  stdout  $out"; } >>"$REPORT"
+[ "$out" = piped ] || { note "4: stdin did not reach the command"; fail=1; }
+
+# ---- clause 5 -----------------------------------------------------------
+out=$(T -e A=one -w /tmp "$OCI" sh -c 'echo "$A $(pwd)"' </dev/null 2>"$WORK/c5.err")
+{ echo ""; echo "== 5. -e and -w"; echo "  stdout  $out"; } >>"$REPORT"
+[ "$out" = "one /tmp" ] || { note "5: -e or -w did not reach the command"; fail=1; }
+
+# ---- clause 6 -----------------------------------------------------------
+out=$(T "$OCI" sh -c 'tr "\0" " " </proc/1/cmdline; echo; stat -c %u:%g /etc/passwd /etc/shadow' </dev/null 2>"$WORK/c6.err")
+pid1=$(echo "$out" | sed -n 1p); owner=$(echo "$out" | sed -n 2p); shadow=$(echo "$out" | sed -n 3p)
+{ echo ""; echo "== 6. the instance"; echo "  PID 1                 $pid1"; echo "  owner of /etc/passwd  $owner"; echo "  owner of /etc/shadow  $shadow"; sed 's/^/  stderr  /' "$WORK/c6.err"; } >>"$REPORT"
+case "$pid1" in "/.podvm/podvm guest-hold"*) ;; *) note "6: PID 1 is not podvm's hold"; fail=1 ;; esac
+[ "$owner" = 0:0 ] && [ "$shadow" = 0:42 ] || { note "6: the files do not have the intended owners"; fail=1; }
+
+# ---- clause 7 -----------------------------------------------------------
+R=""
+n=0; while [ "$n" -lt "$RUNS" ]; do
+	t0=$(ms); T "$OCI" true </dev/null >/dev/null 2>"$WORK/c7.err"; t1=$(ms); R="$R $((t1 - t0))"; n=$((n + 1))
+done
+{ echo ""; echo "== 7. the cached image"; echo "  run true ms  $(echo "$R" | median) (median of $RUNS)"; sed 's/^/  stderr  /' "$WORK/c7.err"; } >>"$REPORT"
+grep -q "from incus" "$WORK/c7.err" || { note "7: the second run imported the image again"; fail=1; }
+
+# ---- clause 8 -----------------------------------------------------------
+P create --podvm-tier=incus "$OCI" true >/dev/null 2>"$WORK/c8.err"; rc_c=$?
+P exec --podvm-tier=incus none true >/dev/null 2>>"$WORK/c8.err"; rc_e=$?
+{ echo ""; echo "== 8. the other verbs"; echo "  create exit  $rc_c"; echo "  exec exit    $rc_e"; sed 's/^/  stderr  /' "$WORK/c8.err"; } >>"$REPORT"
+[ "$rc_c" -eq 125 ] && [ "$rc_e" -eq 125 ] && [ "$(grep -c 'tier=incus serves run only' "$WORK/c8.err")" -eq 2 ] ||
+	{ note "8: create or exec did not refuse the incus tier by name"; fail=1; }
+
+# ---- clause 9 -----------------------------------------------------------
+left_i=$(RI list --format csv -c n 2>&1 | grep -c .)
+cleanup
+left=$(ranged | wc -l)
+{ echo ""; echo "== 9. nothing stays"; echo "  instances in incus              $left_i"; echo "  processes of $U and its range  $left"; } >>"$REPORT"
+[ "$left_i" -eq 0 ] || { note "9: an instance stayed in incus"; fail=1; }
+[ "$left" -eq 0 ] || { note "9: a process of the user stayed"; fail=1; }
+
+# ---- clause 10 ----------------------------------------------------------
+# The store stays for this clause: the cleanup above removed $B, so the
+# image is pulled again into a store of root.
+S10="$WORK/store10"
+out=$(env PODVM_STORE="$S10" INCUS_DIR="$WORK/no-incus" "$REPO/target/x86_64-unknown-linux-musl/debug/podvm" run --podvm-tier=incus "$OCI" true </dev/null 2>&1); rc=$?
+{ echo ""; echo "== 10. no incusd"; echo "  exit    $rc"; echo "$out" | grep "incus tier" | sed 's/^/  stderr  /'; } >>"$REPORT"
+[ "$rc" -eq 125 ] && echo "$out" | grep -q "no incusd answers at $WORK/no-incus/unix.socket" ||
+	{ note "10: a run with no incusd did not refuse by name"; fail=1; }
+rm -rf "$S10"
+
+{
+echo ""
+if [ "$fail" -eq 0 ]; then echo "verdict           THE INCUS TIER RUNS"; else echo "verdict           A CLAUSE DISAGREED"; fi
+} >>"$REPORT"
+cp "$REPORT" "$REPO/experiments/results/incus-tier.txt"
+cat "$REPORT"
+[ "$fail" -eq 0 ]

@@ -17,13 +17,11 @@ pub(crate) fn prepare(
     // fetched: a machine-tier refusal names the legs, and there is nothing
     // to pull for a tier that cannot run.
     let tier = crate::tier::resolve(o.tier);
+    let guest = matches!(tier, crate::tier::Tier::Machine | crate::tier::Tier::Incus);
     // ⭐ TODO/packaging.md T-1003. A forced launch rung is refused here, before
     // anything is fetched, where the verb cannot honor it: only foreground
-    // `run` drives the ladder, and the machine tier never reaches it. It sits
-    // ahead of the machine branch so a force cannot fall through it silently.
-    if let Err(text) =
-        crate::ladder::refuse_where_undriven(verb, o.detach, tier == crate::tier::Tier::Machine)
-    {
+    // `run` drives the ladder, and no guest tier reaches it (so it sits first).
+    if let Err(text) = crate::ladder::refuse_where_undriven(verb, o.detach, guest) {
         eprintln!("podvm {verb}: {text}");
         return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
     }
@@ -42,7 +40,7 @@ pub(crate) fn prepare(
     )?;
     // TODO/machine.md T-1656: `run` copies a volume into the guest.
     let volumes_refused = verb != "run" && !o.volumes.is_empty();
-    if tier == crate::tier::Tier::Machine && (!o.devices.is_empty() || volumes_refused) {
+    if guest && (!o.devices.is_empty() || volumes_refused) {
         // ⛔ Refused rather than silently dropped: the guest boots behind
         // an emulator the host cannot hand descriptors or paths to, so a
         // mapping the caller believes is set would serve nothing.
@@ -79,10 +77,8 @@ pub(crate) fn prepare(
     // ⭐ TODO/milestones.md T-1112. The OS gate sits before the tier dispatch
     // and the fetch: a platform no tier can enter refuses naming it.
     crate::lifecycle::ensure_linux_guest(verb, &platform.os, &platform.arch)?;
-    if tier == crate::tier::Tier::Machine {
-        return Err(super::machine::machine_tier(
-            verb, store, &o, &platform, &policy,
-        ));
+    if let Some(f) = super::machine::guest_tier(tier) {
+        return Err(f(verb, store, &o, &platform, &policy));
     }
     if !o.qemu_args.is_empty() {
         // ⛔ Refused rather than silently dropped. An emulator argument the

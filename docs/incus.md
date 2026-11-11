@@ -78,14 +78,40 @@ interposer is the cost.
   adds one; not measured here).
 * **The images.** incus 6.0 pulls no OCI image. podvm pulls it, extracts
   it, and imports a unified tarball (`POST /1.0/images`), as clause 5 does.
-  The tarball should carry the intended owners of podvm's `.meta.jsonl`,
-  not the owner 0 for each file.
-* **The command.** `lxc.init.cmd` takes no quoting: podvm writes the argv
-  into a small script in the image and names that script.
+  The tarball carries the owners and modes that the image intended, from
+  podvm's `.meta.jsonl`.
+* **The command.** `lxc.init.cmd` takes no quoting, so it does not name
+  the command. It names podvm itself (`/.podvm/podvm guest-hold`), which
+  podvm pushes into the instance before the start; the command runs by the
+  exec API with its argv as a list.
 * **The network.** No network in the user's namespace without a relay
   (errand-box E-23). The first back end says so and refuses `-p`.
 * **The crate.** The client of the incus REST API over a unix socket is
   generic: it goes to podcrates as a crate, by a COORD issue.
+
+## What podvm has (T-1718)
+
+`podvm run --podvm-tier=incus IMAGE CMD` drives the incusd that answers on
+`PODVM_INCUS_SOCKET`, or on `unix.socket` in `INCUS_DIR`
+(`crates/podvm/src/incus/`). One run:
+
+1. imports the image one time for each manifest digest, under the alias
+   `podvm-HEX16-vN`;
+2. creates an instance with `raw.lxc` `lxc.init.cmd = /.podvm/podvm
+   guest-hold`, and pushes podvm and the piped stdin into `/.podvm/`;
+3. starts it, and runs the command with the exec API and `record-output`,
+   with the environment and the working directory of the image and the
+   flags;
+4. writes the recorded stdout and stderr apart, exits with the exit code of
+   the command, and deletes the instance.
+
+[Experiment 434](../experiments/434-incus-tier.sh) proves it against the
+incusd of route A ([its run](../experiments/results/incus-tier.txt)): each
+of its ten clauses matches. A run with the image in incus took about 1.3 s
+(median of 5); most of it is the push of the debug binary (82 MB) into each
+instance. `create` and `exec` refuse the tier by name, and so do `-v`,
+`--podvm-mem` and `--podvm-qemu-arg`. T-1722 has the rest of the verbs, the
+selection by the ladder, and the volumes.
 
 ## What stays open
 
@@ -93,3 +119,8 @@ interposer is the cost.
   of `kvm.yml` (T-1682) has it.
 * The network of an instance under route A.
 * A static `incusd`.
+* T-1722: the verbs of an instance that stays (`create`, `start`, `exec`,
+  `ps`, `stop`, `rm`), `-v` as a `disk` device, the ladder's selection of
+  incus, and `.EnteredRung`.
+* A push of podvm that each instance does not repeat (a shared file, or a
+  smaller release binary).

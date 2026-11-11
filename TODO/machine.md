@@ -1605,7 +1605,7 @@ Source:      PodUtils/podcrates#56 (COORD-031); the owner's answer of
 Category:    machine
 Priority:    P2
 Effort:      XL
-Status:      open
+Status:      done
 
 Problem:     The owner asks that podvm support incus or have an adapter
              for it, "since it seems to be best of both microvms &
@@ -1631,6 +1631,25 @@ Prove:       `cargo test --workspace` exits 0 with tests of the client
              `experiments/356-no-chroot-rung.sh` through the back end where
              an `incusd` answers, and refuses by name where none answers.
 
+**Done 2026-11-11.** `run --podvm-tier=incus` drives an incusd over its
+REST API (`crates/podvm/src/incus/`: the client on the unix socket, the
+image, the run). `cargo test -p podvm incus::` exits 0 with seven tests,
+one of them a whole run against a stand-in API server on a unix socket
+(import, alias, create with `lxc.init.cmd`, push, start, exec, delete).
+`PODVM_434_MIRROR=1 sh experiments/434-incus-tier.sh` exits 0 as root on
+the cloud host ([the run](../experiments/results/incus-tier.txt)) with
+the pinned image `ALPINE` of experiment 356: against the incusd of route
+A, a run gives `hello` and 0, exit 7, stdout and stderr apart, piped
+stdin, `-e` and `-w`; PID 1 is podvm's hold and `/etc/shadow` is `0:42`
+as the image intended; a second run takes the image from incus; `create`
+and `exec` refuse the tier by name; no instance and no process stays; and
+with no incusd a run exits 125 and names the socket. The first run found
+two defects, both fixed: incus refuses a `creation_date` of 0, and an
+image with each file owned by 0 lost the image's groups. The rest of the
+Approach (the verbs of an instance that stays, `-v`, the ladder's
+selection, `.EnteredRung`) is T-1722. podcrates takes the client as
+`pod-incus` (PodUtils/podcrates#63, COORD-038 of podcrates).
+
 **Blocked 2026-11-11.** Blocker: T-1717 (the study gives the route).
 Clears when: T-1717 is done and names the route.
 
@@ -1640,3 +1659,38 @@ namespace (the host's package, prepared by root one time), imports its own
 OCI pulls as unified tarballs, and names the image's command with
 `lxc.init.cmd`. The page gives the map of the verbs and what the first
 back end refuses (`-p`: no network in the namespace).
+
+---
+
+### T-1722 The incus back end: the verbs of an instance that stays, volumes and the ladder
+
+Source:      T-1718 (the rest of its Approach); docs/incus.md
+Category:    machine
+Priority:    P3
+Effort:      L
+Status:      open
+
+Problem:     `--podvm-tier=incus` serves `run` only. `create`, `start`,
+             `exec`, `ps`, `stop`, `rm` and `logs` refuse it, `-v` is
+             refused, the ladder never selects incus, and
+             `system info --format '{{.EnteredRung}}'` does not name it.
+             Each run pushes the podvm binary into the new instance.
+Premise:     T-1718 has the client, the image and the run
+             (`crates/podvm/src/incus/`). incus keeps an instance by name,
+             and a container record of podvm can name it. A `disk` device
+             maps a host path into an instance.
+Approach:    Keep a container record for an incus instance (its name and
+             its socket); map `create`, `start`, `exec`, `ps`, `stop`,
+             `rm` and `logs` to the API; map `-v HOST:GUEST[:ro]` to a
+             `disk` device; let the ladder select incus where an incusd
+             answers and the user asks for it by configuration; name the
+             tier in the banner and in `.EnteredRung`; push podvm one time
+             for each image, not for each run.
+Decision:    incus stays a host service: podvm never installs or starts
+             it as root.
+Prove:       `cargo test -p podvm incus::` exits 0 with tests of each verb
+             against the stand-in server, and a new experiment runs
+             `create`, `exec`, `ps`, `stop`, `rm` and `-v` against the
+             incusd of route A with exit 0.
+
+**Filed 2026-11-11.** From the rest of T-1718.

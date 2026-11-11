@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: run on an incusd, 2026-11-11
+
+Record: T-1718; issues 243, 251 and 253.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=incus IMAGE CMD` runs the command in a disposable
+  instance of an incusd that answers on `PODVM_INCUS_SOCKET` or on
+  `INCUS_DIR`'s socket, with the image's owners from `.meta.jsonl`, and
+  gives its stdout, stderr and exit code apart. Piped stdin, `-e` and `-w`
+  reach the command. `create`, `exec`, `-v`, `--podvm-mem` and
+  `--podvm-qemu-arg` are refused by name with the tier, and so is a run
+  where no incusd answers ([incus](docs/incus.md), experiment 434).
+
 ## 0.2.0-beta.3 (2026-11-11)
 
 ### Changed: a binary embeds no interposer of another machine, 2026-11-11

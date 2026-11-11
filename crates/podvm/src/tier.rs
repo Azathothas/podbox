@@ -1,7 +1,7 @@
 //! The tier flag. `TODO/machine.md` T-1302.
 //!
-//! `--podvm-tier=machine` selects the machine tier; with no flag the ladder
-//! selects. The name the binary was invoked under does not change the
+//! `--podvm-tier=machine` selects the machine tier, and `--podvm-tier=incus`
+//! the incus back end (T-1718); with no flag the ladder selects. The name the binary was invoked under does not change the
 //! default. `TODO/cli.md` T-1712 removed the value `chroot`: it had no
 //! effect since call C2, so a caller that asked for chroot got whatever the
 //! ladder entered. `system info --format '{{.EnteredRung}}'` names the rung
@@ -18,6 +18,8 @@ use podvm_image::error::EXIT_RUNTIME_ERROR;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Want {
     Machine,
+    /// TODO/machine.md T-1718: an incusd, over its REST API.
+    Incus,
 }
 
 /// The validated value of one `--podvm-tier` spelling, or `None` where the
@@ -25,6 +27,7 @@ pub enum Want {
 pub fn want(s: &str) -> Option<Want> {
     match s {
         "machine" => Some(Want::Machine),
+        "incus" => Some(Want::Incus),
         _ => None,
     }
 }
@@ -35,7 +38,7 @@ pub fn want(s: &str) -> Option<Want> {
 /// value that selected nothing gave a caller another mechanism with exit 0.
 pub fn refusal(verb: &str, value: &str) -> String {
     format!(
-        "podvm {verb}: --podvm-tier takes machine, not {value:?}: with no flag the \
+        "podvm {verb}: --podvm-tier takes machine or incus, not {value:?}: with no flag the \
          ladder selects the rung, and `podvm system info --format \
          '{{{{.EnteredRung}}}}'` names the rung that a run enters (TODO/cli.md T-1712)"
     )
@@ -84,6 +87,8 @@ pub enum Tier {
     /// `--podvm-tier=machine`: the legs are assessed and the tier is
     /// refused naming every missing one.
     Machine,
+    /// `--podvm-tier=incus`: `run` drives an incusd (T-1718).
+    Incus,
 }
 
 /// Resolve the flag to the tier that runs.
@@ -95,6 +100,7 @@ pub fn resolve(flag: Option<Want>) -> Tier {
     match flag {
         None => Tier::Ladder,
         Some(Want::Machine) => Tier::Machine,
+        Some(Want::Incus) => Tier::Incus,
     }
 }
 
@@ -206,14 +212,15 @@ mod tests {
     /// nothing, so it is a flag error now, and the refusal names the value,
     /// the one value the flag takes, and where the entered rung is read.
     #[test]
-    fn the_flag_spells_machine_and_nothing_else() {
+    fn the_flag_spells_machine_or_incus_and_nothing_else() {
         assert_eq!(want("machine"), Some(Want::Machine));
+        assert_eq!(want("incus"), Some(Want::Incus));
         assert_eq!(want("chroot"), None);
         assert_eq!(want("sandbox"), None);
         assert_eq!(want(""), None);
         let r = refusal("run", "chroot");
         assert!(
-            r.starts_with("podvm run: --podvm-tier takes machine, not \"chroot\""),
+            r.starts_with("podvm run: --podvm-tier takes machine or incus, not \"chroot\""),
             "{r}"
         );
         assert!(r.contains("{{.EnteredRung}}"), "{r}");

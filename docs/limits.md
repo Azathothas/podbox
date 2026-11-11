@@ -106,6 +106,16 @@ with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).
 
+`run --podvm-tier=incus IMAGE CMD` runs the command in a disposable
+instance of an incusd that answers on its socket (`PODVM_INCUS_SOCKET`, or
+`INCUS_DIR/unix.socket`), and gives its stdout, stderr and exit code
+(T-1718, [incus](incus.md)). podvm imports its extracted image with the
+owners that the image intended, and is the init of the instance. The
+command is not PID 1. Only `run` takes the tier; `-v`, `--podvm-mem` and
+`--podvm-qemu-arg` are refused by name, and the instance has no network
+under route A. A run where no incusd answers exits 125 and names the
+socket. Each run pushes the podvm binary into the instance.
+
 The owner lifted the KVM deferral on 2026-11-09 ([decisions](decisions.md)).
 A session can start a KVM guest where `/dev/kvm` exists, with a timeout,
 and no emulator may stay after the run. The cloud host has no `/dev/kvm`,

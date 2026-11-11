@@ -7,7 +7,7 @@ start.
 
 ## State
 
-330 entries: 27 open, 8 partial, 3 blocked, 292 done.
+331 entries: 27 open, 8 partial, 3 blocked, 293 done.
 
 The state on 2026-11-11:
 
@@ -54,8 +54,10 @@ that is not done. Read its Prove before you start. Set its status with
    runner.
    Then the KVM legs on a host with `/dev/kvm`: [T-1641](gate.md),
    [T-1350](gate.md) and [T-1112](milestones.md), in one bounded run.
-   Then [T-1718](machine.md) (the incus back end, in the form that the
-   study T-1717 gives: [incus without root](../docs/incus.md)).
+   [T-1718](machine.md) is done: `run --podvm-tier=incus` runs on an
+   incusd of route A ([incus without root](../docs/incus.md), experiment
+   434). [T-1722](machine.md) (the other verbs of incus) comes after the
+   scope entries of step 8.
 3. [T-1652](enter.md): a native-static rung with Syscall User Dispatch
    and `openat2(RESOLVE_IN_ROOT)` (issue 109).
 4. [T-1651](enter.md): an `emulate` tier on a patched, fail-closed

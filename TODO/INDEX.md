@@ -391,14 +391,15 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1715](supervise.md) | P2 | supervise | done | The container table keeps `-e` values in a file that other users can read |
 | [T-1716](enter.md) | P2 | enter | done | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 | [T-1717](machine.md) | P2 | machine | done | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
-| [T-1718](machine.md) | P2 | machine | open | An incus back end: podvm drives incus over its REST API |
+| [T-1718](machine.md) | P2 | machine | done | An incus back end: podvm drives incus over its REST API |
 | [T-1719](enter.md) | P2 | enter | done | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
 | [T-1720](supervise.md) | P1 | supervise | done | `wait` gives no exit code for a payload that ends at once |
 | [T-1721](interpose.md) | P2 | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
+| [T-1722](machine.md) | P3 | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 
 ## Counts
 
-330 items: 27 open, 8 partial, 3 blocked, 292 done.
+331 items: 27 open, 8 partial, 3 blocked, 293 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -409,9 +410,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 25 | 1 | 3 | 81 | 110 |
-| P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **27** | **8** | **3** | **292** | **330** |
+| P2 | 24 | 1 | 3 | 82 | 110 |
+| P3 | 1 | 0 | 0 | 9 | 10 |
+| **All** | **27** | **8** | **3** | **293** | **331** |
 
 ## Work order
 

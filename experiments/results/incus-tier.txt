@@ -1,0 +1,59 @@
+== conditions
+date              2026-11-11T07:03:18Z
+host kernel       Linux 6.18.44-fc-v378
+cgroup            tmpfs
+incus package     6.0.0-1ubuntu0.3
+OCI               mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+runs              5
+
+== 1. a run
+  stdout  hello
+  exit    0
+  ms      1854 (with the import)
+  stderr  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  stderr  podvm: 517 of 517 entries carry an id this machine cannot apply; what the image intended is in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  stderr  podvm: restore ownership with chown of bin (uid 0, gid 0): EINVAL
+  stderr    the id has no mapping in this user namespace, which reads as a bad argument
+  stderr    uid 0 is not mapped in this user namespace (/proc/self/uid_map: 0 0 4294967295); gid 0 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
+  stderr    extract without ownership and record the intended ids; intended metadata recorded in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 imported now (TODO/machine.md T-1718)
+
+== 2. the exit code
+  exit    7
+
+== 3. stdout and stderr
+  stdout  out
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
+  stderr  err
+
+== 4. stdin
+  stdout  piped
+
+== 5. -e and -w
+  stdout  one /tmp
+
+== 6. the instance
+  PID 1                 /.podvm/podvm guest-hold 
+  owner of /etc/passwd  0:0
+  owner of /etc/shadow  0:42
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
+
+== 7. the cached image
+  run true ms  1338 (median of 5)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
+
+== 8. the other verbs
+  create exit  125
+  exec exit    125
+  stderr  podvm create: --podvm-tier=incus serves run only: each run is a disposable instance (TODO/machine.md T-1718)
+  stderr  podvm exec: --podvm-tier=incus serves run only (TODO/machine.md T-1718)
+
+== 9. nothing stays
+  instances in incus              0
+  processes of podvm434 and its range  0
+
+== 10. no incusd
+  exit    125
+  stderr  podvm run: incus tier: no incusd answers at /workspace/podvm/experiments/.sweep434-work/no-incus/unix.socket: set PODVM_INCUS_SOCKET or INCUS_DIR, or start one (docs/incus.md, route A)
+
+verdict           THE INCUS TIER RUNS
