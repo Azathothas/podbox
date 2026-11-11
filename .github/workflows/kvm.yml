@@ -33,6 +33,12 @@ jobs:
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+          sudo udevadm settle || true
+          # The trigger is not always done when settle returns: the node
+          # gets the mode directly where it exists.
+          [ -e /dev/kvm ] && sudo chmod 0666 /dev/kvm
+          ls -l /dev/kvm 2>&1 || true
+          grep -cE 'vmx|svm' /proc/cpuinfo || true
           if [ -w /dev/kvm ] && [ -r /dev/kvm ]; then
             ls -l /dev/kvm
           else
