@@ -329,7 +329,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1653](enter.md) | P2 | enter | done | `-v` volumes on a host with no /dev/fuse and no mount |
 | [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
 | [T-1655](cli.md) | P2 | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
-| [T-1656](machine.md) | P2 | machine | partial | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
+| [T-1656](machine.md) | P2 | machine | done | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
 | [T-1657](enter.md) | P2 | enter | open | A syscall-interpreting tier: the gVisor capability without user namespaces |
 | [T-1658](enter.md) | P2 | enter | open | A confine layer: Landlock, seccomp and no_new_privs on every rootfs tier |
 | [T-1659](cli.md) | P2 | cli | open | Provider shapes and bare userlands as built-in profiles |
@@ -396,10 +396,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1720](supervise.md) | P1 | supervise | done | `wait` gives no exit code for a payload that ends at once |
 | [T-1721](interpose.md) | P2 | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
 | [T-1722](machine.md) | P3 | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
+| [T-1723](machine.md) | P3 | machine | open | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
 
 ## Counts
 
-331 items: 27 open, 8 partial, 3 blocked, 293 done.
+332 items: 28 open, 7 partial, 3 blocked, 294 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -410,9 +411,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 24 | 1 | 3 | 82 | 110 |
-| P3 | 1 | 0 | 0 | 9 | 10 |
-| **All** | **27** | **8** | **3** | **293** | **331** |
+| P2 | 24 | 0 | 3 | 83 | 110 |
+| P3 | 2 | 0 | 0 | 9 | 11 |
+| **All** | **28** | **7** | **3** | **294** | **332** |
 
 ## Work order
 

@@ -1216,7 +1216,7 @@ Source:      issue 168; #193; the owner's ruling of 2026-11-06;
 Category:    machine
 Priority:    P2
 Effort:      XL
-Status:      partial
+Status:      done
 
 Problem:     The owner's scope says podvm will "quickly create full on
              microvms". `podvm run --podvm-tier=machine` probes the tier and
@@ -1263,6 +1263,19 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the archive cache
              file written to `/workspace` is on the host or the run says it
              is a copy. A run that asks for KVM, with `/dev/kvm` closed to the user,
              refuses by name and does not boot under TCG.
+
+**Done 2026-11-11.** Each clause of the Prove has a recorded run, as the
+paragraphs below give: `cargo test -p podvm` with the tests of the cache
+key and the marker parse; `PODVM_412_MIRROR=1 sh
+experiments/412-microvm-boot.sh` exits 0 under TCG
+([the run](../experiments/results/microvm-boot.txt)) with `uname -r; exit
+7`, 20 of 20 boots, the cached base archive, the fetch through the host's
+loopback proxy, `/workspace` as a copy that the run names, stderr apart,
+stdin, and the refusal of a KVM ask with no `/dev/kvm`; under KVM on a
+hosted runner a run takes about 0.6 s (kvm.yml run 42973225343). The
+banner names the boundary under TCG. The `microvm` machine type, a shared
+`/workspace` and an interactive stdin, which the Prove does not ask for,
+are T-1723.
 
 **Partial, 2026-11-11.** `run --podvm-tier=machine IMAGE CMD` boots a
 guest (`crates/podvm/src/machine/guest.rs`, `crates/podvm/src/run/machine.rs`).
@@ -1334,9 +1347,9 @@ the first run, with the kernel fetch and the base archive, took 3 s; 20
 runs in a row took 12 s, about 0.6 s from `run` to the exit code; under
 TCG on the cloud host the same 20 took 48 to 59 s.
 
-Remaining: the `microvm` machine type (Firecracker's kernel did not boot
-under TCG; under KVM not tried); a shared `/workspace` (9p or virtiofs);
-an interactive stdin.
+Remaining then: the `microvm` machine type (Firecracker's kernel did not
+boot under TCG; under KVM not tried); a shared `/workspace` (9p or
+virtiofs); an interactive stdin. They are T-1723.
 
 **Filed 2026-11-06.** Quoted from issue 168, measured on an 8 vCPU Incus
 guest with `/dev/kvm` and QEMU 10.0.13:
@@ -1694,3 +1707,37 @@ Prove:       `cargo test -p podvm incus::` exits 0 with tests of each verb
              incusd of route A with exit 0.
 
 **Filed 2026-11-11.** From the rest of T-1718.
+
+---
+
+### T-1723 The microVM of run: the microvm machine, a shared /workspace and an interactive stdin
+
+Source:      T-1656 (the rest of its Approach); issue 168
+Category:    machine
+Priority:    P3
+Effort:      L
+Status:      open
+
+Problem:     `run --podvm-tier=machine` boots `-M pc,acpi=off` with the
+             Alpine `vmlinuz-virt`. `-v` is a copy whose writes do not
+             return to the host, and a terminal on stdin does not reach the
+             guest.
+Premise:     T-1656 measured that Firecracker's CI kernel 6.1.102 for `-M
+             microvm` did not boot under TCG; under KVM it was not tried.
+             The 9p modules are not in `initramfs-virt` (only in the xz
+             modloop), and `virtiofs.ko` needs a `virtiofsd` on the host.
+             `kvm.yml` (T-1682) gives a runner with `/dev/kvm`.
+Approach:    Under KVM, try `-M microvm` with a pinned virtio-mmio kernel
+             and count twenty boots for each flag set, as issue 168 does;
+             keep `-M pc` where it does not boot. Take the 9p modules of
+             the modloop (by SHA-256) and mount `-v` with `-virtfs local`,
+             so that a write returns to the host. Carry a terminal on a
+             virtio-console port in raw mode.
+Decision:    The TCG leg stays `-M pc` until a kernel boots there twenty
+             times in a row.
+Prove:       `cargo test -p podvm` exits 0, and `sh experiments/412-microvm-boot.sh`
+             exits 0 in `kvm.yml` with new clauses: twenty boots of `-M
+             microvm` under KVM, a write in a `-v` directory that is on the
+             host after the run, and a command that reads a terminal.
+
+**Filed 2026-11-11.** From the rest of T-1656.
