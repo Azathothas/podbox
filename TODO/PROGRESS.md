@@ -7,7 +7,7 @@ start.
 
 ## State
 
-340 entries: 19 open, 7 partial, 5 blocked, 309 done.
+340 entries: 17 open, 7 partial, 7 blocked, 309 done.
 
 The state on 2026-11-11:
 
@@ -90,7 +90,8 @@ that is not done. Read its Prove before you start. Set its status with
    the network entries [T-1665](net.md) (partial: the proxy rewrite and
    the broker on the syscall and machine tiers are done; the fake address
    of a named upstream remains), [T-1662](net.md) (blocked on
-   `pod-netlab` of podcrates, COORD-041, issue 260),
+   `pod-netlab` of podcrates, COORD-041, issue 260; T-1663 and T-1664
+   wait with it),
    [T-1663](net.md) and [T-1664](net.md) (on T-1656), the profiles
    [T-1659](cli.md) (partial: the lambda-al2023 clause waits for
    COORD-042, issue 261), [T-1661](cli.md) and [T-1660](cli.md), and

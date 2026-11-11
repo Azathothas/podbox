@@ -106,7 +106,7 @@ Source:      issue 180; #193; the owner's ruling of 2026-11-06;
 Category:    net
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      blocked
 
 Problem:     sand-net ran WireGuard labs with a kill switch, a live WARP
              uplink, and a mode that forced a proxy-ignorant program
@@ -139,6 +139,14 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the net mode's
              visibly. The live warp-uplink leg runs where the operator
              grants a live run.
 
+**Blocked 2026-11-11 with T-1662.** Each clause of the Prove runs in the
+lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
+(podcrates T-206) and `pod-netlab` (podcrates T-207); podcrates answered
+COORD-041 (issue 260) on PodUtils/podcrates#70 that this entry waits with
+it. The parts with no lab are in place: the kill switch of a rootfs-tier
+payload is the hold of T-1665 (the handler refuses each `connect` but the
+broker's).
+
 **Filed 2026-11-06.** Quoted from issue 180:
 
 ```text
@@ -169,7 +177,7 @@ Source:      issue 182; #193; the owner's ruling of 2026-11-06
 Category:    net
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      blocked
 
 Problem:     sand-net captured packets, read per-interface and rule
              counters, and watched rates inside a lab, all through `sudo`.
@@ -202,6 +210,13 @@ Prove:       `cargo test -p podvm` exits 0 with a test for the connection
              name, a machine-tier run writes a host-side pcap with no
              privilege, and a rootfs-tier run logs each connect with its
              errno.
+
+**Blocked 2026-11-11 with T-1662.** Each clause of the Prove runs in the
+lab guest of T-1662, which waits for `pod-guest`'s reader of the modloop
+(podcrates T-206) and `pod-netlab` (podcrates T-207); podcrates answered
+COORD-041 (issue 260) on PodUtils/podcrates#70 that this entry waits with
+it. The host-side pcap and the connection log at the syscall layer need no
+lab and come with the entry.
 
 **Filed 2026-11-06.** Quoted from issue 182:
 

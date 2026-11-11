@@ -336,8 +336,8 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1660](cli.md) | P2 | cli | open | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
 | [T-1661](cli.md) | P2 | cli | open | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
 | [T-1662](net.md) | P2 | net | blocked | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
-| [T-1663](net.md) | P2 | net | open | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
-| [T-1664](net.md) | P2 | net | open | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
+| [T-1663](net.md) | P2 | net | blocked | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
+| [T-1664](net.md) | P2 | net | blocked | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
 | [T-1665](net.md) | P2 | net | partial | An egress broker, and the guest's view of a loopback-only proxy |
 | [T-1666](probe.md) | P2 | probe | done | A security probe inside the payload, and a compare against a reference report |
 | [T-1667](cli.md) | P2 | cli | partial | Doctor and installers: one check per scope capability, verified downloads, a space floor |
@@ -408,7 +408,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-340 items: 19 open, 7 partial, 5 blocked, 309 done.
+340 items: 17 open, 7 partial, 7 blocked, 309 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -419,9 +419,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 145 | 149 |
-| P2 | 15 | 3 | 5 | 91 | 114 |
+| P2 | 13 | 3 | 7 | 91 | 114 |
 | P3 | 3 | 0 | 0 | 9 | 12 |
-| **All** | **19** | **7** | **5** | **309** | **340** |
+| **All** | **17** | **7** | **7** | **309** | **340** |
 
 ## Work order
 
