@@ -68,7 +68,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #171 | [Reference] pkgforge-dev/cross-libc-dlopen @ 34482c7: cross-libc loading rules | closed (lesson taken in T-0701, T-0702, T-0706) | none: a reference (references/README.md) |
 | #172 | [Scope] Provider shapes and bare userlands: Lambda, Cloudflare, Vercel, Nimbus, busybox, distroless profiles | open | T-1659 |
 | #173 | [Reference] proot-me/proot @ 65f3f7d: refused: ptrace is filtered | closed (refused; lesson taken in T-0706) | none: a reference (references/README.md) |
-| #174 | [Scope] Notebooks: Jupyter and marimo runs, and a session that wipes and keeps one directory | open | T-1660 |
+| #174 | [Scope] Notebooks: Jupyter and marimo runs, and a session that wipes and keeps one directory | closed | T-1660 |
 | #175 | [Reference] QaidVoid/onelf @ 158b4af: launch ladder, exec lock, symlink check | closed (lesson taken in T-0202, T-0304, T-0305, T-0803, T-1001; podcrates pod-enter, pod-extract) | none: a reference (references/README.md) |
 | #176 | [Scope] Language runtimes: Node, Deno and Bun permission models, wasmtime and workerd | open | T-1661 |
 | #177 | [Reference] qemu-rs/qemu-rs @ 4854135: refused: GPL plugin bindings | closed (refused (GPL); ruled in T-1307) | none: a reference (references/README.md) |
@@ -83,7 +83,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #186 | [Scope] Security probe and compare: an inside-the-payload report diffed against a reference | closed | T-1666 |
 | #187 | [Reference] talaria0101/sandbox-insights @ 0889f5f: probe discipline and the four walls | closed (lesson taken in T-0415, T-0712, T-1308) | none: a reference (references/README.md) |
 | #188 | [Scope] Doctor and installers: host readiness, verified downloads, disk guard | open | T-1667 |
-| #189 | [Scope] Findings ledger: tool defects and host traits that change how a result reads | open | T-1668 |
+| #189 | [Scope] Findings ledger: tool defects and host traits that change how a result reads | closed | T-1668 |
 | #190 | [Reference] talaria0101/sandssh @ 4fc7f8c: one-pair relay design | closed (lesson taken by PodUtils/podssh) | none: a reference (references/README.md) |
 | #191 | [Reference] talaria0101/vm-research @ 7697b9b: machine tier and TCG benchmarks | closed (lesson taken in T-1301 to T-1306, T-1308) | none: a reference (references/README.md) |
 | #192 | [Reference] ylang-ylang/dockless @ ed35b5d: fail-fast CLI guardrails | closed (lesson taken in T-0801, T-0804) | none: a reference (references/README.md) |
