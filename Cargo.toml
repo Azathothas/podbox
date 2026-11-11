@@ -7,6 +7,7 @@ members = [
     "crates/podvm-extract",
     "crates/podvm-complete",
     "crates/podvm-enter",
+    "crates/podvm-dispatch",
     "crates/podvm-gate",
     "crates/podvm-buildstate",
     "crates/podvm-release",

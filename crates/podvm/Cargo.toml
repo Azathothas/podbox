@@ -30,6 +30,7 @@ serde_json.workspace = true
 podvm-extract = { path = "../podvm-extract" }
 podvm-complete = { path = "../podvm-complete" }
 podvm-enter = { path = "../podvm-enter" }
+podvm-dispatch = { path = "../podvm-dispatch" }
 podvm-supervise = { path = "../podvm-supervise" }
 # ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate
 # because the whole guest side is `cmd.exe` and a FAT mailbox and none of it

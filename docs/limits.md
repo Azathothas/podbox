@@ -9,11 +9,19 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
 - A chroot changes paths. It does not provide process or network isolation.
 - The namespace path provides mount behavior only.
 - A userland entry retains the host root and shared host resources.
-- A static payload on a host that denies chroot refuses at 125, because
-  its absolute paths would resolve on the host (T-1648). Under
-  `--unsafe-host-paths` it runs from a staged memfd with the host root.
-  It then reads its own exe as the staged memfd path, so a self-locating
-  runtime cannot resolve itself there.
+- A static x86_64 payload on a host that denies chroot runs on the
+  native-static rung (T-1652): Syscall User Dispatch (Linux 5.11) gives
+  each of its system calls to podvm, which resolves each path in the
+  image with `openat2(RESOLVE_IN_ROOT)`. `/proc`, `/sys` and `/dev` are
+  the host's, and `/proc/self/exe` names the guest program. Threads,
+  `fork`, `vfork` and `execve` keep the rung; an `execve` of a dynamic
+  program fails with `ENOEXEC`. The rung takes no `-v` yet, and a static
+  child of a dynamic program on the loader family still runs with the
+  host root (T-1724). Where the kernel refuses the `prctl`, the payload
+  refuses at 125, because its absolute paths would resolve on the host
+  (T-1648). Under `--unsafe-host-paths` it runs from a staged memfd with
+  the host root. It then reads its own exe as the staged memfd path, so a
+  self-locating runtime cannot resolve itself there.
 - A userland grandchild that execs a dynamic ELF or a `#!` script enters
   through the image's own loader or interpreter, resolved inside the
   rootfs (T-1646). `fexecve`, `execveat` with flags, `system()` and

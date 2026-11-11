@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a native-static rung, 2026-11-11
+
+Record: T-1652, T-1724; issue 109.
+Deployed: not deployed; no version change.
+
+- Where chroot is denied, a static x86_64 payload runs in a podvm process
+  of its own: Syscall User Dispatch gives each of its system calls to
+  podvm, which resolves each path in the image with
+  `openat2(RESOLVE_IN_ROOT)` (crate `podvm-dispatch`). The golang image's
+  `go version` and `go build` run on it. It was a refusal at 125 (T-1648),
+  which stays where the kernel refuses the `prctl`; `--unsafe-host-paths`
+  keeps the memfd family. `podvm probe --json` reports
+  `measured_by.user_dispatch`.
+
 ### Added: run on an incusd, 2026-11-11
 
 Record: T-1718; issues 243, 251 and 253.

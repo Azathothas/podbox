@@ -152,6 +152,7 @@ fn the_record_carries_the_loader_drive_and_nothing_else() {
         guest_argv: vec!["/bin/sh".to_string()],
         gaps: Vec::new(),
         maps: Maps::of_root("/r"),
+        dispatch_exe: None,
     };
     assert_eq!(
         detached_drive(Some(&loader)),
@@ -237,56 +238,6 @@ fn the_rung_decision_names_its_family_or_its_refusal() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
-/// TODO/enter.md T-1648. Where chroot is denied a static payload refuses
-/// at 125 without `--unsafe-host-paths`, whatever the memfd answers, and
-/// the refusal names the static reason, the host paths and every route.
-/// With the opt-in the same payload enters the memfd family, where a
-/// memfd executes (the T-1688 probe; a sealed memfd refuses at 125 too).
-#[test]
-fn a_static_payload_refuses_without_the_opt_in() {
-    let denied = podvm_probe::Findings {
-        rows: vec![(
-            "chroot(/tmp)",
-            podvm_probe::verdict::Outcome::denied(podvm_probe::sys::Errno(1)),
-        )],
-        identity: podvm_probe::identity::Identity::default(),
-        writable: Vec::new(),
-        self_exe: String::new(),
-    };
-    let d = std::env::temp_dir().join(format!("podvm-static-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&d);
-    std::fs::create_dir_all(d.join("bin")).unwrap();
-    std::fs::write(d.join("bin/prog"), static_pie()).unwrap();
-    let root = d.to_string_lossy().to_string();
-    let m = Maps::of_root(&root);
-    let argv = ["prog".to_string()];
-    let env = ["PATH=/bin".to_string()];
-    let e = decide_entry("run", &m, &argv, "/", &env, true, &denied, false, None).unwrap_err();
-    assert_eq!(e, podvm_image::error::EXIT_RUNTIME_ERROR);
-    for want in [
-        "statically linked",
-        "resolve on the host",
-        "--unsafe-host-paths",
-        "chroot(2) is permitted",
-        "T-1651",
-        "T-1652",
-    ] {
-        assert!(
-            STATIC_HOST_PATHS.contains(want),
-            "{want}: {STATIC_HOST_PATHS}"
-        );
-    }
-    let opted = decide_entry("run", &m, &argv, "/", &env, true, &denied, true, None);
-    if podvm_enter::memfd::memfd_exec().runs() {
-        let u = opted.unwrap().expect("the opt-in decides a family");
-        assert_eq!(u.family, podvm_enter::userland::Family::Memfd);
-        assert!(u.banner.contains("--unsafe-host-paths"), "{}", u.banner);
-    } else {
-        assert_eq!(opted.unwrap_err(), podvm_image::error::EXIT_RUNTIME_ERROR);
-    }
-    let _ = std::fs::remove_dir_all(&d);
-}
-
 /// TODO/cli.md T-1414. The refusal code follows the payload status:
 /// `ladder::resolve_payload`'s absent sentence is 127, its escape and
 /// loop sentences are 126, and anything else stays 125. Pinned here so
@@ -314,7 +265,7 @@ fn resolve_codes_follow_the_payload_status() {
 /// A 64-bit little-endian static PIE: the smallest bytes the memfd
 /// family decides on. Mirrors `podvm-enter/src/memfd.rs`'s own
 /// builder, which this crate cannot reach across its test gate.
-fn static_pie() -> Vec<u8> {
+pub(super) fn static_pie() -> Vec<u8> {
     let mut b = vec![0u8; 64 + 56];
     b[0..4].copy_from_slice(b"\x7fELF");
     b[4] = 2;

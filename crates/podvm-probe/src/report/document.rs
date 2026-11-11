@@ -20,7 +20,13 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     // ⚠ `emulated: false` is the absence of evidence and says so in `checked`;
     // it is not a claim that this is a bare machine.
     let interp = crate::interpreter();
+    // ⭐ TODO/enter.md T-1652: whether the native-static rung can arm here.
+    let dispatch = podvm_dispatch::available();
     o.obj("measured_by", |m| {
+        m.bool("user_dispatch", dispatch.is_ok());
+        if let Err(why) = &dispatch {
+            m.str("user_dispatch_refused", why);
+        }
         m.bool("emulated", interp.is_emulated());
         m.str("interpreter", &interp.key());
         match &interp {

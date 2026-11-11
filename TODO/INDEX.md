@@ -325,7 +325,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1649](cli.md) | P2 | cli | done | A `#!` entrypoint needs an undocumented `--entrypoint`, and the refusal must name the way out |
 | [T-1650](cli.md) | P1 | cli | done | `--strict` does not refuse the userland grandchild limit, while `--strict=all` refuses every run |
 | [T-1651](enter.md) | P2 | enter | open | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
-| [T-1652](enter.md) | P2 | enter | open | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
+| [T-1652](enter.md) | P2 | enter | partial | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
 | [T-1653](enter.md) | P2 | enter | done | `-v` volumes on a host with no /dev/fuse and no mount |
 | [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
 | [T-1655](cli.md) | P2 | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
@@ -397,10 +397,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1721](interpose.md) | P2 | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
 | [T-1722](machine.md) | P3 | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 | [T-1723](machine.md) | P3 | machine | open | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
+| [T-1724](enter.md) | P2 | enter | open | A static child of the loader family, and a volume, on the native-static rung |
 
 ## Counts
 
-332 items: 28 open, 7 partial, 3 blocked, 294 done.
+333 items: 28 open, 8 partial, 3 blocked, 294 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -411,9 +412,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 2 | 6 | 0 | 138 | 146 |
-| P2 | 24 | 0 | 3 | 83 | 110 |
+| P2 | 24 | 1 | 3 | 83 | 111 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **28** | **7** | **3** | **294** | **332** |
+| **All** | **28** | **8** | **3** | **294** | **333** |
 
 ## Work order
 

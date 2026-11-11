@@ -236,17 +236,7 @@ pub(super) fn resolve_code(msg: &str) -> i32 {
     }
 }
 
-/// TODO/enter.md T-1648. Why a static payload refuses where chroot is
-/// denied and `--unsafe-host-paths` is absent, and the routes past the
-/// refusal. A constant, so the tests pin the sentence a caller reads.
-pub const STATIC_HOST_PATHS: &str = "the payload is statically linked, so \
-     it makes raw syscalls past the interposer and podvm rewrites no path: \
-     its absolute paths would resolve on the host, and a write would land \
-     on the host tree. podvm refuses before the exec. Use a host where \
-     chroot(2) is permitted, or `--unsafe-host-paths` to accept this host \
-     pass-through on the memfd family. The planned rungs for static \
-     payloads are the emulate tier (TODO/enter.md T-1651) and the \
-     native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648)";
+pub use super::native::STATIC_HOST_PATHS;
 
 /// A no-chroot entry this run takes, decided post-extract and pre-fixup.
 #[derive(Debug, Clone)]
@@ -272,6 +262,9 @@ pub struct Userland {
     /// volumes. The entry resolves the payload and the working directory
     /// through it, so either can be in a volume.
     pub maps: podvm_enter::userland::Maps,
+    /// TODO/enter.md T-1652. The guest path of the program on the
+    /// native-static rung; None on each other entry.
+    pub dispatch_exe: Option<String>,
 }
 
 /// TODO/cli.md T-1650. The capability gaps that `--strict` reads: those of
@@ -292,14 +285,12 @@ pub fn gaps_of(userland: Option<&Userland>) -> Vec<crate::complete::Gap> {
 /// payload resolved to nothing, 126 where it was found but not invocable,
 /// 125 for a genuine podvm-side failure.
 ///
-/// Read-only: classification, resolution and ELF reads only. Placement
-/// (`place`) and fixups run after this decides, so a refusal writes
-/// nothing into the image.
+/// Read-only: placement and fixups run after this decides, so a refusal
+/// writes nothing into the image.
 ///
-/// ⛔ TODO/enter.md T-1648. A static payload enters the memfd family only
-/// under `unsafe_host_paths`, the decided `--unsafe-host-paths` opt-in:
-/// its absolute paths resolve on the host, so without the opt-in it
-/// refuses at 125 before the exec ([`STATIC_HOST_PATHS`]).
+/// ⛔ TODO/enter.md T-1652 and T-1648. A static payload takes the
+/// native-static rung where it arms; else the memfd family only under
+/// `--unsafe-host-paths`, and a refusal at 125 ([`STATIC_HOST_PATHS`]).
 ///
 /// ⭐ TODO/enter.md T-1653. `maps` is the table of the run (the rootfs and
 /// the volumes): each guest path resolves through it, so a first program
@@ -370,10 +361,17 @@ pub fn decide_entry(
                 routed,
             );
         }
-        // ⛔ T-1648: refusal beats a silent host write. The opt-in is
-        // decided before the memfd probe, so a refusal executes nothing.
+        // ⭐ T-1652 where the caller asked for no host paths; else T-1648.
         if !unsafe_host_paths {
-            return no_chroot(EXIT_RUNTIME_ERROR, STATIC_HOST_PATHS.to_string(), routed);
+            let why = match super::native::decide(&f, maps, &script_note) {
+                Ok(u) => return Ok(Some(u)),
+                Err(why) => why,
+            };
+            return no_chroot(
+                EXIT_RUNTIME_ERROR,
+                format!("{STATIC_HOST_PATHS}; the native-static rung: {why}"),
+                routed,
+            );
         }
         // ⛔ T-1688: the probe executes a memfd, so a sysctl that seals it
         // refuses here, before staging, and not at the launch's step 5.
@@ -405,6 +403,7 @@ pub fn decide_entry(
             guest_argv: f.argv.clone(),
             gaps: Vec::new(),
             maps: maps.clone(),
+            dispatch_exe: None,
         }));
     };
     // Dynamic: the loader family, where the tier reaches the payload.
@@ -489,5 +488,6 @@ pub fn decide_entry(
         gaps: crate::complete::loader_gaps(maps, argv, routed, &path_dirs),
         guest_argv: f.argv,
         maps: maps.clone(),
+        dispatch_exe: None,
     }))
 }

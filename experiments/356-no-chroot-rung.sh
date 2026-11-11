@@ -27,9 +27,12 @@
 #   4b. T-1317 loader family (musl): alpine runs at 0 the same way,
 #      through `sh` keeping the invoked name (busybox applet dispatch).
 #   5. T-1317 memfd family: the static hello runs at 0 the same way,
-#      under --unsafe-host-paths. T-1648: without the opt-in it refuses
-#      at 125 naming the static reason; under the opt-in at the quiet
-#      default the host-root line prints and the banner does not.
+#      under --unsafe-host-paths; at the quiet default the host-root line
+#      prints and the banner does not. T-1652: without the opt-in it runs
+#      at 0 on the native-static rung, whose banner names it; with the
+#      prctl of Syscall User Dispatch denied (--deny-dispatch) it refuses
+#      at 125 naming the static reason, the prctl and the emulate tier
+#      (T-1648).
 #   6. strict arm: --strict refuses the userland run at 125, and
 #      refuses --unsafe-host-paths on the static hello (T-1415).
 #   7. refusal arm: an unresolvable payload refuses at 125 naming
@@ -69,9 +72,11 @@
 #      exec'ing an absolute path runs at 0 on userland through the
 #      image's loader, and the chroot control runs it at 0.
 #   18. exe (T-1409): `readlink /proc/self/exe` as a first-level
-#      payload prints the guest path over the fixture. T-1648: the
-#      static go binary refuses at 125 naming the static reason, and
-#      never exits 2 naming GOROOT.
+#      payload prints the guest path over the fixture. T-1652: the
+#      static go binary runs on the native-static rung: `go version`
+#      exits 0, `go build` of a hello program exits 0, the built program
+#      prints its line, and nothing lands on the host; the probe reports
+#      measured_by.user_dispatch true on the fixture.
 #   19. gcc (T-1408): `gcc --version` runs on the gcc image over the
 #      fixture, proving the loader-symlink fix on a second image.
 #   20. relative paths (T-1643): a relative read, a relative write
@@ -352,7 +357,9 @@ MNT="$1"; shift
 exec "$MNT/deny-chroot" "$@"
 EOF
 FX="unshare -Urm sh $WORK/wrap.sh $WORK"
-export FX
+# T-1652: the same fixture, with prctl(PR_SET_SYSCALL_USER_DISPATCH) denied.
+FXD="unshare -Urm sh $WORK/wrap.sh $WORK --deny-dispatch"
+export FX FXD
 echo "fixture           $FX \$PB ..." >>"$REPORT"
 
 # The fixture proves itself before anything asserts through it: a bare
@@ -386,14 +393,20 @@ grep -q "loader family" "$WORK/out-fx-alpine.txt" || { echo "musl loader banner 
 
 # Clause 5 (T-1317 memfd): the static hello runs without chroot at 0.
 # ⭐ T-1648: the memfd family resolves absolute paths on the host, so it
-# runs only under --unsafe-host-paths; without it the payload refuses
+# runs only under --unsafe-host-paths. ⭐ T-1652: without it the payload
+# runs on the native-static rung; where the prctl is denied it refuses
 # at 125 before the exec, naming the static reason and the routes.
 step fx-hello 0 $FX "$PB" run --rm --verbose --unsafe-host-paths "$HELLO" /hello
 grep -q "static-hi" "$WORK/out-fx-hello.txt" || { echo "memfd payload stdout missing" >>"$REPORT"; fail=1; }
 grep -q "memfd family" "$WORK/out-fx-hello.txt" || { echo "memfd banner missing the family" >>"$REPORT"; fail=1; }
-step fx-hello-refuse "$RUN_ERR" $FX "$PB" run --rm "$HELLO" /hello
+step fx-hello-native 0 $FX "$PB" run --rm --verbose "$HELLO" /hello
+grep -q "static-hi" "$WORK/out-fx-hello-native.txt" || { echo "native-static payload stdout missing" >>"$REPORT"; fail=1; }
+grep -q "native-static rung" "$WORK/out-fx-hello-native.txt" || { echo "native-static banner missing the rung" >>"$REPORT"; fail=1; }
+step fx-hello-refuse "$RUN_ERR" $FXD "$PB" run --rm "$HELLO" /hello
 grep -q "statically linked" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the static reason" >>"$REPORT"; fail=1; }
 grep -q -- "--unsafe-host-paths" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the opt-in" >>"$REPORT"; fail=1; }
+grep -q "emulate tier" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the emulate tier" >>"$REPORT"; fail=1; }
+grep -q "prctl(PR_SET_SYSCALL_USER_DISPATCH)" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the denied prctl" >>"$REPORT"; fail=1; }
 grep -q "static-hi" "$WORK/out-fx-hello-refuse.txt" && { echo "static refusal ran the payload" >>"$REPORT"; fail=1; }
 # At the quiet default the opt-in's host-root line still prints, and
 # the rest of the banner stays off.
@@ -603,20 +616,10 @@ grep -q "ul356rm" "$WORK/out-sane-ps2.txt" && { echo "--rm left its record behin
 # (A python proof was considered; bookworm-slim holds no python3. The
 # readlink shape is the exact code the entry changed, so it proves the
 # mechanism directly.)
-# The entry's go trio is superseded in writing, with the reason. The
-# golang image's `go` binary is statically linked (measured with
-# file(1): ELF static, no INTERP). On the memfd family no interposer
-# loads and the kernel reports the staged memfd path: `go version`
-# answered exit 2 naming GOROOT, and go's own telemetry child failed
-# re-exec'ing the memfd path. Three routes were tested: go-is-dynamic
-# (refuted by file(1)), interpose-the-static payload (refuted: raw
-# syscalls never reach LD_PRELOAD, and the telemetry error quotes the
-# memfd path), and injecting GOROOT for go payloads (refused:
-# payload-specific magic against the entry's own decision).
-# ⭐ TODO/enter.md T-1648: the exit 2 hid a host-path payload behind
-# its own error. Without --unsafe-host-paths podvm now refuses the
-# static payload at 125 before the exec, naming the static reason, and
-# the payload never runs to exit 2 naming GOROOT.
+# The golang image's `go` binary is statically linked (measured with
+# file(1): ELF static, no INTERP). T-1648 refused it at 125 where chroot
+# is denied; ⭐ TODO/enter.md T-1652 runs it on the native-static rung
+# (the go clauses after the readlink one).
 step fx-exe-readlink 0 $FX "$PB" run --rm "$DEBIAN" readlink /proc/self/exe
 # The answer line is exactly the guest path. An earlier whole-file grep
 # for "rootfs" false-fired on podvm's own extraction diagnostics (lane
@@ -624,9 +627,23 @@ step fx-exe-readlink 0 $FX "$PB" run --rm "$DEBIAN" readlink /proc/self/exe
 # carried store/rootfs/ lines), so the assertion matches the full line:
 # a leaked loader host path would BE the answer and fail this match.
 grep -qx "/usr/bin/readlink" "$WORK/out-fx-exe-readlink.txt" || { echo "readlink did not answer exactly the guest path" >>"$REPORT"; fail=1; }
-step fx-go-refuse "$RUN_ERR" $FX "$PB" run --rm "$GOLANG" go version
-grep -q "statically linked" "$WORK/out-fx-go-refuse.txt" || { echo "go refusal did not name the static reason" >>"$REPORT"; fail=1; }
-grep -q "GOROOT" "$WORK/out-fx-go-refuse.txt" && { echo "go ran to its own GOROOT error" >>"$REPORT"; fail=1; }
+# ⭐ T-1652: go and its compile and link children run on the
+# native-static rung. The source comes from the image's own dash on the
+# loader family, which writes inside the rootfs; the build output lands
+# in the rootfs, and the host keeps no /tmp/g356. The three runs keep
+# their records (no --rm): a run with --rm extracts the image again, so
+# a write of one run is not in the next (measured, 2026-11-11).
+rm -rf /tmp/g356
+step fx-go-version 0 $FX "$PB" run --rm "$GOLANG" go version
+grep -q "^go version go1\.24\.7 linux/amd64$" "$WORK/out-fx-go-version.txt" || { echo "go version did not answer on the native-static rung" >>"$REPORT"; fail=1; }
+step fx-go-src 0 $FX "$PB" run --name g356src "$GOLANG" sh -c 'mkdir -p /tmp/g356 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g356-ok\") }\n" > /tmp/g356/main.go'
+step fx-go-build 0 $FX "$PB" run --name g356build -w /tmp/g356 -e GOTOOLCHAIN=local "$GOLANG" go build -o /tmp/g356/h main.go
+step fx-go-run 0 $FX "$PB" run --name g356run "$GOLANG" /tmp/g356/h
+grep -qx "g356-ok" "$WORK/out-fx-go-run.txt" || { echo "the program that go built did not print its line" >>"$REPORT"; fail=1; }
+[ -e /tmp/g356 ] && { echo "the go build wrote on the host" >>"$REPORT"; fail=1; }
+$FX "$PB" rm g356src g356build g356run >/dev/null 2>&1
+step fx-dispatch-probe 0 $FX "$PB" probe --json
+grep -q '"user_dispatch":true' "$WORK/out-fx-dispatch-probe.txt" || { echo "the probe did not report measured_by.user_dispatch true" >>"$REPORT"; fail=1; }
 
 # Clause 19 (T-1408 gcc): the loader symlink resolves inside the rootfs
 # on a second image. Debian's /lib64/ld-linux carries an absolute

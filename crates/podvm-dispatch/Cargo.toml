@@ -1,0 +1,24 @@
+[package]
+name = "podvm-dispatch"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# TODO/enter.md T-1652: the native-static rung. A static payload runs in
+# podvm's own process; Syscall User Dispatch gives each of its system calls
+# to a handler in podvm, which serves a path through
+# openat2(RESOLVE_IN_ROOT). The engine is x86_64 only; on another target
+# `available` says so and nothing else builds.
+
+[[bin]]
+# The test host: `podvm-dispatch-run ROOT GUEST-PATH ARGV...`. podvm itself
+# enters through `podvm_dispatch::main_if_entered` in the same way.
+name = "podvm-dispatch-run"
+path = "src/bin/run.rs"
+
+[[bin]]
+# A static test payload: each of its verbs is one clause of the tests.
+name = "podvm-dispatch-probe"
+path = "src/bin/probe.rs"

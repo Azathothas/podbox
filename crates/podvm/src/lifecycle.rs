@@ -416,6 +416,8 @@ pub use userland::*;
 
 mod script;
 
+mod native;
+
 pub mod volume;
 
 #[cfg(test)]

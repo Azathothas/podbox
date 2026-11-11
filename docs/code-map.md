@@ -16,6 +16,7 @@ The `Cargo.toml` of each crate names its `pod-*` dependencies.
 | `crates/podvm-extract` | The layers of a manifest as blob paths, the rootfs place in the store | `pod-extract` (layers, whiteouts, containment, sidecar) |
 | `crates/podvm-complete` | podvm's flags and file names for completion, the host CA bundle, the mirror probe, the report | `pod-rootfs` (devices, accounts, resolver, package configuration, CA data) |
 | `crates/podvm-enter` | podvm's variable names, cache marker and memfd label; docker's exit codes | `pod-enter` (chroot, namespace and userland entry, launch ladder, FUSE server, ELF reader) |
+| `crates/podvm-dispatch` | The native-static rung: the loader of a static program, the SIGSYS handler of Syscall User Dispatch, the path calls through `openat2(RESOLVE_IN_ROOT)`, the clone trampoline and the re-exec of `execve` (T-1652); x86_64 only | none |
 | `crates/podvm-supervise` | The store and names of the container table, the fields of a podvm record, the launcher entry of a payload, the ownership memo | `pod-supervise` (launcher, pidfd, control socket, logs, lifecycle verbs) |
 | `crates/podvm-windows` | podvm's names and places for the Windows and DOS guest driver, the base caches, docker's exit range | `pod-guest` (boot plan, overlay, FAT16 mailbox, agent, QMP, bounded stop) |
 | `crates/podvm-ssh` | SSH transport, relay frames, multiplexing, server, interactive session; the `node`, `operator`, `proxy` and `shell` helpers | `pod-tls`, `pod-proxy`, `pod-term` (line discipline) |

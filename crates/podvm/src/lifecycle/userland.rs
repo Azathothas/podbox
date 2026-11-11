@@ -150,6 +150,9 @@ pub fn enter_userland(
         code,
         entered: false,
     };
+    if let Some(exe) = &userland.dispatch_exe {
+        return super::native::enter(verb, root, plan, userland, exe, err);
+    }
     let active = podvm_probe::select::Rung::Userland.word();
     let (exec_argv, fd) = match userland.family {
         podvm_enter::userland::Family::Loader => (userland.loader_argv.clone(), None),

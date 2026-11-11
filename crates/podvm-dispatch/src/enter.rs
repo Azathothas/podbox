@@ -1,0 +1,292 @@
+//! The entry of a payload: podvm becomes the payload in its own process.
+
+use std::ffi::OsString;
+use std::os::unix::ffi::{OsStrExt, OsStringExt};
+use std::path::Path;
+use std::sync::atomic::Ordering;
+
+use crate::elf::{self, Image};
+use crate::handler;
+use crate::state::{self, EXE, ROOT, SELF};
+use crate::sys::{self, nr, sc, sc6};
+
+const AT_NULL: u64 = 0;
+const AT_PHDR: u64 = 3;
+const AT_PHENT: u64 = 4;
+const AT_PHNUM: u64 = 5;
+const AT_BASE: u64 = 7;
+const AT_ENTRY: u64 = 9;
+const AT_SECURE: u64 = 23;
+const AT_PLATFORM: u64 = 15;
+const AT_RANDOM: u64 = 25;
+const AT_EXECFN: u64 = 31;
+const AT_EXECFD: u64 = 2;
+const STACK: u64 = 8 << 20;
+const BRK_RESERVE: u64 = 1 << 30;
+
+/// The program file in the root, opened for reading.
+fn open_in_root(guest: &[u8]) -> Result<i64, String> {
+    let mut z = guest.to_vec();
+    z.push(0);
+    let fd = sys::openat2(
+        state::root_fd(),
+        &z,
+        sys::O_RDONLY | sys::O_CLOEXEC,
+        0,
+        sys::RESOLVE_IN_ROOT,
+    );
+    if fd < 0 {
+        return Err(format!("{}: errno {}", String::from_utf8_lossy(guest), -fd));
+    }
+    Ok(fd)
+}
+
+fn read_head(fd: i64) -> [u8; 256] {
+    let mut h = [0u8; 256];
+    // SAFETY: h lives for the call.
+    unsafe { sc6(nr::PREAD64, fd, h.as_mut_ptr() as i64, 256, 0, 0, 0) };
+    h
+}
+
+/// The program that maps: its guest path, its open descriptor, its head
+/// and the argv that it gets.
+type Resolved = (Vec<u8>, i64, [u8; 256], Vec<Vec<u8>>);
+
+/// The program to map and its argv: a script names its interpreter, up to
+/// four levels, as the kernel allows.
+fn resolve(mut exe: Vec<u8>, mut argv: Vec<Vec<u8>>) -> Result<Resolved, String> {
+    for _ in 0..5 {
+        let fd = open_in_root(&exe)?;
+        let head = read_head(fd);
+        let Some((interp, arg)) = elf::shebang(&head) else {
+            return Ok((exe, fd, head, argv));
+        };
+        sys::close(fd);
+        let mut next = vec![interp.clone()];
+        next.extend(arg);
+        next.push(exe.clone());
+        next.extend(argv.into_iter().skip(1));
+        argv = next;
+        exe = interp;
+    }
+    Err("too many levels of #! interpreters".into())
+}
+
+/// The auxiliary vector of podvm itself, as pairs.
+fn own_auxv() -> Vec<(u64, u64)> {
+    let b = std::fs::read("/proc/self/auxv").unwrap_or_default();
+    b.as_chunks::<16>()
+        .0
+        .iter()
+        .map(|c| {
+            (
+                u64::from_le_bytes(c[..8].try_into().unwrap_or([0; 8])),
+                u64::from_le_bytes(c[8..].try_into().unwrap_or([0; 8])),
+            )
+        })
+        .take_while(|(k, _)| *k != AT_NULL)
+        .collect()
+}
+
+/// The initial stack: argc, argv, envp and the auxiliary vector, with the
+/// strings above them. The stack pointer for the entry.
+fn stack(img: &Image, argv: &[Vec<u8>], envp: &[Vec<u8>], execfn: &[u8]) -> Result<u64, String> {
+    // SAFETY: an anonymous map for the stack.
+    let base = unsafe { sc6(nr::MMAP, 0, STACK as i64, 3, 0x22 | 0x2_0000, -1, 0) };
+    if base < 0 {
+        return Err(format!("the stack: errno {}", -base));
+    }
+    let top = base as u64 + STACK;
+    let mut at = top;
+    let mut put = |bytes: &[u8]| -> u64 {
+        at -= bytes.len() as u64 + 1;
+        // SAFETY: at lies in the new stack, below what was written.
+        unsafe {
+            core::ptr::copy_nonoverlapping(bytes.as_ptr(), at as *mut u8, bytes.len());
+            *((at + bytes.len() as u64) as *mut u8) = 0;
+        }
+        at
+    };
+    let argp: Vec<u64> = argv.iter().map(|a| put(a)).collect();
+    let envp_p: Vec<u64> = envp.iter().map(|e| put(e)).collect();
+    let execfn_p = put(execfn);
+    let platform = put(b"x86_64");
+    let mut random = [0u8; 16];
+    // SAFETY: random lives for the call.
+    unsafe { sc(318, random.as_mut_ptr() as i64, 16, 0) };
+    at -= 16;
+    // SAFETY: at lies in the new stack.
+    unsafe { core::ptr::copy_nonoverlapping(random.as_ptr(), at as *mut u8, 16) };
+    let random_p = at;
+    let mut aux: Vec<(u64, u64)> = own_auxv()
+        .into_iter()
+        .filter(|(k, _)| {
+            ![
+                AT_PHDR,
+                AT_PHENT,
+                AT_PHNUM,
+                AT_BASE,
+                AT_ENTRY,
+                AT_EXECFN,
+                AT_EXECFD,
+                AT_RANDOM,
+                AT_PLATFORM,
+                AT_SECURE,
+            ]
+            .contains(k)
+        })
+        .collect();
+    aux.extend([
+        (AT_PHDR, img.phdr),
+        (AT_PHENT, 56),
+        (AT_PHNUM, img.phnum),
+        (AT_BASE, 0),
+        (AT_ENTRY, img.entry),
+        (AT_SECURE, 0),
+        (AT_RANDOM, random_p),
+        (AT_EXECFN, execfn_p),
+        (AT_PLATFORM, platform),
+        (AT_NULL, 0),
+    ]);
+    let mut words: Vec<u64> = vec![argp.len() as u64];
+    words.extend(&argp);
+    words.push(0);
+    words.extend(&envp_p);
+    words.push(0);
+    for (k, v) in aux {
+        words.extend([k, v]);
+    }
+    let mut sp = (at - words.len() as u64 * 8) & !15;
+    if sp < base as u64 + 65536 {
+        return Err("argv and the environment do not fit the stack".into());
+    }
+    let start = sp;
+    for w in words {
+        // SAFETY: sp lies in the new stack, below the strings.
+        unsafe { *(sp as *mut u64) = w };
+        sp += 8;
+    }
+    Ok(start)
+}
+
+/// The range of podvm's own code that holds the handler, from
+/// `/proc/self/maps`.
+fn region() -> Result<(usize, usize), String> {
+    let here = handler::on_sigsys as *const () as usize;
+    let maps =
+        std::fs::read_to_string("/proc/self/maps").map_err(|e| format!("/proc/self/maps: {e}"))?;
+    for line in maps.lines() {
+        let range = line.split(' ').next().unwrap_or("");
+        let Some((a, b)) = range.split_once('-') else {
+            continue;
+        };
+        let (Ok(a), Ok(b)) = (usize::from_str_radix(a, 16), usize::from_str_radix(b, 16)) else {
+            continue;
+        };
+        if a <= here && here < b {
+            return Ok((a, b - a));
+        }
+    }
+    Err("the handler is in no mapping of /proc/self/maps".into())
+}
+
+/// Become the payload: `exe` is its guest path, `argv` and `envp` its own.
+/// Returns only an error, before anything of the payload ran.
+pub fn enter(root: &Path, exe: &[u8], argv: Vec<OsString>, envp: Vec<OsString>) -> String {
+    match try_enter(root, exe, argv, envp) {
+        Ok(never) => match never {},
+        Err(e) => e,
+    }
+}
+
+fn try_enter(
+    root: &Path,
+    exe: &[u8],
+    argv: Vec<OsString>,
+    envp: Vec<OsString>,
+) -> Result<std::convert::Infallible, String> {
+    let root = std::fs::canonicalize(root).map_err(|e| format!("{}: {e}", root.display()))?;
+    if !ROOT.set(root.as_os_str().as_bytes()) {
+        return Err("the root's path is too long".into());
+    }
+    let me = std::fs::read_link("/proc/self/exe").map_err(|e| format!("/proc/self/exe: {e}"))?;
+    SELF.set(me.as_os_str().as_bytes());
+    let mut z = ROOT.get().to_vec();
+    z.push(0);
+    let fd = sys::openat2(
+        sys::AT_FDCWD,
+        &z,
+        sys::O_PATH | sys::O_DIRECTORY | sys::O_CLOEXEC,
+        0,
+        0,
+    );
+    if fd < 0 {
+        return Err(format!("{}: errno {}", root.display(), -fd));
+    }
+    // Above the payload's usual range: F_DUPFD_CLOEXEC from 1000, or the
+    // highest descriptor the limit allows.
+    // SAFETY: fcntl and close read no memory.
+    let high = unsafe { sc(nr::FCNTL, fd, 1030, 1000) };
+    let fd = if high >= 0 {
+        sys::close(fd);
+        high
+    } else {
+        fd
+    };
+    state::ROOT_FD.store(fd, Ordering::Relaxed);
+    let argv: Vec<Vec<u8>> = argv.into_iter().map(OsStringExt::into_vec).collect();
+    let (prog, pfd, head, argv) = resolve(exe.to_vec(), argv)?;
+    EXE.set(&prog);
+    let img =
+        elf::load(pfd, &head).map_err(|e| format!("{}: {e}", String::from_utf8_lossy(&prog)))?;
+    sys::close(pfd);
+    // The break: a reserved range after the program, opened as it grows.
+    // SAFETY: an anonymous map with no access.
+    let brk = unsafe {
+        sc6(
+            nr::MMAP,
+            img.end as i64,
+            BRK_RESERVE as i64,
+            0,
+            0x22 | 0x4000 | 0x10_0000,
+            -1,
+            0,
+        )
+    };
+    if brk >= 0 {
+        state::BRK_BASE.store(brk as usize, Ordering::Relaxed);
+        state::BRK_CUR.store(brk as usize, Ordering::Relaxed);
+        state::BRK_END.store((brk as u64 + BRK_RESERVE) as usize, Ordering::Relaxed);
+    }
+    let envp: Vec<Vec<u8>> = envp.into_iter().map(OsStringExt::into_vec).collect();
+    let execfn = exe.to_vec();
+    let sp = stack(&img, &argv, &envp, &execfn)?;
+    if !crate::pool::init() {
+        return Err("the pool of path buffers cannot be mapped".into());
+    }
+    let (start, len) = region()?;
+    state::REGION_START.store(start, Ordering::Relaxed);
+    state::REGION_LEN.store(len, Ordering::Relaxed);
+    crate::signals::reset_signals();
+    // Rust's own signal stack is small; the payload sets its own.
+    let disable = [0u64, 2, 0];
+    // SAFETY: a stack_t of SS_DISABLE.
+    unsafe { sc(131, disable.as_ptr() as i64, 0, 0) };
+    let r = handler::arm();
+    if r < 0 {
+        return Err(format!("prctl(PR_SET_SYSCALL_USER_DISPATCH): errno {}", -r));
+    }
+    // SAFETY: the payload's entry, with its stack; nothing of podvm runs
+    // on this thread after this but the handler.
+    unsafe {
+        core::arch::asm!(
+            "mov rsp, rdi",
+            "xor edx, edx",
+            "xor ebp, ebp",
+            "jmp rsi",
+            in("rdi") sp,
+            in("rsi") img.entry,
+            options(noreturn)
+        )
+    }
+}

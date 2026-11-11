@@ -541,6 +541,7 @@ version = "0.2.0-beta.3"
 dependencies = [
  "flate2",
  "podvm-complete",
+ "podvm-dispatch",
  "podvm-enter",
  "podvm-extract",
  "podvm-image",
@@ -565,6 +566,10 @@ dependencies = [
  "podvm-probe",
  "serde_json",
 ]
+
+[[package]]
+name = "podvm-dispatch"
+version = "0.2.0-beta.3"
 
 [[package]]
 name = "podvm-enter"
@@ -617,6 +622,7 @@ name = "podvm-probe"
 version = "0.2.0-beta.3"
 dependencies = [
  "pod-hostprobe",
+ "podvm-dispatch",
 ]
 
 [[package]]

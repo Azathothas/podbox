@@ -257,6 +257,7 @@ fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
 }
 
 mod fields_and_copy;
+mod native;
 mod residual;
 mod script;
 

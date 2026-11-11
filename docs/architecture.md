@@ -38,7 +38,8 @@ Selection reports available mechanisms. Entry reports the mechanism it actually 
 | namespace | A mount namespace and private temporary filesystem, followed by rootfs entry |
 | supervise | Notification mediation where the required argument-reading and descriptor mechanisms hold |
 | chroot | Root change with host kernel and shared process and network resources |
-| userland | Image loader plus interposition for dynamic payloads; a staged memfd for a static payload only under `--unsafe-host-paths`, else a refusal at 125 (T-1648) |
+| userland | Image loader plus interposition for dynamic payloads |
+| native-static | A static x86_64 payload in a podvm process: Syscall User Dispatch sends each system call to podvm, which resolves each path with `openat2(RESOLVE_IN_ROOT)` (T-1652); a staged memfd only under `--unsafe-host-paths`, and a refusal at 125 where the `prctl` is refused (T-1648) |
 | interpose | Library-call compatibility for payloads that the object reaches |
 | unsupported | Refusal with the missing operation |
 

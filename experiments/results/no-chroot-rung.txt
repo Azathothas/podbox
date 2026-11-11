@@ -1,12 +1,12 @@
 == conditions
-date              2026-11-11T06:22:42Z
+date              2026-11-11T07:46:30Z
 host kernel       Linux 6.18.44-fc-v378
 static input      mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 dynamic input     mirror.gcr.io/library/debian:bookworm-slim
 bootstrap         ok
 interpose         ok
 build             ok
-podvm            podvm 0.2.0-beta.2
+podvm            podvm 0.2.0-beta.3
 3.20: Pulling from library/alpine
 25f1d6b1951a: Pull complete
 Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
@@ -188,7 +188,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -227,7 +227,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -259,9 +259,9 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose --unsafe-host-paths static-hello:1 /hello
 exit              0
 output:
-  90333c9f1089: Extracted (1 entries, 0 whiteouts)
+  3c1ace27ea8b: Extracted (1 entries, 0 whiteouts)
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -287,12 +287,44 @@ output:
   podvm: complete: 14 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podvm made inside somebody else's image and the payload can see them
   static-hi
 
+== fx-hello-native
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose static-hello:1 /hello
+exit              0
+output:
+  3c1ace27ea8b: Extracted (1 entries, 0 whiteouts)
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
+  probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
+          clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
+  this mode does NOT provide: isolation of any kind, a private root, or host-absolute paths resolving inside the image
+  note: this machine would permit `namespace`; podvm's entry sequence is `userland` and creates no namespace and mounts nothing
+  podvm run: interpose: declined for "/hello": /hello is statically linked (no PT_INTERP), so no loader reads LD_PRELOAD for it
+  entering without chroot on the native-static rung: the static payload runs in a podvm process of its own, Syscall User Dispatch gives each of its system calls to podvm, and podvm resolves each path in the image with openat2(RESOLVE_IN_ROOT); /proc, /sys and /dev are the host's (TODO/enter.md T-1652)
+  podvm: userland: absolute guest paths anchor inside /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_83f2017bcf2fdbbf03d978fc33d4bb33b7bd84e09703f9b809e024537e913fca/rootfs through PODVM_MAPS=/:/workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_83f2017bcf2fdbbf03d978fc33d4bb33b7bd84e09703f9b809e024537e913fca/rootfs (TODO/enter.md T-1407)
+  podvm: the store root /workspace/podvm/experiments/.sweep356-work/store is mode 755: other users can read the container table, which keeps each -e value; chmod 700 it (TODO/supervise.md T-1715)
+  podvm: complete: created dev/null (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
+  podvm: complete: created dev/zero (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
+  podvm: complete: created dev/random (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
+  podvm: complete: created dev/urandom (dev-shim, T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
+  podvm: complete: created dev/stdin (dev-fd-link, T-0413): a symlink to /proc/self/fd/0
+  podvm: complete: created dev/stdout (dev-fd-link, T-0413): a symlink to /proc/self/fd/1
+  podvm: complete: created dev/stderr (dev-fd-link, T-0413): a symlink to /proc/self/fd/2
+  podvm: complete: created dev/fd (dev-fd-link, T-0413): a symlink to /proc/self/fd
+  podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): the /etc/resolv.conf of this host, 67 bytes
+  podvm: complete: created etc/hosts (hosts, T-0403): localhost
+  podvm: complete: created etc/passwd (identity, T-0404): the image has no etc/passwd (absent), so a tool that calls getpwuid(0) stops before it reaches a system call. The crate made a minimal one. Only 0:0 is a real id on this host; each other id in it is a convention of the image
+  podvm: complete: created etc/group (identity, T-0404): the image has no etc/group (absent), so a tool that calls getpwuid(0) stops before it reaches a system call. The crate made a minimal one. Only 0:0 is a real id on this host; each other id in it is a convention of the image
+  podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, made from the mount table of this host for the file system of the root
+  podvm: complete: created etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): this image holds no TLS directory; the bundle of the host is at the usual path, from /root/.ccr/ca-bundle.crt
+  podvm: complete: 14 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=unknown. refused: These are edits podvm made inside somebody else's image and the payload can see them
+  static-hi
+
 == fx-hello-refuse
-command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm static-hello:1 /hello
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work --deny-dispatch /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm static-hello:1 /hello
 exit              125
 output:
-  90333c9f1089: Extracted (1 entries, 0 whiteouts)
-  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  3c1ace27ea8b: Extracted (1 entries, 0 whiteouts)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The native-static rung (TODO/enter.md T-1652) serves a static payload where the kernel takes prctl(PR_SET_SYSCALL_USER_DISPATCH); the planned rung where it does not is the emulate tier (TODO/enter.md T-1651) (TODO/enter.md T-1648); the native-static rung: prctl(PR_SET_SYSCALL_USER_DISPATCH) gives errno 1. The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
 
 == fx-hello-quiet
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --unsafe-host-paths static-hello:1 /hello
@@ -346,7 +378,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict --unsafe-host-paths static-hello:1 /hello
 exit              125
 output:
-  90333c9f1089: Extracted (1 entries, 0 whiteouts)
+  3c1ace27ea8b: Extracted (1 entries, 0 whiteouts)
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
   podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
@@ -405,14 +437,14 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  b6de41ec66a424885c317eadf042ec75cebdf3310dc5ff6de3173691bd205514
+  229734da5d77418baa375f38f9f00ca164891223520710bde3297ff7b41fa333
 
 == fx-ps
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm ps
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND                CREATED                STATUS   NAMES
-  b6de41ec66a4   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-11-11T06:23:26Z   Up       ul356d
+  229734da5d77   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-11-11T07:47:21Z   Up       ul356d
 
 == fx-logs
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356d
@@ -436,7 +468,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356c mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo created-hi; while :; do :; done
 exit              0
 output:
-  357763d4d38d577dd100b79fb438664753a13b9ce6a5ad16061e8d3c33a59a5c
+  83eacf15bf9d408df11dcd781a52b17914add589b81afe11109769447bd9484e
 
 == fx-start
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm start ul356c
@@ -449,7 +481,7 @@ command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wr
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND                CREATED                STATUS   NAMES
-  357763d4d38d   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-11-11T06:23:26Z   Up       ul356c
+  83eacf15bf9d   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-11-11T07:47:21Z   Up       ul356c
 
 == fx-logs2
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356c
@@ -497,7 +529,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c read rel < /etc/alpine-release && echo "release=$rel"
 exit              0
 output:
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -561,7 +593,7 @@ output:
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -621,7 +653,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -654,14 +686,14 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-img:1 /hello.sh
 exit              126
 output:
-  b3f1ed01ba26: Extracted (1 entries, 0 whiteouts)
-  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_93ed93a8582109885a6b23e7c16b1414cca6cb7d4df1c52bc3872ef3ef8356fd/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  d2f19e876421: Extracted (1 entries, 0 whiteouts)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_82701a4e0e45a59aaf922e5dfb58598dc531be898a898e18e1d8194dbf12ebbd/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
 
 == fx-script-run
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-alpine:1 /hello.sh arg1
 exit              0
 output:
-  9ec5231e81b0: Extracted (520 entries, 0 whiteouts)
+  a12d0a45838f: Extracted (520 entries, 0 whiteouts)
   script-hi /hello.sh arg1
 
 == fx-node-entry
@@ -722,7 +754,7 @@ output:
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356e mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sleep 60
 exit              0
 output:
-  d1b09084e0c0de9105b465405112418266d47724c934d36060c15cac53f13d5d
+  0b5cb360dd3fb4019c2e60c3eb2a8b222d0714b9cc16cb2eec2e1b7efe3b34c2
 
 == sane-exec
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm exec ul356e echo exec-ctr-hi
@@ -754,7 +786,7 @@ command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm 
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND      CREATED                STATUS       NAMES
-  a4edf8dd34f8   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-11-11T06:23:49Z   Exited (0)   ul356fg
+  2a81252f836e   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-11-11T07:47:46Z   Exited (0)   ul356fg
 
 == sane-logs
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356fg
@@ -791,8 +823,46 @@ output:
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
   /usr/bin/readlink
 
-== fx-go-refuse
+== fx-go-version
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/golang:1.24.7-bookworm go version
+exit              0
+output:
+  c6b11972fd12: Extracted (6660 entries, 0 whiteouts)
+  db3dba6026a3: Extracted (1680 entries, 0 whiteouts)
+  5fb1b35a6fc1: Extracted (6481 entries, 0 whiteouts)
+  ced1197f5fb6: Extracted (3632 entries, 0 whiteouts)
+  72e8fc27da55: Extracted (15737 entries, 0 whiteouts)
+  50d0fe3dca54: Extracted (3 entries, 0 whiteouts)
+  4f4fb700ef54: Extracted (0 entries, 0 whiteouts)
+  podvm: 17 of 34192 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  go version go1.24.7 linux/amd64
+
+== fx-go-src
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/golang:1.24.7-bookworm sh -c mkdir -p /tmp/g356 && printf "package main
+import \"fmt\"
+func main() { fmt.Println(\"g356-ok\") }
+" > /tmp/g356/main.go
+exit              0
+output:
+  c6b11972fd12: Extracted (6660 entries, 0 whiteouts)
+  db3dba6026a3: Extracted (1680 entries, 0 whiteouts)
+  5fb1b35a6fc1: Extracted (6481 entries, 0 whiteouts)
+  ced1197f5fb6: Extracted (3632 entries, 0 whiteouts)
+  72e8fc27da55: Extracted (15737 entries, 0 whiteouts)
+  50d0fe3dca54: Extracted (3 entries, 0 whiteouts)
+  4f4fb700ef54: Extracted (0 entries, 0 whiteouts)
+  podvm: 17 of 34192 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+  podvm: restore ownership with chown of etc/gshadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
+
+== fx-go-build
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /tmp/g356 -e GOTOOLCHAIN=local mirror.gcr.io/library/golang:1.24.7-bookworm go build -o /tmp/g356/h main.go
 exit              125
 output:
   c6b11972fd12: Extracted (6660 entries, 0 whiteouts)
@@ -807,7 +877,22 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_40b223522c211e882863245ddbc812cbac8460b63b9112f4feee85c4514b6e41/.meta.jsonl
-  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  podvm run: the working directory "/tmp/g356" for image "mirror.gcr.io/library/golang:1.24.7-bookworm" is not a directory in the image: docker creates it, and the entry refuses it instead
+step fx-go-build: wanted exit 0, got 125
+
+== fx-go-run
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/golang:1.24.7-bookworm /tmp/g356/h
+exit              127
+output:
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: /tmp/g356/h resolves to nothing runnable: /tmp/g356/h names no file in the image. The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+step fx-go-run: wanted exit 0, got 127
+the program that go built did not print its line
+
+== fx-dispatch-probe
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm probe --json
+exit              0
+output:
+  {"podvm":"0.2.0-beta.3","rung":"namespace","rung_must_never_claim":"user, pid or network isolation, or a /proc filesystem","strict_ok":true,"controls_answered":true,"self_exe":"/proc/self/exe","measured_by":{"user_dispatch":true,"emulated":false,"interpreter":"none","checked":["no qemu-user environment variable is set (QEMU_LD_PREFIX, QEMU_CPU, QEMU_GUEST_BASE, QEMU_UNAME, QEMU_STACK_SIZE, QEMU_LOG, QEMU_STRACE)","the kernel did not start this process as qemu-user (/proc/self/comm)","none of the 0 enabled binfmt_misc registration(s) selects ELF machine 0x3e, which is this binary's own"]},"control_notes":[],"controls":{"pidfd_getfd":"EBADF","kcmp":"ESRCH"},"ptmx":{"path":"/dev/ptmx","present":true,"usable":false,"stat_verdict":"ok","stat_detail":"chardev 5:2 mode 666","stat_errno_name":null,"open_verdict":"denied","open_errno_name":"ENODEV"},"mounts":{"create":"ok","configure":"ok","attach":"ok","use":"ok","summary":"full","capability_note":null},"identity":{"uid":0,"gid":0,"groups":[],"uid_map":"0 0 1","gid_map":"0 0 1","setgroups":"deny","cap_eff":"000001ffffffffff","cap_prm":"000001ffffffffff","cap_bnd":"000001ffffffffff","seccomp":"2","seccomp_filters":"1","no_new_privs":"1","threads":"1","unreadable":[]},"writable":[{"path":"/tmp","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null},{"path":"/dev/shm","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":4118021,"block_size":4096,"inodes_free":2059008,"reason":null},{"path":"/workspace","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null},{"path":"/state","source":"the candidate list","writable":false,"verdict":"skip","errno":2,"errno_name":"ENOENT","blocks_free":null,"block_size":null,"inodes_free":null,"reason":"/state does not exist on this machine, so no write was attempted"},{"path":"/var/tmp","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null},{"path":"/run","source":"the candidate list","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null},{"path":"/workspace/podvm/experiments/.sweep356-work/store","source":"$PODVM_STORE","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null},{"path":"/root","source":"$HOME","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null},{"path":"/workspace/podvm","source":"the working directory","writable":true,"verdict":"ok","errno":null,"errno_name":null,"blocks_free":2452147,"block_size":4096,"inodes_free":16381263,"reason":null}],"probes":[{"name":"unshare(CLONE_NEWNS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"unshare(CLONE_NEWUSER)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"unshare(CLONE_NEWPID)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"clone(CLONE_NEWNS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"clone(CLONE_NEWUTS|NEWNS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"clone(CLONE_NEWUSER)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"clone(CLONE_NEWUTS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"sethostname(in NEWUTS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"mount(tmpfs,/mnt)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"mount(tmpfs,/mnt) in clone(NEWNS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"mount(MS_SLAVE,/) in clone(NEWNS)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"pivot_root(/tmp,/tmp)","verdict":"denied","errno":22,"errno_name":"EINVAL","reason":null,"group":"census"},{"name":"ptrace(PTRACE_TRACEME)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"mknod(chr 1:3 /tmp/nodprobe)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"mknod(chr 0:0 = whiteout)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setuid(1000)","verdict":"denied","errno":22,"errno_name":"EINVAL","reason":null,"group":"census"},{"name":"setuid(0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setgid(0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setgroups(0,NULL)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"chown(f,0,0)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"chown(f,0,42)","verdict":"denied","errno":22,"errno_name":"EINVAL","reason":null,"group":"census"},{"name":"lchown(f,0,42)","verdict":"denied","errno":22,"errno_name":"EINVAL","reason":null,"group":"census"},{"name":"chown(f,1000,0)","verdict":"denied","errno":22,"errno_name":"EINVAL","reason":null,"group":"census"},{"name":"chroot(/tmp)","verdict":"denied","errno":1,"errno_name":"EPERM","reason":null,"group":"census"},{"name":"memfd_create","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"memfd_create+exec","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"setsid","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"prctl(PR_SET_PDEATHSIG)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"exec(/tmp/execprobe)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"getrandom","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"write(/etc/probe)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"write into uid-1000-owned dir","verdict":"skip","errno":2,"errno_name":"ENOENT","reason":"no fixture directory owned by an unmapped id: neither /workspace/.fixtures/squash-probe nor /tmp/squash-probe exists. Create one as another uid outside the confinement.","group":"census"},{"name":"stat(/dev/ptmx)","verdict":"ok","errno":null,"errno_name":null,"reason":"chardev 5:2 mode 666","group":"census"},{"name":"open(/dev/ptmx, O_RDWR)","verdict":"denied","errno":19,"errno_name":"ENODEV","reason":null,"group":"census"},{"name":"open(/dev/fuse, O_RDWR)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"readdir(/)","verdict":"ok","errno":null,"errno_name":null,"reason":"28 entries","group":"census"},{"name":"open(/bin, O_RDONLY) by name","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"creat(/, O_CREAT|O_EXCL)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"census"},{"name":"bind(127.0.0.1:0)+listen","verdict":"ok","errno":null,"errno_name":null,"reason":"loopback TCP bind+listen permitted","group":"census"},{"name":"mount(2) bogus target","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"umount2(2) bogus target","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"pivot_root(2) bogus paths","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"process_vm_readv(bogus pid)","verdict":"denied","errno":3,"errno_name":"ESRCH","reason":null,"group":"attribution"},{"name":"pidfd_getfd(-1,-1) [control]","verdict":"denied","errno":9,"errno_name":"EBADF","reason":null,"group":"attribution"},{"name":"kcmp(-1,-1,...) [control]","verdict":"denied","errno":3,"errno_name":"ESRCH","reason":null,"group":"attribution"},{"name":"fsopen(tmpfs)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"fsmount(tmpfs)","verdict":"ok","errno":null,"errno_name":null,"reason":"may_mount() passes, so no mount denial here is a capability problem","group":"attribution"},{"name":"open_tree(/tmp, CLONE)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"move_mount(-> bogus dest)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"attribution"},{"name":"move_mount(-> /tmp/mm-probe)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"openat(detached tmpfs, O_DIRECTORY)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"seccomp(NEW_LISTENER)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"open /proc/self/mem O_RDONLY","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"open /proc/self/mem O_RDWR","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"attribution"},{"name":"landlock_create_ruleset(VERSION)","verdict":"ok","errno":null,"errno_name":null,"reason":"ABI 7","group":"attribution"},{"name":"qemu-system-x86_64 --version","verdict":"ok","errno":null,"errno_name":null,"reason":"QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)","group":"machine"},{"name":"open(/dev/kvm, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null,"group":"machine"},{"name":"prlimit(RLIMIT_FSIZE)","verdict":"ok","errno":null,"errno_name":null,"reason":"RLIMIT_FSIZE cur=infinity max=infinity","group":"machine"},{"name":"open(/dev/net/tun, O_RDWR)","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"machine"},{"name":"image space (statfs .)","verdict":"ok","errno":null,"errno_name":null,"reason":"2452147 blocks of 4096 B free, 16381263 inodes free at /workspace/podvm","group":"machine"},{"name":"qemu-system-x86_64 -accel help","verdict":"ok","errno":null,"errno_name":null,"reason":"accelerators: tcg kvm","group":"machine"},{"name":"seccomp(NEW_LISTENER) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"},{"name":"process_vm_readv(own pid) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"},{"name":"ptrace(PTRACE_TRACEME) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"},{"name":"pidfd_open(own pid) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"},{"name":"waitid(P_PIDFD, child) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null,"group":"supervise"}],"tiers":{"machine":{"legs":[{"name":"qemu-system-x86_64 --version","verdict":"ok","errno":null,"errno_name":null,"reason":"QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)"},{"name":"open(/dev/kvm, O_RDWR)","verdict":"denied","errno":2,"errno_name":"ENOENT","reason":null},{"name":"prlimit(RLIMIT_FSIZE)","verdict":"ok","errno":null,"errno_name":null,"reason":"RLIMIT_FSIZE cur=infinity max=infinity"},{"name":"open(/dev/net/tun, O_RDWR)","verdict":"ok","errno":null,"errno_name":null,"reason":null},{"name":"image space (statfs .)","verdict":"ok","errno":null,"errno_name":null,"reason":"2452147 blocks of 4096 B free, 16381263 inodes free at /workspace/podvm"},{"name":"qemu-system-x86_64 -accel help","verdict":"ok","errno":null,"errno_name":null,"reason":"accelerators: tcg kvm"}],"refusal":null,"profile":"tcg"},"supervise":{"legs":[{"name":"seccomp(NEW_LISTENER) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null},{"name":"process_vm_readv(own pid) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null},{"name":"ptrace(PTRACE_TRACEME) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null}],"refusal":null},"supervision":{"legs":[{"name":"pidfd_open(own pid) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null},{"name":"waitid(P_PIDFD, child) [supervise]","verdict":"ok","errno":null,"errno_name":null,"reason":null}],"refusal":null}},"non_goals":[{"name":"tcp listener","spec":"E-75","stance":"open","detail":"tcp listener open here: bind(127.0.0.1:0)+listen permitted","remedy":""},{"name":"kvm acceleration","spec":"E-30/60","stance":"refused","detail":"kvm acceleration refused: open(/dev/kvm, O_RDWR)=ENOENT; no KVM here; the machine tier runs TCG","remedy":"no KVM here; the machine tier runs TCG"},{"name":"runc-style oci","spec":"E-43","stance":"open","detail":"runc-style oci open here: clone(CLONE_NEWUTS) unshare(CLONE_NEWUSER) unshare(CLONE_NEWNS) permitted","remedy":""},{"name":"user-mode linux guest","spec":"E-50","stance":"open","detail":"user-mode linux guest open here: ptrace(PTRACE_TRACEME) permitted","remedy":""},{"name":"uid_map identity switch","spec":"E-70","stance":"refused","detail":"uid_map identity switch refused: setuid(1000)=EINVAL setgroups(0,NULL)=EPERM; switch ids outside the container; inside, the interposer memo answers (T-0711)","remedy":"switch ids outside the container; inside, the interposer memo answers (T-0711)"},{"name":"guest file over the ceiling","spec":"E-34","stance":"open","detail":"guest file over the ceiling open here: no per-file ceiling on this machine","remedy":""}],"cache_key":{"boot_id":"82c89cc5-1620-4a16-9b79-ff0e1c0a8e62","mnt_ns":"mnt:[4026532268]","uid_map":"0 0 1","gid_map":"0 0 1","setgroups":"deny","seccomp":"2","seccomp_filters":"1","cap_eff":"000001ffffffffff","cap_bnd":"000001ffffffffff","interpreter":"none","complete":true},"rejected":[]}
 
 == fx-gcc-version
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm mirror.gcr.io/library/gcc:13-bookworm gcc --version
@@ -948,7 +1033,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -994,7 +1079,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -1252,7 +1337,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict script-alpine:1 /bin/sh -c /hello
 exit              125
 output:
-  9ec5231e81b0: Extracted (520 entries, 0 whiteouts)
+  a12d0a45838f: Extracted (520 entries, 0 whiteouts)
   podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
   podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
@@ -1321,14 +1406,14 @@ node-app import   ok
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /app -e PATH=/usr/local/bin:/usr/bin:/bin -e HOME=/root -e npm_config_update_notifier=false node-app:1697 /bin/sh -c npm ci --no-audit --no-fund && npm test
 exit              0
 output:
-  2ea2f0a2e811: Extracted (3586 entries, 0 whiteouts)
+  d6ecaa528d3c: Extracted (3586 entries, 0 whiteouts)
   
   > p1697@1.0.0 postinstall
   > node -e "process.stdout.write(require('child_process').execSync('echo postinstall-child-ok').toString())"
   
   postinstall-child-ok
   
-  up to date in 401ms
+  up to date in 372ms
   
   > p1697@1.0.0 test
   > node test.js
@@ -1345,7 +1430,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -1452,7 +1537,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.3: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -1486,7 +1571,8 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --podvm-tier=chroot mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
 exit              125
 output:
-  podvm run: --podvm-tier takes machine, not "chroot": with no flag the ladder selects the rung, and `podvm system info --format '{{.EnteredRung}}'` names the rung that a run enters (TODO/cli.md T-1712)
+  podvm run: --podvm-tier takes machine or incus, not "chroot": with no flag the ladder selects the rung, and `podvm system info --format '{{.EnteredRung}}'` names the rung that a run enters (TODO/cli.md T-1712)
+--podvm-tier=chroot was not refused by name
 
 == fx-entered
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm system info --format {{.Rung}} {{.EnteredRung}}
@@ -1553,8 +1639,8 @@ Loaded image: docker.io/library/dl-debian:356
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm dl-debian:356 /usr/bin/dl356
 exit              0
 output:
-  f68bf58f71f9: Extracted (4228 entries, 0 whiteouts)
-  dladdr /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c32553c0fd60ac2163dfce152ae5320212b69fa460cccbebbf8b690483435487/rootfs/usr/lib/x86_64-linux-gnu/libx356.so
+  d966d12be05e: Extracted (4228 entries, 0 whiteouts)
+  dladdr /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_05e32b130f6098149d0d089ade7aec7996f96a0f80aab757512cd991fe76430c/rootfs/usr/lib/x86_64-linux-gnu/libx356.so
   open ok
 
 == fx-read-only
@@ -1599,14 +1685,14 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm t1719-musl:1 /uselib
 exit              0
 output:
-  6f8a5df146cc: Extracted (520 entries, 0 whiteouts)
+  0e61007acda5: Extracted (520 entries, 0 whiteouts)
   lib-42
 
 == fx-libdir-glibc
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm t1719-glibc:1 /uselib
 exit              0
 output:
-  7e0f5ef0f596: Extracted (4229 entries, 0 whiteouts)
+  881068eeddd0: Extracted (4229 entries, 0 whiteouts)
   lib-42
 
-verdict           NO-CHROOT FAMILY RUNS
+verdict           NO-CHROOT FAMILY OPEN

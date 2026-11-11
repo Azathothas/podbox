@@ -19,6 +19,7 @@ Declared version: `0.2.0-beta.3`.
 | `podvm-extract` | [crates/podvm-extract/Cargo.toml](../crates/podvm-extract/Cargo.toml) |
 | `podvm-complete` | [crates/podvm-complete/Cargo.toml](../crates/podvm-complete/Cargo.toml) |
 | `podvm-enter` | [crates/podvm-enter/Cargo.toml](../crates/podvm-enter/Cargo.toml) |
+| `podvm-dispatch` | [crates/podvm-dispatch/Cargo.toml](../crates/podvm-dispatch/Cargo.toml) |
 | `podvm-gate` | [crates/podvm-gate/Cargo.toml](../crates/podvm-gate/Cargo.toml) |
 | `podvm-buildstate` | [crates/podvm-buildstate/Cargo.toml](../crates/podvm-buildstate/Cargo.toml) |
 | `podvm-release` | [crates/podvm-release/Cargo.toml](../crates/podvm-release/Cargo.toml) |

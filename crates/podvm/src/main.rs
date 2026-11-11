@@ -112,6 +112,7 @@ usage: podvm probe [--json | --rows] [--strict] [--cached]
 ";
 
 fn main() -> std::process::ExitCode {
+    podvm_dispatch::main_if_entered("podvm"); // T-1652, the native-static rung
     let argv: Vec<String> = std::env::args().collect();
 
     // ⛔ First, before the ordinary argument surface. A probe child must never

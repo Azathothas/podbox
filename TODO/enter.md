@@ -1603,7 +1603,7 @@ Source:      issue 109; issue 114 section 1, section 4 and section 6
 Category:    enter
 Priority:    P2
 Effort:      XL
-Status:      open
+Status:      partial
 
 Problem:     On the errand host the supervise rung is out of reach. A
              tracer reads a path argument through `process_vm_readv`,
@@ -1641,6 +1641,34 @@ Prove:       `cargo test -p podvm-enter` and `cargo test -p podvm-probe`
              `go build` of a hello program exit 0 from the golang image,
              the probe reports `measured_by.user_dispatch` true, and with
              the `prctl` refused the run names the emulate tier.
+
+**Partial, 2026-11-11.** The rung is in the crate `podvm-dispatch`
+(`crates/podvm-dispatch/src/`): a loader of a static x86_64 program
+(ET_EXEC or static PIE, and a `#!` script of one) into podvm's own process,
+a SIGSYS handler with podvm's code as the region of
+`PR_SET_SYSCALL_USER_DISPATCH`, the path calls through
+`openat2(RESOLVE_IN_ROOT)` with `/proc`, `/sys` and `/dev` the host's,
+`/proc/self/exe` as the guest program, a clone trampoline that arms each
+thread, `fork` and `vfork` children that arm again, a wrapper for each
+caught signal, the program break, and `execve` as an exec of podvm itself.
+`decide_entry` takes the rung for a static payload where chroot is denied
+and `--unsafe-host-paths` is absent (`crates/podvm/src/lifecycle/native.rs`);
+`podvm probe --json` reports `measured_by.user_dispatch`, and the fixture
+`experiments/deny-chroot.c` takes `--deny-dispatch`. The tests are in
+`podvm-dispatch`, not in `podvm-enter` (the engine is a crate of its own):
+`cargo test -p podvm-dispatch` exits 0 with seven tests (the trap and
+`/proc/self/exe`, the in-root open and `..`, an absolute link, the re-arm in
+`fork`, a thread and `posix_spawn`, the exec, a script). On the cloud host,
+on the chroot-denied fixture, `podvm run --rm GOLANG go version` exits 0,
+and with `--deny-dispatch` the run refuses at 125 naming the `prctl` and the
+emulate tier; `go build -a` of a hello program takes 4.3 s and its output
+runs. Four defects were found and fixed on the way, each with its
+measurement in the source: a vfork child on musl's 5 KiB stack, the mask and
+the alternate stack that `rt_sigreturn` restores, and an alternate stack
+that the kernel keeps while a handler runs on it. Remaining: the run of
+experiment 356 with its new clauses (its first run failed only on the
+`--rm` of the source step, which extracts the image again; fixed). T-1724
+holds a static child of the loader family and `-v`.
 
 **Filed 2026-11-06.** Quoted from issue 109, measured on the errand
 host (kernel 7.2.2, uid 966, no chroot, user namespace, mount or ptrace):
@@ -2268,3 +2296,45 @@ the image's `ld.so.conf` and `ld-musl-ARCH.path`, and `--inhibit-cache`
 for glibc. The blocker clears when a podcrates tag carries it; then podvm
 takes the tag and adds the clause of the Prove.
 
+
+---
+
+### T-1724 A static child of the loader family, and a volume, on the native-static rung
+
+Source:      T-1652 (measured on the cloud host, 2026-11-11);
+             `crates/podvm-interpose/src/exec/launch.rs` (`Tail::Direct`);
+             `crates/podvm/src/lifecycle/native.rs`
+Category:    enter
+Priority:    P2
+Effort:      M
+Status:      open
+
+Problem:     A dynamic shell of the golang image on the loader family ran
+             `go build` as its child: the interposer executes a static
+             child directly (`Tail::Direct`), so go ran with the host's
+             root and wrote `/tmp/g/g` on the host (measured, 2026-11-11).
+             The capability gap names it ("a statically linked child keeps
+             the direct exec"). The native-static rung also refuses a run
+             with `-v`: its handler has no table of volumes.
+Premise:     T-1652 gives `podvm --podvm-dispatch-enter ROOT EXE ARGV...`,
+             which enters a static program in the root. The interposer
+             reads its table (`PODVM_MAPS`) and already knows the guest
+             path of each child (`PODVM_GUEST_EXE`).
+Approach:    Give the interposer the host path of podvm (a variable of the
+             loader family's environment). For a static ELF child of the
+             machine, the exec route runs podvm with `--podvm-dispatch-enter`,
+             the rootfs and the guest path, in place of the direct exec. Give
+             the handler of `podvm-dispatch` the volumes of the run: a guest
+             prefix of a volume resolves in the volume's host directory, with
+             `RESOLVE_IN_ROOT` at that directory.
+Decision:    A static child keeps the direct exec only where the native-static
+             rung cannot arm, and the capability gap says so then.
+Prove:       `RUSTFLAGS="-C target-feature=-crt-static" cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu -- --test-threads=1`
+             exits 0 with a test of the route of a static child, and
+             `PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh`
+             exits 0 with a clause where a dynamic shell of the golang image
+             runs `go build`, the output is in the rootfs and not on the host,
+             and a clause where a static payload reads a file of a `-v`
+             volume on the native-static rung.
+
+**Filed 2026-11-11.** From the measurement of T-1652.
