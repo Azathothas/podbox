@@ -470,4 +470,3 @@ pub unsafe fn prepare_follow(
         },
     }
 }
-
