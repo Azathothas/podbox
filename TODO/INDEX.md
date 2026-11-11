@@ -410,12 +410,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1733](podssh.md) | P3 | S | none | podssh | open | Retire `experiments/388-interactive-shell.sh` for the tests of `session_interactive.rs` |
 | [T-1734](extract.md) | P3 | S | none | extract | open | Retire `experiments/220-extract-path-safety.sh`, and point its eight citations at the tests |
 | [T-1735](complete.md) | P2 | M | none | complete | open | The dangling-directory-link test and the reachability test, then retire `85-completion-symlink-escape.sh` |
-| [T-1736](machine.md) | P3 | S | none | machine | open | A test of the refusal of `windows --dos` with no DOS base image |
+| [T-1736](machine.md) | P3 | S | none | machine | done | A test of the refusal of `windows --dos` with no DOS base image |
 | [T-1737](packaging.md) | P3 | M | none | packaging | open | Decide where the SSH packaging scripts go, and port `scripts/package-ssh.sh` into `podvm-release` |
 
 ## Counts
 
-346 entries: 15 open, 10 partial, 6 blocked, 315 done.
+346 entries: 14 open, 10 partial, 6 blocked, 316 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -427,8 +427,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
 | P2 | 7 | 6 | 6 | 96 | 115 |
-| P3 | 7 | 0 | 0 | 9 | 16 |
-| **All** | 15 | 10 | 6 | 315 | 346 |
+| P3 | 6 | 0 | 0 | 10 | 16 |
+| **All** | 14 | 10 | 6 | 316 | 346 |
 
 ## Work order
 

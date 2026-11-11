@@ -2191,7 +2191,7 @@ the script.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2219,3 +2219,11 @@ The test needs no QEMU and no network.
 ## Prove
 
 `cargo test -p podvm a_dos_run_with_no_base_is_refused_by_name` exits 0.
+
+## Done
+
+**Done 2026-11-11.** `cargo test -p podvm a_dos_run_with_no_base_is_refused_by_name`
+exits 0 (`crates/podvm/tests/dos_refusal.rs`): `podvm windows run --guest
+dos ver` with `PODVM_DOS_BASE` at a path that does not exist exits 125,
+names the path in "no DOS base image at", and leaves its `HOME` empty. The
+test runs the binary, so the variable stays in the child.
