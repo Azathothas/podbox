@@ -1972,6 +1972,9 @@ Decisions and deviations:
   foreground run.
 * The optional `runsc` backend of the Approach is T-1729: the Decision
   says it is not the answer for the target host.
+* A dynamic program on the rung is T-1731, and the `--strict` gap of the
+  loader family names it (the gap named T-1657 until this entry was done,
+  and CI run 387 failed on `each_listed_gap_names_an_entry_that_is_not_done`).
 
 **Filed 2026-11-06.** Quoted from issue 169:
 
@@ -2511,4 +2514,38 @@ Decision:    Optional, and never a fallback of the syscall tier: a caller
 Prove:       `sh experiments/436-runsc.sh` exits 0 on a host with user namespaces and `runsc`: `uname -r` names gVisor, a write to `/workspace` is on the host after the run, and on a host without them the tier refuses by name
 
 **Filed 2026-11-11.** Split from T-1657.
+
+---
+
+### T-1731 A dynamic program on the native-static rung: its loader under the handler
+
+Source:      T-1657 (the syscall tier refuses a dynamic program); the `--strict` gap of the loader family (T-1650)
+Category:    enter
+Priority:    P2
+Effort:      L
+Status:      open
+
+Problem:     The native-static rung and the syscall tier run a static
+             program only: an `execve` of a dynamic one fails with
+             `ENOEXEC`, and `--podvm-tier=syscall` refuses it. A dynamic
+             program runs on the loader family instead, where a raw system
+             call (Go with cgo, liburing) passes the interposer and its
+             absolute path resolves on the host. That is the gap that
+             `--strict` names for the loader family.
+Premise:     The loader of `podvm-dispatch` maps a static ELF
+             (`crates/podvm-dispatch/src/elf.rs`). A dynamic ELF names an
+             interpreter (`PT_INTERP`), which is itself a static program of
+             the image (`ld-musl-*.so.1`, `ld-linux-*.so.2`).
+Approach:    Map the interpreter of the image beside the program, give the
+             auxiliary vector its `AT_BASE`, `AT_PHDR`, `AT_ENTRY` and
+             `AT_EXECFD` values, and start at the interpreter's entry. Each
+             library that it opens resolves through the handler, so each
+             path of the program and of its libraries is in the image.
+             Let the syscall tier take a dynamic program then.
+Decision:    The interposer is not needed on this rung: the handler sees
+             each call, raw or not.
+Prove:       `cargo test -p podvm-dispatch` exits 0 with a test that runs a dynamic program of a root under the handler; `sh experiments/413-syscall-tier.sh` exits 0 with a clause where a dynamic program of an image runs on the syscall tier and a raw `openat` of an absolute path reads the image's file
+
+**Filed 2026-11-11.** Split from T-1657, so that the `--strict` gap of the
+loader family names an entry that is not done.
 

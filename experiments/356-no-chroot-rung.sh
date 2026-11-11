@@ -751,7 +751,7 @@ grep -qx "etc" "$WORK/out-fx-node-execsync.txt" || { echo "node execSync('ls /')
 # each. T-1646 routes the shell grandchild, so issue 93's command runs.
 step fx-strict-ls 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/sh -c '/bin/ls /'
 grep -qx "etc" "$WORK/out-fx-strict-ls.txt" || { echo "--strict sh -c '/bin/ls /' did not list /" >>"$REPORT"; fail=1; }
-grep -q "strict warning \[capability\].*T-1657" "$WORK/out-fx-strict-ls.txt" || { echo "--strict did not warn on the T-1657 gap" >>"$REPORT"; fail=1; }
+grep -q "strict warning \[capability\].*T-1731" "$WORK/out-fx-strict-ls.txt" || { echo "--strict did not warn on the T-1731 gap" >>"$REPORT"; fail=1; }
 step fx-strict-echo 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/echo hi
 grep -qx "hi" "$WORK/out-fx-strict-echo.txt" || { echo "--strict /bin/echo hi did not print" >>"$REPORT"; fail=1; }
 # T-1724: a static child takes the native-static rung where Syscall User
@@ -759,7 +759,7 @@ grep -qx "hi" "$WORK/out-fx-strict-echo.txt" || { echo "--strict /bin/echo hi di
 step fx-strict-static 0 $FX "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
 grep -q "static-hi" "$WORK/out-fx-strict-static.txt" || { echo "--strict did not run the static child on the native-static rung" >>"$REPORT"; fail=1; }
 step fx-strict-static-denied "$RUN_ERR" $FXD "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
-grep -q "\[capability\].*T-1657.*This command hits it" "$WORK/out-fx-strict-static-denied.txt" || { echo "--strict did not refuse the static child naming T-1657" >>"$REPORT"; fail=1; }
+grep -q "\[capability\].*T-1731.*This command hits it" "$WORK/out-fx-strict-static-denied.txt" || { echo "--strict did not refuse the static child naming T-1731" >>"$REPORT"; fail=1; }
 grep -q "static-hi" "$WORK/out-fx-strict-static-denied.txt" && { echo "--strict ran the static child with the prctl denied" >>"$REPORT"; fail=1; }
 step fx-strict-npm 0 $FX "$PB" run --rm --strict "$NODE" npm --version
 grep -qx "[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*" "$WORK/out-fx-strict-npm.txt" || { echo "--strict npm --version did not print a version" >>"$REPORT"; fail=1; }
