@@ -236,6 +236,14 @@ Keep the existing standalone podvm asset. Install helpers beside it or on PATH.
 
 `sh scripts/package-ssh.sh RELEASE_DIR ARCH QEMU` exits 0; the release matrix publishes every helper archive with its digest and signature.
 
+
+## Correction
+
+**Corrected 2026-11-11.** The script experiments/388-interactive-shell.sh
+is gone (T-1733): each of its eleven clauses has a test of
+`crates/podvm-ssh/tests/session_interactive.rs` against a real `sshd -i`
+with `ForceCommand`, and that test file is the proof now.
+
 ## Done
 
 **Done 2026-09-30.** The release matrix publishes all seven helper archives
@@ -321,7 +329,7 @@ operator session pairs, both sessions complete, no residue. Reconnect
 is proven on the loopback fake relay; pairing against the live relay
 stays open.
 
-# T-1733: Retire `experiments/388-interactive-shell.sh` for the tests of `session_interactive.rs`
+# T-1733: Retire the experiment 388-interactive-shell.sh for the tests of `session_interactive.rs`
 
 **Source:** row 1515 of the refactor plan (`refactor/recon-c.md` on the
   branch `archive/podbox-worktree`), filed by [T-1673](gate.md)
@@ -329,11 +337,11 @@ stays open.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
-`experiments/388-interactive-shell.sh` and the Rust tests of
+The experiment 388-interactive-shell.sh and the Rust tests of
 `crates/podvm-ssh/tests/session_interactive.rs` prove the same
 interactive shell. Two proofs of one claim can drift apart, and the
 Prove of T-1405 (`TODO/podssh.md`) still runs the script.
@@ -358,5 +366,24 @@ keeps the script until it has one.
 ## Prove
 
 `cargo test -p podvm-ssh --test session_interactive` exits 0, and
-`git grep -n 388-interactive-shell -- . ':!docs/history'` prints
-nothing.
+`git ls-files experiments | grep -c 388-interactive-shell` prints 0.
+
+## Done
+
+**Done 2026-11-11.** Each clause of the script has its test in
+`crates/podvm-ssh/tests/session_interactive.rs`: the build (clause 1) is
+the test build; a real `sshd -i` with `ForceCommand` (clause 2) runs in
+each test, and a missing `sshd` panics rather than passes; the prompt,
+the echo and no terminal (3) `prompt_echo_command_and_no_terminal`; the
+editing (4) `editing_repairs_a_typo`; the history (5)
+`history_recalls_the_previous_command`; the state (6)
+`state_persists_across_commands`; SIGINT to the command (7)
+`signal_kills_the_command_not_the_shell`; the exit code (8)
+`shell_exit_code_passes_through`; the refused one-shot command (9)
+`one_shot_command_is_refused_naming_the_variable`; the sftp subsystem (10)
+`subsystem_sftp_never_reaches_the_shell`; an untrapped SIGINT (11)
+`signal_without_trap_ends_the_session_with_130`. `cargo test -p
+podvm-ssh --test session_interactive` exits 0 (12 passed, 2026-11-11), and
+the script is gone.
+
+
