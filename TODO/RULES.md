@@ -181,7 +181,7 @@ file per batch and let the others read.
 **Dispatch on disjoint files.** Take the open rows from
 `TODO/INDEX.md` and group them by the files their Approach names. Two
 entries whose files are disjoint run in parallel, each agent in its own
-worktree under `.claude/worktrees/` (`AGENTS.md`, section 3). Two entries
+worktree under .claude/worktrees (`AGENTS.md`, section 3). Two entries
 that edit the same file, or prove on the same check, run in series behind
 one writer.
 
