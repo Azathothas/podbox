@@ -107,6 +107,12 @@
 #      T-1655, the memfd family refuses a volume at 125, and the banner
 #      names a source on a noexec mount. Before podcrates v0.12.0 the
 #      `-w` and the first program in a volume refused at 125.
+#   27. the entered rung (T-1712, T-1713, T-1716): `--podvm-tier=chroot`
+#      is a flag error at 125 naming the value; `system info` under the
+#      fixture reads `.EnteredRung` = userland, the rung that the run
+#      enters, whatever `.Rung` the probe selects; a `-v` pair under
+#      /proc refuses at 125 naming /proc; a missing `-w` inside a volume
+#      refuses at 125 naming the volume, not the image.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -802,6 +808,18 @@ grep -q "static-hi" "$WORK/out-fx-vol-memfd.txt" && { echo "the memfd family ran
 step fx-vol-noexec 0 unshare -Urm sh "$WORK/wrap-nx.sh" "$WORK" "$NX" "$PB" run --rm --verbose -v "$NX:/nx" "$ALPINE" cat /nx/in.txt
 grep -qx "nx-data" "$WORK/out-fx-vol-noexec.txt" || { echo "the noexec volume did not read" >>"$REPORT"; fail=1; }
 grep -q "is on a noexec mount" "$WORK/out-fx-vol-noexec.txt" || { echo "the banner did not name the noexec source" >>"$REPORT"; fail=1; }
+
+# Clause 27 (T-1712, T-1713, T-1716): the entered rung, as a caller
+# reads it before a run, and the volume rules of pod-enter v0.15.0.
+step fx-tier-chroot "$FLAG" $FX "$PB" run --rm --podvm-tier=chroot "$ALPINE" true
+grep -q 'takes machine, not "chroot"' "$WORK/out-fx-tier-chroot.txt" || { echo "--podvm-tier=chroot was not refused by name" >>"$REPORT"; fail=1; }
+step fx-entered 0 $FX "$PB" system info --format '{{.Rung}} {{.EnteredRung}}'
+grep -qE '^[a-z]+ userland$' "$WORK/out-fx-entered.txt" || { echo ".EnteredRung did not read userland under the fixture" >>"$REPORT"; fail=1; }
+echo "fixture rungs     $(tail -1 "$WORK/out-fx-entered.txt")" >>"$REPORT"
+step fx-vol-proc "$FLAG" $FX "$PB" run --rm -v "$VOL:/proc/x" "$ALPINE" true
+grep -q "never rewrites a path under /proc" "$WORK/out-fx-vol-proc.txt" || { echo "a volume under /proc was not refused by name" >>"$REPORT"; fail=1; }
+step fx-vol-wd-missing "$RUN_ERR" $FX "$PB" run --rm -w /data/none -v "$VOL:/data" "$ALPINE" true
+grep -q ":/data is not a directory in the volume" "$WORK/out-fx-vol-wd-missing.txt" || { echo "a missing -w in a volume did not name the volume" >>"$REPORT"; fail=1; }
 
 {
 echo ""

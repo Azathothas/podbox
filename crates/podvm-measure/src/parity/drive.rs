@@ -304,7 +304,7 @@ fn drive_inner(binary: &str, twins: &[(&str, String)], report: &mut Report) -> i
         "never-pulled-145:tag",
         "/bin/true",
     ]);
-    if rc == flag_error && text.contains("takes machine or chroot") {
+    if rc == flag_error && text.contains("takes machine, not") {
         report.pass("run --podvm-tier=sandbox is a flag error");
     } else {
         report.miss(&format!("run --podvm-tier=sandbox (rc={rc}): {text}"));

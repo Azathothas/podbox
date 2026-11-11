@@ -385,15 +385,15 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1709](image.md) | P1 | image | open | Each container gets its own rootfs: a write in one container is not read by another |
 | [T-1710](interpose.md) | P1 | interpose | open | A Unix socket path in `connect` and `bind` passes the path table |
 | [T-1711](cli.md) | P2 | cli | open | The calls of the four container-hook commands run through podvm verbs on the userland rung |
-| [T-1712](cli.md) | P1 | cli | open | `--podvm-tier=chroot` does nothing: it runs the ladder |
-| [T-1713](cli.md) | P1 | cli | open | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
+| [T-1712](cli.md) | P1 | cli | done | `--podvm-tier=chroot` does nothing: it runs the ladder |
+| [T-1713](cli.md) | P1 | cli | done | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
 | [T-1714](probe.md) | P2 | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
 | [T-1715](supervise.md) | P2 | supervise | open | The container table keeps `-e` values in a file that other users can read |
 | [T-1716](enter.md) | P2 | enter | done | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 
 ## Counts
 
-325 items: 38 open, 8 partial, 3 blocked, 276 done.
+325 items: 36 open, 8 partial, 3 blocked, 278 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -403,10 +403,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 9 | 6 | 0 | 130 | 145 |
+| P1 | 7 | 6 | 0 | 132 | 145 |
 | P2 | 29 | 1 | 3 | 73 | 106 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **38** | **8** | **3** | **276** | **325** |
+| **All** | **36** | **8** | **3** | **278** | **325** |
 
 ## Work order
 

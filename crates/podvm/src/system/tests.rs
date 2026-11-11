@@ -13,7 +13,7 @@ fn system_usage_is_plain_ascii() {
 /// and renders blank, which is the wrong answer that looks right.
 #[test]
 fn the_declared_fields_are_the_built_ones() {
-    let built: Vec<&str> = fields_from(Rung::Chroot, false, "/nowhere".into())
+    let built: Vec<&str> = fields_from(Rung::Chroot, true, false, "/nowhere".into())
         .iter()
         .map(|(k, _)| *k)
         .collect();
@@ -31,7 +31,7 @@ fn the_declared_fields_are_the_built_ones() {
 /// covered the other way by the userland test below.
 #[test]
 fn the_entered_rung_is_namespace_where_selected() {
-    let fields = fields_from(Rung::Namespace, true, "/nowhere".into());
+    let fields = fields_from(Rung::Namespace, true, true, "/nowhere".into());
     assert_eq!(pick(&fields, "Rung"), "namespace");
     assert_eq!(pick(&fields, "EnteredRung"), "namespace");
 }
@@ -41,10 +41,31 @@ fn the_entered_rung_is_namespace_where_selected() {
 /// selection: the field names what `run` enters with.
 #[test]
 fn the_entered_rung_is_userland_where_chroot_is_denied() {
-    let fields = fields_from(Rung::Interpose, false, "/nowhere".into());
+    let fields = fields_from(Rung::Interpose, false, false, "/nowhere".into());
     assert_eq!(pick(&fields, "Rung"), "interpose");
     assert_eq!(pick(&fields, "EnteredRung"), "userland");
-    let fields = fields_from(Rung::Chroot, false, "/nowhere".into());
+    let fields = fields_from(Rung::Chroot, true, false, "/nowhere".into());
+    assert_eq!(pick(&fields, "EnteredRung"), "chroot");
+}
+
+/// ⛔ TODO/cli.md T-1713. Where the probe selects `supervise` (ptrace and
+/// the listener work) or `namespace` (user namespaces work) and chroot is
+/// denied, `run` enters the userland rung, so the field reads `userland`:
+/// what `run` enters, never what the probe selected. The cloud host of
+/// experiment 356 selects `namespace` under its chroot-denied fixture.
+#[test]
+fn a_denied_chroot_reads_userland_whatever_the_selection() {
+    for selection in [
+        Rung::Supervise,
+        Rung::Namespace,
+        Rung::Chroot,
+        Rung::Interpose,
+    ] {
+        let fields = fields_from(selection, false, false, "/nowhere".into());
+        assert_eq!(pick(&fields, "Rung"), selection.word());
+        assert_eq!(pick(&fields, "EnteredRung"), "userland", "{selection:?}");
+    }
+    let fields = fields_from(Rung::Supervise, true, false, "/nowhere".into());
     assert_eq!(pick(&fields, "EnteredRung"), "chroot");
 }
 

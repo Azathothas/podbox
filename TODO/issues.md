@@ -136,3 +136,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates T-107) | open | T-1714; T-1670 (amended) |
 | #240 | [podrunner] supervise: the container table keeps -e values in a file that the umask leaves readable to other users | open | T-1715; T-1696 (amended, then dropped 2026-11-11) |
 | #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | open | T-1684 (amended), T-1696 |
+| #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of T-155 (to podcrates) | open | T-1716 |

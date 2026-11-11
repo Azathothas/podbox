@@ -75,8 +75,9 @@ The runtime checks payload and object architecture before use.
 
 ## Machine execution
 
-`--podvm-tier=machine` selects the machine tier; `--podvm-tier=chroot` selects the chroot tier.
+`--podvm-tier=machine` selects the machine tier. Each other value is a flag error (T-1712).
 With no flag the ladder selects, under every name the binary answers to.
+`podvm system info --format '{{.EnteredRung}}'` names the rung that a run enters (T-1713).
 `crates/podvm/src/tier.rs` owns the flag.
 
 For an OCI image, the machine tier assesses the machine legs and exits 125.

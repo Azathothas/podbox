@@ -106,9 +106,11 @@ pub const RUN_OPTIONS: &str = "\
                    as `podvm pull`; used only when something must be fetched
   -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
-  --podvm-tier T  podvm's own: machine selects the machine tier, chroot the
-                   chroot tier. With no flag the ladder selects, under every
-                   name the binary answers to (TODO/machine.md T-1302)
+  --podvm-tier T  podvm's own: machine selects the machine tier, and each
+                   other value is a flag error. With no flag the ladder
+                   selects, under every name the binary answers to, and
+                   `system info` names the entered rung (TODO/machine.md
+                   T-1302, TODO/cli.md T-1712)
   --podvm-qemu-arg A
                    podvm's own, machine tier only and refused elsewhere: one
                    token for the emulator per occurrence. Repeatable, and never

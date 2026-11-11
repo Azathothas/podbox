@@ -52,9 +52,10 @@ usage: podvm system info [--format T]
 
   refused: .Rung and .EnteredRung are TWO ANSWERS and a caller needs both. .Rung is
     what this machine would permit; .EnteredRung is the sequence `podvm run`
-    actually performs, which is a chroot everywhere except where chroot(2) is
-    denied and a no-chroot family runs (TODO/enter.md T-1317), where it reads
-    `userland`. Reporting the first
+    actually performs: the namespace rung where the probe selects it, else a
+    chroot, and `userland` wherever chroot(2) is denied, whatever the
+    selection, as `run` enters a no-chroot family there or refuses
+    (TODO/enter.md T-1317, TODO/cli.md T-1713). Reporting the first
     as if it were the second is the defect TODO/cli.md T-0804 was opened for.
 
   note: .ExitCodes is docker's exit-code contract as data: one object per case,

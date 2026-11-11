@@ -54,9 +54,9 @@ usage: podvm exec [options] <image> <command> [arg...]
                    docker's --volume (TODO/cli.md T-1416)
   -t, --tty        refused: REFUSED BY NAME where /dev/ptmx is unusable, rather
                    than silently degraded (TODO/enter.md T-0503)
-  --podvm-tier T  as in run: machine selects the machine tier, chroot the
-                   chroot tier; with no flag the ladder selects
-                   (TODO/machine.md T-1302)
+  --podvm-tier T  as in run: machine selects the machine tier, and each
+                   other value is a flag error; with no flag the ladder
+                   selects (TODO/machine.md T-1302, TODO/cli.md T-1712)
   --podvm-qemu-arg A
                    as in run: machine tier only and refused elsewhere, one
                    emulator token per occurrence, repeatable, never split
@@ -149,7 +149,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                 "--podvm-tier" => match crate::tier::want(a) {
                     Some(w) => o.tier = Some(w),
                     None => {
-                        eprintln!("podvm exec: --podvm-tier takes machine or chroot, not {a:?}");
+                        eprintln!("{}", crate::tier::refusal("exec", a));
                         return Err(EXIT_FLAG_ERROR);
                     }
                 },
@@ -227,8 +227,8 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                     Some(w) => o.tier = Some(w),
                     None => {
                         eprintln!(
-                            "podvm exec: --podvm-tier takes machine or chroot, not {:?}",
-                            &other["--podvm-tier=".len()..]
+                            "{}",
+                            crate::tier::refusal("exec", &other["--podvm-tier=".len()..])
                         );
                         return Err(EXIT_FLAG_ERROR);
                     }

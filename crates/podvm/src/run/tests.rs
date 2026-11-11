@@ -300,11 +300,12 @@ fn no_image_is_a_cli_error() {
     assert_eq!(parse("run", &v(&["--rm"])).unwrap_err(), EXIT_CLI_ERROR);
 }
 
-/// ⭐ TODO/machine.md T-1302. The tier flag takes two values, and the
+/// ⭐ TODO/machine.md T-1302. The tier flag takes one value, and the
 /// emulator arguments collect whole: one token per occurrence, and a
 /// value with a space stays one token rather than splitting.
+/// ⛔ TODO/cli.md T-1712: `chroot` is a flag error, in both spellings.
 #[test]
-fn the_tier_flag_takes_two_values_and_qemu_args_collect_whole() {
+fn the_tier_flag_takes_machine_only_and_qemu_args_collect_whole() {
     assert_eq!(
         parse("run", &v(&["--podvm-tier=machine", "img"]))
             .unwrap()
@@ -312,10 +313,12 @@ fn the_tier_flag_takes_two_values_and_qemu_args_collect_whole() {
         Some(crate::tier::Want::Machine)
     );
     assert_eq!(
-        parse("run", &v(&["--podvm-tier", "chroot", "img"]))
-            .unwrap()
-            .tier,
-        Some(crate::tier::Want::Chroot)
+        parse("run", &v(&["--podvm-tier", "chroot", "img"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert_eq!(
+        parse("run", &v(&["--podvm-tier=chroot", "img"])).unwrap_err(),
+        EXIT_FLAG_ERROR
     );
     assert_eq!(
         parse("run", &v(&["--podvm-tier=sandbox", "img"])).unwrap_err(),

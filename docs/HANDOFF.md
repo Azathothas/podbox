@@ -35,5 +35,5 @@ file when each step below is done.
 
 ## Next steps, in order
 
-1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1712 and
-   T-1713).
+1. The work order of `TODO/PROGRESS.md`, from item 1 (T-1652). T-1716,
+   T-1712 and T-1713 are done on 2026-11-11.

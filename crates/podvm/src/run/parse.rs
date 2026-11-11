@@ -234,7 +234,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                 "--podvm-tier" => match crate::tier::want(a) {
                     Some(w) => o.tier = Some(w),
                     None => {
-                        eprintln!("podvm {verb}: --podvm-tier takes machine or chroot, not {a:?}");
+                        eprintln!("{}", crate::tier::refusal(verb, a));
                         return Err(EXIT_FLAG_ERROR);
                     }
                 },
@@ -384,8 +384,8 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                     Some(w) => o.tier = Some(w),
                     None => {
                         eprintln!(
-                            "podvm {verb}: --podvm-tier takes machine or chroot, not {:?}",
-                            &other["--podvm-tier=".len()..]
+                            "{}",
+                            crate::tier::refusal(verb, &other["--podvm-tier=".len()..])
                         );
                         return Err(EXIT_FLAG_ERROR);
                     }

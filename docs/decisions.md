@@ -50,7 +50,7 @@ Each call stays in force until the owner rules otherwise.
 | Date | Call | What |
 | --- | --- | --- |
 | 2026-11-06 | C1 | A clean break from the old names: no `podbox` alias of the binary, no `PODBOX_*` fallback, no migration of state paths (the Compatibility ruling). |
-| 2026-11-06 | C2 | The argv0 name `podvm` no longer selects the machine tier, because it is the name of the binary now. `--podvm-tier=machine` or `--podvm-tier=chroot` selects a tier; with no flag, the ladder selects. The flag keeps the prefix of podvm's other own flags (`--podvm-mem`, `--podvm-qemu-arg`), which keeps them apart from docker's. The area file of the machine tier is now `TODO/machine.md`; the crate `podbox-podvm` (measurement tools) becomes `podvm-measure`. |
+| 2026-11-06 | C2 | The argv0 name `podvm` no longer selects the machine tier, because it is the name of the binary now. `--podvm-tier=machine` selects the machine tier; with no flag, the ladder selects (call C14 removed the value `chroot`). The flag keeps the prefix of podvm's other own flags (`--podvm-mem`, `--podvm-qemu-arg`), which keeps them apart from docker's. The area file of the machine tier is now `TODO/machine.md`; the crate `podbox-podvm` (measurement tools) becomes `podvm-measure`. |
 | 2026-11-06 | C3 | The untracked material of the old checkout is on the branch `archive/podbox-worktree` (`docs/history/worktree-archive.md`). |
 | 2026-11-06 | C4 | The WSL base of the parked lane is named `podvm`; one variable, `PODVM_WSL_INSTANCE`, names it. |
 | 2026-11-06 | C5 | The local crates are renamed `podvm-*` now. Each generic one leaves podvm when podcrates releases its `pod-*` crate and podvm takes it by tag. |
@@ -62,6 +62,7 @@ Each call stays in force until the owner rules otherwise.
 | 2026-11-06 | C11 | podvm takes `pod-hostprobe` 0.6.0 (PodUtils/podcrates#17): `podvm-probe` keeps its report, `exit`, `json`, `nongoals` and its settings, and re-exports the crate's modules, so each other crate keeps its `podvm_probe::X` paths. podvm accepts that the noexec detail says "move the directory off this filesystem", that `podvm-probe` pulls `pod-core`, and the glue that maps a `Failure` back to podvm's errors. Since podcrates v0.7.0 (T-081) the glue reads `Failure::io_cause()`, which walks the whole chain, in place of a downcast of the first source. The workspace pins of `syscalls` and `linux-raw-sys` leave with the syscall layer. |
 | 2026-11-09 | C12 | `podvm stop -t 0` sends SIGKILL at once, as docker does (T-1691, issue 215). A negative value stays refused. |
 | 2026-11-09 | C13 | On an open row of the probe JSON, the non-goal `remedy` is an empty string; the key stays (T-1689, issue 213). |
+| 2026-11-11 | C14 | `--podvm-tier` takes `machine` only (T-1712, form a, issue 237). The value `chroot` had no effect since C2: a caller that asked for chroot got the rung of the ladder with exit 0. It is a flag error now, and the refusal names the value and `.EnteredRung`. A caller reads the entered rung from `system info` (T-1713) and needs no force. Form b (a forced chroot that refuses where chroot is denied) waits for a caller that needs it. |
 
 ## Questions for the owner
 

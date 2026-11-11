@@ -8,6 +8,22 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Breaking and fixed: the entered rung, 2026-11-11
+
+Record: T-1712, T-1713, call C14 of `docs/decisions.md`; issues 237 and
+238.
+Deployed: not deployed; no version change.
+
+- `--podvm-tier` of `run`, `create` and `exec` takes `machine` only.
+  `--podvm-tier=chroot` had no effect: it ran the ladder, and on a
+  chroot-denied host it entered the userland rung with exit 0. It is a
+  flag error at 125 now, and the message names the value and
+  `.EnteredRung`.
+- `system info --format '{{.EnteredRung}}'` reads `userland` wherever
+  chroot(2) is denied, whatever rung the probe selects. It read `chroot`
+  where the probe selected `supervise`, and `namespace` where it selected
+  `namespace`, while `run` entered the userland rung.
+
 ### Changed, 2026-11-11
 
 Record: T-1716; PodUtils/podcrates#52 and #54.

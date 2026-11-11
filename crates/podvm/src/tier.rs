@@ -1,7 +1,11 @@
 //! The tier flag. `TODO/machine.md` T-1302.
 //!
-//! `--podvm-tier` selects the tier; with no flag the ladder selects. The
-//! name the binary was invoked under does not change the default.
+//! `--podvm-tier=machine` selects the machine tier; with no flag the ladder
+//! selects. The name the binary was invoked under does not change the
+//! default. `TODO/cli.md` T-1712 removed the value `chroot`: it had no
+//! effect since call C2, so a caller that asked for chroot got whatever the
+//! ladder entered. `system info --format '{{.EnteredRung}}'` names the rung
+//! that a run enters (T-1713).
 //!
 //! ⛔ **The tier is not cosmetic**: a limit the machine tier enforces and the
 //! chroot tier cannot is silent degradation wearing a flag, so a caller who
@@ -14,17 +18,27 @@ use podvm_image::error::EXIT_RUNTIME_ERROR;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Want {
     Machine,
-    Chroot,
 }
 
 /// The validated value of one `--podvm-tier` spelling, or `None` where the
-/// spelling names no tier podvm has.
+/// spelling names no tier that the flag selects.
 pub fn want(s: &str) -> Option<Want> {
     match s {
         "machine" => Some(Want::Machine),
-        "chroot" => Some(Want::Chroot),
         _ => None,
     }
+}
+
+/// The flag error of a value that [`want`] refuses, for `verb`.
+///
+/// ⛔ `TODO/cli.md` T-1712. `chroot` is refused by name with the reason: a
+/// value that selected nothing gave a caller another mechanism with exit 0.
+pub fn refusal(verb: &str, value: &str) -> String {
+    format!(
+        "podvm {verb}: --podvm-tier takes machine, not {value:?}: with no flag the \
+         ladder selects the rung, and `podvm system info --format \
+         '{{{{.EnteredRung}}}}'` names the rung that a run enters (TODO/cli.md T-1712)"
+    )
 }
 
 /// The validated value of one `--podvm-mem` spelling, in bytes, or `None`
@@ -67,8 +81,6 @@ pub fn mem_over_ceiling(mem: u64, cur: u64) -> bool {
 pub enum Tier {
     /// The default with no flag: the ladder selects.
     Ladder,
-    /// `--podvm-tier=chroot`: the chroot tier.
-    Chroot,
     /// `--podvm-tier=machine`: the legs are assessed and the tier is
     /// refused naming every missing one.
     Machine,
@@ -83,7 +95,6 @@ pub fn resolve(flag: Option<Want>) -> Tier {
     match flag {
         None => Tier::Ladder,
         Some(Want::Machine) => Tier::Machine,
-        Some(Want::Chroot) => Tier::Chroot,
     }
 }
 
@@ -191,19 +202,28 @@ pub fn which_qemu(bin: &str) -> Option<std::path::PathBuf> {
 mod tests {
     use super::*;
 
+    /// ⛔ TODO/cli.md T-1712. The flag spells one tier. `chroot` selected
+    /// nothing, so it is a flag error now, and the refusal names the value,
+    /// the one value the flag takes, and where the entered rung is read.
     #[test]
-    fn the_flag_spells_two_tiers_and_nothing_else() {
+    fn the_flag_spells_machine_and_nothing_else() {
         assert_eq!(want("machine"), Some(Want::Machine));
-        assert_eq!(want("chroot"), Some(Want::Chroot));
+        assert_eq!(want("chroot"), None);
         assert_eq!(want("sandbox"), None);
         assert_eq!(want(""), None);
+        let r = refusal("run", "chroot");
+        assert!(
+            r.starts_with("podvm run: --podvm-tier takes machine, not \"chroot\""),
+            "{r}"
+        );
+        assert!(r.contains("{{.EnteredRung}}"), "{r}");
+        assert!(r.contains("T-1712"), "{r}");
     }
 
     #[test]
     fn no_flag_is_the_ladder_and_the_flag_selects() {
         assert_eq!(resolve(None), Tier::Ladder);
         assert_eq!(resolve(Some(Want::Machine)), Tier::Machine);
-        assert_eq!(resolve(Some(Want::Chroot)), Tier::Chroot);
     }
 
     #[test]

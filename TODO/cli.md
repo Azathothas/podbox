@@ -2720,7 +2720,7 @@ Source:      issue 237; the podrunner design review (the owner's design
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     The parity row says that `--podvm-tier=chroot` selects the
              chroot tier. It runs the ladder. On a chroot-denied host it
@@ -2754,6 +2754,24 @@ Prove:       `cargo test -p podvm` exits 0 with a test of the chosen form.
              true` is refused by name (form a: an unknown value; form b:
              chroot denied).
 
+**Done 2026-11-11, form (a)** (call C14 of `docs/decisions.md`).
+`--podvm-tier` takes `machine` only: `tier::want` knows no `chroot`, and
+`Want::Chroot` and `Tier::Chroot` are gone (`crates/podvm/src/tier.rs`).
+`tier::refusal` gives the one flag error of `run`, `create` and `exec`:
+`--podvm-tier takes machine, not "chroot": with no flag the ladder selects
+the rung, and podvm system info --format '{{.EnteredRung}}' names the rung
+that a run enters`. The parity rows of `run` and `exec`, both help texts,
+`docs/architecture.md` and call C2 say the same. The Prove, on the cloud
+host, 2026-11-11: `cargo test -p podvm -p podvm-measure` exits 0 (306
+tests), with `the_flag_spells_machine_and_nothing_else` and
+`the_tier_flag_takes_machine_only_and_qemu_args_collect_whole` of `run`
+and of `exec` (both spellings of `chroot` exit 125).
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 with
+the new clause 27 ([the run](../experiments/results/no-chroot-rung.txt)):
+on the chroot-denied fixture `run --rm --podvm-tier=chroot` of the pinned
+alpine digest exits 125 with that message. `cargo clippy --workspace
+--all-targets -- -D warnings` exits 0.
+
 **Filed 2026-11-10.** From issue 237 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), M2 surprise 7: "`--podvm-tier=chroot`
 on a chroot-denied host silently enters userland". The cause is wider:
@@ -2771,7 +2789,7 @@ Source:      issue 238; the podrunner design review (the owner's design
 Category:    cli
 Priority:    P1
 Effort:      S
-Status:      open
+Status:      done
 
 Problem:     On a host where the probe selects `supervise` (the listener,
              the argument channel and ptrace work) and chroot is denied,
@@ -2799,6 +2817,24 @@ Decision:    The field names what `run` enters, never what the probe
              selected (T-0804 rule 4).
 Prove:       `cargo test -p podvm` exits 0 with a test that a `supervise`
              selection with a denied chroot reads `userland`.
+
+**Done 2026-11-11.** The rule stays in podvm (`df_info.rs`), because the
+decision that it mirrors is podvm's: `decide_entry` asks `chroot_usable`
+before the selection, and `pod-enter`'s `entered_rung` knows only the
+selection. `system::df_info::entered_rung(selection, chroot_usable)` gives
+`userland` wherever chroot is denied, else `pod_enter::entered_rung`;
+`collect` gives it `chroot_usable` of the same findings. The help of
+`system info` says so. The premise was wider than written: under the
+chroot-denied fixture of experiment 356 the cloud host selects
+`namespace` (user namespaces work), and the field read `namespace` while
+`run` entered the userland rung. The Prove, on the cloud host,
+2026-11-11: `cargo test -p podvm` exits 0 with
+`a_denied_chroot_reads_userland_whatever_the_selection` (`supervise`,
+`namespace`, `chroot` and `interpose` with a denied chroot read
+`userland`; `supervise` with a usable chroot reads `chroot`). Clause 27
+of experiment 356 exits 0 ([the run](../experiments/results/no-chroot-rung.txt)):
+`system info --format '{{.Rung}} {{.EnteredRung}}'` under the fixture
+prints `namespace userland`.
 
 **Filed 2026-11-10.** From issue 238 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), M2 question Q1: "`system info`

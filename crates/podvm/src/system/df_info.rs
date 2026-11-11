@@ -280,13 +280,32 @@ fn collect() -> Vec<(&'static str, String)> {
         .unwrap_or_else(|e| format!("unavailable: {e}"));
     fields_from(
         selection.rung,
+        podvm_probe::probes::chroot_usable(&findings),
         selection.exit_code(podvm_probe::select::Strictness::Refuse) == 0,
         store,
     )
 }
 
+/// The rung that `podvm run` enters on a machine where the probe selects
+/// `selection` and `chroot(2)` is usable or not.
+///
+/// ⛔ TODO/cli.md T-1713, T-0804 rule 4. `run` asks `chroot_usable` before
+/// the selection (`lifecycle::entry::decide_entry`): where chroot is denied
+/// it enters a no-chroot family or refuses, whatever the probe selected
+/// (`supervise` where ptrace works, `namespace` where user namespaces
+/// work). So the field reads `userland` there; elsewhere it is the rung of
+/// the selection that `pod-enter` enters.
+pub(super) fn entered_rung(selection: Rung, chroot_usable: bool) -> Rung {
+    if chroot_usable {
+        podvm_enter::entered_rung(selection)
+    } else {
+        Rung::Userland
+    }
+}
+
 pub(super) fn fields_from(
     selection: Rung,
+    chroot_usable: bool,
     strict_ok: bool,
     store: String,
 ) -> Vec<(&'static str, String)> {
@@ -305,7 +324,7 @@ pub(super) fn fields_from(
         ("Rung", selection.word().to_string()),
         (
             "EnteredRung",
-            podvm_enter::entered_word(selection).to_string(),
+            entered_rung(selection, chroot_usable).word().to_string(),
         ),
         ("StrictOk", strict_ok.to_string()),
         ("Store", store),

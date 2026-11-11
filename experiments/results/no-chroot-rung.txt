@@ -1,12 +1,12 @@
 == conditions
-date              2026-11-10T10:00:27Z
+date              2026-11-11T01:05:46Z
 host kernel       Linux 6.18.44-fc-v338
 static input      mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 dynamic input     mirror.gcr.io/library/debian:bookworm-slim
 bootstrap         ok
 interpose         ok
 build             ok
-podvm            podvm 0.2.0-beta.1
+podvm            podvm 0.2.0-beta.2
 3.20: Pulling from library/alpine
 25f1d6b1951a: Pull complete
 Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
@@ -159,12 +159,12 @@ output:
   open /proc/self/mem O_RDONLY       OK
   open /proc/self/mem O_RDWR         OK
   landlock_create_ruleset(VERSION)   OK
-  qemu-system-x86_64 --version       OK
+  qemu-system-x86_64 --version       SKIP no qemu-system-x86_64 on PATH, so the emulator leg could not run
   open(/dev/kvm, O_RDWR)             FAIL errno=2 ENOENT
   prlimit(RLIMIT_FSIZE)              OK
   open(/dev/net/tun, O_RDWR)         OK
   image space (statfs .)             OK
-  qemu-system-x86_64 -accel help     OK
+  qemu-system-x86_64 -accel help     SKIP no qemu-system-x86_64 on PATH, so the accelerator list could not be read
   seccomp(NEW_LISTENER) [supervise]  OK
   process_vm_readv(own pid) [supervise] OK
   ptrace(PTRACE_TRACEME) [supervise] OK
@@ -188,7 +188,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -226,7 +226,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -248,8 +248,8 @@ output:
   podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): the /etc/resolv.conf of this host, 67 bytes
   podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
   userland
 
@@ -257,9 +257,9 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose --unsafe-host-paths static-hello:1 /hello
 exit              0
 output:
-  ddee5b95294b: Extracted (1 entries, 0 whiteouts)
+  7b5358e81215: Extracted (1 entries, 0 whiteouts)
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -288,7 +288,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm static-hello:1 /hello
 exit              125
 output:
-  ddee5b95294b: Extracted (1 entries, 0 whiteouts)
+  7b5358e81215: Extracted (1 entries, 0 whiteouts)
   podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload is statically linked, so it makes raw syscalls past the interposer and podvm rewrites no path: its absolute paths would resolve on the host, and a write would land on the host tree. podvm refuses before the exec. Use a host where chroot(2) is permitted, or `--unsafe-host-paths` to accept this host pass-through on the memfd family. The planned rungs for static payloads are the emulate tier (TODO/enter.md T-1651) and the native-static rung (TODO/enter.md T-1652) (TODO/enter.md T-1648). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
 
 == fx-hello-quiet
@@ -314,8 +314,8 @@ output:
   podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1703)
   podvm run: --strict warning [capability]: a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
 
@@ -336,8 +336,8 @@ output:
     - [substitution] created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
     - [substitution] created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
     - [substitution] rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-    - [substitution] rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-    - [substitution] created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+    - [substitution] rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+    - [substitution] created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
     - [capability] a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1703)
     - [capability] a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
 
@@ -345,7 +345,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict --unsafe-host-paths static-hello:1 /hello
 exit              125
 output:
-  ddee5b95294b: Extracted (1 entries, 0 whiteouts)
+  7b5358e81215: Extracted (1 entries, 0 whiteouts)
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
   podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
@@ -404,14 +404,14 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  93e795038aa52c4dbad1a80e22880a7e69c3d0123ff17f56773d67138331b67e
+  fbf2a416d518fd572157510f3b99b1e304573800cce21cb6912c2107522980ac
 
 == fx-ps
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm ps
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND                CREATED                STATUS   NAMES
-  93e795038aa5   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-11-10T10:01:25Z   Up       ul356d
+  fbf2a416d518   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo detach...   2026-11-11T01:06:44Z   Up       ul356d
 
 == fx-logs
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356d
@@ -435,7 +435,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356c mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c echo created-hi; while :; do :; done
 exit              0
 output:
-  bb66927b099f602cbad5429f648e0cc51325b74609268884b79f4db098f86338
+  f4fba6907f8f315f8eeb3491836aec6a33a135e9e51798f899b9b8a61ddd462e
 
 == fx-start
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm start ul356c
@@ -448,7 +448,7 @@ command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wr
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND                CREATED                STATUS   NAMES
-  bb66927b099f   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-11-10T10:01:25Z   Up       ul356c
+  f4fba6907f8f   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   sh -c echo create...   2026-11-11T01:06:44Z   Up       ul356c
 
 == fx-logs2
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356c
@@ -496,7 +496,7 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --verbose mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sh -c read rel < /etc/alpine-release && echo "release=$rel"
 exit              0
 output:
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -518,8 +518,8 @@ output:
   podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): the /etc/resolv.conf of this host, 67 bytes
   podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
   release=3.20.10
 
@@ -559,7 +559,7 @@ output:
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   podvm: userland: running with --unsafe-host-paths: absolute guest paths resolve on the host with no PODVM_MAPS anchoring, and a write lands on the host tree (TODO/enter.md T-1407, T-1648)
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -580,8 +580,8 @@ output:
   podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): the /etc/resolv.conf of this host, 67 bytes
   podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
 
 == fx-grandchild
@@ -618,7 +618,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -650,14 +650,14 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-img:1 /hello.sh
 exit              126
 output:
-  6ea9724d736b: Extracted (1 entries, 0 whiteouts)
-  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_89292e2c68e2541ad533ce70eb592f129070014c9b9c05cd09db3178832170f2/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
+  2f95e72d0fde: Extracted (1 entries, 0 whiteouts)
+  podvm run: chroot(2) is denied on this machine, and no no-chroot family runs this payload: the payload /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_30927d5634c1c5927b5c951389df0f07c0b3fd61e86b90902649413a64637e52/rootfs/hello.sh is a #! script (#!/bin/sh), and its interpreter does not resolve inside the image: /bin/sh names no file in the image. podvm runs the interpreter of a script from the image only, never from the host (TODO/enter.md T-1413; TODO/cli.md T-1649). The probe's chroot leg reports the denial (see `podvm probe`) (TODO/enter.md T-1317)
 
 == fx-script-run
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm script-alpine:1 /hello.sh arg1
 exit              0
 output:
-  9ca8decfed58: Extracted (520 entries, 0 whiteouts)
+  53152fd57b3b: Extracted (520 entries, 0 whiteouts)
   script-hi /hello.sh arg1
 
 == fx-node-entry
@@ -718,7 +718,7 @@ output:
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm create --name ul356e mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc sleep 60
 exit              0
 output:
-  d5b31e5ded49505d2fa1f4ba8ff4e192a427b7a03b53fa423e8f745ecb8bf8a5
+  aa95faab09d4cc3e77cebba663337df993ca9762066864696c05c85bd1da6727
 
 == sane-exec
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm exec ul356e echo exec-ctr-hi
@@ -750,7 +750,7 @@ command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm 
 exit              0
 output:
   CONTAINER ID   IMAGE                                                                                                       COMMAND      CREATED                STATUS       NAMES
-  de346a36316f   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-11-10T10:01:59Z   Exited (0)   ul356fg
+  ff5d6358390b   mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc   echo fg-hi   2026-11-11T01:07:08Z   Exited (0)   ul356fg
 
 == sane-logs
 command           /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm logs ul356fg
@@ -944,7 +944,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -989,7 +989,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_e2b2e6c645719241ee25ed8f5e6c1f8cc6e5c41d9f5b1fd38d9940120f12957f/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -1012,10 +1012,10 @@ output:
   podvm: complete: created etc/hosts (hosts, T-0403): localhost
   podvm: complete: created etc/mtab (mtab, T-0405): it was absent. One line, made from the mount table of this host for the file system of the root
   podvm: complete: created etc/apt/apt.conf.d/99podvm (apt-sandbox, T-0407): APT::Sandbox::User root. This runtime does not map the _apt user
-  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/cert.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: rewrote etc/ssl/certs (ca-hash-dir, T-0412): 123 of the 123 roots that the host named are not in the CA directory of this image; one certificate for each file (podvm-host-ca-*.pem), 123 changed, 0 old one(s) removed. A hash-indexed CA directory is read by NAME, so they are invisible until `openssl rehash` links them. The trust of this host is then the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/cert.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs (ca-hash-dir, T-0412): 122 of the 122 roots that the host named are not in the CA directory of this image; one certificate for each file (podvm-host-ca-*.pem), 122 changed, 0 old one(s) removed. A hash-indexed CA directory is read by NAME, so they are invisible until `openssl rehash` links them. The trust of this host is then the trust of the container too
   podvm: complete: rewrote etc/apt/sources.list.d/debian.sources (source-scheme, T-0411): http:// -> https:// for snapshot.debian.org, deb.debian.org. The scheme only: the mirror of the image stays
   podvm: complete: step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` (ca-hash-dir, T-0412): /etc/ssl/certs is a hash-indexed CA directory, and OpenSSL finds a certificate there by the hash of its subject, so the roots that the crate wrote are invisible until they are linked. libzypp reads this directory and no CA file
   podvm: complete: 17 fixup(s) applied to this image's rootfs, 9 degraded, 0 failed, 1 step(s) to run inside it; libc=glibc. refused: These are edits podvm made inside somebody else's image and the payload can see them
@@ -1200,8 +1200,8 @@ output:
   podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1703)
   podvm run: --strict warning [capability]: a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
   bin
@@ -1238,8 +1238,8 @@ output:
   podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1703)
   podvm run: --strict warning [capability]: a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
   hi
@@ -1248,15 +1248,15 @@ output:
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --strict script-alpine:1 /bin/sh -c /hello
 exit              125
 output:
-  9ca8decfed58: Extracted (520 entries, 0 whiteouts)
+  53152fd57b3b: Extracted (520 entries, 0 whiteouts)
   podvm run: --strict warning [substitution]: the selected rung is `userland` and not `namespace`, so the payload shares this machine's process table, network, IPC and mount namespaces
   podvm run: --strict warning [substitution]: created dev/null (T-0401): mknod(2) refused with EPERM, so this is a regular file: a write stays until the next run, and a read gives EOF
   podvm run: --strict warning [substitution]: created dev/zero (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 zero bytes. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1703)
   podvm run: --strict, and this run is degraded in 1 safety-relevant way(s). podvm refuses rather than running and letting the payload discover them (TODO/cli.md T-0804, T-1415, T-1650):
     - [capability] a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651). This command hits it: `/hello` is a statically linked program of the image. The chroot rung runs this command on a host that permits chroot(2); this host has no rung that runs it yet (TODO/enter.md T-1651, T-1652)
@@ -1280,8 +1280,8 @@ output:
   podvm run: --strict warning [substitution]: created dev/random (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: created dev/urandom (T-0401): mknod(2) refused with EPERM, so this is a regular file of 1048576 bytes read one time from getrandom(2) of the host. It ENDS: a read after 1048576 bytes gives EOF, and the device does not
   podvm run: --strict warning [substitution]: rewrote etc/mtab (T-0405): it was a symlink to ../proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: rewrote etc/ssl/certs/ca-certificates.crt (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm run: --strict warning [substitution]: created etc/ssl/ca-bundle.pem (T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm run: --strict warning [capability]: a child that the payload starts through fexecve, through execveat with flags, or through system() or popen() inside libc, or a child ELF of another machine, does not enter through the image's loader: the kernel reads its loader or its #! interpreter on the host root (TODO/interpose.md T-1703)
   podvm run: --strict warning [capability]: a statically linked child keeps the direct exec, and a dynamic program can issue the syscall instruction itself (Go, liburing) instead of a call of libc: those raw syscalls pass the interposer, so their absolute paths resolve on the host and a write lands on the host tree; T-1648 refuses only a static top-level payload (TODO/enter.md T-1652, T-1651)
   10.9.9
@@ -1319,14 +1319,14 @@ node-app import   ok
 command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /app -e PATH=/usr/local/bin:/usr/bin:/bin -e HOME=/root -e npm_config_update_notifier=false node-app:1697 /bin/sh -c npm ci --no-audit --no-fund && npm test
 exit              0
 output:
-  56ecb6fc346a: Extracted (3586 entries, 0 whiteouts)
+  cb9d7db8e496: Extracted (3586 entries, 0 whiteouts)
   
   > p1697@1.0.0 postinstall
   > node -e "process.stdout.write(require('child_process').execSync('echo postinstall-child-ok').toString())"
   
   postinstall-child-ok
   
-  up to date in 542ms
+  up to date in 316ms
   
   > p1697@1.0.0 test
   > node test.js
@@ -1343,7 +1343,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -1366,8 +1366,8 @@ output:
   podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): the /etc/resolv.conf of this host, 67 bytes
   podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
   vol-in
 
@@ -1441,7 +1441,7 @@ output:
     the id has no mapping in this user namespace, which reads as a bad argument
     gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
     extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  podvm 0.2.0-beta.1: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
+  podvm 0.2.0-beta.2: mode=userland (namespaces: uts-only; mounts: none; devices: shimmed;
   ownership: virtualized+sidecar; network: host-shared; pids: host-shared)
   probes: clone(NEWNS)=ok mount=ok fsmount=ok move_mount=ok
           clone(NEWUTS)=ok sethostname=ok chroot=EPERM ptrace=ok
@@ -1465,9 +1465,40 @@ output:
   podvm: complete: created etc/resolv.conf (resolv.conf, T-0402): the /etc/resolv.conf of this host, 67 bytes
   podvm: complete: rewrote etc/hosts (hosts, T-0403): localhost
   podvm: complete: rewrote etc/mtab (mtab, T-0405): it was a symlink to /proc/mounts, and /proc is not mounted in the root, so the link does not resolve. The crate REPLACED the link and did not write through it: with an absolute target the write lands on the host. One line, made from the mount table of this host for the file system of the root
-  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
-  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (186636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: rewrote etc/ssl/certs/ca-certificates.crt (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
+  podvm: complete: created etc/ssl/ca-bundle.pem (ca-bundle, T-0407): the bundle of the host is APPENDED (184636 bytes, named in $SSL_CERT_FILE as /root/.ccr/ca-bundle.crt). The roots of the image stay, and a marker line names the added block. The trust of this host is now the trust of the container too
   podvm: complete: 13 fixup(s) applied to this image's rootfs, 7 degraded, 0 failed, 0 step(s) to run inside it; libc=musl. refused: These are edits podvm made inside somebody else's image and the payload can see them
   nx-data
+
+== fx-tier-chroot
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm --podvm-tier=chroot mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  podvm run: --podvm-tier takes machine, not "chroot": with no flag the ladder selects the rung, and `podvm system info --format '{{.EnteredRung}}'` names the rung that a run enters (TODO/cli.md T-1712)
+
+== fx-entered
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm system info --format {{.Rung}} {{.EnteredRung}}
+exit              0
+output:
+  namespace userland
+fixture rungs     namespace userland
+
+== fx-vol-proc
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -v /workspace/podvm/experiments/.sweep356-work/vol-host:/proc/x mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  podvm run: -v: the volume /workspace/podvm/experiments/.sweep356-work/vol-host:/proc/x: podvm never rewrites a path under /proc, so this volume would serve nothing
+
+== fx-vol-wd-missing
+command           unshare -Urm sh /workspace/podvm/experiments/.sweep356-work/wrap.sh /workspace/podvm/experiments/.sweep356-work /workspace/podvm/target/x86_64-unknown-linux-musl/debug/podvm run --rm -w /data/none -v /workspace/podvm/experiments/.sweep356-work/vol-host:/data mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc true
+exit              125
+output:
+  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
+  podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm: restore ownership with chown of etc/shadow (uid 0, gid 42): EINVAL
+    the id has no mapping in this user namespace, which reads as a bad argument
+    gid 42 is not mapped in this user namespace (/proc/self/gid_map: 0 0 1)
+    extract without ownership and record the intended ids; intended metadata recorded in /workspace/podvm/experiments/.sweep356-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
+  podvm run: the working directory "/data/none" in the volume /workspace/podvm/experiments/.sweep356-work/vol-host:/data is not a directory in the volume: docker creates it, and the entry refuses it instead
 
 verdict           NO-CHROOT FAMILY RUNS

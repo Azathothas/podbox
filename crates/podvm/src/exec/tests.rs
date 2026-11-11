@@ -99,10 +99,11 @@ fn a_flag_needing_a_value_does_not_swallow_the_image() {
     assert_eq!(parse(&v(&["-w"])).unwrap_err(), EXIT_FLAG_ERROR);
 }
 
-/// ⭐ TODO/machine.md T-1302, as in `run`: two tier values, and emulator
+/// ⭐ TODO/machine.md T-1302, as in `run`: one tier value, and emulator
 /// arguments that collect whole rather than splitting on whitespace.
+/// ⛔ TODO/cli.md T-1712: `chroot` is a flag error.
 #[test]
-fn the_tier_flag_takes_two_values_and_qemu_args_collect_whole() {
+fn the_tier_flag_takes_machine_only_and_qemu_args_collect_whole() {
     assert_eq!(
         parse(&v(&["--podvm-tier=machine", "img", "true"]))
             .unwrap()
@@ -110,10 +111,12 @@ fn the_tier_flag_takes_two_values_and_qemu_args_collect_whole() {
         Some(crate::tier::Want::Machine)
     );
     assert_eq!(
-        parse(&v(&["--podvm-tier", "chroot", "img", "true"]))
-            .unwrap()
-            .tier,
-        Some(crate::tier::Want::Chroot)
+        parse(&v(&["--podvm-tier", "chroot", "img", "true"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert_eq!(
+        parse(&v(&["--podvm-tier=chroot", "img", "true"])).unwrap_err(),
+        EXIT_FLAG_ERROR
     );
     assert_eq!(
         parse(&v(&["--podvm-tier=sandbox", "img", "true"])).unwrap_err(),
