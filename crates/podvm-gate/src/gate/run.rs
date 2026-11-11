@@ -412,6 +412,7 @@ pub(super) fn run_gate(root: &Path) -> i32 {
     check_perf_budget(&mut gate, root);
     check_document_state(&mut gate, root);
     check_findings(&mut gate, root);
+    check_pod_todo(&mut gate, root);
 
     let empty: Vec<String> = gate
         .seen

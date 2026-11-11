@@ -9,7 +9,8 @@ repository.workspace = true
 # The record gate as a binary. A behaviour-preserving port of the Python
 # reader half of the work-todo pair. Arguments are parsed by hand: the
 # reader takes none, and extras are ignored exactly as the script ignored
-# them. No dependencies; the standard library is the whole toolchain.
+# them. The one dependency is podcrates' `pod-todo`, which has none of its
+# own: check 35 runs its reader on the record (TODO/deps.md T-1680).
 
 [[bin]]
 name = "podvm-count"
@@ -60,3 +61,6 @@ path = "src/interpose_build.rs"
 [[bin]]
 name = "podvm-libc-interpose"
 path = "src/libc_interpose.rs"
+
+[dependencies]
+pod-todo = { git = "https://github.com/PodUtils/podcrates", tag = "v0.22.0" }

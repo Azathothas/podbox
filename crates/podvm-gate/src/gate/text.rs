@@ -79,6 +79,7 @@ impl Gate {
             "post_task_cleanup",
             "perf_budget",
             "findings",
+            "pod_todo",
         ];
         let mut seen = BTreeMap::new();
         for key in keys {
