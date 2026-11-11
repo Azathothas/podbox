@@ -7,7 +7,7 @@ start.
 
 ## State
 
-336 entries: 26 open, 8 partial, 3 blocked, 299 done.
+336 entries: 26 open, 7 partial, 3 blocked, 300 done.
 
 The state on 2026-11-11:
 
@@ -69,9 +69,9 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1652](enter.md) is done: a static x86_64 payload runs on the
    native-static rung (Syscall User Dispatch and `openat2(RESOLVE_IN_ROOT)`,
    experiment 356).
-4. [T-1651](enter.md): an `emulate` tier on a patched, fail-closed
-   qemu-user (issue 94). It comes after T-1652, which is the first choice
-   for a native static payload.
+4. [T-1651](enter.md) is done: `run --podvm-tier=emulate` runs a static
+   qemu-user of `PATH` on the native-static rung, also for an image of
+   another architecture (experiment 356, clause 36).
 5. [T-1604](enter.md), partial: the plant, a second lane run and the
    saved lane log of `detached_stdio`. No guest is necessary.
 6. [T-0211](image.md), partial: retarget the mutations of experiment 157

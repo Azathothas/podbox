@@ -1531,7 +1531,7 @@ Source:      issue 94; issue 114 section 3.1 and section 4;
 Category:    enter
 Priority:    P2
 Effort:      XL
-Status:      partial
+Status:      done
 
 Problem:     On a host that denies chroot, user namespaces, mount and
              ptrace, a static payload has no rung that keeps it inside
@@ -1573,6 +1573,17 @@ Prove:       `cargo test -p podvm` exits 0 with tests for the tier
              absent from the rootfs is refused and not read from the
              host, and `podvm probe` under the tier reports
              `measured_by.emulated` true.
+
+**Done 2026-11-11.** `cargo test -p podvm` exits 0 with the tests of the tier
+value (`--podvm-tier=emulate`) and of the emulator on `PATH`, and
+`PODVM_356_MIRROR=1 sh experiments/356-no-chroot-rung.sh` exits 0 on the
+cloud host ([the run](../experiments/results/no-chroot-rung.txt), verdict "NO-CHROOT FAMILY
+RUNS", qemu-user 8.2.2 of Ubuntu): in clause 36 `go version` of the golang
+image exits 0 under the tier with its banner, an arm64 alpine pipeline
+(`uname -m; cat /etc/alpine-release | tr . -`) exits 0 and prints `aarch64`,
+a file that only the host has is ENOENT and not read, and `podvm probe
+--json` as the payload reports `measured_by.emulated` true. The paragraph
+below has the design, which needs no patch of qemu.
 
 **Partial, 2026-11-11.** The design changes, and the Decision holds: qemu
 needs no patch. The emulator runs on the native-static rung (T-1652), so

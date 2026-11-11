@@ -10,7 +10,7 @@ They describe their recorded revision, not the current build.
 
 ### Added: the emulate tier, 2026-11-11
 
-Record: T-1651 (partial); issue 94.
+Record: T-1651; issue 94.
 Deployed: not deployed; no version change.
 
 - `run --podvm-tier=emulate` runs the payload under a static qemu-user of
