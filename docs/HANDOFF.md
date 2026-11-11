@@ -12,12 +12,11 @@ file when each step below is done.
   archive; never merge or delete it.
 * The owner resumed podvm on 2026-11-11 and answered Q1 to Q7
   (`docs/decisions.md`, rows of 2026-11-11). No question is open.
-* The newest release is `v0.2.0-beta.3` (2026-11-11, release run
-  42980701550 on c62643d). The workspace version is `0.2.0-beta.4` since
-  4d8a3e0e; the trial nightly run 43059674865 is green (T-1737), and the
-  release waits for a green gate on the head of `main`.
-  A release starts from `release.yml`; dispatch `nightly.yml` with
-  `trial=true` on `main` first.
+* The newest release is `v0.2.0-beta.4` (2026-11-11, release run
+  43071195857 on 5043e802; 42 assets with sums and sigstore bundles). A
+  release starts from `release.yml`; dispatch `nightly.yml` with
+  `trial=true` on `main` first. The take of podcrates `v0.25.0` (763b7c6a)
+  is after it.
 * Commit signing is off for this repository (`.claude/session-start.sh`,
   `docs/decisions.md`, "Commit signing"), so the stop hook of a cloud
   session asks for no rewrite of the author.
@@ -63,9 +62,8 @@ file when each step below is done.
 1. podvm takes podcrates `v0.24.0` (T-1679, T-1659 done; T-1658 partial).
    Next: the rest of T-1658 (the rungs with no chroot, `run -d`, `exec`),
    then `workerd-test` of T-1661, which needs the layer.
-2. Release `0.2.0-beta.4` when the gate on the head of `main` is green,
-   then tell podrunner that it carries T-1709, T-1725, T-1726 (its #62)
-   and T-1732.
+2. podrunner pins `v0.2.0-beta.4` (COORD-046); COORD-047 answers
+   podcrates' COORD-051 (the take of `v0.25.0`).
 3. Done on 2026-11-11 after the first handoff: T-1660, T-1668, T-1672,
    T-1659, T-1665, T-1673, T-1679, T-1680, T-1683, T-1684, T-1685, T-1735, T-1737, T-1732, T-1733, T-1734, T-1736; partial:
    T-1659, T-1661, T-1679. Defects fixed on the way: the hard links of a
