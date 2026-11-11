@@ -1626,7 +1626,7 @@ TCG guest 1.5x to 11.5x across four classes (T-1308).
 One harness under `experiments/` emitting
 machine-readable rows (commit, host, kernel, arch, qemu
 version, filesystem, network shape, metric, value,
-unit), with results in `experiments/results/perf-SHAPE.txt`
+unit), with results in a file perf-SHAPE.txt in `experiments/results/`
 and the exit contract 0 ok, 1 over budget, 2 could not
 run. Metrics are cold and warm wall time with peak RSS
 for probe, pull by tag and by digest, extract, store GC,
@@ -3504,7 +3504,7 @@ on entries a sibling task owns, T-1602 and T-1606. Both files stay
 unreadable to a fresh clone, but no pending work depends on them, and
 the record gate has never checked them: `CITE_PREFIXES` at
 `crates/podvm-gate/src/main.rs:195` lists `references`, `crates`,
-`experiments`, `scripts`, `docs` and `TODO`, and `find_bares` at `:497`
+`experiments`, `scripts`, `docs` and `TODO`, and `find_bares` at line 497 at `1a87b10dabcc`
 matches only after one of those prefixes, so `refactor/` is not a
 citation the gate resolves. The honest repair is to repoint each
 `Source:` at the tracked `Done` paragraph carrying the same evidence.
@@ -3720,16 +3720,16 @@ and the direction of the error matters.** `src/abi.rs` of `pod-enter` (PodUtils/
 carries 15 `#[test]` functions, counted with `grep -c "#\[test\]"`, and
 `:1168-1170` marks the first of them as check A of
 `experiments/results/interposer-abi.txt` in a predicate form. The plan
-wrote `:1170-1315` as the span, which is a range of lines, not a count of
+wrote lines 1170-1315 at `c36e0db672d2` as the span, which is a range of lines, not a count of
 tests. Corrected here: the conversion is 4 of 5 checks, as the entry
 says, and the module holds fifteen tests rather than seven.
 
 ⚠ **The plan's "check E has no test" clause is stale, and the record must
 say so rather than repeat it.** `PLAN.md:123` writes that
 `crates/podvm/src/system.rs:221` "holds 7 tests and none names
-`abi`". Measured on this tree 2026-10-02: `mod tests` opens at `:604`,
+`abi`". Measured on this tree 2026-10-02: `mod tests` opens at line 604 at `c36e0db672d2`,
 `grep -c "#\[test\]"` over the file returns 8, and
-`abi_reports_unreadable_refused_and_arity` at `:709` names `abi` and
+`abi_reports_unreadable_refused_and_arity` at line 709 at `c36e0db672d2` names `abi` and
 asserts all three exit codes of `system::abi` at `:191-214`: `2` for a
 file it cannot read at `:195`, `1` for a refusal at `:213`, and
 `EXIT_CLI_ERROR` for the wrong arity. So the three exit codes the plan
@@ -4033,10 +4033,10 @@ subjects the second workflow consumes.
 of subject, line, what runs there and what the port leaves: the interpose
 build at `:90`, the per-arch smoke at `:116`, SSH packaging at `:133` and
 release notes at `:204` of `.github/workflows/nightly.yml`. Only one of the
-four still names a script, `scripts/package-ssh.sh` at `:133`, so the
+four still names a script, `scripts/package-ssh.sh` at line 133 at `c36e0db672d2`, so the
 silent breakage is real but narrower than the `Problem` states and the
 record says so. It also records that every line number the plan gives is
-stale, `nightly.yml:84`, `:103`, `:112` and `:179` holding a step name, a
+stale, `nightly.yml:84`, line 103 at `c36e0db672d2`, line 112 at `c36e0db672d2` and line 179 at `c36e0db672d2` holding a step name, a
 comment, a `rustup target add` and a `podvm-*` loop today, a drift of 29
 lines. `grep -n "nightly" TODO/gate.md` returns 15 lines, exit 0, three
 of which are the mentions in this paragraph.
@@ -4047,15 +4047,15 @@ of which are the mentions in this paragraph.
 | subject | line | what runs there | what the port leaves |
 | --- | --- | --- | --- |
 | interpose build | `:90` | `./target/release/podvm-interpose-build` | already a binary; `scripts/build-interpose.sh` is what wave 4 replaces |
-| per-arch smoke | `:116` | `./target/release/podvm-smoke <triple> <qemu>` | already a binary; its tracked source is `crates/podvm-gate/src/smoke.rs` |
+| per-arch smoke | line 116 at `98112cb974e3` | `./target/release/podvm-smoke <triple> <qemu>` | already a binary; its tracked source is `crates/podvm-gate/src/smoke.rs` |
 | SSH packaging | `:133` | `sh scripts/package-ssh.sh <release> <arch> <qemu>` | a shell script still; the plan's repoint lands in the wave-5 release packaging work |
-| release notes | `:204` | `./dist/release-notes-x86_64 "$ref_name" > release-notes.txt` | already a binary, couriered from the x86_64 leg at `:129` |
+| release notes | line 204 at `c36e0db672d2` | `./dist/release-notes-x86_64 "$ref_name" > release-notes.txt` | already a binary, couriered from the x86_64 leg at `:129` |
 
 Two of the four are already ported on this tree, which the plan does not
 know: `podvm-interpose-build` and `podvm-smoke` are built by
 `cargo build -p podvm-gate --bin` at `:87` and `:113` and copied into
 `target/release/` at `:89` and `:115`. ⚠ **Only two of the four still
-name a script.** `scripts/package-ssh.sh` at `:133` is the one live
+name a script.** `scripts/package-ssh.sh` at line 133 at `c36e0db672d2` is the one live
 shell path among the four; the other three are binary calls. So the
 silent breakage the entry describes is real but narrower than the
 `Problem` states: a reader who repoints only `gate.yml` loses the SSH
@@ -4165,7 +4165,7 @@ vacuously", and its subject is `157`: the sed the plan quotes sits at
    `TODO/INDEX.md:271` and its binary carries the anchor as a literal,
    `const FORK_PATTERN` at
    `crates/podvm-release/src/prove_t0211.rs:28`, with a unit test
-   asserting the pattern still matches at `:604`.
+   asserting the pattern still matches at line 604 at `c36e0db672d2`.
    `experiments/157-lock-inheritance-prove.sh` is now a 28-line exec
    shim over that binary, and its own header at `:5-6` states the rule
    this entry is about: "The binary encodes the current anchors: the guard
@@ -4176,10 +4176,10 @@ vacuously", and its subject is `157`: the sed the plan quotes sits at
 a reader following it would edit the wrong file.** The plan quotes the
 sed from line 157 of the pre-port
 `experiments/157-lock-inheritance-prove.sh`, but that file is 28 lines
-long today and has no line 157; the sed the plan describes has been
+long today and has no line 157 at `c36e0db672d2`; the sed the plan describes has been
 replaced by the shim's `exec`. The plan was written against
 the pre-port script. The same drift affects `PLAN.md:141`, which quotes
-line 300 of the deleted `check-todo.py` script and names
+line 300 at `c36e0db672d2` of the deleted `check-todo.py` script and names
 `check_tree`; that script is gone, and the tracked equivalent
 now lives in the Rust gate rather than at any Python line.
 
@@ -4385,7 +4385,7 @@ useful to the next reader than a silent rewrite would be.
 | the orphan is unselectable by the proof and the watchdog | refuted | `experiments/lib/kvm-owned.sh:5-6` selects on `ps -eo pid,args` text and `scripts/windows/kvm-watchdog.py:108-121` on `/proc/PID/exe` plus `cmdline`; neither reads the parent |
 | the seam step swallows a non-zero exit and leaves `fail` untouched | refuted | `experiments/lib/kvm-guest-base.sh:191` calls `miss`, and `miss` sets `fail=1` at `:21` |
 | `scode=$?` is dead | confirmed | `experiments/lib/kvm-guest-base.sh:183`: `$?` inside `then` is the status of the `if` test, so `scode` is always 0 |
-| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:181` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50, where `== the podvm run seam` is followed directly by `== residue` |
+| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:181` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50 at `c36e0db672d2`, where `== the podvm run seam` is followed directly by `== residue` |
 | the orphan ran 8m43s with `commandline` and `parent` NULL in `/proc` | not verifiable | appears only in prose in this entry and in `docs/history/resume-before-2026-11-10.txt:90-94`; no result file under `experiments/results/` records it |
 
 The orphan survives for a reason the record did not name. The selectors
@@ -4870,7 +4870,7 @@ the interposer. The vendored tree records its upstream in
 
 Add `cargo fuzz` targets for the four parsers, and for the
 interposer's ELF reader when T-1646 lands. Add
-`.github/workflows/fuzz.yml` that runs each target for a fixed
+a workflow fuzz.yml in `.github/workflows/` that runs each target for a fixed
 time on a schedule and on dispatch, and uploads a crash input.
 Add a scheduled job that compares the vendored revision with
 upstream's default branch and opens nothing: it fails with the

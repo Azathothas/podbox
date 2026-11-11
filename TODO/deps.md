@@ -77,7 +77,7 @@ crate is under it or not.
 
 ## Prove
 
-`./experiments/110-bloat-delta.sh syscalls` exits 0 and writes `experiments/results/bloat-syscalls.txt`
+`./experiments/110-bloat-delta.sh syscalls` exits 0 and writes bloat-syscalls.txt in `experiments/results/`
 
 ## Correction
 
@@ -553,7 +553,7 @@ text to match rather than generate.
 
 ## Prove
 
-`./experiments/110-bloat-delta.sh cli-json-elf` exits 0 and writes `experiments/results/bloat-cli-json-elf.txt`
+`./experiments/110-bloat-delta.sh cli-json-elf` exits 0 and writes bloat-cli-json-elf.txt in `experiments/results/`
 
 ## Done
 
@@ -936,7 +936,7 @@ parses, and clause 5 reads the magic back and refuses to run a payload unless it
 is the full 40 hex characters.
 
 ⭐ **2026-09-09, the operator pointed at
-`pkgforge-dev/docker-archlinux`'s `.github/workflows/build-deploy.yml`, line 226
+`pkgforge-dev/docker-archlinux:.github/workflows/build-deploy.yml`, line 226
 onwards, as bearing on the `powerpc64le` blocker. It bears on a DIFFERENT
 blocker, and saying which is the finding.**
 
@@ -1261,7 +1261,7 @@ with the three stale values beside it.
 `TABLE` holds. The source reads **265**, and the plan carries the same
 figure with the same range (`refactor/06-entries/PLAN.md:190`). Measured
 on this tree: `TABLE` opens at `crates/podvm/src/parity.rs:119`
-and closes at `:537`, and 265 `Row {` literals lie between them.
+and closes at line 537 at `c36e0db672d2`, and 265 `Row {` literals lie between them.
 
 The three other values are readings, not sources, and each says when it
 was taken:

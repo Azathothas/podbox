@@ -2048,7 +2048,7 @@ clauses A to E, and
 `a_write_follows_a_directory_link_that_stays_inside` (`write.rs:779`)
 for clause F. The premise that the plan's row at
 `refactor/recon-c.md:110` is the whole conversion does not hold: the two
-library tests named at `refactor/01-audit/group-4.md:286` and `:288` are
+library tests named at `refactor/01-audit/group-4.md:286` and line 288 at `c36e0db672d2` are
 absent, and the reachability integration test asked for at
 `group-4.md:290` was never written. The record stands on that correction.
 The script is only partly converted, and the deletion stays blocked

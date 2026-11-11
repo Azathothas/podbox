@@ -1358,7 +1358,7 @@ clause's own comment says. Clauses 0 through 5 are the converted
 half: they read `podvm probe --json` and its stderr evidence, and
 their tests are
 `crates/podvm-probe/src/nongoals.rs:252-318` (five tests, `mod tests`
-at `:227`) and `crates/podvm-probe/src/report/tests.rs:312` and `:1087`.
+at `:227`) and `crates/podvm-probe/src/report/tests.rs:312` and line 1087 at `17569d355192`.
 The audit calls the clause a claim about a different script
 (`refactor/01-audit/group-9.md:117`), and the ledger keeps 149 at
 SPLIT and 361 at KEEP-SHELL
@@ -1387,7 +1387,7 @@ Rust fixture first, as its own wave-0-adjacent entry.
 
 ⚠ **One correction to the source above.** The plan's row for the
 `149` script at `refactor/06-entries/PLAN.md:124` cites
-`crates/podvm-supervise/src/nongoals.rs` <!-- known-absent --> with
+a file nongoals.rs in `crates/podvm-supervise/src/` <!-- known-absent --> with
 a line range. That path was never on disk.
 `crates/podvm-supervise/src/` holds `launcher.rs`, `lib.rs` and
 `table.rs` and no non-goals module. The tests are in
@@ -1400,15 +1400,15 @@ assert are hard-coded at `experiments/149-podvm-non-goals.sh:95-100`.
 `experiments/149-podvm-non-goals.sh:183-193` has no Rust arm while clauses
 0 through 5 are converted and tested at
 `crates/podvm-probe/src/nongoals.rs:252-318` and
-`crates/podvm-probe/src/report/tests.rs:312` and `:1087`. Clause 6 runs
+`crates/podvm-probe/src/report/tests.rs:312` and line 1087 at `17569d355192`. Clause 6 runs
 `experiments/361-guest-usernet.sh` under `timeout 1500` and owns that exit
 code alone, so the `149` script is not deletable. The fixture is a booting
 guest with UDP forwarding (`experiments/361-guest-usernet.sh:293-299`), no
-Rust test builds one, and T-1306 owns it: its Done record at line 606
+Rust test builds one, and T-1306 owns it: its Done record at line 606 at `98112cb974e3`
 built 361 and the ledger keeps 149 at SPLIT and 361 at KEEP-SHELL
 (`refactor/06-entries/verdict-ledger.tsv:15` and `:65`). One correction to
 the cited source: `refactor/06-entries/PLAN.md:124` names
-`crates/podvm-supervise/src/nongoals.rs` <!-- known-absent -->, a path
+a file nongoals.rs in `crates/podvm-supervise/src/` <!-- known-absent -->, a path
 never on disk. The
 proof is `grep -n "149-podvm-non-goals" TODO/machine.md`, now returning 9
 matching lines.

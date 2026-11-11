@@ -2090,7 +2090,7 @@ plan's word: `refactor/06-entries/PLAN.md:80-84` says nine members,
 `grep -c '^    "crates/' Cargo.toml` returns 13 at `Cargo.toml:4-16`, and
 there is one excluded crate at `Cargo.toml:24`, not six interpose members and
 not six excluded-crate proofs. The separate jobs are real. Four steps in
-`gate.yml:127-132`, `:193-196`, `:237-242` and `:260-263` reach the excluded
+`gate.yml:127-132`, lines 193-196 at `c36e0db672d2`, lines 237-242 at `c36e0db672d2` and lines 260-263 at `c36e0db672d2` reach the excluded
 crate by `--manifest-path`, and `crates/podvm-gate/src/dev.rs:55-69` mirrors
 them as `CHECK_STEPS`. The Prove is `grep -n "members" TODO/interpose.md`,
 which matches 9 lines now, 1 of them above this entry, and exits 0.
@@ -2193,9 +2193,9 @@ targets.
 
 **Done 2026-10-02.** No `rlib`, and the decision rests on the existing export check at
 `crates/podvm-gate/src/interpose_build/build.rs:186-202`, inside the per-target
-loop at `:790-797`. It compares `declared_exports` against `exported_symbols`
-for equality at `:508`, and the map declares 112 names. Check B, the
-`struct stat` and `struct statx` offsets at `:601-700`, needs `cc` and joins
+loop at lines 790-797 at `c36e0db672d2`. It compares `declared_exports` against `exported_symbols`
+for equality at line 508 at `c36e0db672d2`, and the map declares 112 names. Check B, the
+`struct stat` and `struct statx` offsets at lines 601-700 at `c36e0db672d2`, needs `cc` and joins
 the same binary. The Prove is `grep -n "interpose.map" TODO/interpose.md`,
 which matches 11 lines now, 7 of them above this entry, and exits 0. The
 plan's line reference at `refactor/06-entries/PLAN.md:102-105` is stale, so
@@ -2210,16 +2210,16 @@ obvious repair and it is the wrong one here.
 
 **The export check is already written, and it stands as the check.** It lives in
 `crates/podvm-gate/src/interpose_build/build.rs:186-202`, inside the per-target
-loop at `:790-797`, so it runs once for every target `TARGETS` names. The
-comparison is `declared_exports(&krate.join(MAP))` at `:501` against
-`exported_symbols(&so, root)` at `:506`. `declared_exports` parses
-`crates/podvm-interpose/interpose.map` (`:242-267`) and `exported_symbols`
-runs `nm -D --defined-only` and keeps the `T` fields (`:270-285`). The two
-lists are compared for equality at `:508`, not for containment, and the pass
-line prints the count (`:510-512`). A name in the map the object does not
+loop at lines 790-797 at `c36e0db672d2`, so it runs once for every target `TARGETS` names. The
+comparison is `declared_exports(&krate.join(MAP))` at line 501 at `c36e0db672d2` against
+`exported_symbols(&so, root)` at line 506 at `c36e0db672d2`. `declared_exports` parses
+`crates/podvm-interpose/interpose.map` (lines 242-267 at `98112cb974e3`) and `exported_symbols`
+runs `nm -D --defined-only` and keeps the `T` fields (lines 270-285 at `c36e0db672d2`). The two
+lists are compared for equality at line 508 at `c36e0db672d2`, not for containment, and the pass
+line prints the count (lines 510-512 at `c36e0db672d2`). A name in the map the object does not
 export is a silent non-interposition; a name the object exports that the map
 does not list is a symbol some other library in the payload's process resolves
-to podvm. The comment at `:494-500` states both halves.
+to podvm. The comment at lines 494-500 at `98112cb974e3` states both halves.
 
 **The map declares 112 names, and the check asserts that count against the
 object.** `awk '/global:/{g=1;next} /local:/{g=0} g && /;/{n++} END{print n}'

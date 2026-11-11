@@ -1221,7 +1221,7 @@ file the plan calls PRE-VC at `refactor/06-entries/PLAN.md:22-27`. T-1622 owns
 making it post-VC. Until that lands, the two files disagree by design and this
 entry is the one that says which is which.
 
-# T-1631: Record the `10`/`20`/`130` irreducible dependency as open, with T-1550
+# T-1631: Record the `10`/`20`/`130` irreducible dependency as open, beside its decision entry
 
 **Source:** `refactor/recon-c.md:178`;
   `refactor/06-entries/PLAN.md:174-177`; T-1619

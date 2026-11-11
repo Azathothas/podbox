@@ -1265,9 +1265,9 @@ corrected on both the verdict and the level. It is recorded as KEEP-SHELL
 and as a deployment proof, not a unit test, because the script tests podman's
 own `vfs.ignore_chown_errors` storage option and reaches it through
 `podman machine ssh "$MACHINE"` at `:75`. The Premise is confirmed from the
-script header: `experiments/95-podman-vfs-ignorechown.sh:19-21` says "Never
-2: this script runs where the session's engine host is", so no exit-2 path
-exists. The ignore described in `PLAN.md:187` belongs to a Rust port that was
+script header: `experiments/95-podman-vfs-ignorechown.sh:17-18` says that
+the script never exits 2, because it "runs where the session's engine host
+is", so no exit-2 path exists. The ignore described in `PLAN.md:187` belongs to a Rust port that was
 never written. `grep -rn "ignore_chown_errors" crates/` exits 1 and returns
 nothing. The `Prove` matches: `grep -c "95-podman-vfs-ignorechown"
 TODO/probe.md` prints 4, and each line names the KEEP-SHELL verdict or the

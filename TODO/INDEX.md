@@ -304,7 +304,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1628](interpose.md) | P1 | S | none | interpose | done | Record `162-tar-symlink-modes.sh` as retained, DELETE refuted by VC-2 |
 | [T-1629](probe.md) | P2 | S | none | probe | done | Record `95-podman-vfs-ignorechown.sh` as KEEP-SHELL, a deployment proof under VC-3 and VC-6 |
 | [T-1630](cli.md) | P1 | S | none | cli | done | The symlink-escape script is converted, and its deletion has a condition |
-| [T-1631](milestones.md) | P2 | S | none | milestones | done | Record the `10`/`20`/`130` irreducible dependency as open, with T-1550 |
+| [T-1631](milestones.md) | P2 | S | none | milestones | done | Record the `10`/`20`/`130` irreducible dependency as open, beside its decision entry |
 | [T-1632](gate.md) | P1 | S | none | gate | done | Record the 149-tree boundary against the 121 top-level figure |
 | [T-1633](deps.md) | P2 | S | none | deps | done | Record the 13-versus-3 `plant.sh` `Prove` discrepancy and which count is right |
 | [T-1634](image.md) | P1 | S | none | image | done | Record that `serve_once` is test-private and no fixture existed before T-1602 |
