@@ -11,8 +11,10 @@ start.
 
 The state on 2026-11-11:
 
-* The newest release is `v0.2.0-beta.2` (2026-11-10), the first release
-  with the name podvm (T-1671). A release starts from a dispatched
+* The newest release is `v0.2.0-beta.3` (2026-11-11), the beta that
+  podrunner asked for (PodUtils/podrunner#53). `v0.2.0-beta.2`
+  (2026-11-10) is the first release with the name podvm (T-1671). A
+  release starts from a dispatched
   `release.yml`. Dispatch `nightly.yml` with `trial=true` on `main` first.
 * podvm takes 11 crates of PodUtils/podcrates (`pod-core`, `pod-tls`,
   `pod-proxy`, `pod-term`, `pod-hostprobe`, `pod-supervise`, `pod-guest`,

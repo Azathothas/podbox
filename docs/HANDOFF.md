@@ -12,7 +12,9 @@ file when each step below is done.
   archive; never merge or delete it.
 * The owner resumed podvm on 2026-11-11 and answered Q1 to Q7
   (`docs/decisions.md`, rows of 2026-11-11). No question is open.
-* The newest release is `v0.2.0-beta.2` (2026-11-10). A release starts
+* The newest release is `v0.2.0-beta.3` (2026-11-11, release run
+  42980701550 on c62643d), the beta that podrunner asked for (issue 53 of
+  PodUtils/podrunner). A release starts
   from `release.yml`; dispatch `nightly.yml` with `trial=true` on `main`
   first.
 * podvm takes 11 crates of PodUtils/podcrates at `v0.19.0` (`9a11bbd`),
