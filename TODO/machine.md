@@ -1302,8 +1302,9 @@ as the only unit that serves an untrusted job. Five clauses are new.
 First, a guest can run with no network device and one host channel, a Unix
 socket on the host bridged to a guest port (a virtio-console or serial
 port; vsock where `/dev/vhost-vsock` opens), so a host broker is the only
-way out. Second, `--secret` files (T-1696) reach the guest's tmpfs, and no
-per-run archive on disk keeps them after the boot. Third, a volume on this
+way out. Second, the files that the caller stages for the guest (the
+credential of the runner, PodUtils/podrunner#6) reach the guest's tmpfs,
+and no per-run archive on disk keeps them after the boot. Third, a volume on this
 tier is read-only 9p or a block image where the caller asks for read-only.
 Fourth, `--timeout` and `rm -f` end the emulator, and no emulator stays
 after the run (`AGENTS.md`, section 2). Fifth, the report of T-1695 names
@@ -1312,7 +1313,8 @@ adds a guest that runs `--version` of a glibc .NET payload. The KVM leg
 runs where `/dev/kvm` opens (T-1682). The position of this entry in the
 work order stays as it is: if the owner answers DR-5 with "wait", this
 entry blocks the `untrusted` tier of podrunner, and its place is a
-question for the owner after DR-1 and DR-2.
+question for the owner when DR-5 is answered (DR-1 and DR-2 are yes since
+2026-11-11).
 
 ---
 

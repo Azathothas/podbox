@@ -7,9 +7,9 @@ start.
 
 ## State
 
-325 entries: 39 open, 8 partial, 4 blocked, 274 done.
+325 entries: 39 open, 8 partial, 3 blocked, 275 done.
 
-The state on 2026-11-10:
+The state on 2026-11-11:
 
 * The newest release is `v0.2.0-beta.2` (2026-11-10), the first release
   with the name podvm (T-1671). A release starts from a dispatched
@@ -24,27 +24,29 @@ The state on 2026-11-10:
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
   The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
   T-1682 gives them a hosted runner.
-* podcrates `v0.14.0` is the last tag and needs no podvm change
-  (PodUtils/podcrates#50). `v0.15.0` will carry the `pod-enter` change
-  of podcrates T-155; podvm takes it with [T-1716](enter.md).
-* PodUtils/podrunner is planned (the ruling "podrunner", 2026-11-10):
-  its issues are under PodUtils/podrunner#1; podvm's part is T-1704 to
-  T-1715 (issues 229 to 240); the crate asks are podcrates T-160 to T-165
-  and podnet T-229 to T-232. All wait for the owner's DR-1 and DR-2.
+* podcrates `v0.15.0` (2026-11-10) is the last tag. It carries the
+  `pod-enter` change of podcrates T-155 (PodUtils/podcrates#54); podvm
+  takes it with [T-1716](enter.md).
+* PodUtils/podrunner has a lead session since 2026-11-11 (the ruling
+  "podrunner online"): DR-1 and DR-2 are yes. Its issues are under
+  PodUtils/podrunner#1; podvm's part is T-1704 to T-1715 (issues 229 to
+  240); the crate asks are podcrates T-160 to T-165 and podnet T-229 to
+  T-232.
 
 Each partial entry names its remaining clauses. Each blocked entry names
 its blocker and the condition that clears it.
 
 ## Work order
 
-The owner paused podvm's own work on 2026-11-10
-([decisions](../docs/decisions.md), "podvm paused"). This order waits for
-the owner's word. Then take the first entry that is not done. Read its
-Prove before you start. Set its status with `podvm-count` in the same
-commit as the work.
+The owner resumed podvm's own work on 2026-11-11
+([decisions](../docs/decisions.md), "podvm resumes"). Take the first entry
+that is not done. Read its Prove before you start. Set its status with
+`podvm-count` in the same commit as the work.
 
-1. [T-1712](cli.md) and [T-1713](cli.md): `--podvm-tier=chroot` and
-   `.EnteredRung` give a wrong mechanism with exit 0 (issues 237, 238).
+1. [T-1716](enter.md): take podcrates `v0.15.0` and the `pod-enter`
+   change of T-155 (PodUtils/podcrates#52, #54). Then [T-1712](cli.md)
+   and [T-1713](cli.md): `--podvm-tier=chroot` and `.EnteredRung` give a
+   wrong mechanism with exit 0 (issues 237, 238).
 2. [T-1652](enter.md): a native-static rung with Syscall User Dispatch
    and `openat2(RESOLVE_IN_ROOT)` (issue 109).
 3. [T-1651](enter.md): an `emulate` tier on a patched, fail-closed
@@ -89,12 +91,10 @@ commit as the work.
 12. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
     release. [T-1406](podssh.md), partial, proves live-relay pairing
     after it. [T-1714](probe.md) waits for the schema of podcrates T-107.
-    [T-1716](enter.md) waits for the podcrates tag with T-155 (planned
-    `v0.15.0`); take it as soon as that tag exists.
 13. After podvm's own order (the owner's ruling "Priority",
     2026-11-09): the asks of cfb, [T-1694](cli.md); the podrunner part
     (issues 229 to 240), [T-1706](cli.md) (the official runner, after
-    T-1704, T-1705 and T-1707); [T-1695](cli.md) and [T-1696](cli.md);
+    T-1704, T-1705 and T-1707); [T-1695](cli.md);
     then [T-1711](cli.md) (the container-hook calls, after T-1655,
     T-1709 and T-1710); and the clauses of PodUtils/podcrates#39.
 

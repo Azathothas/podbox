@@ -972,7 +972,7 @@ container while its processes run, so the entry is P1.
 Source:      issue 240; the podrunner design review (the owner's design
              review of PodUtils/podcrates#47), its R1:1.6 and SPEC section 9.1;
              `src/table.rs` of `pod-supervise` (PodUtils/podcrates);
-             `crates/podvm-image/src/store.rs:253`; T-1696 (`--secret`);
+             `crates/podvm-image/src/store.rs:253`; T-1696 (`--secret`, dropped 2026-11-11);
              T-1708 (the same COORD batch)
 Category:    supervise
 Priority:    P2
@@ -999,8 +999,9 @@ Approach:    Create the store root and each container directory with mode
              to podcrates as a COORD issue, in one batch with T-1708; the
              store root is podvm's.
 Decision:    podvm keeps `env` in the record, because `exec` needs it, and
-             protects the file. A secret belongs in `--secret` (T-1696),
-             and the help of `-e` says so.
+             protects the file. A secret belongs in a file that the
+             caller stages (podrunner stages the credential of the
+             runner, PodUtils/podrunner#6), and the help of `-e` says so.
 Prove:       `cargo test -p podvm` exits 0 with tests that the store root
              is 0700 and the table is 0600 under umask 022.
 

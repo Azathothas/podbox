@@ -4022,6 +4022,18 @@ Prove:       `cargo fuzz run oci_manifest -- -max_total_time=60` and the
              other targets each exit 0 in the Linux lane, and `gh workflow
              run fuzz.yml` starts a run that exits green.
 
+**Amended 2026-11-11, by the owner's ruling "Fuzz targets"** (the answer to
+Q4). The four parsers of the Premise live in podcrates now (`pod-oci`,
+`pod-extract`, `pod-enter`), and podvm took them at the tag. Their fuzz
+targets go to podcrates as COORD-023 (issue 241). This entry keeps two
+parts. First, fuzz targets for the ELF and shebang reader of the
+interposer, which T-1646 added: `kind`, `interp_entry` and `shebang` in
+`crates/podvm-interpose/src/exec/head.rs`. Second, the watch of
+`vendor/`. The Prove reads `cargo fuzz run interpose_head --
+-max_total_time=60` and `cargo fuzz run interpose_shebang --
+-max_total_time=60` in place of the four targets, and `fuzz.yml` and the
+upstream watch as written.
+
 ---
 
 ### T-1685 A maintenance page and a development page in the sibling form

@@ -369,7 +369,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1693](packaging.md) | P2 | packaging | done | README and SECURITY name the last podbox tag that the verifier uses |
 | [T-1694](cli.md) | P2 | cli | open | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
 | [T-1695](cli.md) | P1 | cli | open | One JSON report for each run, and real labels on records |
-| [T-1696](cli.md) | P2 | cli | open | `--secret` places a file with no argv and no env, and a read-once mode |
+| [T-1696](cli.md) | P2 | cli | done | `--secret` places a file with no argv and no env, and a read-once mode |
 | [T-1697](interpose.md) | P1 | interpose | done | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
 | [T-1698](extract.md) | P0 | extract | done | A whiteout of `..` deletes outside the destination |
 | [T-1699](interpose.md) | P2 | interpose | done | `mkostemp` of a mapped template answers ERANGE, and npm prints a line for each cache entry |
@@ -389,11 +389,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1713](cli.md) | P1 | cli | open | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
 | [T-1714](probe.md) | P2 | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
 | [T-1715](supervise.md) | P2 | supervise | open | The container table keeps `-e` values in a file that other users can read |
-| [T-1716](enter.md) | P2 | enter | blocked | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
+| [T-1716](enter.md) | P2 | enter | open | Take the `pod-enter` change of podcrates T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 
 ## Counts
 
-325 items: 39 open, 8 partial, 4 blocked, 274 done.
+325 items: 39 open, 8 partial, 3 blocked, 275 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -404,9 +404,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 9 | 6 | 0 | 130 | 145 |
-| P2 | 30 | 1 | 4 | 71 | 106 |
+| P2 | 30 | 1 | 3 | 72 | 106 |
 | P3 | 0 | 0 | 0 | 9 | 9 |
-| **All** | **39** | **8** | **4** | **274** | **325** |
+| **All** | **39** | **8** | **3** | **275** | **325** |
 
 ## Work order
 

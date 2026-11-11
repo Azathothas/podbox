@@ -2101,7 +2101,7 @@ Source:      PodUtils/podcrates#52 (COORD-027, the answer to issue 226);
 Category:    enter
 Priority:    P2
 Effort:      S
-Status:      blocked
+Status:      open
 
 Problem:     podvm keeps its own volume rules in `podvm-enter`
              (`volume_maps`, `MAX_VOLUMES`, `NEVER_MAPPED`), while
@@ -2130,6 +2130,9 @@ Prove:       `cargo test --workspace` exits 0 with a test that a `-v`
 
 **Blocked 2026-11-10.** Blocker: no podcrates tag carries d8b77b5.
 Clears when: a podcrates tag (planned `v0.15.0`) carries podcrates T-155.
+
+**Unblocked 2026-11-11.** podcrates `v0.15.0` (`27a4ccd`) carries T-155
+(PodUtils/podcrates#54, COORD-029).
 
 **Filed 2026-11-10.** From COORD-027 (PodUtils/podcrates#52), the answer
 of podcrates to the two asks of issue 226 (T-1653).

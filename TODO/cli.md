@@ -2337,9 +2337,8 @@ Approach:    Keep each `--label KEY=VALUE` in the container record. Make
              argument vector, the exit status or the signal, the start
              and end times, the wall time, the CPU time and the peak
              resident set of the tree (T-1655), whether a timeout ended
-             the run, the limits applied, the labels, each degradation,
-             and for each secret (T-1696) its target and mode only. An
-             unknown value is `null`.
+             the run, the limits applied, the labels, and each
+             degradation. An unknown value is `null`.
 Decision:    The report goes to a file, never to standard output: that
              belongs to the payload. The report holds no value of an
              environment variable and no secret. One run writes one
@@ -2387,7 +2386,7 @@ Source:      A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
 Category:    cli
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done
 
 Problem:     A job needs a credential. Today a caller passes it with `-e`,
              which puts the value in the environment of the payload and
@@ -2437,6 +2436,15 @@ Prove:       `cargo test -p podvm` exits 0 with tests
              payload hold no byte of the value, with `once` a second read
              and a read from a child fail, and the staged file is gone
              after the run, also after a payload that exits 1.
+
+**Done 2026-11-11 by withdrawal: the owner dropped this entry (the ruling
+"T-1696 dropped", the answer to Q5).** No code was built and the Prove did
+not run. podvm has no `--secret` flag and no read-once mode. podrunner
+stages the three credential files of the official runner itself, at mode
+0600, with no argv and no environment, and removes them at `destroy` (G-03
+as DR-6 restates it, PodUtils/podrunner#6). The clauses of other entries
+that named `--secret` are corrected in place: T-1695 (the report),
+T-1715 (the store modes) and T-1656 (the guest's tmpfs).
 
 **Filed 2026-11-09.** From the asks A-V-11 (priority P2) and G-03 of
 PodUtils/podcrates#39 (COORD-015), a message from a peer session:

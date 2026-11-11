@@ -1,6 +1,6 @@
 # Resume
 
-The cold start of a session, on 2026-11-10. This page gives no work order:
+The cold start of a session, on 2026-11-11. This page gives no work order:
 [PROGRESS](PROGRESS.md) has the only one.
 
 ## Start
@@ -22,8 +22,8 @@ The cold start of a session, on 2026-11-10. This page gives no work order:
    The gate also runs `document-state` of `podvm-release`. Without that
    binary, it reports that `docs/runtime-state.md` differs.
 3. Read the questions for the owner in `docs/decisions.md`. Then take
-   item 1 of the work order in [PROGRESS](PROGRESS.md), when the owner
-   resumes podvm (the ruling "podvm paused").
+   the first entry of the work order in [PROGRESS](PROGRESS.md) that is
+   not done (the ruling "podvm resumes", 2026-11-11).
 
 ## Unfinished state
 
