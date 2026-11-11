@@ -9,11 +9,10 @@
 # A pid file is stale the moment a process dies unexpectedly, and the check
 # that clears a stale one is the race this closes.
 #
-# ⚠ WHAT THIS SCRIPT CANNOT YET DO. T-0204's Prove holds the lock with
-# `podvm run -d`, and `run` is M3 (TODO/milestones.md T-1104). The holder here
-# is `flock(1)`, which takes the same advisory lock on the same file, so the
-# refusal path is driven for real; what is not yet driven is podvm itself
-# holding it across its own exec. The entry stays `partial` for that half.
+# The holder here is `flock(1)`, which takes the same advisory lock on the
+# same file, so the refusal path is driven for real.
+# experiments/435-store-gc-podvm-holder.sh drives the same skip with podvm's
+# own detached payload as the holder, across its own exec (T-0204).
 #
 #   ./160-store-gc.sh
 #

@@ -79,7 +79,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-0201](image.md) | P0 | image | done | Registry client, HTTPS only, with no plain-HTTP fallback |
 | [T-0202](image.md) | P0 | image | done | A content-addressed store, and digest parity with docker |
 | [T-0203](image.md) | P0 | image | done | Check `statvfs` for blocks and inodes, and name the destination |
-| [T-0204](image.md) | P1 | image | partial | `images`, `rmi`, `tag`, and a store GC that cannot delete a running container's rootfs |
+| [T-0204](image.md) | P1 | image | done | `images`, `rmi`, `tag`, and a store GC that cannot delete a running container's rootfs |
 | [T-0205](image.md) | P3 | image | done | Re-test podman with `vfs` and `ignore_chown_errors` before repeating "no path exists" |
 | [T-0206](image.md) | P3 | image | done | A registry fixture, so the acceptance stops depending on somebody else's quota |
 | [T-0207](image.md) | P2 | image | done | Fetch layers with bounded concurrency, and measure what it buys |
@@ -404,7 +404,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-336 items: 26 open, 5 partial, 3 blocked, 302 done.
+336 items: 26 open, 4 partial, 3 blocked, 303 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -414,10 +414,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 2 | 4 | 0 | 142 | 148 |
+| P1 | 2 | 3 | 0 | 143 | 148 |
 | P2 | 22 | 0 | 3 | 87 | 112 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **26** | **5** | **3** | **302** | **336** |
+| **All** | **26** | **4** | **3** | **303** | **336** |
 
 ## Work order
 

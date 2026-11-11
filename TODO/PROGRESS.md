@@ -7,7 +7,7 @@ start.
 
 ## State
 
-336 entries: 26 open, 5 partial, 3 blocked, 302 done.
+336 entries: 26 open, 4 partial, 3 blocked, 303 done.
 
 The state on 2026-11-11:
 
@@ -76,9 +76,9 @@ that is not done. Read its Prove before you start. Set its status with
    lane log of `detached_stdio`.
 6. [T-0211](image.md) is done: experiment 157 plants each mutation in a
    copy of `pod_supervise::lock`, and each one turns exactly one test red.
-7. [T-0204](image.md), partial: a Prove that reads the lock skip
-   (`is in use by a running container`) with podvm as the holder. Then
-   [T-1709](image.md) (a rootfs for each container), on the same code.
+7. [T-0204](image.md) is done: experiment 435 reads the lock skip with
+   podvm's own payload as the holder. Next is [T-1709](image.md) (a rootfs
+   for each container), on the same code.
 8. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1654](cli.md) (profiles over the flags of T-1655),
    [T-1658](enter.md) and [T-1657](enter.md) (on T-1652),

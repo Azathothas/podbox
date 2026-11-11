@@ -1,0 +1,40 @@
+== conditions
+date              2026-11-11T11:14:37Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+image             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+== clause 1  the holder of the image lock is the payload
+  run -d exited 0  (want 0)
+  lock file         locks/d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc.lock
+  holders            29362:podvm run -d --name gc-probe mirror.gcr. 29436:sleep 120 
+
+== clause 2  with the record table, prune names the container
+    skipped: mirror.gcr.io/library/alpine:3.20 is referenced by container gc-probe
+    
+    Total reclaimed space: 0 B
+  prune exited 0  (want 0)
+
+== clause 3  with no record table, prune skips the held image
+    skipped: mirror.gcr.io/library/alpine:3.20 is in use by a running container
+    
+    Total reclaimed space: 0 B
+  prune exited 0  (want 0)
+
+== clause 4  with no record table, rmi refuses the held image
+    podvm rmi: store: mirror.gcr.io/library/alpine:3.20 is in use by a running container and was not removed. A GC that deletes an extraction out from under a payload makes its failure read as a missing file rather than as a concurrent deletion (TODO/image.md T-0204)
+  rmi exited 125  (want 125)
+
+== clause 5  after rm -f, prune deletes the image
+  rm -f exited 0  (want 0)
+    Deleted Images:
+    untagged: mirror.gcr.io/library/alpine:3.20
+    deleted: sha256:25f1d6b1951ac8eb3740558fe94cb83d377bdadf95fd9f98b50d2e1b96130471
+    deleted: sha256:bf8527eb54c3680e728d5b4b383a8ba730d72dae7236fbc8dff97ed6b224a731
+    deleted: sha256:c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e
+    deleted: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+    
+    Total reclaimed space: 3.5 MiB
+  prune exited 0  (want 0)
+
+verdict: PODVM HOLDS THE IMAGE LOCK ACROSS ITS EXEC, AND THE GC SKIPS IT

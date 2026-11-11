@@ -287,7 +287,7 @@ Source:      `TOOL.md` section 5 M1, section 6.8
 Category:    image
 Priority:    P1
 Effort:      M
-Status:      partial 2026-09-09
+Status:      done 2026-11-11
 
 Problem:     A GC that runs while a container is using an extraction deletes the
              tree out from under it, and the payload's failure names a missing
@@ -308,7 +308,29 @@ Approach:    Hold a lock fd on each in-use rootfs, inherited across the exec, an
 Decision:    An inheritable lock fd rather than a pid file. A pid file is stale
              the moment a process dies unexpectedly, and the check that clears a
              stale one is the race this is closing.
-Prove:       `podvm run -d --name gc-probe public.ecr.aws/docker/library/alpine:3.20 sleep 30 && podvm image prune -a -f 2>&1 | grep -q "is referenced by container gc-probe" && podvm inspect public.ecr.aws/docker/library/alpine:3.20 >/dev/null && podvm rm -f gc-probe`
+Prove:       `./experiments/435-store-gc-podvm-holder.sh` exits 0: with podvm's own detached payload as the holder and no record table, `image prune -a -f` prints `is in use by a running container` and `rmi` exits 125
+
+**Done 2026-11-11.** `PODVM_435_MIRROR=1
+./experiments/435-store-gc-podvm-holder.sh` exits 0
+(`experiments/results/store-gc-podvm-holder.txt`), on the cloud host
+(Linux 6.18).
+
+| clause | reading |
+| --- | --- |
+| 1, the holder | `run -d ... sleep 120`: the payload `sleep` holds the image lock fd after its exec; the podvm launcher holds the same open file description |
+| 2, with the record table | prune prints `is referenced by container gc-probe` and keeps the image |
+| 3, with no record table | prune exits 0, prints `skipped: ... is in use by a running container`, and keeps the image |
+| 4, with no record table | rmi exits 125, `is in use by a running container and was not removed` |
+| 5, the release | `rm -f gc-probe`, then prune deletes the 4 blobs |
+
+The old `Prove` read `is referenced by container gc-probe`, which is the
+record path, and it stayed green with the lock removed. The record check
+always answers first while a container runs, so the experiment moves the
+record table aside while the detached container runs. Only the lock that
+`Lock::hand_to_payload` gave to the payload can then stop the GC, and it
+does. The old `Prove` is clause 2. An orphan of the payload is not a holder
+to use: podvm ends the payload's descendants when the payload exits, and
+prune then deleted the image (measured on 2026-11-11).
 
 **Done 2026-09-09, in the two halves below.** `images`, `image ls`, `rmi`, `image rm`, `tag`,
 `image prune` and `inspect` are implemented in `crates/podvm/src/images.rs`
