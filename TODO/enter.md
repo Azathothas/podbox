@@ -2363,7 +2363,17 @@ kernel's arguments. The interposer's tests exit 0 (84, with the new test of
 the route). On the chroot-denied fixture of experiment 356, `sh -c 'go build
 -o h main.go && ./h'` in the golang image printed `g724-ok`, and nothing
 landed on the host (no `/tmp/g724`, no `/go`). The `--strict` gap of the loader family names
-this entry now. Remaining: `-v` on the rung, and the run of experiment 356
-with the two clauses of the Prove.
+this entry now.
+
+The volume, the same day: the handler reads the volume pairs of
+`PODVM_MAPS` at the entry, opens each host directory, and resolves a guest
+path under a volume with `openat2(VOLFD, REST, RESOLVE_IN_ROOT)`
+(`path::base_of`, `path::open_in`); a host path in a volume reads back as
+its guest path (`path::guest_of_host`, for `getcwd` and `/proc/self/fd`).
+`refuse_unserved` lets a volume through on the rung; `:ro` and
+`--read-only` stay refused by name (T-1655). On the fixture, a static probe
+read and wrote a file of `-v HOST:/data`, the write landed in HOST, and
+`-w /data` read back as `/data`. Remaining: the run of experiment 356 with
+clause 33.
 
 **Filed 2026-11-11.** From the measurement of T-1652.

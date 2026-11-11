@@ -16,8 +16,10 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   the host's, and `/proc/self/exe` names the guest program. Threads,
   `fork`, `vfork` and `execve` keep the rung; an `execve` of a dynamic
   program fails with `ENOEXEC`. A static child of a dynamic program on the
-  loader family enters the same rung through podvm (T-1724). The rung
-  takes no `-v` yet (T-1724). Where the kernel refuses the `prctl`, the payload
+  loader family enters the same rung through podvm (T-1724). A volume
+  (`-v HOST:GUEST`) is a host directory descriptor of the handler: a path
+  under GUEST resolves in HOST with `RESOLVE_IN_ROOT` there, so `..` stays
+  in the volume; `:ro` and `--read-only` are refused on the rung (T-1724). Where the kernel refuses the `prctl`, the payload
   refuses at 125, because its absolute paths would resolve on the host
   (T-1648). Under `--unsafe-host-paths` it runs from a staged memfd with
   the host root. It then reads its own exe as the staged memfd path, so a

@@ -65,6 +65,63 @@ pub fn strip_root(host: &[u8]) -> Option<&[u8]> {
     None
 }
 
+/// The descriptor that a guest path resolves under, and the index in
+/// `guest` where the rest begins: a volume with the longest guest prefix,
+/// else the root (TODO/enter.md T-1724).
+pub fn base_of(guest: &[u8]) -> (i64, usize) {
+    let mut best: Option<(&state::Vol, usize)> = None;
+    for v in state::vols() {
+        let g = v.guest.get();
+        let hit =
+            guest == g || (guest.len() > g.len() && guest.starts_with(g) && guest[g.len()] == b'/');
+        if hit && best.is_none_or(|(_, n)| g.len() > n) {
+            best = Some((v, g.len()));
+        }
+    }
+    match best {
+        Some((v, n)) => (v.fd.load(core::sync::atomic::Ordering::Relaxed), n),
+        None => (state::root_fd(), 0),
+    }
+}
+
+/// `openat2` of the guest path `buf[..n]` (a NUL at n) in the root or its
+/// volume, with `RESOLVE_IN_ROOT` at that directory.
+pub fn open_in(buf: &[u8], n: usize, flags: i64, mode: i64, resolve: u64) -> i64 {
+    let (fd, at) = base_of(&buf[..n]);
+    let rest = if at >= n { &b".\0"[..] } else { &buf[at..=n] };
+    sys::openat2(fd, rest, flags, mode, resolve | RESOLVE_IN_ROOT)
+}
+
+/// The guest path of a host path into `out`: under a volume's host side
+/// it is the volume's guest side and the rest; in the root it is the part
+/// after the root. None where the host path is in neither.
+pub fn guest_of_host(host: &[u8], out: &mut [u8]) -> Option<usize> {
+    let under = |h: &[u8], p: &[u8]| {
+        h == p || (h.len() > p.len() && h.starts_with(p) && h[p.len()] == b'/')
+    };
+    let mut best: Option<(&[u8], &[u8])> = None;
+    for v in state::vols() {
+        let hp = v.host.get();
+        if under(host, hp) && best.is_none_or(|(b, _)| hp.len() > b.len()) {
+            best = Some((hp, v.guest.get()));
+        }
+    }
+    let (prefix, rest): (&[u8], &[u8]) = match best {
+        Some((hp, gp)) => (gp, &host[hp.len()..]),
+        None => {
+            let g = strip_root(host)?;
+            (&[], g)
+        }
+    };
+    let total = prefix.len() + rest.len();
+    if total >= out.len() {
+        return None;
+    }
+    out[..prefix.len()].copy_from_slice(prefix);
+    out[prefix.len()..total].copy_from_slice(rest);
+    Some(total)
+}
+
 fn under_host(guest: &[u8]) -> bool {
     HOST.iter()
         .any(|p| guest.starts_with(p) && (guest.len() == p.len() || guest[p.len()] == b'/'))
@@ -87,12 +144,14 @@ pub fn target(dirfd: i64, path: &[u8], buf: &mut [u8; PATH_MAX]) -> Result<Targe
             return Ok(Target::Host);
         }
         let n = n as usize;
-        let Some(guest) = strip_root(&buf[..n]) else {
+        let Some(mut tmp) = crate::pool::Buf::get() else {
+            return Err(-sys::ENOMEM);
+        };
+        let t = tmp.buf();
+        let Some(glen) = guest_of_host(&buf[..n], &mut t[..]) else {
             return Ok(Target::Host);
         };
-        // The guest part is a suffix of buf: move it to the front.
-        let (g0, glen) = (n - guest.len(), guest.len());
-        buf.copy_within(g0..n, 0);
+        buf[..glen].copy_from_slice(&t[..glen]);
         let mut at = glen;
         if path.is_empty() {
             // AT_EMPTY_PATH: the directory itself.
@@ -137,7 +196,7 @@ pub fn open_path(dirfd: i64, path: &[u8], t: Target, buf: &[u8], follow: bool, d
             sys::openat2(dirfd, p, flags, 0, 0)
         }
         Target::HostAbs(n) => sys::openat2(AT_FDCWD, &buf[..=n], flags, 0, 0),
-        Target::Root(n) => sys::openat2(state::root_fd(), &buf[..=n], flags, 0, RESOLVE_IN_ROOT),
+        Target::Root(n) => open_in(buf, n, flags, 0, 0),
     }
 }
 
@@ -203,7 +262,7 @@ pub fn parent(t: Target, buf: &mut [u8; PATH_MAX], name: &mut [u8; 256]) -> Resu
     buf[plen] = 0;
     let flags = O_PATH | O_CLOEXEC | sys::O_DIRECTORY;
     let fd = if in_root {
-        sys::openat2(state::root_fd(), &buf[..=plen], flags, 0, RESOLVE_IN_ROOT)
+        open_in(&buf[..], plen, flags, 0, 0)
     } else {
         sys::openat2(AT_FDCWD, &buf[..=plen], flags, 0, 0)
     };

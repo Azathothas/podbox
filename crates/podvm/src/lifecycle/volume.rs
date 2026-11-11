@@ -109,6 +109,11 @@ pub fn refuse_unserved(
     if volumes.is_empty() {
         return Ok(());
     }
+    // ⭐ TODO/enter.md T-1724: the native-static rung maps each volume to a
+    // host directory descriptor of its handler.
+    if forced.is_none() && userland.is_some_and(|u| u.dispatch_exe.is_some()) {
+        return Ok(());
+    }
     let why = match (forced, userland.map(|u| u.family)) {
         (None, Some(Family::Loader)) => return Ok(()),
         (Some(mode), _) => format!(
@@ -121,8 +126,9 @@ pub fn refuse_unserved(
              the userland loader family serves a volume, where chroot is denied"
             .to_string(),
         (None, Some(Family::Memfd)) => "the memfd family runs a static payload with no \
-             interposer, so no path rewrite reaches it, until TODO/enter.md T-1652 maps \
-             a volume to a host directory descriptor"
+             interposer, so no path rewrite reaches it; the native-static rung \
+             (TODO/enter.md T-1652, T-1724) serves a volume where the kernel takes \
+             prctl(PR_SET_SYSCALL_USER_DISPATCH) and --unsafe-host-paths is absent"
             .to_string(),
     };
     refuse(verb, volumes, &why)

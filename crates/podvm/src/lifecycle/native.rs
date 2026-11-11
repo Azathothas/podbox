@@ -6,9 +6,9 @@
 //! It is the first choice for a native static payload where chroot is
 //! denied and the caller did not ask for host paths
 //! (`--unsafe-host-paths` keeps the memfd family). Where the kernel
-//! refuses the `prctl`, where the build is not x86_64, or where the run has
-//! a volume, the memfd family's rules hold (T-1648), and the refusal names
-//! the reason.
+//! refuses the `prctl` or the build is not x86_64, the memfd family's rules
+//! hold (T-1648), and the refusal names the reason. A volume (`-v`) maps to
+//! a host directory descriptor of the handler (T-1724).
 
 use super::*;
 use podvm_enter::ExitCode as _;
@@ -41,9 +41,6 @@ pub(super) fn decide(
     script_note: &str,
 ) -> Result<Userland, String> {
     podvm_dispatch::available()?;
-    if !maps.volumes().is_empty() {
-        return Err("a volume (-v) is not served on this rung yet (TODO/enter.md T-1724)".into());
-    }
     let root = maps.rootfs().to_string();
     let guest = f
         .resolved

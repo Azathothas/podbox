@@ -177,13 +177,7 @@ fn open(dirfd: i64, p: i64, flags: i64, mode: i64) -> i64 {
             if f & sys::O_PATH != 0 {
                 f &= sys::O_PATH | sys::O_DIRECTORY | sys::O_NOFOLLOW | sys::O_CLOEXEC;
             }
-            sys::openat2(
-                crate::state::root_fd(),
-                &buf[..=n],
-                f,
-                mode,
-                sys::RESOLVE_IN_ROOT,
-            )
+            path::open_in(buf, n, f, mode, 0)
         }
     }
 }
@@ -220,10 +214,14 @@ fn readlink(dirfd: i64, p: i64, out: i64, size: i64) -> i64 {
                 return r;
             }
             let h = &host[..r as usize];
-            if crate::procself::is_self_link(g)
-                && let Some(guest) = path::strip_root(h)
-            {
-                return copy_out(guest, out, size, false);
+            if crate::procself::is_self_link(g) {
+                let Some(mut gb) = crate::pool::Buf::get() else {
+                    return -sys::ENOMEM;
+                };
+                let gbuf = gb.buf();
+                if let Some(gn) = path::guest_of_host(h, &mut gbuf[..]) {
+                    return copy_out(&gbuf[..gn], out, size, false);
+                }
             }
             copy_out(h, out, size, false)
         }
@@ -258,7 +256,14 @@ fn getcwd(out: i64, size: i64) -> i64 {
         return r;
     }
     let h = &host[..r as usize];
-    copy_out(path::strip_root(h).unwrap_or(h), out, size, true)
+    let Some(mut gb) = crate::pool::Buf::get() else {
+        return -sys::ENOMEM;
+    };
+    let gbuf = gb.buf();
+    match path::guest_of_host(h, &mut gbuf[..]) {
+        Some(gn) => copy_out(&gbuf[..gn], out, size, true),
+        None => copy_out(h, out, size, true),
+    }
 }
 
 fn chdir(p: i64) -> i64 {

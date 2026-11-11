@@ -135,6 +135,11 @@
 #   29. the loader's paths (T-1705): a program of a debian image opens the
 #      path that dladdr gives for its own library (a host path under the
 #      rootfs, from the loader) at 0, and the path is not prefixed again.
+#   33. the native-static rung for a child and a volume (T-1724): the
+#      golang image's dynamic sh runs `go build` and the program it built,
+#      with the output in the rootfs and nothing on the host; a static
+#      payload on the rung reads and writes a file of a -v volume, and its
+#      working directory in the volume reads back as the guest path.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could
 # not run (no toolchain, no build, no pull, no namespaces).
@@ -968,6 +973,29 @@ if zig cc -target x86_64-linux-musl -shared -fPIC -Wl,-soname,libt1719.so -o "$L
 	grep -qx "lib-42" "$WORK/out-fx-libdir-glibc.txt" || { echo "a library of ld.so.conf.d was not found" >>"$REPORT"; fail=1; }
 else
 	echo "the probes of clause 32 did not build" >>"$REPORT"; fail=1
+fi
+
+# Clause 33 (T-1724): a static child of the loader family, and a volume,
+# on the native-static rung. The probe is the static test payload of
+# podvm-dispatch, which the build above made.
+rm -rf /tmp/g724 /go
+step fx-go-child 0 $FX "$PB" run --name g724 "$GOLANG" sh -c 'mkdir -p /tmp/g724 && cd /tmp/g724 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g724-ok\") }\n" > main.go && GOTOOLCHAIN=local go build -o h main.go && ./h'
+grep -qx "g724-ok" "$WORK/out-fx-go-child.txt" || { echo "go build under sh did not run its program" >>"$REPORT"; fail=1; }
+{ [ -e /tmp/g724 ] || [ -e /go ]; } && { echo "go build under sh wrote on the host" >>"$REPORT"; fail=1; }
+$FX "$PB" rm g724 >/dev/null 2>&1
+V7="$WORK/vol724"; rm -rf "$V7" "$WORK/img724"; mkdir -p "$V7" "$WORK/img724/etc" "$WORK/img724/tmp"
+echo invol >"$V7/f"
+if cp "$REPO/target/x86_64-unknown-linux-musl/debug/podvm-dispatch-probe" "$WORK/img724/probe" &&
+	(cd "$WORK/img724" && tar -cf "$WORK/img724.tar" .) && "$PB" import "$WORK/img724.tar" probe724:1 >/dev/null 2>>"$REPORT"; then
+	step fx-vol-native-read 0 $FX "$PB" run --rm --verbose -v "$V7:/data" probe724:1 /probe cat /data/f
+	grep -qx "invol" "$WORK/out-fx-vol-native-read.txt" || { echo "a static payload did not read its volume" >>"$REPORT"; fail=1; }
+	grep -q "native-static rung" "$WORK/out-fx-vol-native-read.txt" || { echo "the volume run was not on the native-static rung" >>"$REPORT"; fail=1; }
+	step fx-vol-native-write 0 $FX "$PB" run --rm -v "$V7:/data" probe724:1 /probe write /data/a w724 /data/b
+	grep -qx "w724" "$V7/b" 2>/dev/null || { echo "a write of a static payload did not land in the volume" >>"$REPORT"; fail=1; }
+	step fx-vol-native-cwd 0 $FX "$PB" run --rm -w /data -v "$V7:/data" probe724:1 /probe cwd
+	grep -qx "/data" "$WORK/out-fx-vol-native-cwd.txt" || { echo "the working directory in a volume did not read back as /data" >>"$REPORT"; fail=1; }
+else
+	echo "the probe image of clause 33 did not build" >>"$REPORT"; fail=1
 fi
 
 {

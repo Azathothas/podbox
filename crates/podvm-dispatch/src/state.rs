@@ -73,3 +73,27 @@ pub static BRK_END: AtomicUsize = AtomicUsize::new(0);
 pub fn root_fd() -> i64 {
     ROOT_FD.load(Ordering::Relaxed)
 }
+
+/// TODO/enter.md T-1724. The volumes of the run: a guest prefix, the host
+/// directory, and an `O_PATH` descriptor of it, from `PODVM_MAPS`.
+pub const MAX_VOLS: usize = 16;
+
+pub struct Vol {
+    pub guest: Fixed,
+    pub host: Fixed,
+    pub fd: AtomicI64,
+}
+
+#[allow(clippy::declare_interior_mutable_const)]
+const NO_VOL: Vol = Vol {
+    guest: Fixed::new(),
+    host: Fixed::new(),
+    fd: AtomicI64::new(-1),
+};
+pub static VOLS: [Vol; MAX_VOLS] = [NO_VOL; MAX_VOLS];
+pub static NVOLS: AtomicUsize = AtomicUsize::new(0);
+
+/// The volumes that are set.
+pub fn vols() -> &'static [Vol] {
+    &VOLS[..NVOLS.load(Ordering::Acquire).min(MAX_VOLS)]
+}

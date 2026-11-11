@@ -24,6 +24,8 @@ Deployed: not deployed; no version change.
 - A static child of a dynamic program on the loader family (`go build`
   under `sh`) enters the native-static rung through podvm, where it wrote
   on the host's root before (T-1724).
+- A volume (`-v HOST:GUEST`) serves a static payload on the native-static
+  rung; `:ro` and `--read-only` are refused there by name (T-1724).
 
 ### Added: run on an incusd, 2026-11-11
 
