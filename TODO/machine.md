@@ -1526,7 +1526,7 @@ Source:      PodUtils/podcrates#56 (COORD-031, the owner's word relayed:
 Category:    machine
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done
 
 Problem:     podvm has no incus back end. incus runs system containers
              and virtual machines through one REST API on a local Unix
@@ -1578,6 +1578,21 @@ Prove:       A new page `incus.md` under `docs/` names each route with
              `experiments/` exits 0 (or 2 with the missing precondition
              named) and saves its run under `experiments/results/`.
 
+**Done 2026-11-11.** [The page](../docs/incus.md) names each route with
+its preconditions, its measured cost and its source, and gives the form of
+T-1718. `sh experiments/433-incus-rootless.sh` (with
+`PODVM_433_MIRROR=1`) exits 0 on the cloud host as root, which is the
+one preparation of route A ([the run](../experiments/results/incus-rootless.txt)):
+incusd 6.0.0 runs as root of a user's own user namespace with the `lxc`
+driver; an alpine 3.21 system container runs `/sbin/init` as an id of the
+user's range; rootless incus runs the busybox workloads at 0.6 to 0.9
+times podvm's userland rung (spawn 100 against 150 ms, files 450 against
+730, cpu 1310 against 1510); a new instance takes about 0.4 to 0.5 s and
+`exec` 48 ms; podvm's extracted OCI image imports as a unified tarball and
+launches with its command as PID 1 (`lxc.init.cmd`) and its files owned by
+root; nothing of the user or its id range stays. errand-box is reference
+issue 251. The incus VM driver was not tried: no `/dev/kvm` here.
+
 **Filed 2026-11-11.** From the owner's ask relayed by COORD-031 and the
 owner's answer in the session of 2026-11-11.
 
@@ -1590,7 +1605,7 @@ Source:      PodUtils/podcrates#56 (COORD-031); the owner's answer of
 Category:    machine
 Priority:    P2
 Effort:      XL
-Status:      blocked
+Status:      open
 
 Problem:     The owner asks that podvm support incus or have an adapter
              for it, "since it seems to be best of both microvms &
@@ -1618,3 +1633,10 @@ Prove:       `cargo test --workspace` exits 0 with tests of the client
 
 **Blocked 2026-11-11.** Blocker: T-1717 (the study gives the route).
 Clears when: T-1717 is done and names the route.
+
+**Unblocked 2026-11-11.** T-1717 is done. The route is A of
+[the page](../docs/incus.md): podvm drives an incusd of the user's own
+namespace (the host's package, prepared by root one time), imports its own
+OCI pulls as unified tarballs, and names the image's command with
+`lxc.init.cmd`. The page gives the map of the verbs and what the first
+back end refuses (`-p`: no network in the namespace).

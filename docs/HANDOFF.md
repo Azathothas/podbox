@@ -39,7 +39,7 @@ file when each step below is done.
 ## Next steps, in order
 
 1. The work order of `TODO/PROGRESS.md`: item 2 (T-1656, the KVM legs on
-   the runner of `kvm.yml`, T-1717, T-1718) is next. T-1719 and T-1682
-   are done. T-1716, T-1712, T-1713, T-1704, T-1705, T-1708, T-1715, T-1655,
+   the runner of `kvm.yml`, T-1718) is next. T-1719, T-1682 and T-1717
+   are done; `docs/incus.md` gives the form of T-1718. T-1716, T-1712, T-1713, T-1704, T-1705, T-1708, T-1715, T-1655,
    T-1653, T-1720, T-1703, T-1710, T-1707 and T-1706 are done on
    2026-11-11.

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-329 entries: 26 open, 8 partial, 4 blocked, 291 done.
+329 entries: 26 open, 8 partial, 3 blocked, 292 done.
 
 The state on 2026-11-11:
 
@@ -54,8 +54,8 @@ that is not done. Read its Prove before you start. Set its status with
    runner.
    Then the KVM legs on a host with `/dev/kvm`: [T-1641](gate.md),
    [T-1350](gate.md) and [T-1112](milestones.md), in one bounded run.
-   Then [T-1717](machine.md) (the incus study) and [T-1718](machine.md)
-   (the incus back end).
+   Then [T-1718](machine.md) (the incus back end, in the form that the
+   study T-1717 gives: [incus without root](../docs/incus.md)).
 3. [T-1652](enter.md): a native-static rung with Syscall User Dispatch
    and `openat2(RESOLVE_IN_ROOT)` (issue 109).
 4. [T-1651](enter.md): an `emulate` tier on a patched, fail-closed

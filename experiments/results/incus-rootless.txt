@@ -1,0 +1,60 @@
+== conditions
+date              2026-11-11T06:48:15Z
+host kernel       Linux 6.18.44-fc-v378
+cgroup            tmpfs
+incus package     6.0.0-1ubuntu0.3
+image             https://images.linuxcontainers.org/images/alpine/3.21/amd64/default/20261109_13:00
+OCI               mirror.gcr.io/library/alpine@sha256:bc21487101ae47172509130ee1092cc273a831968d64b617776d1f69c81e42ab
+runs              5
+
+== 1. incusd as root of the user's namespace
+  uid_map  0 30033 1; 1 2000000000 100000000;
+  time="2026-11-11T06:48:18Z" level=warning msg="AppArmor support has been disabled because of lack of kernel support"
+  time="2026-11-11T06:48:18Z" level=warning msg=" - AppArmor support has been disabled, Disabled because of lack of kernel support"
+  time="2026-11-11T06:48:18Z" level=warning msg=" - Couldn't find the CGroup blkio.weight, disk priority will be ignored"
+  time="2026-11-11T06:48:18Z" level=warning msg="Instance type not operational" driver=qemu err="KVM support is missing (no /dev/kvm)" type=virtual-machine
+  time="2026-11-11T06:48:18Z" level=warning msg="Failed to initialize fanotify, falling back on inotify" err="Failed to watch directory \"/dev\": operation not permitted"
+  time="2026-11-11T06:48:18Z" level=warning msg="Failed to update instance types: Get \"https://images.linuxcontainers.org/meta/instance-types/.yaml\": proxyconnect tcp: Unable to connect to: 127.0.0.1:44541 ([dial tcp 127.0.0.1:44541: connect: network is unreachable])"
+  time="2026-11-11T06:48:18Z" level=error msg="Failed updating instance types" err="Get \"https://images.linuxcontainers.org/meta/instance-types/.yaml\": proxyconnect tcp: Unable to connect to: 127.0.0.1:44541 ([dial tcp 127.0.0.1:44541: connect: network is unreachable])"
+    driver: lxc
+    server_version: 6.0.0
+    storage_supported_drivers:
+
+== 2. an instance
+  PID 1           init
+  its uid on host 2000999999
+  
+  The instance you are starting doesn't have any network attached to it.
+    To create a new network, use: incus network create
+    To attach a network to an instance, use: incus network attach
+  
+
+== 3. busybox workloads, median ms of 5 (podvm rung: userland)
+  load        incus    podvm
+  spawn         100      150
+  files         450      730
+  cpu          1310     1510
+
+== 4. the life of an instance, median ms of 5
+  incus launch       491
+  incus exec true    48
+  incus delete       647
+  incus start        126 (one stopped instance)
+  podvm run --rm     849
+
+== 5. the OCI image as an incus instance
+  tar, import, launch ms  595
+  PID 1                   /bin/sleep 300 
+  owner of /etc/passwd    0:0
+  Image imported with fingerprint: 8653eedb99bec469c73b9678a783a28c6e777c1f47ade99473354a35edc50110
+  
+  The instance you are starting doesn't have any network attached to it.
+    To create a new network, use: incus network create
+    To attach a network to an instance, use: incus network attach
+  
+
+== 6. cleanup
+  processes of podvm433 and its range  0
+  state            gone
+
+verdict           INCUS RUNS WITHOUT ROOT AT RUN TIME
