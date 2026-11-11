@@ -21,6 +21,7 @@ pub const NAMES: &[&str] = &[
     "node-permission",
     "deno-permissions",
     "bun-runtime",
+    "errand",
 ];
 
 /// The text of a built-in profile.
@@ -140,6 +141,21 @@ extends = "workspace"
 leaves_out = ["a shell: sh -c refuses by name; a static program of /workspace runs"]
 [fs]
 image = "gcr.io/distroless/static-debian12"
+"#
+        }
+        "errand" => {
+            r#"description = "the policy of errand's bailey backend (issue 170): the confine layer with bailey's read list and devices, /tmp writable"
+extends = "default"
+confine = true
+leaves_out = [
+  "the project at /workspace and the state at /state: -v needs the userland rung, which takes no confine layer yet (TODO/enter.md T-1658)",
+  "bailey's built environment (only PATH, LANG, LC_ALL, TERM, HOME, XDG_*)",
+  "bailey's egress per port: TCP is free unless net.ports names the ports",
+  "file_max, tmp_size and shm_size",
+]
+[fs]
+read = ["?/etc/ld.so.cache", "?/etc/ld.so.conf", "?/etc/ld.so.conf.d", "?/etc/ssl", "?/etc/ca-certificates", "?/etc/pki", "?/etc/nsswitch.conf", "?/etc/services", "?/etc/protocols", "?/etc/alternatives", "?/etc/passwd", "?/etc/group"]
+write = ["?/tmp", "?/dev/full", "?/dev/tty"]
 "#
         }
         "node-shell" => {

@@ -54,7 +54,8 @@ that is not done. Read its Prove before you start. Set its status with
    scope entries of step 2.
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1658](enter.md) (partial: the rungs with no chroot,
-   the report of T-1695 and the `errand` profile remain); [T-1667](cli.md) (partial:
+   `/tmp` on the namespace rung (COORD-048, issue 267) and the report of
+   T-1695 remain); [T-1667](cli.md) (partial:
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they

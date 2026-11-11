@@ -7,7 +7,10 @@
 //! optional, each path a guest path. `read` gives read access, `write`
 //! read and write, `exec` read and execute. `connect` holds a TCP connect
 //! to the listed ports (Landlock ABI 4); with no `connect`, TCP is free.
-//! Each path that no rule names is denied.
+//! Each path that no rule names is denied. A path written `?/P` is
+//! optional: it gets no rule where the image lacks it (a profile for many
+//! images, as `errand`); a path without `?` that the image lacks is a
+//! refusal by name.
 //!
 //! The spec adds the paths that a program needs to start: read and
 //! execute of the system directories of the image that exist (`/bin`,
@@ -59,7 +62,7 @@ pub fn parse(spec: &str) -> Result<Ask, String> {
                     _ => &mut a.exec,
                 };
                 for p in items {
-                    if !p.starts_with('/') {
+                    if !p.trim_start_matches('?').starts_with('/') {
                         return Err(format!("the path {p:?} of {key} is not absolute"));
                     }
                     list.push(p.to_string());
@@ -119,14 +122,15 @@ pub fn spec(ask: &Ask, exists: &dyn Fn(&str) -> bool) -> Spec {
     for p in SYSTEM_WRITE.iter().filter(|p| exists(p)) {
         s = s.allow(*p, rw);
     }
-    for p in &ask.read {
-        s = s.allow(p.clone(), Access::READ);
-    }
-    for p in &ask.write {
-        s = s.allow(p.clone(), rw);
-    }
-    for p in &ask.exec {
-        s = s.allow(p.clone(), rx);
+    // `?/P` is optional: no rule where the image lacks P.
+    let wanted = |p: &String| match p.strip_prefix('?') {
+        Some(o) => exists(o).then(|| o.to_string()),
+        None => Some(p.clone()),
+    };
+    for (list, access) in [(&ask.read, Access::READ), (&ask.write, rw), (&ask.exec, rx)] {
+        for p in list.iter().filter_map(wanted) {
+            s = s.allow(p, access);
+        }
     }
     s.connect = ask.connect.clone();
     s
@@ -202,6 +206,18 @@ mod tests {
         assert!(tool.access.contains(Access::EXECUTE));
         assert_eq!(s.connect, Some(vec![443]));
         assert!(!s.deny.is_empty(), "the default deny list of pod-confine");
+    }
+
+    #[test]
+    fn an_optional_path_gets_a_rule_only_where_the_image_has_it() {
+        let a = parse("read=?/etc/ssl,?/etc/pki,/etc/passwd").unwrap();
+        let s = spec(&a, &|p| p != "/etc/pki");
+        let paths: Vec<&str> = s.paths.iter().map(|r| r.path.as_str()).collect();
+        assert!(paths.contains(&"/etc/ssl") && paths.contains(&"/etc/passwd"));
+        assert!(!paths
+            .iter()
+            .any(|p| p.contains("pki") || p.starts_with('?')));
+        assert!(parse("read=?etc").is_err());
     }
 
     #[test]

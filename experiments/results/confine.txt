@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T21:07:39Z
+date              2026-11-11T21:20:17Z
 host kernel       Linux 6.18.44-fc-v378
 podvm             podvm 0.2.0-beta.4
 rung              namespace
@@ -35,5 +35,9 @@ listeners         127.0.0.1:A and 127.0.0.1:B
 
 == clause 5  run -d and exec take the layer of the record
   run -d: exit 0; d-shadow=1 e-shadow=1 
+
+== clause 6  the built-in profile errand (bailey's policy of issue 170)
+  probe: nonewprivs=ALLOW:1 seccomp=ALLOW:2 unshare-user=DENY:EPERM mount-tmpfs=DENY:EPERM bpf=DENY:EPERM keyctl=DENY:EPERM 
+  run:   list=1 shadow=1 
 
 verdict: THE CONFINE LAYER HOLDS THE PAYLOAD, AND EACH CASE WITH NO MECHANISM REFUSES BY NAME

@@ -2521,10 +2521,23 @@ chroot and refuses it by name elsewhere. Experiment 414 clause 5 (exit 0):
 the detached payload and an `exec` into it both fail to read
 `/etc/shadow`, and the `exec` reads `/etc/passwd`.
 
+The built-in profile `errand` carries bailey's policy of issue 170:
+`confine = true`, bailey's read list (the ld.so files, the CA stores,
+`nsswitch.conf`, `services`, `protocols`, `/etc/alternatives` of F4,
+`passwd`, `group`) and write of `/tmp`, `/dev/full` and `/dev/tty`. Each is
+written `?/P`, a new form of the SPEC: an optional path gets no rule where
+the image lacks it, so one profile serves many images. Experiment 414
+clause 6 (exit 0): NoNewPrivs 1, Seccomp 2, `unshare-user`,
+`mount-tmpfs`, `bpf` and `keyctl` refused, `/` unlistable, `/etc/shadow`
+denied, `/etc/passwd` read, the verdicts of bailey's reference report.
+Found: on the namespace rung the payload cannot write `/tmp`, because the
+child mounts a tmpfs there after `pod-enter` opens the rules; COORD-048
+(issue 267) asks podcrates to open the rules in the child.
+
 Remaining: the layer on the rungs with no chroot (the loader family and
 the syscall tier, with host paths through the path map and `-v`), the
-Landlock ABI in the report of T-1695, and the built-in
-profile `errand` of issue 170. The ABI is in `podvm probe` already (the
+write of `/tmp` on the namespace rung (COORD-048), the Landlock ABI in the
+report of T-1695. The ABI is in `podvm probe` already (the
 probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
 the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs
 with no TCP rule (`crates/podvm/src/doctor/scope.rs`).

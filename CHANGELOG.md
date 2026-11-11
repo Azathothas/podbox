@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the profile errand, 2026-11-11
+
+Record: T-1658; issue 170.
+Deployed: not deployed; no version change.
+
+- `podvm run --profile errand IMAGE CMD` confines CMD with the policy of
+  errand's bailey backend: the system directories, the ld.so files, the
+  CA stores and a few files of `/etc` read, `/tmp` and two devices
+  written, each other path denied. A SPEC path written `?/P` is optional.
+
 ### Added: the confine layer for run -d and exec, 2026-11-11
 
 Record: T-1658; issue 170.
