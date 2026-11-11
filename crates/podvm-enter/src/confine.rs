@@ -153,6 +153,57 @@ pub fn spec_in(ask: &Ask, rootfs: &std::path::Path) -> Spec {
     spec(ask, &exists)
 }
 
+/// The host paths that a payload of the loader family (no chroot) reads
+/// beside its image: the host's `/proc` and device nodes, which it sees
+/// as they are.
+pub const HOST_READ: &[&str] = &["/proc", "/dev/zero", "/dev/random", "/dev/urandom"];
+pub const HOST_WRITE: &[&str] = &["/dev/null"];
+
+/// The host path of the guest path `guest`: under the volume that serves
+/// it, else under the rootfs (the table of the interposer, read
+/// lexically).
+pub fn host_of(maps: &crate::userland::Maps, guest: &str) -> String {
+    match maps.volume_at(guest) {
+        Some(v) => {
+            let rest = guest
+                .trim_start_matches('/')
+                .split('/')
+                .skip(v.guest.split('/').filter(|c| !c.is_empty()).count())
+                .collect::<Vec<_>>()
+                .join("/");
+            if rest.is_empty() {
+                v.host.clone()
+            } else {
+                format!("{}/{rest}", v.host.trim_end_matches('/'))
+            }
+        }
+        None => format!("{}{guest}", maps.rootfs().trim_end_matches('/')),
+    }
+}
+
+/// The spec of `ask` with host paths, for the loader family: each guest
+/// path through `maps`, and the host's `/proc` and device nodes.
+pub fn host_spec(ask: &Ask, maps: &crate::userland::Maps) -> Spec {
+    let exists = |guest: &str| std::fs::symlink_metadata(host_of(maps, guest)).is_ok();
+    let mut s = spec(ask, &exists);
+    for r in &mut s.paths {
+        r.path = host_of(maps, &r.path);
+    }
+    for p in HOST_READ
+        .iter()
+        .filter(|p| std::path::Path::new(p).exists())
+    {
+        s = s.allow(*p, Access::READ);
+    }
+    for p in HOST_WRITE
+        .iter()
+        .filter(|p| std::path::Path::new(p).exists())
+    {
+        s = s.allow(*p, Access::READ | Access::WRITE);
+    }
+    s
+}
+
 /// Whether a rung can carry the layer: a rung with a chroot, where the
 /// paths of the spec are guest paths. Elsewhere `run` refuses by name and
 /// never runs unconfined (the Decision of T-1658).
@@ -218,6 +269,20 @@ mod tests {
             .iter()
             .any(|p| p.contains("pki") || p.starts_with('?')));
         assert!(parse("read=?etc").is_err());
+    }
+
+    #[test]
+    fn a_guest_path_maps_through_the_volume_or_the_rootfs() {
+        let names = crate::NAMES;
+        let v = crate::userland::Volume {
+            guest: "/workspace".into(),
+            host: "/h/proj".into(),
+        };
+        let maps = crate::userland::Maps::new(&names, "/s/root", &[v]).unwrap();
+        assert_eq!(host_of(&maps, "/workspace"), "/h/proj");
+        assert_eq!(host_of(&maps, "/workspace/out/a"), "/h/proj/out/a");
+        assert_eq!(host_of(&maps, "/etc/passwd"), "/s/root/etc/passwd");
+        assert_eq!(host_of(&maps, "/workspacex"), "/s/root/workspacex");
     }
 
     #[test]

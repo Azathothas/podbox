@@ -53,8 +53,8 @@ that is not done. Read its Prove before you start. Set its status with
    and [T-1722](machine.md) (the other verbs of incus) come after the
    scope entries of step 2.
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
-   [T-1658](enter.md) (partial: the rungs with no chroot,
-   `/tmp` on the namespace rung (COORD-048, issue 267) and the report of
+   [T-1658](enter.md) (partial: the native-static, syscall and
+   emulate rungs, `/tmp` on the namespace rung (COORD-048, issue 267) and the report of
    T-1695 remain); [T-1667](cli.md) (partial:
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,

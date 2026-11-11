@@ -154,9 +154,11 @@ pub const RUN_OPTIONS: &str = "\
                    deny filter of pod-confine and no_new_privs. Each path
                    that no rule names is denied; the system directories of
                    the image are read and execute, /etc is not. On a rung
-                   with a chroot only; the record keeps it, so -d and each
-                   exec take it. Each other rung, and a kernel with no
-                   Landlock, refuses by name (TODO/enter.md T-1658)
+                   with a chroot and on the loader family of the userland
+                   rung (host paths through the table, -v included); the
+                   record keeps it, so -d and each exec take it. Each other
+                   rung, and a kernel with no Landlock, refuses by name
+                   (TODO/enter.md T-1658)
 
   refused: podvm run enters a CHROOT, not a container. It shares this machine's
     process table, network, IPC and mount namespaces with the payload. The

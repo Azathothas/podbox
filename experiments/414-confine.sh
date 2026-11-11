@@ -22,8 +22,11 @@
 #      control: the image and the host allow both).
 #   3. probe-inside with a profile `confine = true`: NoNewPrivs 1 and
 #      Seccomp 2; with no profile: 0 and 0.
-#   4. on the userland rung (chroot denied, the fixture of experiment 356)
-#      the run refuses by name with exit 125.
+#   4. on the userland rung (chroot denied, the fixture of experiment 356):
+#      a dynamic program (alpine) runs on the loader family with the layer
+#      in host paths, through the table: /etc/passwd reads, /etc/shadow and
+#      /tmp are denied, and a `-v` volume at /workspace reads and writes;
+#      the static busybox (the native-static rung) refuses by name, 125.
 #   5. `run -d` with the layer: the detached payload cannot read
 #      /etc/shadow, and `exec` into the container takes the same layer from
 #      the record.
@@ -46,6 +49,8 @@ rm -rf "$WORK"; mkdir -p "$WORK/xdg/podvm/profiles" || exit 2
 OUT="$REPO/experiments/results/confine.txt"
 PB="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 IMG="${PODVM_414_IMAGE:-mirror.gcr.io/library/busybox:musl}"
+# A dynamic image, for the loader family (busybox:musl is static).
+DYN="${PODVM_414_DYNAMIC:-mirror.gcr.io/library/alpine:3.20}"
 export PODVM_STORE="$WORK/store"
 export XDG_CONFIG_HOME="$WORK/xdg"
 : >"$OUT"
@@ -128,7 +133,7 @@ grep -qE '	seccomp	ALLOW	2$' "$WORK/c3.out" || bad "the seccomp mode is not 2 un
 grep -qE '	seccomp	ALLOW	0$' "$WORK/c3b.out" || bad "the control has a seccomp filter"
 note ""
 
-note "== clause 4  a rung with no chroot refuses by name"
+note "== clause 4  the loader family of the userland rung (chroot denied)"
 command -v cc >/dev/null 2>&1 || { note "cc missing: COULD NOT RUN"; exit 2; }
 cc -O2 -Wall -Werror -o "$WORK/deny-chroot" "$REPO/experiments/deny-chroot.c" || { note "fixture COMPILE FAILED: COULD NOT RUN"; exit 2; }
 cat >"$WORK/wrap.sh" <<'EOF'
@@ -137,11 +142,22 @@ mount -t tmpfs tmpfs /dev/pts || exit 2
 MNT="$1"; shift
 exec "$MNT/deny-chroot" "$@"
 EOF
-timeout 300 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm --podvm-confine="read=/etc/passwd" "$IMG" true >"$WORK/c4.out" 2>&1
+timeout 600 "$PB" pull "$DYN" >>"$WORK/pull.log" 2>&1 || { note "pull of $DYN FAILED: COULD NOT RUN"; exit 2; }
+mkdir -p "$WORK/proj" && echo in >"$WORK/proj/in.txt"
+timeout 300 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm -v "$WORK/proj:/workspace" --podvm-confine="read=/etc/passwd;write=/workspace" "$DYN" sh -c 'head -1 /etc/passwd; cat /etc/shadow >/dev/null 2>&1; echo "shadow=$?"; cat /workspace/in.txt; echo out > /workspace/out.txt; echo "w=$?"; echo t > /tmp/x 2>/dev/null; echo "tmp=$?"' >"$WORK/c4.out" 2>&1
 rc=$?
-note "  userland: exit $rc: $(grep -m1 -- '--podvm-confine' "$WORK/c4.out" | cut -c1-150)"
-[ "$rc" -eq 125 ] || bad "the userland run exited $rc"
-grep -q "userland rung" "$WORK/c4.out" || bad "the refusal does not name the rung"
+note "  loader family: exit $rc: $(grep -E '^(shadow|w|tmp)=' "$WORK/c4.out" | tr '\n' ' ')$( [ -f "$WORK/proj/out.txt" ] && echo 'out.txt on the host')"
+[ "$rc" -eq 0 ] || bad "the loader-family run exited $rc"
+grep -q "^root:" "$WORK/c4.out" || bad "loader family: /etc/passwd did not read"
+grep -q "^shadow=1" "$WORK/c4.out" || bad "loader family: /etc/shadow read"
+grep -q "^in$" "$WORK/c4.out" || bad "loader family: the volume did not read"
+[ -f "$WORK/proj/out.txt" ] || bad "loader family: the write to the volume did not land"
+grep -q "^tmp=1" "$WORK/c4.out" || bad "loader family: /tmp was writable"
+timeout 300 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm --podvm-confine="read=/etc/passwd" "$IMG" true >"$WORK/c4b.out" 2>&1
+rc=$?
+note "  native-static: exit $rc: $(grep -m1 -- '--podvm-confine' "$WORK/c4b.out" | cut -c1-150)"
+[ "$rc" -eq 125 ] || bad "the native-static run exited $rc"
+grep -q "dispatcher or an emulator" "$WORK/c4b.out" || bad "the refusal does not name the rung"
 note ""
 
 note "== clause 5  run -d and exec take the layer of the record"

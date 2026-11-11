@@ -2534,9 +2534,19 @@ Found: on the namespace rung the payload cannot write `/tmp`, because the
 child mounts a tmpfs there after `pod-enter` opens the rules; COORD-048
 (issue 267) asks podcrates to open the rules in the child.
 
-Remaining: the layer on the rungs with no chroot (the loader family and
-the syscall tier, with host paths through the path map and `-v`), the
-write of `/tmp` on the namespace rung (COORD-048), the Landlock ABI in the
+The loader family of the userland rung takes the layer too: `pod-enter`
+has no chroot there, so each guest path of the spec becomes its host path
+through the table of the interposer (the rootfs, and the volume of a `-v`;
+`host_spec` of `crates/podvm-enter/src/confine.rs`), and the host's
+`/proc` and device nodes join it. The launcher of `run -d` builds the same
+host spec from the record's table. Experiment 414 clause 4 (exit 0, the
+chroot-denying fixture): alpine on the loader family reads `/etc/passwd`,
+is denied `/etc/shadow` and `/tmp`, and reads and writes a `-v` volume at
+`/workspace`; by hand, `run -d` and an `exec` into it hold the same.
+
+Remaining: the userland rung with podvm's dispatcher or an emulator (the
+native-static rung, the syscall and the emulate tier: each refuses by
+name), the write of `/tmp` on the namespace rung (COORD-048), the Landlock ABI in the
 report of T-1695. The ABI is in `podvm probe` already (the
 probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
 the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs

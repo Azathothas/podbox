@@ -79,6 +79,20 @@ pub struct Hardening {
 }
 
 impl Hardening {
+    /// The confine layer of the record with host paths, for the loader
+    /// family: each guest path through `maps` (TODO/enter.md T-1658).
+    pub fn confine_host_spec(
+        &self,
+        maps: &podvm_enter::userland::Maps,
+    ) -> Result<Option<podvm_enter::confine::Spec>, String> {
+        let Some(s) = &self.confine else {
+            return Ok(None);
+        };
+        let ask = podvm_enter::confine::parse(s)
+            .map_err(|e| format!("the confine layer of the record ({s:?}): {e}"))?;
+        Ok(Some(podvm_enter::confine::host_spec(&ask, maps)))
+    }
+
     /// The confine layer of the record for the tree at `rootfs`, or None.
     /// A SPEC that no longer parses is an error: the layer is never dropped.
     pub fn confine_spec(&self, rootfs: &str) -> Result<Option<podvm_enter::confine::Spec>, String> {

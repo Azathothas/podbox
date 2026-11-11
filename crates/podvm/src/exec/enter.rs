@@ -332,7 +332,13 @@ pub(super) fn enter(
         None => None,
         Some(spec) => {
             let ask = podvm_enter::confine::parse(spec).ok();
-            match crate::lifecycle::confine::decide("exec", ask.as_ref(), entered, rootfs) {
+            match crate::lifecycle::confine::decide(
+                "exec",
+                ask.as_ref(),
+                entered,
+                rootfs,
+                userland.as_ref(),
+            ) {
                 Ok(c) if ask.is_some() => c,
                 Ok(_) => {
                     let _ = writeln!(

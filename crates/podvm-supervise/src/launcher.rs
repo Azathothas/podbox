@@ -75,7 +75,7 @@ fn enter_in_launcher(
     if table::memo_fd_of(&env).is_none() {
         env.push(table::memo_fd_env());
     }
-    let plan = Plan {
+    let mut plan = Plan {
         argv: container.argv.clone(),
         env: env.clone(),
         working_dir: container.working_dir.clone(),
@@ -123,6 +123,9 @@ fn enter_in_launcher(
         let maps =
             podvm_enter::userland::Maps::new(&podvm_enter::NAMES, &container.rootfs, &volumes)
                 .map_err(|why| format!("starting with -v: {why}"))?;
+        // TODO/enter.md T-1658: no chroot here, so the layer takes host
+        // paths, each guest path through the table.
+        plan.confine = container.of.hardening.confine_host_spec(&maps)?;
         podvm_enter::spawn_userland(
             &root,
             &plan,

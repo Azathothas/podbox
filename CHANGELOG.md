@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the confine layer on the loader family, 2026-11-11
+
+Record: T-1658; issue 170.
+Deployed: not deployed; no version change.
+
+- Where chroot is denied, a dynamic program of the image (the loader
+  family of the userland rung) runs under `--podvm-confine` too: each
+  guest path becomes its host path, so a `-v` volume can be granted.
+
 ### Added: the profile errand, 2026-11-11
 
 Record: T-1658; issue 170.
