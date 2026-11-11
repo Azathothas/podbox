@@ -1,0 +1,29 @@
+== conditions
+date              2026-11-11T23:02:44Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.4
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+image             mirror.gcr.io/library/alpine:3.20
+
+== clause 1  run -d with the seven mounts of the job container
+  exit 0
+
+== clause 2  a step with -e and -w
+  exit 0: K=V pwd=/__w/repo 
+
+== clause 3  /__e is read-only
+  exit 1: sh: can't create /__e/w.txt: Read-only file system
+
+== clause 4  a container action
+  exit 7: from-the-checkout
+
+== clause 5  logs and wait
+  logs: exit 0: job-up; wait: exit 0: 5
+
+== clause 6  the time of 20 exec steps
+  20 steps: 1812 ms
+
+== clause 7  rm -f leaves no process
+  exit 0; processes of the job left: 0
+
+verdict: EACH CALL OF THE HOOK SEQUENCE PASSES ON THE USERLAND RUNG

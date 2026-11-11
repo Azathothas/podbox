@@ -3553,7 +3553,7 @@ before it ended on SIGTERM; an ephemeral runner needs none.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3620,6 +3620,26 @@ of 20 steps is printed.
 (the ruling "podrunner", 2026-11-10), section 7.2: the hook relays to a host
 socket, and the host-side server calls podvm. A new use with nothing
 wrong without it is P2.
+
+## Done
+
+**Done 2026-11-11.** `sh experiments/431-hook-verbs.sh` exits 0 on the
+chroot-denying fixture (the userland rung, alpine 3.20 as the job image):
+`run -d --name job` with the seven mounts of the job-container table,
+`/__w/_temp` nested in `/__w`, exits 0; a step `exec -e K=V -w /__w/repo
+job sh -e /__w/_temp/step.sh` prints `K=V` and `pwd=/__w/repo`, and its
+write lands in the runner root; a write to `/__e` (`:ro`) fails with "Read-only
+file system" and leaves no file; the container action `run --rm` with the
+five mounts of the container-action table and `-w /github/workspace`
+reads the checkout and exits 7; `logs job` holds the output of the
+entrypoint; `wait` of a detached `sh -c 'exit 5'` prints 5; 20 `exec`
+steps take 1812 ms (about 90 ms each, the probe and the completion of each
+`exec` included); `rm -f job` exits 0 and leaves no process of the job.
+No defect was found: T-1653, T-1655, T-1707, T-1709, T-1710, T-1725 and
+T-1726 carry the sequence. The official docker hook also calls `network
+create`, `port` and `exec -i`, which podvm does not serve; podrunner's own
+hook makes only the calls above.
+
 
 # T-1712: `--podvm-tier=chroot` does nothing: it runs the ladder
 

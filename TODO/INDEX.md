@@ -385,7 +385,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1708](supervise.md) | P1 | M | none | supervise | done | `stop`, `kill` and `rm -f` end the whole tree: the launcher is a subreaper |
 | [T-1709](image.md) | P1 | L | none | image | done | Each container gets its own rootfs: a write in one container is not read by another |
 | [T-1710](interpose.md) | P1 | M | none | interpose | done | A Unix socket path in `connect` and `bind` passes the path table |
-| [T-1711](cli.md) | P2 | L | none | cli | open | The calls of the four container-hook commands run through podvm verbs on the userland rung |
+| [T-1711](cli.md) | P2 | L | none | cli | done | The calls of the four container-hook commands run through podvm verbs on the userland rung |
 | [T-1712](cli.md) | P1 | S | none | cli | done | `--podvm-tier=chroot` does nothing: it runs the ladder |
 | [T-1713](cli.md) | P1 | S | none | cli | done | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
 | [T-1714](probe.md) | P2 | S | none | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
@@ -415,7 +415,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-346 entries: 7 open, 7 partial, 5 blocked, 327 done.
+346 entries: 6 open, 7 partial, 5 blocked, 328 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -426,9 +426,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 0 | 3 | 0 | 147 | 150 |
-| P2 | 4 | 3 | 5 | 103 | 115 |
+| P2 | 3 | 3 | 5 | 104 | 115 |
 | P3 | 3 | 0 | 0 | 13 | 16 |
-| **All** | 7 | 7 | 5 | 327 | 346 |
+| **All** | 6 | 7 | 5 | 328 | 346 |
 
 ## Work order
 

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 7 open, 7 partial, 5 blocked, 327 done.
+346 entries: 6 open, 7 partial, 5 blocked, 328 done.
 
 The state on 2026-11-11:
 
@@ -68,8 +68,7 @@ that is not done. Read its Prove before you start. Set its status with
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.
 5. After podvm's own order (the owner's ruling "Priority",
    2026-11-09): the asks of cfb, [T-1694](cli.md); the podrunner part
-   (issues 229 to 240); then [T-1711](cli.md) (the
-   container-hook calls); and the clauses of PodUtils/podcrates#39.
+   (issues 229 to 240); and the clauses of PodUtils/podcrates#39.
 
 The entries done since the resume of 2026-11-11 are in the record; the
 handoff (`docs/HANDOFF.md`) names them.
