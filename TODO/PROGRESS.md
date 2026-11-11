@@ -7,7 +7,7 @@ start.
 
 ## State
 
-336 entries: 26 open, 7 partial, 3 blocked, 300 done.
+336 entries: 26 open, 6 partial, 3 blocked, 301 done.
 
 The state on 2026-11-11:
 
@@ -72,8 +72,8 @@ that is not done. Read its Prove before you start. Set its status with
 4. [T-1651](enter.md) is done: `run --podvm-tier=emulate` runs a static
    qemu-user of `PATH` on the native-static rung, also for an image of
    another architecture (experiment 356, clause 36).
-5. [T-1604](enter.md), partial: the plant, a second lane run and the
-   saved lane log of `detached_stdio`. No guest is necessary.
+5. [T-1604](enter.md) is done: the plant, two lane runs and the saved
+   lane log of `detached_stdio`.
 6. [T-0211](image.md), partial: retarget the mutations of experiment 157
    so that each one turns one test red.
 7. [T-0204](image.md), partial: a Prove that reads the lock skip

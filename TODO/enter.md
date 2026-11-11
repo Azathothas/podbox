@@ -1127,7 +1127,7 @@ Source:      CI run 36894578988, job 110478236087, 2026-10-01;
 Category:    enter
 Priority:    P1
 Effort:      M
-Status:      partial
+Status:      done
 
 Problem:     `cargo test --workspace` exits 101 on `detached_stdio` with
              `test result: FAILED. 1 passed; 2 failed`. Read in order,
@@ -1168,6 +1168,20 @@ Prove:       `cargo test -p podvm --test detached_stdio` passes in
              this task owes); the saved lane log shows all three
              detached starts running;
              `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
+
+**Done 2026-11-11.** [The lane log](../experiments/results/detached-stdio-lane.txt)
+holds each clause, on the cloud host as uid 0. The plant is the test
+`a_planted_panic_with_the_lock_held_poisons_no_neighbour` of
+`crates/podvm/tests/detached_stdio.rs`: with `PODVM_PLANT_T1604=1` it
+panics while it holds the serial lock, and its name sorts first, so with
+`--test-threads=1` each neighbour takes the lock after the panic, in each
+run (the order that the earlier control met only by chance). Under the
+plant the plant fails and its three neighbours pass; the control, with
+`unwrap()` back in the three neighbours, fails each of them on
+`PoisonError`. `cargo test -p podvm --test detached_stdio -- --nocapture`
+then passes two times, and each run prints its three detached starts,
+each with exit 0, an id and an `inspect` row `running PID LAUNCHER -`.
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
 
 **Partial 2026-10-02.** The cascade is fixed and measured; the
 one-of-three failure is not reproduced and is not root-caused, and the

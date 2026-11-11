@@ -281,7 +281,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1601](interpose.md) | P0 | interpose | done | Unblock the static build under Rust 1.99 `invalid_runtime_symbol_definitions` |
 | [T-1602](image.md) | P0 | image | done | The registry fixture fields are read by their consumer tests |
 | [T-1603](gate.md) | P0 | gate | done | Remove `check-no-secrets` and add a pinned trufflehog scan workflow |
-| [T-1604](enter.md) | P1 | enter | partial | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
+| [T-1604](enter.md) | P1 | enter | done | Fix the detached-stdio serial mutex and the 1-of-3 detached start failure |
 | [T-1605](packaging.md) | P1 | packaging | done | Push a version tag and prove the nightly release-notes wiring live |
 | [T-1606](machine.md) | P2 | machine | done | Repoint all 47 `references/` citations before deleting the corpus |
 | [T-1607](gate.md) | P1 | gate | done | File the 21 unbatched plan tasks as a later queue |
@@ -404,7 +404,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-336 items: 26 open, 7 partial, 3 blocked, 300 done.
+336 items: 26 open, 6 partial, 3 blocked, 301 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -414,10 +414,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 2 | 6 | 0 | 140 | 148 |
+| P1 | 2 | 5 | 0 | 141 | 148 |
 | P2 | 22 | 0 | 3 | 87 | 112 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **26** | **7** | **3** | **300** | **336** |
+| **All** | **26** | **6** | **3** | **301** | **336** |
 
 ## Work order
 

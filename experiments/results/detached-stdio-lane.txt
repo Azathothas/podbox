@@ -1,0 +1,48 @@
+== T-1604 lane, 2026-11-11T11:01:49Z, Linux 6.18.44-fc-v378, uid 0
+
+== 1. the plant: PODVM_PLANT_T1604=1, --test-threads=1
+test a_planted_panic_with_the_lock_held_poisons_no_neighbour ... FAILED
+test detached_run_without_an_image_is_a_cli_error ... ok
+test detached_start_returns_before_the_payload_ends ... ok
+test run_help_names_the_detach_flag ... ok
+thread 'a_planted_panic_with_the_lock_held_poisons_no_neighbour' (3968) panicked at crates/podvm/tests/detached_stdio.rs:56:5:
+the plant of T-1604: a panic while the serial lock is held
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 43.12s
+
+== 2. the control: the three neighbours take the lock with unwrap(), the same command
+test a_planted_panic_with_the_lock_held_poisons_no_neighbour ... FAILED
+test detached_run_without_an_image_is_a_cli_error ... FAILED
+test detached_start_returns_before_the_payload_ends ... FAILED
+test run_help_names_the_detach_flag ... FAILED
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+   3: <core::result::Result<std::sync::poison::mutex::MutexGuard<()>, std::sync::poison::PoisonError<std::sync::poison::mutex::MutexGuard<()>>>>::unwrap
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+   3: <core::result::Result<std::sync::poison::mutex::MutexGuard<()>, std::sync::poison::PoisonError<std::sync::poison::mutex::MutexGuard<()>>>>::unwrap
+
+== 3. lane run 1: cargo test -p podvm --test detached_stdio -- --nocapture
+test a_planted_panic_with_the_lock_held_poisons_no_neighbour ... ok
+test detached_run_without_an_image_is_a_cli_error ... ok
+detached starts (3):
+  start 1 (`run -d` for det1-4904-2) exited Some(0) after 0, id "ffc2adff8adffb6eb3e9b153dc90eab35c93f05b47922d05d64a5bb33c36d5fe", inspect exited Some(0) reading [running 5241 5166 -]
+    run -d stderr: rehash: warning: skipping ca-bundle.crt, it does not contain exactly one certificate or CRL
+  start 2 (`run -d` for det2-4904-3) exited Some(0) after 0, id "ee72f82df5aee1fd2ec0368cc086575b6b8e301a4d4251e40ba23a8814ded4dd", inspect exited Some(0) reading [running 5398 5324 -]
+    run -d stderr: rehash: warning: skipping ca-bundle.crt, it does not contain exactly one certificate or CRL
+  start 3 (`run -d` for det3-4904-4) exited Some(0) after 0, id "02da546b943590c4963c5c9d38560920dd71ba2129f2691291633757f9aff993", inspect exited Some(0) reading [running 5554 5480 -]
+    run -d stderr: rehash: warning: skipping ca-bundle.crt, it does not contain exactly one certificate or CRL
+test detached_start_returns_before_the_payload_ends ... ok
+test run_help_names_the_detach_flag ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 41.95s
+
+== 4. lane run 2: cargo test -p podvm --test detached_stdio -- --nocapture
+test a_planted_panic_with_the_lock_held_poisons_no_neighbour ... ok
+test detached_run_without_an_image_is_a_cli_error ... ok
+detached starts (3):
+  start 1 (`run -d` for det1-5571-2) exited Some(0) after 0, id "80ec71a13f2745ccd2731a4bcae40cbdc2575db5d940d815b700333c07579620", inspect exited Some(0) reading [running 5924 5850 -]
+    run -d stderr: rehash: warning: skipping ca-bundle.crt, it does not contain exactly one certificate or CRL
+  start 2 (`run -d` for det2-5571-3) exited Some(0) after 0, id "19d868755ee2340343a72f2adf1dc68c8a038c2348dd0e9779f9647297203577", inspect exited Some(0) reading [running 6080 6006 -]
+    run -d stderr: rehash: warning: skipping ca-bundle.crt, it does not contain exactly one certificate or CRL
+  start 3 (`run -d` for det3-5571-4) exited Some(0) after 0, id "67deaa03a1a6c9364d0e424329ac71132652804864da37acf27d8f70203c0253", inspect exited Some(0) reading [running 6236 6162 -]
+    run -d stderr: rehash: warning: skipping ca-bundle.crt, it does not contain exactly one certificate or CRL
+test detached_start_returns_before_the_payload_ends ... ok
+test run_help_names_the_detach_flag ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 44.33s

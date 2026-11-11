@@ -41,6 +41,21 @@ const PODVM: &str = env!("CARGO_BIN_EXE_podvm");
 /// `tests/store_gates.rs` and `tests/curated_refusals.rs`.
 static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+/// TODO/enter.md T-1604, the plant: with `PODVM_PLANT_T1604=1`, this test
+/// panics while it holds [`SERIAL`], so the lock is poisoned for each test
+/// after it. Its name sorts first, so with `--test-threads=1` each neighbour
+/// takes the lock after the panic (the order that a parallel run gives only
+/// by chance). The neighbours must still pass: that is the plant of the
+/// entry. Without the variable it does nothing.
+#[test]
+fn a_planted_panic_with_the_lock_held_poisons_no_neighbour() {
+    if std::env::var_os("PODVM_PLANT_T1604").is_none() {
+        return;
+    }
+    let _guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    panic!("the plant of T-1604: a panic while the serial lock is held");
+}
+
 /// Counter beside the pid so two tests never share a store or a name.
 static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
@@ -412,6 +427,9 @@ fn detached_start_returns_before_the_payload_ends() {
         starts.len(),
         ran.join("\n")
     );
+    // T-1604: the lane log names each start (`--nocapture`), so a green run
+    // shows the three starts and not only the count.
+    eprintln!("detached starts ({}):\n{}", starts.len(), ran.join("\n"));
     for (n, s) in starts.iter().enumerate() {
         assert_eq!(
             s.code,
