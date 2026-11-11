@@ -124,6 +124,7 @@ Each later tag carries the podvm identity, and its release has `podvm-*` assets;
 | [Architecture](docs/architecture.md) | Execution paths and data boundaries |
 | [Code map](docs/code-map.md) | Source ownership |
 | [Limits](docs/limits.md) | Current constraints and proof gaps |
+| [Findings](docs/findings.md) | Defects of tools and host traits, with the host of each row |
 | [TODO index](TODO/INDEX.md) | Tasks and derived counts |
 | [Experiments](experiments/README.md) | Scripts and result captures |
 | [Security](SECURITY.md) | Trust boundaries |

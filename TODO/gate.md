@@ -3751,7 +3751,7 @@ Source:      issue 189; #193; the owner's ruling of 2026-11-06
 Category:    gate
 Priority:    P2
 Effort:      M
-Status:      open
+Status:      done 2026-11-11
 
 Problem:     sand-net kept a ledger of tool defects (F1 to F35) and lab
              traits (L1 to L7), each marked observed or inferred with its
@@ -3782,6 +3782,27 @@ Prove:       `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 wit
              the tree, and `./target/x86_64-unknown-linux-musl/release/podvm-plant` exits 0 with a new
              plant: a findings row with no command and no result file turns
              the gate red.
+
+**Done 2026-11-11.** `docs/findings.md` holds 49 rows: the 43 rows of
+sand-net (F1 to F35 with F1a, L1 to L7), each with its scope issue (167,
+168, 169, 170, 178, 180, 184, 186, 188), and six rows of podvm (P1 to P6).
+Three sand-net rows are re-measured or not reproduced on the cloud host:
+F10 (no Yama there), F25 (wasmtime v50.0.1 and landrun v0.1.17 now give a
+digest for each asset) and F29 (the guest reaches a loopback proxy at
+10.0.2.2, experiment 421). 22 rows name a tool that podvm does not use (not
+applicable); the other 18 are open, each with the entry that re-tests it.
+Check 34 of the gate (`crates/podvm-gate/src/gate/findings.rs`) checks
+each row: 7 cells, a unique id, the mark, a command or a result file that
+exists (a sand-net row may cite its scope issue, because its source is
+gone), the host conditions and the podvm state.
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0
+(`findings=49`), and `./target/x86_64-unknown-linux-musl/release/podvm-plant`
+exits 0 with plant 34: a row with no command and no result file turns the
+gate red, and the gate names it.
+
+Decision: the scope issues kept no observed or inferred mark for most rows
+of sand-net, so such a row is marked with a dash (an unknown value), and
+only a row of sand-net may be.
 
 **Filed 2026-11-06.** Quoted from issue 189. The conditions of every
 sand-net row:

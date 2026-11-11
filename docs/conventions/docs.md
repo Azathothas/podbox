@@ -22,6 +22,7 @@ Source and verified runs establish behavior.
 | `docs/architecture.md` | Runtime paths and invariants |
 | `docs/code-map.md` | Source ownership |
 | `docs/limits.md` | Current constraints and proof gaps |
+| `docs/findings.md` | Defects of third-party tools and host traits, observed or inferred, with the host of each row |
 | `docs/runtime-state.md` | Generated source declarations |
 | `docs/agent-tooling.md` | Tools and source discovery |
 | `docs/containers.md` | Lane procedures |

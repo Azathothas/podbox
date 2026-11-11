@@ -78,6 +78,7 @@ impl Gate {
             "ascii_output",
             "post_task_cleanup",
             "perf_budget",
+            "findings",
         ];
         let mut seen = BTreeMap::new();
         for key in keys {

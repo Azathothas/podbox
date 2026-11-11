@@ -79,6 +79,7 @@ const FILES: &[&str] = &[
     "README.md",
     "docs/conventions/prose.md",
     "docs/runtime-state.md",
+    "docs/findings.md",
     "experiments/110-bloat-delta.sh",
     "experiments/results/bloat-baseline.txt",
     "experiments/results/bloat-image.txt",

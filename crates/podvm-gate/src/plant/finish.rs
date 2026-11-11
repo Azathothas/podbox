@@ -29,6 +29,22 @@ pub(super) fn finish_run(plant: &mut Plant, root: &Path, scratch: &str) -> i32 {
         },
     );
 
+    // TODO/gate.md T-1668: a findings row with no command and no result
+    // file is a claim with no evidence.
+    plant.case_plant(
+        "34 a findings row with no evidence",
+        "names no command (in backticks)",
+        scratch,
+        &|| {
+            let mut text = read_file(root, "docs/findings.md");
+            text.push_str(
+                "| P999 | plant | observed | a planted finding | - | the cloud host | open |\n",
+            );
+            write_file(root, "docs/findings.md", &text);
+            true
+        },
+    );
+
     plant.case_plant(
         "28 a glyph in a printed string",
         "prints U+26D4",

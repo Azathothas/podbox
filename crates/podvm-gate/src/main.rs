@@ -241,6 +241,10 @@ use json_checks::*;
 mod state_checks;
 use state_checks::*;
 
+#[path = "gate/findings.rs"]
+mod findings;
+use findings::*;
+
 #[path = "gate/run.rs"]
 mod run;
 use run::*;
