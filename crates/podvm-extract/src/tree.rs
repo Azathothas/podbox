@@ -140,7 +140,30 @@ pub fn remove(store: &Store, rootfs: &str) -> io::Result<bool> {
     }
 }
 
+/// Run `f` with the owner's bits `bits` added to the mode of `path` where
+/// the owner lacks them, and the mode restored after. The extraction gives
+/// the files to the user that runs podvm, with the image's modes: a file of
+/// mode 0000 (`/etc/shadow` of some images) is podvm's own and still
+/// cannot be opened by a user that is not root.
+fn with_owner_bits<T>(path: &Path, bits: u32, f: impl FnOnce() -> io::Result<T>) -> io::Result<T> {
+    let mode = fs::symlink_metadata(path)?.permissions().mode() & 0o7777;
+    if mode & bits == bits {
+        return f();
+    }
+    fs::set_permissions(path, fs::Permissions::from_mode(mode | bits))?;
+    let r = f();
+    let back = fs::set_permissions(path, fs::Permissions::from_mode(mode));
+    let v = r?;
+    back?;
+    Ok(v)
+}
+
 fn copy_dir(src: &Path, dst: &Path, fill: &mut Fill) -> io::Result<()> {
+    let mode = fs::symlink_metadata(src)?.permissions().mode() & 0o7777;
+    with_owner_bits(src, 0o500, || copy_dir_readable(src, dst, fill, mode))
+}
+
+fn copy_dir_readable(src: &Path, dst: &Path, fill: &mut Fill, mode: u32) -> io::Result<()> {
     fs::create_dir(dst)?;
     // Owner-writable while the children are made; the image's mode last.
     fs::set_permissions(dst, fs::Permissions::from_mode(0o700))?;
@@ -155,12 +178,12 @@ fn copy_dir(src: &Path, dst: &Path, fill: &mut Fill) -> io::Result<()> {
         } else if kind.is_symlink() {
             std::os::unix::fs::symlink(fs::read_link(&from)?, &to)?;
         } else if kind.is_file() {
-            copy_file(&from, &to, &meta, fill)?;
+            with_owner_bits(&from, 0o400, || copy_file(&from, &to, &meta, fill))?;
         } else {
             fill.skipped += 1;
         }
     }
-    let mode = fs::symlink_metadata(src)?.permissions().mode() & 0o7777;
+    // The mode of the source as it was before `with_owner_bits`.
     fs::set_permissions(dst, fs::Permissions::from_mode(mode))
 }
 

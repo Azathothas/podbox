@@ -2885,7 +2885,15 @@ of `crates/podvm/tests/detached_stdio.rs` (529 MiB, 23762 files) took
 1.4 s, 4.4 s and 6.6 s for three copies in a row on ext4, slower each time
 as the disk wrote back. The test's bound was 5 s for a start that only
 forked; it is now 30 s with a payload of 60 s, so it still asks that
-`run -d` returns before the payload ends (4 of 4 pass, 2026-11-11). The tree of `rmi` after a new
+`run -d` returns before the payload ends (4 of 4 pass, 2026-11-11).
+
+CI run 390 (a user that is not root) found that the copy refused an image
+file of mode 0000: archlinux's `/etc/shadow` belongs to the user that
+extracted it, who still cannot open it. The cloud host runs podvm as root,
+which reads it anyway. The copy now adds the owner's read bit (and the
+search bit of a directory) to the source for the moment of its copy, and
+restores the image's mode on the source and on the copy; the test
+`a_file_and_a_directory_of_mode_0000_are_copied_with_their_modes` holds it. The tree of `rmi` after a new
 pull (M2, Unverified) is not changed by this entry.
 
 **Filed 2026-11-10.** From issue 234 and the podrunner design review

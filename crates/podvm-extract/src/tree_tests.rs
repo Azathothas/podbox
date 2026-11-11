@@ -95,3 +95,40 @@ fn only_a_tree_of_this_store_is_removed() {
     assert!(!f.dir.exists());
     clean(&s);
 }
+
+/// CI run 390 (a user that is not root): a file of mode 0000 and a
+/// directory of mode 0000 of the image are podvm's own and are copied, and
+/// the source and the copy keep the modes of the image.
+#[test]
+fn a_file_and_a_directory_of_mode_0000_are_copied_with_their_modes() {
+    let s = store("zero");
+    let (rootfs, _) = crate::paths(&s, DIGEST);
+    fs::write(rootfs.join("etc/shadow"), "root:*:1::::::\n").unwrap();
+    fs::set_permissions(rootfs.join("etc/shadow"), fs::Permissions::from_mode(0o0)).unwrap();
+    fs::create_dir_all(rootfs.join("secret")).unwrap();
+    fs::write(rootfs.join("secret/k"), "k").unwrap();
+    fs::set_permissions(rootfs.join("secret"), fs::Permissions::from_mode(0o0)).unwrap();
+    let f = fill(&s, DIGEST).unwrap();
+    let mode = |p: &Path| fs::symlink_metadata(p).unwrap().permissions().mode() & 0o7777;
+    assert_eq!(mode(&f.rootfs.join("etc/shadow")), 0);
+    assert_eq!(mode(&f.rootfs.join("secret")), 0);
+    assert_eq!(
+        mode(&rootfs.join("etc/shadow")),
+        0,
+        "the source keeps its mode"
+    );
+    assert_eq!(mode(&rootfs.join("secret")), 0, "the source keeps its mode");
+    fs::set_permissions(f.rootfs.join("secret"), fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(
+        f.rootfs.join("etc/shadow"),
+        fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    assert_eq!(fs::read_to_string(f.rootfs.join("secret/k")).unwrap(), "k");
+    assert_eq!(
+        fs::read_to_string(f.rootfs.join("etc/shadow")).unwrap(),
+        "root:*:1::::::\n"
+    );
+    fs::set_permissions(rootfs.join("secret"), fs::Permissions::from_mode(0o700)).unwrap();
+    clean(&s);
+}
