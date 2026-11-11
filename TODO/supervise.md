@@ -912,7 +912,7 @@ Source:      issue 233; the podrunner design review (the owner's design
 Category:    supervise
 Priority:    P1
 Effort:      M
-Status:      open
+Status:      blocked
 
 Problem:     `stop`, `kill` and `rm -f` signal the payload only. A
              grandchild that the payload's exit orphaned, or that left the
@@ -961,6 +961,17 @@ Prove:       `cargo test -p podvm` exits 0 with tests
              that gets SIGTERM; under an outer subreaper the launcher's
              parent is that subreaper.
 
+**Blocked 2026-11-11.** podcrates did the mechanism as its T-162 (on its
+`main`, after `v0.15.0`): the launcher is the subreaper of the payload's
+tree, reaps each descendant, kills the tree at the end of the payload, and
+writes the end with the count of residual processes (a number, or
+`unknown`) and a wall bound (`set_wall`). `stop` and `kill` still signal
+the payload; the tree kill follows its end. Blocker: no podcrates tag
+carries T-162. Clears when: a podcrates tag carries T-162 (COORD-026,
+issue 244). Then podvm moves the pins, gives `inspect` the count, makes
+`rm -f` exit 125 with the pids where the count is not 0, and runs the
+Prove.
+
 **Filed 2026-11-10.** From issue 233 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), WP-C2: "tree kill, timeout,
 rusage. The mechanism of section 10.4 placed in podvm's launcher". T-1655 keeps
@@ -977,7 +988,7 @@ Source:      issue 240; the podrunner design review (the owner's design
 Category:    supervise
 Priority:    P2
 Effort:      S
-Status:      open
+Status:      partial
 
 Problem:     `run -e K=V` and `--env-file` store each value in the
              container record. The table writer uses the process umask,
@@ -1004,6 +1015,28 @@ Decision:    podvm keeps `env` in the record, because `exec` needs it, and
              runner, PodUtils/podrunner#6), and the help of `-e` says so.
 Prove:       `cargo test -p podvm` exits 0 with tests that the store root
              is 0700 and the table is 0600 under umask 022.
+
+**Partial, 2026-11-11.** podvm's part is done. `Store::open` creates a
+store root that does not exist with mode 0700 (`create_private_root` in
+`crates/podvm-image/src/store.rs`); its parents keep the default mode, and
+a root that exists keeps its mode. `Store::exposed_mode` gives the mode of
+a root that group or other can reach; the banner of `run` names it
+(`store_note` in `crates/podvm/src/run/acquire.rs`), and `podvm doctor`
+gives the note row `store_mode` with the `chmod 700` that fixes it. The
+help of `-e` says that the record keeps each value and that a secret
+belongs in a file. Because the table, the logs and each container
+directory are under the root, a root of mode 0700 keeps them from each
+other user whatever their own modes. Proof, on the cloud host,
+2026-11-11: `cargo test -p podvm-image --lib store::` exits 0 with
+`a_new_store_root_is_private` and `an_existing_open_root_is_reported_and_kept`;
+`cargo test -p podvm --bin podvm doctor::` exits 0 with
+`the_store_mode_row_names_an_exposed_root`; `podvm doctor` with
+`PODVM_STORE` on a new path prints `ok store_mode`, and on a directory of
+mode 755 prints `note store_mode: ... is mode 755`. Remaining: the
+`pod-supervise` part (the table and its staging file 0600, each container
+directory 0700, the log 0600), asked of podcrates by COORD-026 (issue
+244), and the test that the table is 0600 under umask 022, at the tag that
+carries it.
 
 **Filed 2026-11-10.** From issue 240 and the podrunner design review
 (the ruling "podrunner", 2026-11-10), R1:1.6: "A credential given with

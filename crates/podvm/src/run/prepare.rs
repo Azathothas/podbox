@@ -387,6 +387,7 @@ pub(crate) fn prepare(
         dropped_preload.as_deref(),
         &userland_note,
     );
+    banner.push_str(&store_note(store));
     // ⭐ M5. The completion layer runs HERE: after the rootfs exists and the
     // image lock is held, and before anything is entered. Its report is part of
     // the banner, because every one of these is an edit podvm made inside

@@ -202,8 +202,37 @@ pub fn doctor(verb: &str, args: &[String]) -> i32 {
         podvm_enter::memfd::memfd_exec(),
         &mut report,
     );
+    match podvm_image::open_store() {
+        Ok(store) => examine_store_mode(store.root(), store.exposed_mode(), &mut report),
+        Err(e) => report.note(
+            "store_mode",
+            format!("podvm cannot open its store to read the mode of its root: {e}"),
+        ),
+    }
     print!("{}", report.render(profile));
     report.exit_code()
+}
+
+/// TODO/supervise.md T-1715. The store root keeps the container table, and
+/// the table keeps each `-e` value: a root that group or other can reach
+/// gives them to each local user. A note, not a failure: podvm runs, and
+/// the fix is one `chmod` of a directory that podvm did not create.
+fn examine_store_mode(root: &std::path::Path, exposed: Option<u32>, report: &mut Doctor) {
+    match exposed {
+        None => report.ok(
+            "store_mode",
+            format!("{} is reachable by its owner only", root.display()),
+        ),
+        Some(mode) => report.note(
+            "store_mode",
+            format!(
+                "{} is mode {mode:o}: other users can read the container table, which \
+                 keeps each -e value. Run chmod 700 {} (TODO/supervise.md T-1715)",
+                root.display(),
+                root.display()
+            ),
+        ),
+    }
 }
 
 /// TODO/image.md T-1418. The `store_exec` row alone: whether files

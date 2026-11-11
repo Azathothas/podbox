@@ -32,7 +32,10 @@ pub const RUN_OPTIONS: &str = "\
                    unless a container record references it: the rootfs is
                    shared, and a failed run must not delete what `keeper`
                    needs (TODO/image.md T-1322)
-  -e, --env K=V    set an environment variable. Repeatable; a later one wins
+  -e, --env K=V    set an environment variable. Repeatable; a later one wins.
+                   The container record keeps each value under the store
+                   root (mode 0700): pass a secret in a file, not here
+                   (TODO/supervise.md T-1715)
   --env-file F     read KEY=VALUE lines from F into the environment.
                    Repeatable; entries load at the flag's position, so a
                    later -e wins over the file (TODO/cli.md T-0801)

@@ -432,3 +432,6 @@ fn record(repo: &str, tag: Option<&str>, seed: u8) -> Record {
 mod locks;
 use locks::*;
 mod refs;
+
+// TODO/supervise.md T-1715: the store root keeps the container table.
+mod modes;

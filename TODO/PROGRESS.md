@@ -7,7 +7,7 @@ start.
 
 ## State
 
-327 entries: 37 open, 8 partial, 4 blocked, 278 done.
+327 entries: 35 open, 9 partial, 5 blocked, 278 done.
 
 The state on 2026-11-11:
 
@@ -44,8 +44,9 @@ podrunner first ("podrunner first", the same day). Take the first entry
 that is not done. Read its Prove before you start. Set its status with
 `podvm-count` in the same commit as the work.
 
-1. [T-1708](supervise.md) and [T-1715](supervise.md), one COORD batch to
-   podcrates for `pod-supervise` (the tree kill, the table modes). Then
+1. [T-1708](supervise.md) (blocked: a podcrates tag with T-162) and
+   [T-1715](supervise.md) (partial: the modes of `pod-supervise`), one
+   COORD batch to podcrates (COORD-026, issue 244). Then
    [T-1655](cli.md): each flag of the hardening line works on the tier or
    refuses by name. Its read-only layer closes the last clause of
    [T-1653](enter.md), `-v HOST:GUEST:ro` with `EROFS` (issue 130).

@@ -93,6 +93,23 @@ fn trust_record(
     }
 }
 
+/// The banner line of a store root that other users can reach, or nothing.
+///
+/// ⛔ TODO/supervise.md T-1715: the container record keeps each `-e` value
+/// under the store root, so a root that group or other can reach gives the
+/// values to each local user.
+pub(super) fn store_note(store: &podvm_image::Store) -> String {
+    match store.exposed_mode() {
+        None => String::new(),
+        Some(mode) => format!(
+            "podvm: the store root {} is mode {mode:o}: other users can read the \
+             container table, which keeps each -e value; chmod 700 it \
+             (TODO/supervise.md T-1715)\n",
+            store.root().display()
+        ),
+    }
+}
+
 /// Make sure the store holds the image, honouring `--pull`.
 pub(super) fn acquire(
     verb: &str,

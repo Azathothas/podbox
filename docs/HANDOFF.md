@@ -29,6 +29,8 @@ file when each step below is done.
   blocked: no release), `pod-services` (T-1679, open) and `pod-todo`
   (T-1680, blocked on T-1672).
 * COORD-024 (#242, to podcrates): the take of `v0.15.0` (T-1716).
+* COORD-026 (#244, to podcrates): a tag with T-162 (T-1708) and the
+  private modes of `pod-supervise` (T-1715).
 * COORD-025 (#243, to podcrates): the answer to PodUtils/podcrates#56
   (COORD-031): T-1656 moves up, and the incus entries T-1717 and T-1718.
   COORD-023 (#241) is closed.

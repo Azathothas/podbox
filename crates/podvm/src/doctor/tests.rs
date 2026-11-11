@@ -125,3 +125,29 @@ fn the_memfd_exec_row_follows_the_probe() {
     assert_eq!(d.exit_code(), 0);
     assert!(d.render("tcg").contains("note memfd_exec: not measured"));
 }
+
+/// TODO/supervise.md T-1715. A store root that group or other can reach is
+/// a note with the `chmod` that fixes it, never a failure; a private root
+/// is ok.
+#[test]
+fn the_store_mode_row_names_an_exposed_root() {
+    let root = std::path::Path::new("/s/podvm");
+    let mut d = Doctor::default();
+    examine_store_mode(root, Some(0o755), &mut d);
+    assert_eq!(d.exit_code(), 0);
+    let text = d.render("tcg");
+    assert!(
+        text.contains("note store_mode: /s/podvm is mode 755"),
+        "{text}"
+    );
+    assert!(text.contains("keeps each -e value"), "{text}");
+    assert!(text.contains("chmod 700 /s/podvm"), "{text}");
+    assert!(d.fixes.is_empty());
+
+    let mut d = Doctor::default();
+    examine_store_mode(root, None, &mut d);
+    assert_eq!(d.exit_code(), 0);
+    assert!(d
+        .render("tcg")
+        .contains("ok store_mode: /s/podvm is reachable by its owner only"));
+}

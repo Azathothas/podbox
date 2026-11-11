@@ -138,3 +138,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | closed (podcrates#56: T-173) | T-1684 (amended), T-1696 |
 | #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of T-155 (to podcrates) | open | T-1716 |
 | #243 | COORD-025: the answer to COORD-031: T-1656 moves up for podrunner; incus is a study (T-1717), then an API back end (T-1718) (to podcrates) | open | T-1656 (amended), T-1717, T-1718 |
+| #244 | COORD-026: pod-supervise: private modes for the table, the logs and each container directory (T-1715); a tag with T-162 for T-1708 (to podcrates) | open | T-1708, T-1715 |

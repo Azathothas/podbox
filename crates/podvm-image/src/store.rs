@@ -244,8 +244,8 @@ impl Store {
 
     pub fn open(root: impl Into<PathBuf>) -> Result<Store> {
         let root = root.into();
+        create_private_root(&root)?;
         for d in [
-            root.clone(),
             root.join(BLOBS).join(crate::digest::SHA256),
             root.join(LOCKS),
             root.join(STAGING),
@@ -269,6 +269,18 @@ impl Store {
         // it the sweep that heals the drift the happy path let slip.
         store.sweep_staging();
         Ok(store)
+    }
+
+    /// The permission bits of the store root where group or other can
+    /// reach it, or `None` where only its owner can (or the root cannot be
+    /// read). ⛔ TODO/supervise.md T-1715: the container table under the
+    /// root keeps each `-e` value, so an exposed root gives them to each
+    /// local user. podvm does not change the mode of a root that it did
+    /// not create; the banner and `podvm doctor` name it.
+    pub fn exposed_mode(&self) -> Option<u32> {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&self.root).ok()?.permissions().mode() & 0o777;
+        (mode & 0o077 != 0).then_some(mode)
     }
 
     pub fn root(&self) -> &Path {
@@ -382,6 +394,27 @@ mod blobs;
 mod files;
 mod records;
 pub use files::*;
+
+/// Create the store root with mode 0700 where it does not exist yet; its
+/// parents get the default modes. ⛔ TODO/supervise.md T-1715: the
+/// container table and the logs live under the root, and the table keeps
+/// each `-e` value, so only the owner may reach them. A root that exists
+/// keeps its mode ([`Store::exposed_mode`] reports it).
+fn create_private_root(root: &Path) -> Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    if root.is_dir() {
+        return Ok(());
+    }
+    if let Some(parent) = root.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| Error::io(parent.display().to_string(), e))?;
+    }
+    match std::fs::DirBuilder::new().mode(0o700).create(root) {
+        Ok(()) => Ok(()),
+        // Another podvm made it between the check and the create.
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && root.is_dir() => Ok(()),
+        Err(e) => Err(Error::io(root.display().to_string(), e)),
+    }
+}
 
 #[cfg(test)]
 mod tests;
