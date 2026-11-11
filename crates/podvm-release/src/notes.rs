@@ -143,12 +143,14 @@ fn main() {
         "Reproduction requires the builder's host glibc as well as its Rust and Zig toolchains."
     );
     // The script appends the SSH paragraph where the tagged tree carried
-    // the packaging script. `git cat-file -e` names that condition exactly.
-    let ssh_probe = format!("{commit}:scripts/package-ssh.sh");
-    if run_to_string("git", &["cat-file", "-e", &ssh_probe], 60)
-        .map(|(ok, _, _)| ok)
-        .unwrap_or(false)
-    {
+    // the packager: the script before T-1737, the binary after it.
+    // `git cat-file -e` names that condition exactly.
+    let carried = |path: &str| {
+        run_to_string("git", &["cat-file", "-e", &format!("{commit}:{path}")], 60)
+            .map(|(ok, _, _)| ok)
+            .unwrap_or(false)
+    };
+    if carried("crates/podvm-release/src/package_ssh.rs") || carried("scripts/package-ssh.sh") {
         println!();
         println!("Each architecture also has a signed {name}-ssh archive and checksum.");
         println!("It contains node, operator, proxy, shell, and the locked registry package licence texts.");

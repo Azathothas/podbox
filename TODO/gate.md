@@ -3376,7 +3376,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    plainly that this half is not done. The entry is `done`. The mechanism
    is lock inheritance across exec, which is T-0211's subject and T-0211
    is `partial`. Decide: reopen T-0204, or fold the clause into T-0211.
-2. `TODO/podssh.md:321` records that reconnect is proven on the loopback
+2. `TODO/podssh.md:327` records that reconnect is proven on the loopback
    fake relay and that pairing against the live relay stays open. T-1406
    is `done`. Decide the same way.
 3. `docs/limits.md` records the base has no cgroup delegation, so engine
@@ -4085,7 +4085,7 @@ subjects the second workflow consumes.
 of subject, line, what runs there and what the port leaves: the interpose
 build at `:90`, the per-arch smoke at `:116`, SSH packaging at `:133` and
 release notes at `:204` of `.github/workflows/nightly.yml`. Only one of the
-four still names a script, `scripts/package-ssh.sh` at line 133 at `c36e0db672d2`, so the
+four still names a script, scripts/package-ssh.sh at line 133 at `c36e0db672d2`, so the
 silent breakage is real but narrower than the `Problem` states and the
 record says so. It also records that every line number the plan gives is
 stale, `nightly.yml:84`, line 103 at `c36e0db672d2`, line 112 at `c36e0db672d2` and line 179 at `c36e0db672d2` holding a step name, a
@@ -4107,7 +4107,7 @@ Two of the four are already ported on this tree, which the plan does not
 know: `podvm-interpose-build` and `podvm-smoke` are built by
 `cargo build -p podvm-gate --bin` at `:87` and `:113` and copied into
 `target/release/` at `:89` and `:115`. ⚠ **Only two of the four still
-name a script.** `scripts/package-ssh.sh` at line 133 at `c36e0db672d2` is the one live
+name a script.** scripts/package-ssh.sh at line 133 at `c36e0db672d2` is the one live
 shell path among the four; the other three are binary calls. So the
 silent breakage the entry describes is real but narrower than the
 `Problem` states: a reader who repoints only `gate.yml` loses the SSH

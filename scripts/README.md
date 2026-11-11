@@ -18,7 +18,6 @@ It reports the host and selects the lane.
 | podvm-gate | Task, citation, source-state, and cleanup gate |
 | podvm-count | Status and count writer |
 | build-interpose.sh | Interpose ceiling declaration; the build is podvm-interpose-build |
-| package-ssh.sh | Static helper smoke and release archive |
 | release-licenses.py | Retained licence texts for locked Cargo packages |
 | podvm-smoke | Architecture and image-path release smoke |
 | release-notes.sh | Exact-commit green gate and build boundary |

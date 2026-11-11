@@ -2091,7 +2091,7 @@ plan's word: `refactor/06-entries/PLAN.md:80-84` says nine members,
 there is one excluded crate at `Cargo.toml:24`, not six interpose members and
 not six excluded-crate proofs. The separate jobs are real. Four steps in
 `gate.yml:127-132`, lines 193-196 at `c36e0db672d2`, lines 237-242 at `c36e0db672d2` and lines 260-263 at `c36e0db672d2` reach the excluded
-crate by `--manifest-path`, and `crates/podvm-gate/src/dev.rs:55-69` mirrors
+crate by `--manifest-path`, and `crates/podvm-gate/src/dev.rs:55-68` mirrors
 them as `CHECK_STEPS`. The Prove is `grep -n "members" TODO/interpose.md`,
 which matches 9 lines now, 1 of them above this entry, and exits 0.
 
@@ -2126,7 +2126,7 @@ workspace, because `cargo test --workspace` cannot reach an excluded crate:
 
 Each names `--manifest-path crates/podvm-interpose/Cargo.toml` rather than the
 workspace, and `gate.yml:260-263` carries `RUSTFLAGS` naming the crt-static
-flag. `crates/podvm-gate/src/dev.rs:55-69` mirrors the same split as
+flag. `crates/podvm-gate/src/dev.rs:55-68` mirrors the same split as
 `CHECK_STEPS`, one step per line, with the same manifest path.
 
 **The two targets are not a preference.** `.cargo/config.toml:7-8` sets

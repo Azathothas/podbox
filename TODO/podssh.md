@@ -244,6 +244,12 @@ is gone (T-1733): each of its eleven clauses has a test of
 `crates/podvm-ssh/tests/session_interactive.rs` against a real `sshd -i`
 with `ForceCommand`, and that test file is the proof now.
 
+**Amended 2026-11-11.** The script scripts/package-ssh.sh of this Prove
+is the binary `podvm-package-ssh` of `crates/podvm-release` now (T-1737),
+with the same contract: `./target/x86_64-unknown-linux-musl/release/podvm-package-ssh
+RELEASE_DIR ARCH QEMU` exits 0, and its archive is byte-identical to the
+archive of the script.
+
 ## Done
 
 **Done 2026-09-30.** The release matrix publishes all seven helper archives

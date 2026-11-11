@@ -59,7 +59,6 @@ const CHECK_STEPS: &[&str] = &[
     "RUSTFLAGS='-C target-feature=-crt-static' cargo clippy --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu --all-targets -- -D warnings",
     "./scripts/build-interpose.sh",
     "cargo build --release --target $TARGET",
-    "sh experiments/394-ssh-package.sh",
     "cargo test --workspace",
     "RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu",
     "python3 experiments/393-build-freshness.py",

@@ -913,7 +913,7 @@ exits 0 on the landed tree.
 # T-1560: Port `scripts/release-licenses.py` to `podvm-release-licenses`
 
 **Source:** `refactor/06-entries/T-R005.md`; `TODO/INDEX.md:53`;
-  `scripts/release-licenses.py`; `scripts/package-ssh.sh:43`
+  `scripts/release-licenses.py`; the script package-ssh.sh (retired by T-1737)
 **Category:** packaging
 **Milestone:** none
 **Priority:** P2
@@ -925,7 +925,7 @@ exits 0 on the landed tree.
 The licence inventory for the locked package set is produced
 by a Python script. It is `packaging` category work and moves
 into the `podvm-buildstate` crate beside `podvm-buildstate`.
-Its one live caller is `scripts/package-ssh.sh`, which runs it
+Its one live caller is scripts/package-ssh.sh, which runs it
 with `--output` under whichever Python it finds.
 
 ## Premise
@@ -1341,7 +1341,7 @@ cargo build -p podvm-buildstate
 ```
 
 That is `scripts/release-licenses.py`, the exec shim T-1560 left behind
-so `scripts/package-ssh.sh` and the `py_compile` gate step keep working.
+so scripts/package-ssh.sh and the `py_compile` gate step keep working.
 Its candidate list searched two fixed layouts, `target/release/` and
 `target/x86_64-unknown-linux-musl/release/`, plus two Windows ones. The
 nightly builds each leg for its own triple into `target/<triple>/release/`,
@@ -1656,7 +1656,7 @@ fails: "README.md names v0.1.0-beta.12 as a podbox boundary". The failure
 line of `verify.rs` now names the asset prefix and the signing identity
 of the tag.
 
-# T-1737: Decide where the SSH packaging scripts go, and port `scripts/package-ssh.sh` into `podvm-release`
+# T-1737: Decide where the SSH packaging scripts go, and port scripts/package-ssh.sh into `podvm-release`
 
 **Source:** rows 1570 and 1576 of the refactor plan
   (`refactor/recon-c.md` on the branch `archive/podbox-worktree`), filed
@@ -1665,13 +1665,13 @@ of the tag.
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
-`experiments/394-ssh-package.sh`, `experiments/397-exported-build.py`
-and `scripts/package-ssh.sh` package the SSH release in shell and
-Python. `.github/workflows/nightly.yml` runs `scripts/package-ssh.sh`,
+experiments/394-ssh-package.sh, `experiments/397-exported-build.py`
+and scripts/package-ssh.sh package the SSH release in shell and
+Python. `.github/workflows/nightly.yml` runs scripts/package-ssh.sh,
 and `crates/podvm-gate/src/dev.rs` runs the `394` script. No record
 says where these belong; the rest of the release tooling is Rust in
 `crates/podvm-release`.
@@ -1685,7 +1685,7 @@ and publish.
 ## Approach
 
 Record the decision in `docs/decisions.md`. Then port
-`scripts/package-ssh.sh` into a binary of `crates/podvm-release`,
+scripts/package-ssh.sh into a binary of `crates/podvm-release`,
 point `nightly.yml` at it, and retire the scripts that the decision
 retires.
 
@@ -1699,3 +1699,27 @@ release.
 `cargo test -p podvm-release` exits 0, a trial `nightly.yml` run with
 `trial=true` packages the SSH artefacts through the new binary, and
 `git grep -n package-ssh.sh -- .github` prints nothing.
+
+## Correction
+
+**Amended 2026-11-11.** The decision is call C18 of `docs/decisions.md`.
+`experiments/397-exported-build.py` packages nothing: it checks the five
+exports of the parked Windows lane against their build record (T-1350),
+so it stays with that lane.
+
+## Done
+
+**Partial 2026-11-11.** `crates/podvm-release/src/package_ssh.rs` is the
+binary `podvm-package-ssh`, with the messages and exit codes of the
+script; `crates/podvm-release/src/package_ssh/elf.rs` reads PT_INTERP for
+both ELF classes and byte orders, in place of `readelf`. With the same
+helpers and `SOURCE_DATE_EPOCH`, the archive of the binary and the archive
+of the script have the same sha256 (`45c52e61...`), measured on the cloud
+host. `cargo test -p podvm-release` exits 0: the tests of
+`crates/podvm-release/tests/package_ssh.rs` refuse a missing `node` and
+invalid ELF bytes by name and package the four release helpers with their
+notices. `nightly.yml` runs the binary; the script, experiment 394 and
+their rows in the READMEs are gone; `crates/podvm-gate/src/dev.rs` drops
+the 394 step, because `cargo test --workspace` runs the test.
+`git grep -n package-ssh.sh -- .github` prints nothing. Remaining: a
+trial run of `nightly.yml` packages each arch through the binary.

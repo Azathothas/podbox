@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compat shim for the licence-inventory port (T-1560). The logic lives in
 the podvm-release-licenses binary in crates/podvm-buildstate; this file
-only execs it with the same arguments, so scripts/package-ssh.sh and the
+only execs it with the same arguments, so the old callers and the
 py_compile gate step keep working."""
 
 import os

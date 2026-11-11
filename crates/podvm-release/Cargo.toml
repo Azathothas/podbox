@@ -38,3 +38,8 @@ path = "src/reconcile.rs"
 [[bin]]
 name = "podvm-publish"
 path = "src/publish.rs"
+
+# TODO/packaging.md T-1737: the SSH release archive (was scripts/package-ssh.sh).
+[[bin]]
+name = "podvm-package-ssh"
+path = "src/package_ssh.rs"

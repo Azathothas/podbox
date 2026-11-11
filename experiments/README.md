@@ -34,7 +34,6 @@ Later scripts test podvm behavior. Their owning task gives the acceptance.
 | --- | --- |
 | `392-kvm-guest.sh` | Windows host of the parked lane (`py`), Windows toolkit base, explicit Linux binary, pinned operator disk; guest version, exit 42, run path, and cleanup. NOT PASSING: the 2026-09-30 KVM runs failed; T-1350 and T-1112 own the next guarded run |
 | `393-build-freshness.py` | Python; fixed fixture changes with equal size and time, changed output, and missing output |
-| `394-ssh-package.sh` | A native static release build; complete archive and named missing-helper and ELF refusals |
 | `395-reconcile-repository.py` | Git refs; patch identity, range comparison, and optional deleted-branch check |
 | `396-audit-linux.sh` | Copied toolkit job; full Linux check, clean snapshot, full plants, and exported artifacts |
 | `397-exported-build.py` | Export directory; all five executable byte digests agree with the saved build record |
