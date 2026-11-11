@@ -1,0 +1,58 @@
+# The POSIX checks of scripts/common/ under Git Bash on Windows
+# (TODO/gate.md T-1683).
+#
+# The PowerShell twins of scripts/common/ exist because a POSIX check could
+# not be assumed to run on Windows: on one Windows 11 machine on 2026-08-25,
+# with Git Bash off PATH, `sed` was absent and `sort` was PowerShell's alias.
+# This job runs each `.sh` check under the Git Bash of a hosted Windows
+# runner, names the tool that each command word resolves to, and prints
+# each exit code. Its log is the transcript of the measurement.
+#
+# ⚠ On request only: it needs a Windows runner and changes nothing.
+
+name: windows-checks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  git-bash:
+    name: the .sh checks under Git Bash
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the tools that the checks resolve
+        run: |
+          uname -a
+          bash --version | head -1
+          for tool in sh sed sort grep awk find tr cut wc head tail xargs git; do
+            printf '%-6s %s\n' "$tool" "$(command -v "$tool" || echo MISSING)"
+          done
+      - name: each check, and its exit code
+        run: |
+          fail=0
+          for check in check-docs check-markers check-one-home check-placeholders check-control-bytes check-changelog check-attribution check-build-lane; do
+            set +e
+            sh "scripts/common/$check.sh" > "/tmp/$check.out" 2>&1
+            rc=$?
+            set -e
+            echo "== $check exit $rc"
+            tail -n 5 "/tmp/$check.out"
+            [ "$rc" -eq 0 ] || fail=1
+          done
+          set +e
+          sh scripts/common/mine-repo.sh --selftest > /tmp/mine.out 2>&1
+          rc=$?
+          set -e
+          echo "== mine-repo --selftest exit $rc"
+          tail -n 5 /tmp/mine.out
+          [ "$rc" -eq 0 ] || fail=1
+          echo "verdict: $([ "$fail" -eq 0 ] && echo EACH CHECK EXITS 0 || echo A CHECK FAILED)"
+          exit "$fail"
