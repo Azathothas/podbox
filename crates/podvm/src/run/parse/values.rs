@@ -1,4 +1,5 @@
-//! The values of the flags of the hardening line. TODO/cli.md T-1655.
+//! The values of the flags of the hardening line (TODO/cli.md T-1655),
+//! `--podvm-cpus` (T-1654) and the file of `--env-file` (T-0801).
 
 use super::*;
 
@@ -97,4 +98,80 @@ pub(super) fn volume(verb: &str, spec: &str, o: &mut Opts) -> std::result::Resul
     }
     o.volumes.push(v);
     Ok(())
+}
+
+/// `--env-file`: docker's file of `KEY=VALUE` lines, loaded at the flag's
+/// position so a later `-e` wins over the file and a later file over an
+/// earlier flag, the same rule `-e` already documents. TODO/cli.md T-0801.
+///
+/// The file is bounded (1 MiB) and must be UTF-8: buffering an unbounded
+/// body or guessing at bytes is the shape
+/// `docs/conventions/forbidden-patterns.md` refuses. A line without `=`
+/// is refused naming its number rather than skipped, because a skipped
+/// line is a variable the caller thinks is set.
+pub(super) fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<String>, i32> {
+    const MAX_ENV_FILE: u64 = 1_048_576;
+    let meta = std::fs::metadata(path).map_err(|e| {
+        eprintln!("podvm {verb}: --env-file {path:?}: {e}");
+        EXIT_FLAG_ERROR
+    })?;
+    if !meta.is_file() {
+        eprintln!("podvm {verb}: --env-file {path:?} is not a file");
+        return Err(EXIT_FLAG_ERROR);
+    }
+    if meta.len() > MAX_ENV_FILE {
+        eprintln!(
+            "podvm {verb}: --env-file {path:?} is {} bytes, over the 1048576-byte ceiling",
+            meta.len()
+        );
+        return Err(EXIT_FLAG_ERROR);
+    }
+    let text = std::fs::read_to_string(path).map_err(|e| {
+        eprintln!("podvm {verb}: --env-file {path:?}: {e}");
+        EXIT_FLAG_ERROR
+    })?;
+    let mut out = Vec::new();
+    for (n, raw) in text.lines().enumerate() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let Some((k, v)) = line.split_once('=') else {
+            eprintln!(
+                "podvm {verb}: --env-file {path:?} line {} has no `=`: {line:?}",
+                n + 1
+            );
+            return Err(EXIT_FLAG_ERROR);
+        };
+        let key = k.trim();
+        if key.is_empty() {
+            eprintln!(
+                "podvm {verb}: --env-file {path:?} line {} has no name: {line:?}",
+                n + 1
+            );
+            return Err(EXIT_FLAG_ERROR);
+        }
+        let mut value = v.trim().to_string();
+        if value.len() >= 2
+            && value.starts_with(['\'', '"'])
+            && value.ends_with(value.as_bytes()[0] as char)
+        {
+            value.remove(0);
+            value.pop();
+        }
+        out.push(format!("{key}={value}"));
+    }
+    Ok(out)
+}
+
+/// The vCPUs of `--podvm-cpus`: a whole number from 1 to 64.
+/// TODO/cli.md T-1654.
+pub(super) fn cpus(verb: &str, a: &str) -> std::result::Result<u32, i32> {
+    match a.parse::<u32>() {
+        Ok(n) if (1..=64).contains(&n) => Ok(n),
+        _ => {
+            eprintln!("podvm {verb}: --podvm-cpus takes a whole number from 1 to 64, not {a:?}");
+            Err(EXIT_FLAG_ERROR)
+        }
+    }
 }

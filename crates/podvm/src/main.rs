@@ -24,6 +24,7 @@ mod machine;
 mod man;
 mod names;
 mod parity;
+mod profile;
 mod remote;
 mod run;
 mod system;
@@ -57,6 +58,7 @@ usage: podvm <command> [options]
   windows      a disposable Windows guest: doctor, fetch, setup and run
   machine      a guest podvm runs: ssh into it (podman parity)
   man          render this manual from the binary's own usage strings
+  profile      list and show the profiles that `run --profile` takes
   pull         fetch an image into the content-addressed store
   save         write one image as an OCI-layout tarball
   load         read an OCI-layout tarball into the store
@@ -159,6 +161,7 @@ fn main() -> std::process::ExitCode {
         Some("guest-hold") => exit(incus::hold()),              // an incus init, T-1718
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
+        Some("profile") => exit(profile::main(rest)), // TODO/cli.md T-1654
         Some("pull") => exit(images::pull("pull", rest)),
         Some("save") => exit(images::save("save", rest)),
         Some("load") => exit(images::load("load", rest)),
@@ -274,22 +277,12 @@ fn main() -> std::process::ExitCode {
 /// so, pointing at the decision rather than at an arm that does not
 /// exist.
 fn ssh_refusal() -> std::process::ExitCode {
-    let mut err = std::io::stderr().lock();
-    let _ = writeln!(
-        err,
-        "podvm: ssh: the verb is `podvm remote ssh`. The remote group has:"
-    );
-    let _ = writeln!(
-        err,
-        "  podvm remote ssh        reach another machine over a relay"
-    );
-    let _ = writeln!(
-        err,
-        "  podvm machine ssh       a shell in a guest podvm itself runs"
-    );
-    let _ = writeln!(
-        err,
-        "  podvm local <verb>      act on THIS machine: planned, not a command yet (see docs/decisions/remote-verb.md)"
+    eprintln!(
+        "podvm: ssh: the verb is `podvm remote ssh`. The remote group has:\n  \
+         podvm remote ssh        reach another machine over a relay\n  \
+         podvm machine ssh       a shell in a guest podvm itself runs\n  \
+         podvm local <verb>      act on THIS machine: planned, not a command yet \
+         (see docs/decisions/remote-verb.md)"
     );
     exit(EXIT_RUNTIME_ERROR)
 }

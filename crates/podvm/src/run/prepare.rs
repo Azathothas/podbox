@@ -94,6 +94,11 @@ pub(crate) fn prepare(
         eprintln!("podvm {verb}: --podvm-mem needs --podvm-tier=machine");
         return Err(EXIT_FLAG_ERROR);
     }
+    if o.cpus.is_some() {
+        // ⛔ The same rule: a rootfs tier has no vCPU to give (T-1654).
+        eprintln!("podvm {verb}: --podvm-cpus needs --podvm-tier=machine");
+        return Err(EXIT_FLAG_ERROR);
+    }
     let image = o.image.clone().expect("checked in parse");
 
     // ⭐ TODO/enter.md T-1411. The probe runs HERE, before the fetch, the
@@ -168,6 +173,7 @@ pub(crate) fn prepare(
         &o.command,
         o.entrypoint.as_deref(),
     );
+    let argv = super::wrapped(&o.wrap, argv); // T-1654: `fs.wrap`
     if argv.is_empty() {
         eprintln!(
             "podvm {verb}: {image} declares neither an Entrypoint nor a Cmd, and no \

@@ -1,0 +1,55 @@
+== conditions
+date              2026-11-11T11:53:03Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.3
+/dev/kvm          absent
+image             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+
+== clause 1  profile list
+    NAME         SOURCE     DESCRIPTION
+    default      built-in   the ladder selects the rung; no table changes a flag
+    workspace    built-in   the current directory at /workspace, the working directory there
+    readonly     built-in   workspace, with a read-only root and an empty /tmp
+    machine      built-in   workspace, in a guest of the machine tier with 1 GiB and 2 vCPUs
+    incus        built-in   a disposable instance of an incusd (TODO/machine.md T-1718)
+  exit 0  (want 0)
+
+== clause 2  profile show with -s
+    # profile workspace (built-in)
+    description = "the current directory at /workspace, the working directory there"
+    
+    [fs]
+    backend = "auto"
+    user = 1000
+    workdir = "/workspace"
+    workspace = "."
+    
+    [limits]
+    file_max = "1g"
+    
+    # run flags: --user=1000 -v WORK/ws:/workspace --workdir=/workspace --ulimit=fsize=1073741824
+  exit 0  (want 0)
+
+== clause 3  an absent tier refuses with the probe's reason
+  incus             exit 125: podvm run: incus tier: no incusd answers at WORK/no-incus/unix.socket: set PODVM_INCUS_SOCKET or INCUS_DIR, or start one (docs/incus.md, route A)
+  machine (kvm)     exit 125: podvm run: machine tier: PODVM_MACHINE_ACCEL=kvm asks for KVM, and /dev/kvm does not open for this user: podvm does not fall back to TCG (TODO/machine.md T-1656)
+
+== clause 4  one command line in each profile that places /workspace
+  workspace: exit 0, output /workspace|probe.txt|
+  readonly: exit 0, output /workspace|probe.txt|
+  machine: exit 0, output /workspace|probe.txt|
+
+== clause 5  limits.memory on a rootfs tier
+  exit 125: podvm run: --profile workspace: `limits.memory` needs fs.backend = "machine": a rootfs tier has no cgroup that bounds memory, so the limit would not hold (TODO/cli.md T-0804). The machine tier gives it as guest RAM (1073741824 bytes)
+
+== clause 6  a misspelt key of a user profile
+  exit 125: podvm run: --profile cage: unknown key `fs.read_onyl`: `fs` takes backend, user, wrap, read_only, workspace, workdir, volumes, tmpfs. A misspelt key that is silently ignored leaves a cage looser than the recipe says
+
+== clause 7  a user profile extends a built-in one
+  the profile       exit 0: from-profile /workspace
+  with -s           exit 0: from-s /workspace
+
+== clause 8  -s without --profile
+  exit 125: podvm run: -s needs --profile NAME: it sets one key of a profile
+
+verdict: THE PROFILES GIVE ONE SHAPE BY NAME AND REFUSE BY NAME

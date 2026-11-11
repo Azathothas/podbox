@@ -59,6 +59,7 @@ fn prepare_image(
         &o.command,
         o.entrypoint.as_deref(),
     );
+    let argv = super::wrapped(&o.wrap, argv); // T-1654: `fs.wrap`
     if argv.is_empty() {
         eprintln!(
             "podvm {verb}: {image} declares neither an Entrypoint nor a Cmd, and no \
@@ -132,6 +133,7 @@ pub(super) fn machine_tier(
         env: p.env,
         workdir: p.workdir,
         mem: o.mem,
+        cpus: o.cpus,
         timeout: o.timeout.map(std::time::Duration::from_secs),
         qemu_args: o.qemu_args.clone(),
         copies,
@@ -154,9 +156,9 @@ pub(super) fn incus_tier(
         );
         return EXIT_FLAG_ERROR;
     }
-    if !o.volumes.is_empty() || o.mem.is_some() || !o.qemu_args.is_empty() {
+    if !o.volumes.is_empty() || o.mem.is_some() || o.cpus.is_some() || !o.qemu_args.is_empty() {
         eprintln!(
-            "podvm {verb}: --podvm-tier=incus takes no -v, --podvm-mem or \
+            "podvm {verb}: --podvm-tier=incus takes no -v, --podvm-mem, --podvm-cpus or \
              --podvm-qemu-arg yet (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;

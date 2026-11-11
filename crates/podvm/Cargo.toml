@@ -27,6 +27,8 @@ sha2.workspace = true
 podvm-probe = { path = "../podvm-probe" }
 podvm-image = { path = "../podvm-image" }
 serde_json.workspace = true
+# TODO/cli.md T-1654: the TOML of a profile.
+toml.workspace = true
 podvm-extract = { path = "../podvm-extract" }
 podvm-complete = { path = "../podvm-complete" }
 podvm-enter = { path = "../podvm-enter" }

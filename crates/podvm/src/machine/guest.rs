@@ -44,6 +44,8 @@ pub struct Request<'a> {
     pub env: Vec<String>,
     pub workdir: String,
     pub mem: Option<u64>,
+    /// `--podvm-cpus`: the `-smp` of the guest; one where it is `None`.
+    pub cpus: Option<u32>,
     pub timeout: Option<Duration>,
     pub qemu_args: Vec<String>,
     /// `-v HOST:GUEST`: each host path, copied into the guest at GUEST.
@@ -319,13 +321,24 @@ pub fn boot(r: &Request) -> i32 {
     let _ = std::fs::remove_file(&sock);
     let mut extra = stderr::argv(&sock);
     extra.extend(r.qemu_args.iter().cloned());
-    let argv = qemu_argv(
+    let mut argv = qemu_argv(
         accel,
         r.mem.unwrap_or(DEFAULT_MEM),
         &kernel,
         &initrd,
         &extra,
     );
+    // TODO/cli.md T-1654 (`limits.cpus`). With `acpi=off` the kernel reads
+    // the MP table, which names one CPU, so a guest of more CPUs keeps ACPI
+    // (measured on 2026-11-11: `nproc` 1 with `acpi=off`, 2 without it).
+    if let Some(n) = r.cpus.filter(|n| *n > 1) {
+        if let Some(i) = argv.iter().position(|a| a == "-smp") {
+            argv[i + 1] = n.to_string();
+        }
+        if let Some(m) = argv.iter_mut().find(|a| *a == "pc,acpi=off") {
+            *m = "pc".to_string();
+        }
+    }
     let code = drive(r, &qemu, &argv, &nonce, &dir, &sock);
     let _ = std::fs::remove_file(&sock);
     let _ = std::fs::remove_dir_all(&dir);

@@ -327,7 +327,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1651](enter.md) | P2 | enter | done | An emulate tier on a prefix-preserving, fail-closed qemu-user for static payloads |
 | [T-1652](enter.md) | P2 | enter | done | A native-static rung: userland execve, Syscall User Dispatch and openat2(RESOLVE_IN_ROOT) |
 | [T-1653](enter.md) | P2 | enter | done | `-v` volumes on a host with no /dev/fuse and no mount |
-| [T-1654](cli.md) | P2 | cli | open | Profiles: strict TOML recipes with `extends` and `-s` overrides |
+| [T-1654](cli.md) | P2 | cli | done | Profiles: strict TOML recipes with `extends` and `-s` overrides |
 | [T-1655](cli.md) | P2 | cli | done | The sandbox hardening line: each `run` flag works on the tier or refuses by name |
 | [T-1656](machine.md) | P2 | machine | done | MicroVMs: a fast disposable guest from an OCI image, on KVM or TCG |
 | [T-1657](enter.md) | P2 | enter | open | A syscall-interpreting tier: the gVisor capability without user namespaces |
@@ -405,7 +405,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-337 items: 25 open, 4 partial, 3 blocked, 305 done.
+337 items: 24 open, 4 partial, 3 blocked, 306 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -416,9 +416,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 144 | 148 |
-| P2 | 22 | 0 | 3 | 88 | 113 |
+| P2 | 21 | 0 | 3 | 89 | 113 |
 | P3 | 2 | 0 | 0 | 9 | 11 |
-| **All** | **25** | **4** | **3** | **305** | **337** |
+| **All** | **24** | **4** | **3** | **306** | **337** |
 
 ## Work order
 

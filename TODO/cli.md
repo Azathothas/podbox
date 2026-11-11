@@ -1884,7 +1884,7 @@ Source:      issue 166; #193; the owner's ruling of 2026-11-06
 Category:    cli
 Priority:    P2
 Effort:      L
-Status:      open
+Status:      done 2026-11-11
 
 Problem:     podvm has the docker and podman command line and a tier flag,
              but no recipe layer. A caller cannot name a sandbox shape once
@@ -1924,6 +1924,52 @@ Prove:       `cargo test -p podvm` exits 0 with tests: an unknown key and a
              probe's reason, `sh -c 'pwd; ls /workspace'` answers the same
              in every built-in profile that places `/workspace`, and
              `limits.memory` refuses by name on a rootfs tier.
+
+**Done 2026-11-11.** `cargo test -p podvm` exits 0 with the tests of
+`crates/podvm/src/profile/tests.rs`: `an_unknown_key_refuses_and_names_the_key`,
+`a_wrong_type_refuses_and_names_the_key`, `a_planted_misspelt_key_is_refused`
+and `extends_and_s_give_the_effective_profile`, beside the cycle of
+`extends`, each built-in profile, and `limits.memory` and `limits.cpus` on a
+rootfs tier. `PODVM_410_MIRROR=1 sh experiments/410-profiles.sh` exits 0
+(`experiments/results/profiles.txt`), each of its eight clauses:
+
+| clause | reading |
+| --- | --- |
+| `profile list` | exit 0, the five built-in profiles |
+| `profile show workspace -s fs.user=1000 -s limits.file_max="1g"` | `user = 1000`, `file_max = "1g"`, and the flags `--user=1000` and `--ulimit=fsize=1073741824` |
+| an absent tier | `--profile incus`: exit 125, "no incusd answers"; `--profile machine` with `PODVM_MACHINE_ACCEL=kvm`: exit 125, "/dev/kvm does not open" |
+| `sh -c 'pwd; ls /workspace'` | `/workspace` and `probe.txt` in workspace, readonly (on the chroot-denying fixture) and machine (a TCG guest) |
+| `limits.memory` on a rootfs tier | exit 125, "`limits.memory` needs fs.backend = \"machine\"" |
+| a misspelt key of a user profile | exit 125, "unknown key `fs.read_onyl`", before the pull |
+| a user profile that extends `workspace` | its `env.set` reaches the command; `-s env.set.GREETING=...` overrides it |
+| `-s` without `--profile` | exit 125 |
+
+What podvm takes of issue 166, and what it leaves:
+
+* The tables are podvm's own: `fs` (`backend`, `user`, `wrap`,
+  `read_only`, `workspace`, `workdir`, `volumes`, `tmpfs`), `limits`
+  (`file_max`, `memory`, `cpus`, `timeout`), `net` (`mode`) and
+  `env.set`. A key of sand-net that has no mechanism in podvm is not
+  accepted: it is an unknown key that names the keys of its table, which
+  is the rule of the Decision. `net.mode` takes `host` only until the
+  network entries T-1662 to T-1665 add the other modes.
+* A profile becomes `run` flags that the one parser of `run` reads
+  (`podvm profile show` prints them), so a profile can do nothing that a
+  flag cannot, and a flag of the command line wins over the profile.
+  `fs.backend` is `--podvm-tier`; `fs.workspace` is `-v HOST:/workspace`,
+  a path-map entry of the loader family (T-1653) and a copy on the machine
+  tier; `limits.file_max` is `--ulimit=fsize`; `limits.memory` and
+  `limits.cpus` are `--podvm-mem` and the new `--podvm-cpus` on the
+  machine tier and refuse on a rootfs tier.
+* `--podvm-cpus` gives `-smp`; a guest of more than one CPU keeps ACPI,
+  because with `acpi=off` the kernel saw one CPU (measured: `nproc` 1,
+  then 2).
+* User profiles are `$XDG_CONFIG_HOME/podvm/profiles/NAME.toml` (else
+  `~/.config/podvm/profiles`); a user file takes the place of a built-in
+  profile of the same name. A name takes letters, digits, `-`, `_` and
+  `.` only.
+* T-1728 came from clause 4: the machine tier gave the command a terminal,
+  and `ls` coloured its output.
 
 **Filed 2026-11-06.** The facts below are quoted from issue 166, so the
 entry stands if GitHub hides the issue. sand-net is the 0BSD tool that

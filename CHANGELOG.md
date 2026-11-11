@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: profiles, 2026-11-11
+
+Record: T-1654; issue 166.
+Deployed: not deployed; no version change.
+
+- `podvm run --profile NAME [-s KEY=VALUE]` runs with a TOML recipe of run
+  flags: built in (`default`, `workspace`, `readonly`, `machine`,
+  `incus`) or under `$XDG_CONFIG_HOME/podvm/profiles`. `extends` merges a
+  profile over its parent, and `-s` sets one key. An unknown key and a
+  wrong type refuse, naming the key. `podvm profile list` and `podvm
+  profile show NAME` print them.
+- `--podvm-cpus N` gives a guest of the machine tier N vCPUs.
+
 ### Fixed: no terminal in a guest without -t, 2026-11-11
 
 Record: T-1728.

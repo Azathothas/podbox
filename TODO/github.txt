@@ -55,7 +55,7 @@
 163 issue closed
 164 issue closed
 165 issue closed
-166 issue open
+166 issue closed
 167 issue open
 168 issue open
 169 issue open

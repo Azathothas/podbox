@@ -60,7 +60,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #163 | [Reference] mhx/dwarfs @ 9062b57: short write -20 is a libarchive status | closed (lesson taken in T-0203; podcrates pod-hostprobe) | none: a reference (references/README.md) |
 | #164 | [Reference] multikernel/sandlock @ 841265d: anti-pattern: filtered read, false report | closed (lesson taken in T-0107, T-0606, T-0804, T-0903; podcrates pod-hostprobe) | none: a reference (references/README.md) |
 | #165 | [Reference] novafacing/memfd-exec @ 0a15efe: upstream baseline for the memfd fork | closed (lesson taken in T-0909; not vendored) | none: a reference (references/README.md) |
-| #166 | [Scope] Cage recipes: podvm profiles in strict TOML with extends and -s overrides | open | T-1654 |
+| #166 | [Scope] Cage recipes: podvm profiles in strict TOML with extends and -s overrides | closed | T-1654 |
 | #167 | [Scope] Container cages: docker/podman run parity for the sandbox hardening flags | open | T-1655 |
 | #168 | [Scope] MicroVMs: fast disposable guests from an OCI image, on KVM or TCG | open | T-1656 |
 | #169 | [Scope] User-space kernels (gVisor): a syscall-interpreting tier without user namespaces | open | T-1657 |

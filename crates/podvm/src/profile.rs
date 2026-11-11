@@ -1,0 +1,167 @@
+//! Profiles: strict TOML recipes for `run`. TODO/cli.md T-1654.
+//!
+//! A profile names a sandbox shape once: `podvm run --profile NAME IMAGE`
+//! runs it again. A profile is TOML with the tables `fs`, `limits`, `net`
+//! and `env.set`; `extends` merges the child over its parent, and `-s
+//! KEY=VALUE` sets one leaf. The effective profile becomes `run` flags,
+//! which the one parser of `run` reads, so a profile can do nothing that a
+//! flag cannot. An unknown key and a wrong type are errors that name the
+//! key.
+//!
+//! `podvm profile list` names each profile; `podvm profile show NAME [-s
+//! KEY=VALUE]...` prints the effective profile and its `run` flags.
+
+pub mod builtin;
+pub mod model;
+
+#[cfg(test)]
+mod tests;
+
+use podvm_image::error::EXIT_FLAG_ERROR;
+
+const USAGE: &str = "\
+usage: podvm profile list
+       podvm profile show NAME [-s KEY=VALUE]...
+
+A profile is TOML under $XDG_CONFIG_HOME/podvm/profiles/NAME.toml (else
+~/.config/podvm/profiles), or built in. `run --profile NAME [-s KEY=VALUE]`
+runs a payload with it (TODO/cli.md T-1654).";
+
+/// The effective profile of `name` with `sets` applied, checked.
+pub fn effective(
+    name: &str,
+    sets: &[String],
+) -> Result<(toml::Table, model::Checked, model::Source), String> {
+    let dir = model::user_dir();
+    let (mut table, source) = model::resolve(name, dir.as_deref())?;
+    for s in sets {
+        model::set(&mut table, s).map_err(|e| format!("profile {name}: {e}"))?;
+    }
+    let checked = model::check(&table).map_err(|e| format!("profile {name}: {e}"))?;
+    Ok((table, checked, source))
+}
+
+/// The `run` flags of `--profile name` with `sets`, and its `fs.wrap`.
+pub fn run_args(
+    verb: &str,
+    name: &str,
+    sets: &[String],
+) -> Result<(Vec<String>, Vec<String>), i32> {
+    // Each message starts `profile NAME:`, so the line reads `--profile NAME: ...`.
+    let fail = |e: String| {
+        eprintln!("podvm {verb}: --{e}");
+        EXIT_FLAG_ERROR
+    };
+    let (_, c, _) = effective(name, sets).map_err(fail)?;
+    let cwd = std::env::current_dir()
+        .map_err(|e| fail(format!("profile {name}: the current directory: {e}")))?;
+    let args = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
+    Ok((args, c.wrap))
+}
+
+/// `podvm profile ...`.
+pub fn main(args: &[String]) -> i32 {
+    match args.first().map(String::as_str) {
+        Some("list") if args.len() == 1 => list(),
+        Some("show") => show(&args[1..]),
+        Some("-h" | "--help") => {
+            println!("{USAGE}");
+            0
+        }
+        _ => {
+            eprintln!("{USAGE}");
+            EXIT_FLAG_ERROR
+        }
+    }
+}
+
+fn list() -> i32 {
+    let dir = model::user_dir();
+    let mut names: Vec<String> = builtin::NAMES.iter().map(|s| s.to_string()).collect();
+    if let Some(d) = &dir
+        && let Ok(rd) = std::fs::read_dir(d)
+    {
+        let mut extra: Vec<String> = rd
+            .flatten()
+            .filter_map(|e| {
+                let n = e.file_name().to_string_lossy().to_string();
+                n.strip_suffix(".toml").map(str::to_string)
+            })
+            .filter(|n| !names.contains(n))
+            .collect();
+        extra.sort();
+        names.extend(extra);
+    }
+    println!("{:<12} {:<10} DESCRIPTION", "NAME", "SOURCE");
+    let mut code = 0;
+    for n in &names {
+        match effective(n, &[]) {
+            Ok((_, c, source)) => {
+                let src = match source {
+                    model::Source::BuiltIn => "built-in".to_string(),
+                    model::Source::File(_) => "user".to_string(),
+                };
+                println!("{n:<12} {src:<10} {}", c.description);
+            }
+            Err(e) => {
+                println!("{n:<12} {:<10} ERROR: {e}", "user");
+                code = EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    code
+}
+
+fn show(args: &[String]) -> i32 {
+    let mut name = None;
+    let mut sets = Vec::new();
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "-s" | "--set" => match it.next() {
+                Some(v) => sets.push(v.clone()),
+                None => {
+                    eprintln!("podvm profile show: -s needs KEY=VALUE");
+                    return EXIT_FLAG_ERROR;
+                }
+            },
+            other if other.starts_with("--set=") => sets.push(other[6..].to_string()),
+            other if other.starts_with('-') => {
+                eprintln!("podvm profile show: unknown option {other:?}\n{USAGE}");
+                return EXIT_FLAG_ERROR;
+            }
+            other if name.is_none() => name = Some(other.to_string()),
+            other => {
+                eprintln!("podvm profile show: one NAME only, and {other:?} is a second");
+                return EXIT_FLAG_ERROR;
+            }
+        }
+    }
+    let Some(name) = name else {
+        eprintln!("{USAGE}");
+        return EXIT_FLAG_ERROR;
+    };
+    let (table, c, source) = match effective(&name, &sets) {
+        Ok(x) => x,
+        Err(e) => {
+            eprintln!("podvm profile show: {e}");
+            return EXIT_FLAG_ERROR;
+        }
+    };
+    println!("# profile {name} ({})", source.word());
+    print!("{}", model::render(&table));
+    let cwd = std::env::current_dir().unwrap_or_default();
+    match model::run_args(&c, &cwd) {
+        Ok(a) => {
+            println!("\n# run flags: {}", a.join(" "));
+            if !c.wrap.is_empty() {
+                println!("# the command runs under: {}", c.wrap.join(" "));
+            }
+            0
+        }
+        Err(e) => {
+            eprintln!("podvm profile show: profile {name}: {e}");
+            EXIT_FLAG_ERROR
+        }
+    }
+}

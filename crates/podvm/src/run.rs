@@ -143,6 +143,8 @@ pub const RUN_OPTIONS: &str = "\
                    guest memory in bytes, with an optional K/M/G/T suffix. A
                    guest over the RLIMIT_FSIZE ceiling is refused before it
                    starts, naming both numbers (TODO/machine.md T-1305)
+  --podvm-cpus N  podvm's own, machine tier only and refused elsewhere: the
+                   guest's vCPUs, 1 to 64 (TODO/cli.md T-1654)
 
   refused: podvm run enters a CHROOT, not a container. It shares this machine's
     process table, network, IPC and mount namespaces with the payload. The
@@ -170,6 +172,15 @@ pub(crate) use prepare::*;
 mod tree;
 pub(crate) use tree::drop_unrecorded;
 
+/// The command under the profile's `fs.wrap` (TODO/cli.md T-1654). An empty
+/// command stays empty, so that its refusal names the image.
+fn wrapped(wrap: &[String], argv: Vec<String>) -> Vec<String> {
+    if wrap.is_empty() || argv.is_empty() {
+        return argv;
+    }
+    wrap.iter().cloned().chain(argv).collect()
+}
+
 mod acquire;
 pub(crate) use acquire::*;
 
@@ -184,6 +195,9 @@ mod exit_note;
 
 #[cfg(test)]
 mod timeout_tests;
+
+#[cfg(test)]
+mod profile_tests;
 
 #[cfg(test)]
 mod tests;

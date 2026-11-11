@@ -136,6 +136,9 @@ pub const TABLE: &[Row] = &[
     Row { verb: "man", flag: Option::None, status: Native, note: "renders this manual from the binary's own usage strings and the parity table, paging through $PAGER unless --no-pager or a non-terminal stdout (TODO/cli.md T-1332)" },
     Row { verb: "man", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "man", flag: Some("--no-pager"), status: Native, note: "print to stdout even on a terminal; without it a terminal pages through $PAGER" },
+    Row { verb: "profile", flag: Option::None, status: Native, note: "podvm's own: `profile list` names each profile, `profile show NAME [-s KEY=VALUE]` prints the effective profile and its run flags (TODO/cli.md T-1654)" },
+    Row { verb: "profile", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
+    Row { verb: "profile", flag: Some("-s, --set"), status: Native, note: "with `profile show NAME`: KEY=VALUE sets one key of the profile, as `run --profile NAME -s` does (TODO/cli.md T-1654)" },
     Row { verb: "probe", flag: Option::None, status: Native, note: "podvm's own verb, with no docker equivalent: what this machine permits, and the rung podvm selects" },
     Row { verb: "doctor", flag: Option::None, status: Native, note: "podvm's own verb, with no docker equivalent: the setup half beside probe, with one fix line per missing piece (T-1337)" },
     Row { verb: "doctor", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
@@ -247,6 +250,9 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--timeout"), status: Native, note: "podman's: whole seconds over 0. At the bound the launcher of a detached run, or podvm for a foreground run, kills the payload and its tree with SIGKILL, and .End.Reason reads wall (T-1655)" },
     Row { verb: "run", flag: Some("--podvm-qemu-arg"), status: Native, note: "podvm's own, machine tier only and refused elsewhere: one token for the emulator per occurrence, repeatable, never split on whitespace (T-1302)" },
     Row { verb: "run", flag: Some("--podvm-mem"), status: Native, note: "podvm's own, machine tier only and refused elsewhere: the guest memory in bytes with an optional K/M/G/T suffix, judged against the RLIMIT_FSIZE ceiling before anything starts (T-1305)" },
+    Row { verb: "run", flag: Some("--podvm-cpus"), status: Native, note: "podvm's own, machine tier only and refused elsewhere: the guest's vCPUs, 1 to 64, as -smp (TODO/cli.md T-1654)" },
+    Row { verb: "run", flag: Some("--profile"), status: Native, note: "podvm's own: a TOML recipe of run flags, built in or under $XDG_CONFIG_HOME/podvm/profiles; an unknown key or a wrong type refuses naming the key (TODO/cli.md T-1654)" },
+    Row { verb: "run", flag: Some("-s, --set"), status: Native, note: "podvm's own, with --profile: KEY=VALUE sets one key of the profile; the value parses as TOML, else it is a string (TODO/cli.md T-1654)" },
     // ------------------------------------------------ issue 60: the rest of
     // docker's `run` surface. TODO/cli.md T-0801: a flag with no row is a
     // bug in the table, so every docker spelling lands here, honored or

@@ -10,7 +10,7 @@ The `Cargo.toml` of each crate names its `pod-*` dependencies.
 
 | Directory | Owns | Takes from podcrates |
 | --- | --- | --- |
-| `crates/podvm` | The binary: dispatch, arguments, parity table, manual, `run` and the lifecycle verbs, `images`, `doctor`, `system`, the tier flag, `remote`, `machine ssh`, `windows`, the incus tier | `pod-incus` (the client of the incus REST API); the rest through the crates below |
+| `crates/podvm` | The binary: dispatch, arguments, parity table, manual, `run` and the lifecycle verbs, `images`, `doctor`, `system`, the tier flag, the profiles of `run --profile` (`profile.rs`, T-1654), `remote`, `machine ssh`, `windows`, the incus tier | `pod-incus` (the client of the incus REST API); the rest through the crates below |
 | `crates/podvm-probe` | podvm's settings for the probes, the report, the exit codes, the JSON writer, the non-goals | `pod-hostprobe` (probes, rung selection, machine legs) |
 | `crates/podvm-image` | The store, its layout and records, credentials paths, platform choice, space and exec checks, `pull` | `pod-oci` (registry client), `pod-proxy`, `pod-tls`, `pod-supervise` (store lock), `pod-hostprobe`, `pod-core` |
 | `crates/podvm-extract` | The layers of a manifest as blob paths, the rootfs place in the store, the tree of each container (`tree.rs`, T-1709) | `pod-extract` (layers, whiteouts, containment, sidecar) |

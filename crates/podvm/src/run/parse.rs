@@ -51,6 +51,15 @@ pub(super) struct Opts {
     /// machine tier's ceiling check in `prepare`; refused on every other
     /// tier rather than silently dropped. TODO/machine.md T-1305.
     pub(super) mem: Option<u64>,
+    /// `--podvm-cpus`. The guest's vCPUs, machine tier only and refused on
+    /// every other tier. TODO/cli.md T-1654 (`limits.cpus` of a profile).
+    pub(super) cpus: Option<u32>,
+    /// `--profile` and `-s`: the profile of the run and its overrides.
+    /// TODO/cli.md T-1654.
+    pub(super) profile: Option<String>,
+    pub(super) sets: Vec<String>,
+    /// `fs.wrap` of the profile: a prefix of the command.
+    pub(super) wrap: Vec<String>,
     /// `--device`. Carried raw here and parsed now: a malformed shape is a
     /// flag error, before anything is fetched. TODO/enter.md T-0501.
     pub(super) devices: Vec<String>,
@@ -90,68 +99,23 @@ impl Opts {
     }
 }
 
-/// `--env-file`: docker's file of `KEY=VALUE` lines, loaded at the flag's
-/// position so a later `-e` wins over the file and a later file over an
-/// earlier flag, the same rule `-e` already documents. TODO/cli.md T-0801.
-///
-/// The file is bounded (1 MiB) and must be UTF-8: buffering an unbounded
-/// body or guessing at bytes is the shape
-/// `docs/conventions/forbidden-patterns.md` refuses. A line without `=`
-/// is refused naming its number rather than skipped, because a skipped
-/// line is a variable the caller thinks is set.
-fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<String>, i32> {
-    const MAX_ENV_FILE: u64 = 1_048_576;
-    let meta = std::fs::metadata(path).map_err(|e| {
-        eprintln!("podvm {verb}: --env-file {path:?}: {e}");
-        EXIT_FLAG_ERROR
-    })?;
-    if !meta.is_file() {
-        eprintln!("podvm {verb}: --env-file {path:?} is not a file");
-        return Err(EXIT_FLAG_ERROR);
-    }
-    if meta.len() > MAX_ENV_FILE {
-        eprintln!(
-            "podvm {verb}: --env-file {path:?} is {} bytes, over the 1048576-byte ceiling",
-            meta.len()
-        );
-        return Err(EXIT_FLAG_ERROR);
-    }
-    let text = std::fs::read_to_string(path).map_err(|e| {
-        eprintln!("podvm {verb}: --env-file {path:?}: {e}");
-        EXIT_FLAG_ERROR
-    })?;
-    let mut out = Vec::new();
-    for (n, raw) in text.lines().enumerate() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let Some((k, v)) = line.split_once('=') else {
-            eprintln!(
-                "podvm {verb}: --env-file {path:?} line {} has no `=`: {line:?}",
-                n + 1
-            );
-            return Err(EXIT_FLAG_ERROR);
-        };
-        let key = k.trim();
-        if key.is_empty() {
-            eprintln!(
-                "podvm {verb}: --env-file {path:?} line {} has no name: {line:?}",
-                n + 1
-            );
+/// The options of `run` and `create`, with `--profile` applied: the
+/// profile's flags go first, so that a flag of the command line wins over
+/// the profile where a flag takes one value. TODO/cli.md T-1654.
+pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
+    let o = parse_flags(verb, args)?;
+    let Some(name) = o.profile.clone() else {
+        if !o.sets.is_empty() {
+            eprintln!("podvm {verb}: -s needs --profile NAME: it sets one key of a profile");
             return Err(EXIT_FLAG_ERROR);
         }
-        let mut value = v.trim().to_string();
-        if value.len() >= 2
-            && value.starts_with(['\'', '"'])
-            && value.ends_with(value.as_bytes()[0] as char)
-        {
-            value.remove(0);
-            value.pop();
-        }
-        out.push(format!("{key}={value}"));
-    }
-    Ok(out)
+        return Ok(o);
+    };
+    let (mut flags, wrap) = crate::profile::run_args(verb, &name, &o.sets)?;
+    flags.extend(args.iter().cloned());
+    let mut o = parse_flags(verb, &flags)?;
+    o.wrap = wrap;
+    Ok(o)
 }
 
 /// ⛔ Parsing stops at the image name: everything after it is the payload's.
@@ -161,7 +125,7 @@ fn read_env_file(verb: &str, path: &str) -> std::result::Result<Vec<String>, i32
 /// ⚠ `verb` is the one the CALLER typed, not the one whose rows are consulted.
 /// `create` is served here too, and every message this function writes has to
 /// name what the caller ran.
-pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
+fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
     // ⭐ TODO/cli.md T-1330. Bundled shorts expand here, once, for `run`
     // and for `create`, which this parser serves: admission below then sees
     // one flag per argument, exactly as a caller spelling them out.
@@ -191,6 +155,10 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         tier: None,
         qemu_args: Vec::new(),
         mem: None,
+        cpus: None,
+        profile: None,
+        sets: Vec::new(),
+        wrap: Vec::new(),
         devices: Vec::new(),
         unsafe_host_paths: false,
         volumes: Vec::new(),
@@ -256,6 +224,9 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
                         return Err(EXIT_FLAG_ERROR);
                     }
                 },
+                "--podvm-cpus" => o.cpus = Some(cpus(verb, a)?),
+                "--profile" => o.profile = Some(a.clone()),
+                "-s" => o.sets.push(a.clone()),
                 "-v" => volume(verb, a, &mut o)?,
                 "--timeout" => o.timeout = Some(timeout(verb, a)?),
                 "--tmpfs" => tmpfs(verb, a, &mut o)?,
@@ -338,6 +309,9 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             "--podvm-tier" => expecting = Some("--podvm-tier"),
             "--podvm-qemu-arg" => expecting = Some("--podvm-qemu-arg"),
             "--podvm-mem" => expecting = Some("--podvm-mem"),
+            "--podvm-cpus" => expecting = Some("--podvm-cpus"),
+            "--profile" => expecting = Some("--profile"),
+            "-s" | "--set" => expecting = Some("-s"),
             "--timeout" => expecting = Some("--timeout"),
             "--read-only" => o.read_only = true,
             "--tmpfs" => expecting = Some("--tmpfs"),
@@ -429,6 +403,15 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             other if other.starts_with("--podvm-qemu-arg=") => o
                 .qemu_args
                 .push(other["--podvm-qemu-arg=".len()..].to_string()),
+            other if other.starts_with("--profile=") => {
+                o.profile = Some(other["--profile=".len()..].to_string())
+            }
+            other if other.starts_with("--set=") => {
+                o.sets.push(other["--set=".len()..].to_string())
+            }
+            other if other.starts_with("--podvm-cpus=") => {
+                o.cpus = Some(cpus(verb, &other["--podvm-cpus=".len()..])?)
+            }
             other if other.starts_with("--podvm-mem=") => {
                 match crate::tier::parse_mem(&other["--podvm-mem=".len()..]) {
                     Some(m) => o.mem = Some(m),
