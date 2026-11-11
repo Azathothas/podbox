@@ -226,6 +226,9 @@ pub(crate) fn prepare(
     env.push(crate::interpose::memo_fd_env());
     let broker = crate::broker::for_run(verb, o.broker, syscall, &o.allow, &o.ports)?; // T-1665
     crate::lifecycle::syscall::tier_env(&mut env, syscall, tmp_cap, broker.as_ref());
+    if let Some(b) = broker.as_ref().filter(|_| syscall) {
+        o.ask.add_hosts.extend(b.fake_hosts()); // T-1665: the fake addresses
+    }
     // ⭐ TODO/enter.md T-1411. The exact rung, decided here: the rootfs
     // exists and nothing has been written into it yet (`place` and the
     // fixups run below). This reverses T-1317's last-resort decision for

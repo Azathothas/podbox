@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T12:47:10Z
+date              2026-11-11T16:45:20Z
 host kernel       Linux 6.18.44-fc-v378
 podvm             podvm 0.2.0-beta.3
 proxy             http://u421:CRED@127.0.0.1:PORT (a password of this run with an @)
@@ -20,12 +20,16 @@ proxy             http://u421:CRED@127.0.0.1:PORT (a password of this run with a
   exit 125: podvm run: machine tier: http_proxy cannot be given to the guest: it has no port (as http://HOST:PORT). podvm rewrites a loopback proxy to the gateway 10.0.2.2 and needs the scheme and the port for it (TODO/net.md T-1665)
 
 == clause 5  the broker on the syscall tier
-    proxy-seen=http://CRED@127.0.0.1:44771
+    proxy-seen=http://CRED@127.0.0.1:43393
     allowed: <title>Example Domain</title>
     port22: wget: server returned error: HTTP/1.1 403 Forbidden: denied by the rule policy:no-rule
     loopback: wget: server returned error: HTTP/1.1 403 Forbidden: denied by the rule fixed:loopback
     nocred: wget: server returned error: HTTP/1.1 407 Proxy Authentication Required: give one Proxy-Authorization with the job token
     direct: wget: can't connect to remote host (1.1.1.1): Permission denied
+    fake: 198.18.0.1	example.com
+    ignores: <title>Example Domain</title>
+    ignores22: wget: can't connect to remote host (198.18.0.1): Permission denied
+== clause 8  a payload that ignores the variables, on the syscall tier
 
 == clause 6  the broker on the machine tier
     proxy-seen=http://CRED@10.0.2.100:3128
@@ -34,6 +38,9 @@ proxy             http://u421:CRED@127.0.0.1:PORT (a password of this run with a
     loopback: wget: server returned error: HTTP/1.1 403 Forbidden: denied by the rule fixed:loopback
     nocred: wget: server returned error: HTTP/1.1 407 Proxy Authentication Required: give one Proxy-Authorization with the job token
     direct: wget: can't connect to remote host (1.1.1.1): Connection refused
+    fake: 
+    ignores: 
+    ignores22: wget: bad address 'example.com:22'
 
 == clause 7  no holding mechanism
   exit 125: podvm run: --network broker needs a mechanism that holds the payload to the broker: --podvm-tier=syscall (a static program; its handler refuses each other conne

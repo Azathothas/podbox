@@ -34,6 +34,11 @@
 #      connect is refused (the guest network is restricted).
 #   7. with no holding mechanism (the ladder's rung) `--network broker`
 #      refuses by name (exit 125).
+#   8. on the syscall tier, `/etc/hosts` maps the allowed name to a fake
+#      address 198.18.0.N, and a payload that ignores the variables
+#      reaches the allowed host through the broker (the handler turns its
+#      connect into a CONNECT tunnel); port 22 of the same name is refused
+#      (EACCES, from the broker's 403).
 #
 # Exit: 0 each clause matched, 1 a clause disagreed, 2 the lane could not
 # run.
@@ -153,7 +158,10 @@ echo "allowed: $(wget -q -T 10 -O - http://example.com/ 2>&1 | grep -o "<title>[
 echo "port22: $(wget -q -T 10 -O - http://example.com:22/ 2>&1 | head -1)"
 echo "loopback: $(wget -q -T 10 -O - http://127.0.0.1:80/ 2>&1 | head -1)"
 echo "nocred: $(http_proxy=$(echo "$http_proxy" | sed "s#//.*@#//#") wget -q -T 10 -O - http://example.com/ 2>&1 | head -1)"
-echo "direct: $(http_proxy= wget -q -T 5 -O - http://1.1.1.1/ 2>&1 | head -1)"'
+echo "direct: $(http_proxy= wget -q -T 5 -O - http://1.1.1.1/ 2>&1 | head -1)"
+echo "fake: $(grep -m1 "[[:space:]]example.com" /etc/hosts)"
+echo "ignores: $(http_proxy= wget -q -T 10 -O - http://example.com/ 2>&1 | grep -o "<title>[^<]*</title>" | head -1)"
+echo "ignores22: $(http_proxy= wget -q -T 10 -O - http://example.com:22/ 2>&1 | head -1)"'
 
 note "== clause 5  the broker on the syscall tier"
 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm --podvm-tier=syscall --network broker --ports 80,443 --allow example.com "$BUSYBOX" sh -c "$BROKER" >"$WORK/c5.out" 2>"$WORK/c5.err"
@@ -165,6 +173,10 @@ grep -q "^port22: .*403" "$WORK/c5.out" || bad "port 22 is not 403"
 grep -q "^loopback: .*403" "$WORK/c5.out" || bad "127.0.0.1 is not 403"
 grep -q "^nocred: .*407" "$WORK/c5.out" || bad "no credential is not 407"
 grep -q "^direct: .*Permission denied" "$WORK/c5.out" || bad "a direct connect was not refused"
+note "== clause 8  a payload that ignores the variables, on the syscall tier"
+grep -q "^fake: 198\.18\.0\.1[[:space:]]*example\.com" "$WORK/c5.out" || bad "/etc/hosts does not map example.com to 198.18.0.1"
+grep -q "^ignores: <title>Example Domain</title>" "$WORK/c5.out" || bad "the payload that ignores the variables did not reach the allowed host"
+grep -q "^ignores22: .*Permission denied" "$WORK/c5.out" || bad "port 22 through the fake address was not refused"
 note ""
 
 note "== clause 6  the broker on the machine tier"

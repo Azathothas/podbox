@@ -65,6 +65,13 @@ pub const EMU_ARG: &str = "--podvm-dispatch-emu=";
 /// egress broker on `127.0.0.1:PORT` (`CAP:-:PORT` at the first entry;
 /// TODO/net.md T-1665).
 pub const TIER_VAR: &str = "PODVM_DISPATCH_TIER";
+/// The variable that gives the handler `TOKEN:NAME,NAME...` where the
+/// payload is held to a broker: the credential of the run and the names of
+/// the fake addresses `FAKE_NET.N` of `/etc/hosts` (TODO/net.md T-1665).
+pub const BROKER_VAR: &str = "PODVM_DISPATCH_BROKER";
+/// The first three bytes of each fake address; N runs from 1 to 254.
+pub const FAKE_NET: [u8; 3] = [198, 18, 0];
+
 /// The release that `uname` gives on the syscall tier (T-1657).
 pub const TIER_RELEASE: &str = "6.1.0-podvm-syscall";
 
@@ -198,6 +205,15 @@ fn run(
     argv: Vec<OsString>,
     envp: Vec<OsString>,
 ) -> String {
+    // T-1665: the names of the fake addresses and the run's credential.
+    if let Some(b) = std::env::var_os(hold::redirect::VAR)
+        && !hold::redirect::set(b.as_bytes())
+    {
+        return format!(
+            "{} does not parse (TODO/net.md T-1665)",
+            hold::redirect::VAR
+        );
+    }
     if let Some(spec) = tier
         && !tier::set(spec)
     {

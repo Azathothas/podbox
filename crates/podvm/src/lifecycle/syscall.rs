@@ -80,13 +80,20 @@ pub fn tier_env(
     broker: Option<&crate::broker::Started>,
 ) {
     let tier = podvm_dispatch::TIER_VAR;
-    env.retain(|e| e.split('=').next().unwrap_or("") != tier);
+    let names = podvm_dispatch::BROKER_VAR;
+    env.retain(|e| {
+        let k = e.split('=').next().unwrap_or("");
+        k != tier && k != names
+    });
     if let Some(b) = broker {
         crate::broker::replace_proxy_env(env, b.env("127.0.0.1", b.port));
     }
     if syscall {
         match broker {
-            Some(b) => env.push(format!("{tier}={cap}:-:{}", b.port)),
+            Some(b) => {
+                env.push(format!("{tier}={cap}:-:{}", b.port));
+                env.push(b.dispatch_env());
+            }
             None => env.push(format!("{tier}={cap}")),
         }
     }

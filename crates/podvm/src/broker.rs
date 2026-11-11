@@ -52,6 +52,9 @@ pub const DEFAULT_PORTS: &[u16] = &[443];
 pub struct Started {
     pub port: u16,
     token: String,
+    /// The names of `--allow` that a fake address of `/etc/hosts` maps
+    /// to: each exact name, at most 254 (TODO/net.md T-1665).
+    names: Vec<String>,
 }
 
 impl Started {
@@ -59,6 +62,29 @@ impl Started {
     /// tier, the forward of the guest on the machine tier).
     pub fn url(&self, host: &str, port: u16) -> String {
         format!("http://{JOB}:{}@{host}:{port}", self.token)
+    }
+
+    /// The `/etc/hosts` lines of the fake addresses, as `--add-host`
+    /// values: `NAME:198.18.0.N` with N from 1. A payload that ignores the
+    /// proxy variables resolves an allowed name to one, and the handler of
+    /// the syscall tier turns its `connect` into a tunnel of the broker.
+    pub fn fake_hosts(&self) -> Vec<String> {
+        let [a, b, c] = podvm_dispatch::FAKE_NET;
+        self.names
+            .iter()
+            .enumerate()
+            .map(|(i, n)| format!("{n}:{a}.{b}.{c}.{}", i + 1))
+            .collect()
+    }
+
+    /// The variable that gives the handler the credential and the names.
+    pub fn dispatch_env(&self) -> String {
+        format!(
+            "{}={}:{}",
+            podvm_dispatch::BROKER_VAR,
+            self.token,
+            self.names.join(",")
+        )
     }
 
     /// The proxy variables of the payload: each names the broker.
@@ -132,6 +158,22 @@ pub fn policy(allow: &[String], ports: &[u16]) -> Policy {
     }
 }
 
+/// The names of `allow` that a fake address can stand for: exact host
+/// names (no pattern, no address), at most 254.
+pub fn fake_names(allow: &[String]) -> Vec<String> {
+    allow
+        .iter()
+        .filter(|h| {
+            !h.is_empty()
+                && h.contains(|c: char| c.is_ascii_alphabetic())
+                && h.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        })
+        .take(254)
+        .cloned()
+        .collect()
+}
+
 fn token() -> Result<String, String> {
     let mut b = [0u8; 32];
     std::io::Read::read_exact(
@@ -187,12 +229,43 @@ pub fn start(allow: &[String], ports: &[u16]) -> Result<Started, String> {
             })
         })
         .map_err(|e| format!("the thread of the broker: {e}"))?;
-    Ok(Started { port, token })
+    Ok(Started {
+        port,
+        token,
+        names: fake_names(allow),
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn each_exact_allowed_name_gets_a_fake_address() {
+        let allow: Vec<String> = [
+            "example.com",
+            "*.example.org",
+            "10.0.0.1",
+            "api-1.example.net",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert_eq!(fake_names(&allow), ["example.com", "api-1.example.net"]);
+        let s = Started {
+            port: 1,
+            token: "ab12".into(),
+            names: fake_names(&allow),
+        };
+        assert_eq!(
+            s.fake_hosts(),
+            ["example.com:198.18.0.1", "api-1.example.net:198.18.0.2"]
+        );
+        assert_eq!(
+            s.dispatch_env(),
+            "PODVM_DISPATCH_BROKER=ab12:example.com,api-1.example.net"
+        );
+    }
 
     #[test]
     fn the_policy_allows_each_host_on_the_ports() {
@@ -209,6 +282,7 @@ mod tests {
         let s = Started {
             port: 1,
             token: "0123456789abcdef0123456789abcdef".into(),
+            names: Vec::new(),
         };
         assert_eq!(
             s.url("10.0.2.100", 3128),

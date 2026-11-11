@@ -2709,7 +2709,7 @@ the doctor row reports `no`.
 
 # T-1419: Pull-missing verifies the blobs it trusts
 
-**Source:** issue 83; `crates/podvm/src/run/prepare.rs:333`;
+**Source:** issue 83; `crates/podvm/src/run/prepare.rs:336`;
   `crates/podvm-image/src/health.rs:91`; [T-1321](image.md);
   [T-0805](cli.md)
 **Category:** image
@@ -3213,7 +3213,7 @@ type.
   (`06-shared-rootfs.log`); T-1322 (the reference query);
   T-1421 (a foreground record); T-0204; T-0211;
   `crates/podvm/src/run/prepare.rs:156`;
-  `crates/podvm/src/run/prepare.rs:396`
+  `crates/podvm/src/run/prepare.rs:399`
 **Category:** image
 **Milestone:** none
 **Priority:** P1
@@ -3237,7 +3237,7 @@ say this.
 
 `crates/podvm/src/run/prepare.rs:156` takes the rootfs path
 from the manifest digest, and completion runs there
-(`crates/podvm/src/run/prepare.rs:396`). The `--rm` row
+(`crates/podvm/src/run/prepare.rs:399`). The `--rm` row
 (`crates/podvm/src/parity.rs:209`) and T-1322 keep a
 referenced tree. M2: a concurrent reader saw the write of
 another container in three scenarios; a later run read it in

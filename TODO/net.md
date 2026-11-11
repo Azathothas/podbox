@@ -293,7 +293,7 @@ not covered: capture inside a cage's own namespace
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -400,6 +400,27 @@ experiment records the rung that it selects. The report of T-1695 names an
 outer hold only where podvm measures it, else `null`.
 
 ## Done
+
+**Done 2026-11-11.** The last clause: a payload that ignores the
+variables reaches a named upstream through the broker. With `--network
+broker` on the syscall tier, podvm adds each exact name of `--allow` to
+the container's `/etc/hosts` with a fake address `198.18.0.N`
+(`crates/podvm/src/broker.rs`, `fake_hosts`), and gives the handler the
+credential and the names in `PODVM_DISPATCH_BROKER`, which passes each
+`execve`. The handler turns a `connect` to `198.18.0.N:PORT` into a
+connect to the broker on the loopback, sends `CONNECT NAME:PORT` with the
+Basic credential of the run, and reads the head one byte at a time before
+the call returns: 200 gives 0, 403 and 407 give EACCES, each other answer
+ECONNREFUSED (`crates/podvm-dispatch/src/hold/redirect.rs`, no
+allocation). The broker applies its policy as for each other client. A
+pattern or an address of `--allow` gets no fake address: the broker would
+refuse its names anyway. Experiment 421 clause 8 (exit 0, with
+`PODVM_421_MIRROR=1`, on the cloud host): `/etc/hosts` reads
+`198.18.0.1 example.com`, `http_proxy= wget http://example.com/` gets
+`<title>Example Domain</title>`, and port 22 of the same name fails with
+"Permission denied" from the broker's 403. `cargo test -p podvm-dispatch`
+and `cargo test -p podvm --bin podvm broker` exit 0 with the tests of the
+fake address, the request and its credential, base64 and the head.
 
 **Partial 2026-11-11.** The rewrite half is done. `cargo test -p podvm`
 exits 0 with `a_loopback_proxy_moves_to_the_gateway_byte_for_byte` (a

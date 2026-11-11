@@ -2063,7 +2063,7 @@ exits 0 and reports 6 matches.
 **Source:** issue 92; issue 114 section 3.3 and section 6 item 7;
   `crates/podvm/src/lifecycle/script.rs:105`;
   `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/prepare.rs:234`;
+  `crates/podvm/src/run/prepare.rs:237`;
   A-V-04 of PodUtils/podcrates#39
 **Category:** cli
 **Milestone:** none
@@ -3113,7 +3113,7 @@ the first process only.
 `--env-file` reads a file at parse time
 (`crates/podvm/src/run/parse.rs:91`, used at
 `crates/podvm/src/run/parse.rs:203`) and the values go into
-the environment (`crates/podvm/src/run/prepare.rs:239`). The
+the environment (`crates/podvm/src/run/prepare.rs:242`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
 A foreground run removes its files at the end

@@ -339,7 +339,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1662](net.md) | P2 | L | none | net | blocked | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
 | [T-1663](net.md) | P2 | L | none | net | blocked | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
 | [T-1664](net.md) | P2 | L | none | net | blocked | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
-| [T-1665](net.md) | P2 | L | none | net | partial | An egress broker, and the guest's view of a loopback-only proxy |
+| [T-1665](net.md) | P2 | L | none | net | done | An egress broker, and the guest's view of a loopback-only proxy |
 | [T-1666](probe.md) | P2 | L | none | probe | done | A security probe inside the payload, and a compare against a reference report |
 | [T-1667](cli.md) | P2 | L | none | cli | partial | Doctor and installers: one check per scope capability, verified downloads, a space floor |
 | [T-1668](gate.md) | P2 | M | none | gate | done | A findings page for the scope: observed or inferred, with host conditions per row |
@@ -415,7 +415,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-346 entries: 8 open, 11 partial, 6 blocked, 321 done.
+346 entries: 8 open, 10 partial, 6 blocked, 322 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -426,9 +426,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 1 | 3 | 0 | 146 | 150 |
-| P2 | 4 | 6 | 6 | 99 | 115 |
+| P2 | 4 | 5 | 6 | 100 | 115 |
 | P3 | 3 | 1 | 0 | 12 | 16 |
-| **All** | 8 | 11 | 6 | 321 | 346 |
+| **All** | 8 | 10 | 6 | 322 | 346 |
 
 ## Work order
 

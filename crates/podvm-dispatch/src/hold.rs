@@ -7,6 +7,8 @@
 
 use core::sync::atomic::{AtomicI64, Ordering};
 
+pub mod redirect;
+
 const CONNECT: i64 = 42;
 const SENDTO: i64 = 44;
 const SENDMSG: i64 = 46;
@@ -43,6 +45,16 @@ pub fn allowed(sa: &[u8], broker: u16) -> bool {
     }
 }
 
+/// The name and port of a fake address of `/etc/hosts` (T-1665).
+fn fake(addr: i64, len: i64) -> Option<(&'static [u8], u16)> {
+    if addr == 0 || !(8..=128).contains(&len) {
+        return None;
+    }
+    // SAFETY: the payload gave `len` bytes of a socket address at `addr`.
+    let sa = unsafe { core::slice::from_raw_parts(addr as *const u8, len as usize) };
+    redirect::target(sa)
+}
+
 fn reachable(addr: i64, len: i64) -> bool {
     if addr == 0 || !(2..=128).contains(&len) {
         return false;
@@ -59,7 +71,10 @@ pub fn call(n: i64, a: [i64; 6]) -> Option<i64> {
     }
     let refuse = |ok: bool| (!ok).then_some(-EACCES);
     match n {
-        CONNECT => refuse(reachable(a[1], a[2])),
+        CONNECT => match fake(a[1], a[2]) {
+            Some((name, to)) => Some(redirect::tunnel(a[0], port() as u16, name, to)),
+            None => refuse(reachable(a[1], a[2])),
+        },
         SENDTO if a[4] != 0 => refuse(reachable(a[4], a[5])),
         SENDMSG => refuse(msg_ok(a[1])),
         SENDMMSG => {
