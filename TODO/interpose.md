@@ -3377,6 +3377,25 @@ chroot-denied fixture.
 
 ## Correction
 
+**Measured 2026-11-12.** `PODVM_439_SYSROOT=ROOTFS sh
+experiments/439-stat-layout.sh` exits 0 (zig 0.16.0 builds the program for
+each target; qemu-aarch64-static runs the aarch64 ones, glibc with the
+loader of an arm64 debian:bookworm-slim). aarch64 has one layout under
+glibc and musl, the generic one of the kernel: `struct stat` is 128 bytes,
+`st_mode` at 16, `st_nlink` at 20 (4 bytes), `st_uid` at 24, `st_gid` at
+28, `st_rdev` at 32; x86_64 has 144 bytes, `st_mode` 24, `st_nlink` 16
+(8 bytes), `st_uid` 28, `st_gid` 32, `st_rdev` 40. `st_dev`, `st_ino` and
+`st_size` are at 0, 8 and 48 on both, and `struct statx` is the same.
+
+The sites of the port: the offsets of `crates/podvm-interpose/src/lib.rs`
+(`ST_UID`, `ST_GID`) and `src/procfs/exe.rs` (`ST_MODE`, `STAT_LEN`); the
+numbers of `src/raw_calls.rs` (aarch64 has the generic table, with no
+`open`, `stat`, `lstat`, `access` and the other calls of a path with no
+directory descriptor) and its `syscall` instruction (`svc #0`, the number
+in `x8`); the version of `dlsym` in `src/real.rs` and `src/dl_calls.rs`
+(`GLIBC_2.17` on aarch64, `GLIBC_2.2.5` on x86_64); and `EM_X86_64` in
+`src/exec/parse.rs` (`EM_AARCH64` is 183).
+
 **Filed 2026-11-11.** From PodUtils/podrunner#52. The guard of `build.rs`
 (an aarch64 binary embeds no x86_64 object) is in place: `cargo check -p
 podvm --target aarch64-unknown-linux-musl` warns "the gnu interposer is

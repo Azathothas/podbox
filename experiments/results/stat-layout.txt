@@ -1,0 +1,75 @@
+== conditions
+date              2026-11-12T07:39:07Z
+zig               0.16.0
+qemu              qemu-aarch64 version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+
+== x86_64-linux-gnu
+  stat size 144
+  stat.st_dev 0 8
+  stat.st_ino 8 8
+  stat.st_mode 24 4
+  stat.st_nlink 16 8
+  stat.st_uid 28 4
+  stat.st_gid 32 4
+  stat.st_rdev 40 8
+  stat.st_size 48 8
+  statx size 256
+  statx.stx_mode 28 2
+  statx.stx_uid 20 4
+  statx.stx_gid 24 4
+  statx.stx_ino 32 8
+  statx.stx_rdev_major 128 4
+  statx.stx_dev_major 136 4
+== x86_64-linux-musl
+  stat size 144
+  stat.st_dev 0 8
+  stat.st_ino 8 8
+  stat.st_mode 24 4
+  stat.st_nlink 16 8
+  stat.st_uid 28 4
+  stat.st_gid 32 4
+  stat.st_rdev 40 8
+  stat.st_size 48 8
+  statx size 256
+  statx.stx_mode 28 2
+  statx.stx_uid 20 4
+  statx.stx_gid 24 4
+  statx.stx_ino 32 8
+  statx.stx_rdev_major 128 4
+  statx.stx_dev_major 136 4
+== aarch64-linux-gnu
+  stat size 128
+  stat.st_dev 0 8
+  stat.st_ino 8 8
+  stat.st_mode 16 4
+  stat.st_nlink 20 4
+  stat.st_uid 24 4
+  stat.st_gid 28 4
+  stat.st_rdev 32 8
+  stat.st_size 48 8
+  statx size 256
+  statx.stx_mode 28 2
+  statx.stx_uid 20 4
+  statx.stx_gid 24 4
+  statx.stx_ino 32 8
+  statx.stx_rdev_major 128 4
+  statx.stx_dev_major 136 4
+== aarch64-linux-musl
+  stat size 128
+  stat.st_dev 0 8
+  stat.st_ino 8 8
+  stat.st_mode 16 4
+  stat.st_nlink 20 4
+  stat.st_uid 24 4
+  stat.st_gid 28 4
+  stat.st_rdev 32 8
+  stat.st_size 48 8
+  statx size 256
+  statx.stx_mode 28 2
+  statx.stx_uid 20 4
+  statx.stx_gid 24 4
+  statx.stx_ino 32 8
+  statx.stx_rdev_major 128 4
+  statx.stx_dev_major 136 4
+
+verdict: THE LAYOUTS ARE ABOVE; AARCH64 HAS ONE LAYOUT UNDER BOTH LIBCS
