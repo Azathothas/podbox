@@ -171,6 +171,6 @@
 279 issue open
 280 issue closed
 281 issue closed
-282 issue open
+282 issue closed
 283 issue closed
 284 issue open
