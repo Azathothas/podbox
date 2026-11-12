@@ -2360,7 +2360,7 @@ Decisions and deviations:
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2474,6 +2474,15 @@ this entry sets it from the profile.
 
 ## Done
 
+**Done 2026-11-12.** podvm takes podcrates `v0.27.0`: its podcrates@T-227 opens
+the path of each rule of `Plan.confine` in the child after the mounts, so
+a rule on `/tmp` covers the tmpfs of the namespace rung (COORD-048, issue
+267). `sh experiments/414-confine.sh` exits 0 on the namespace rung with
+each clause; clause 6 (the profile `errand`) writes `/tmp` (`tmp=0`)
+and is denied `/etc/shadow`. With the dispatcher families of the same
+day (clause 4), the layer runs on each rung with a chroot and on each
+family of the userland rung.
+
 **Partial 2026-11-11.** `run --podvm-confine=SPEC` applies the layer of
 `pod-confine` through `Plan.confine` of `pod-enter`: SPEC is
 `read=P,...;write=P,...;exec=P,...;connect=PORT,...` with guest paths
@@ -2552,7 +2561,7 @@ Experiment 414 clause 4 (the chroot-denying fixture): the static busybox
 on the native-static rung and on the syscall tier, and the arm64 busybox
 on the emulate tier, read `/etc/passwd` and are denied `/etc/shadow`.
 
-Remaining: the write of `/tmp` on the namespace rung (COORD-048). The report of
+The report of
 T-1695 (`run --report`) names the confine SPEC of the run. The ABI is in `podvm probe` already (the
 probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
 the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs

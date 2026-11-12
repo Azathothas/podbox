@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.27.0, 2026-11-12
+
+Record: T-1658, PodUtils/podcrates#85.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.27.0`. On the namespace
+  rung, the confine layer now covers the tmpfs at `/tmp`: a profile that
+  asks to write `/tmp` (`errand`) writes it. The layer is complete on each
+  rung, and T-1658 is done.
+- `mcr.microsoft.com` (the image of `playwright-chromium`) is in
+  `pod-services`.
+
 ### Added: the profiles workerd-test and wasmtime-wasi, 2026-11-12
 
 Record: T-1661.

@@ -36,8 +36,9 @@
 #   6. the built-in profile `errand`: NoNewPrivs 1, Seccomp 2, the
 #      namespace, mount, bpf and keyctl calls refused, `/` unlistable,
 #      /etc/shadow denied and /etc/passwd read (the verdicts of bailey's
-#      reference report in issue 170). Not measured: a write to /tmp, which
-#      the namespace rung mounts after the rules (COORD-048).
+#      reference report in issue 170), and a write to /tmp (the tmpfs that
+#      the namespace rung mounts) works: the profile asks to write ?/tmp
+#      (podcrates T-227, COORD-048).
 #   The refusal on a kernel with no Landlock is a test:
 #   `cargo test -p podvm --bin podvm confine` (each_case_with_no_mechanism_
 #   refuses_by_name).
@@ -203,9 +204,9 @@ note ""
 
 note "== clause 6  the built-in profile errand (bailey's policy of issue 170)"
 timeout 300 "$PB" probe-inside --profile errand "$IMG" >"$WORK/c6.out" 2>&1
-timeout 120 "$PB" run --rm --profile errand "$IMG" sh -c 'ls / >/dev/null 2>&1; echo "list=$?"; cat /etc/shadow >/dev/null 2>&1; echo "shadow=$?"; head -1 /etc/passwd' >"$WORK/c6r.out" 2>&1
+timeout 120 "$PB" run --rm --profile errand "$IMG" sh -c 'ls / >/dev/null 2>&1; echo "list=$?"; cat /etc/shadow >/dev/null 2>&1; echo "shadow=$?"; head -1 /etc/passwd; echo x > /tmp/e414; echo "tmp=$?"' >"$WORK/c6r.out" 2>&1
 note "  probe: $(grep -E '	(nonewprivs|seccomp|unshare-user|mount-tmpfs|bpf|keyctl)	' "$WORK/c6.out" | awk '{print $2"="$3":"$4}' | tr '\n' ' ')"
-note "  run:   $(grep -E '^(list|shadow)=' "$WORK/c6r.out" | tr '\n' ' ')"
+note "  run:   $(grep -E '^(list|shadow|tmp)=' "$WORK/c6r.out" | tr '\n' ' ')"
 grep -qE '	nonewprivs	ALLOW	1$' "$WORK/c6.out" || bad "errand: NoNewPrivs is not 1"
 grep -qE '	seccomp	ALLOW	2$' "$WORK/c6.out" || bad "errand: the seccomp mode is not 2"
 for t in unshare-user mount-tmpfs bpf keyctl; do
@@ -214,6 +215,7 @@ done
 grep -q "^list=1" "$WORK/c6r.out" || bad "errand: / is listable"
 grep -q "^shadow=1" "$WORK/c6r.out" || bad "errand: /etc/shadow reads"
 grep -q "^root:" "$WORK/c6r.out" || bad "errand: /etc/passwd does not read"
+grep -q "^tmp=0" "$WORK/c6r.out" || bad "errand: the write to /tmp failed"
 note ""
 
 if [ "$fail" -eq 0 ]; then

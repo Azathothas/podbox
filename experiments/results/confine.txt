@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-12T02:46:47Z
+date              2026-11-12T04:11:59Z
 host kernel       Linux 6.18.44-fc-v378
 podvm             podvm 0.2.0-beta.5
 rung              namespace
@@ -10,8 +10,8 @@ listeners         127.0.0.1:A and 127.0.0.1:B
     2013d9003084: Extracted (430 entries, 0 whiteouts)
     root:x:0:0:root:/root:/bin/sh
     cat: can't open '/etc/shadow': Permission denied
-    shadow=1
     sh: line 0: can't create /tmp/w: Permission denied
+    shadow=1
     write=1
     hello-A
     a=0
@@ -31,7 +31,7 @@ listeners         127.0.0.1:A and 127.0.0.1:B
   control: nonewprivs=0 seccomp=0 
 
 == clause 4  the loader family of the userland rung (chroot denied)
-  loader family: exit 0: shadow=1 w=0 tmp=1 out.txt on the host
+  loader family: exit 0: shadow=1 tmp=1 out.txt on the host
   native-static: exit 0: shadow=1
   syscall: exit 0: shadow=1
   emulate: exit 0: shadow=1
@@ -41,6 +41,6 @@ listeners         127.0.0.1:A and 127.0.0.1:B
 
 == clause 6  the built-in profile errand (bailey's policy of issue 170)
   probe: nonewprivs=ALLOW:1 seccomp=ALLOW:2 unshare-user=DENY:EPERM mount-tmpfs=DENY:EPERM bpf=DENY:EPERM keyctl=DENY:EPERM 
-  run:   list=1 shadow=1 
+  run:   list=1 shadow=1 tmp=0 
 
 verdict: THE CONFINE LAYER HOLDS THE PAYLOAD, AND EACH CASE WITH NO MECHANISM REFUSES BY NAME

@@ -14,9 +14,6 @@ use std::path::{Path, PathBuf};
 /// was reported to podcrates; the test fails when the crate lists one, so
 /// this list only shrinks.
 const WAITING: &[&str] = &[
-    // The image of the profile playwright-chromium (TODO/cli.md T-1694),
-    // reported in COORD-050.
-    "mcr.microsoft.com",
     // The npm package of workerd, the pin of the profile workerd-test
     // (TODO/cli.md T-1661), reported in COORD-053.
     "registry.npmjs.org",
