@@ -121,10 +121,17 @@ fi
 
 say "== run ver with the emulator command line watched"
 if [ "$fail" -eq 0 ]; then
-  (while :; do
+  # T-1641: where PODVM_392_SHOTS names a directory, a screenshot of the
+  # guest each 30 s (lib/qmp-screendump.py), so a run that does not power
+  # off leaves pictures of its screen.
+  (n=0; while :; do
     for d in "$XDG_RUNTIME_DIR"/podvm-windows-*-run; do
       [ -f "$d/serial.log" ] && cp "$d/serial.log" "$KVM/ver-serial.log" 2>/dev/null
+      if [ -n "${PODVM_392_SHOTS:-}" ] && [ -S "$d/qmp.sock" ] && [ $((n % 15)) -eq 0 ]; then
+        python3 "${PODVM_392_LIB:-.}/qmp-screendump.py" "$d/qmp.sock" "$PODVM_392_SHOTS/ver-$(printf %04d "$n").ppm" 2>/dev/null
+      fi
     done
+    n=$((n + 1))
     sleep 2
   done) &
   watchpid=$!
