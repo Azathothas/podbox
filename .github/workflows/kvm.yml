@@ -102,3 +102,88 @@ jobs:
             experiments/results/machine-ssh.txt
             experiments/results/microvm-boot.txt
           if-no-files-found: warn
+
+  # TODO/gate.md T-1641, T-1350 and TODO/milestones.md T-1112: the Linux
+  # half of experiment 392 (the ValidationOS guest) on a hosted runner with
+  # /dev/kvm, the binary of this commit, and the VHDX cut out of the ISO
+  # with one range request (its UDF extent: sector 1010, 910163968 bytes;
+  # lib/kvm-guest-base.sh pins its digest). One guest at a time: the
+  # job runs after the Linux guest, and each step is bounded.
+  windows:
+    name: ValidationOS guest under KVM (experiment 392, the Linux half)
+    needs: guest
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: give the job /dev/kvm
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo udevadm settle || true
+          [ -e /dev/kvm ] && sudo chmod 0666 /dev/kvm
+          if [ -w /dev/kvm ] && [ -r /dev/kvm ]; then
+            ls -l /dev/kvm
+          else
+            echo "no usable /dev/kvm on this runner: COULD NOT RUN"
+            exit 2
+          fi
+
+      - name: qemu and OVMF
+        run: |
+          sudo apt-get -qq update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq qemu-system-x86 qemu-utils ovmf >/dev/null
+          qemu-system-x86_64 --version | head -1
+          ls -l /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_VARS_4M.fd
+
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools vmtools
+
+      - name: build podvm
+        run: |
+          cargo build --release -p podvm-gate --bin podvm-interpose-build
+          mkdir -p target/release
+          cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
+          ./target/release/podvm-interpose-build
+          cargo build --release -p podvm
+
+      - name: the VHDX out of the ISO
+        run: |
+          mkdir -p "$RUNNER_TEMP/vos"
+          URL='https://software-static.download.prss.microsoft.com/dbazure/26100.9278.260824-2119.ge_release_svc_prod3_amd64fre_en-us_VALIDATIONOS.iso'
+          start=$((1010 * 2048)); len=910163968
+          # lib/kvm-guest-base.sh checks the length and the digest.
+          timeout 30m curl -qfsSL --retry 3 -r "$start-$((start + len - 1))" -o "$RUNNER_TEMP/vos/base.vhdx" "$URL"
+          ls -l "$RUNNER_TEMP/vos/base.vhdx"
+
+      - name: experiment 392 under KVM
+        env:
+          PODVM_392_OVMF_CODE: /usr/share/OVMF/OVMF_CODE_4M.fd
+          PODVM_392_OVMF_VARS: /usr/share/OVMF/OVMF_VARS_4M.fd
+        run: |
+          {
+            echo "PODVM_BIN_SRC=$GITHUB_WORKSPACE/target/x86_64-unknown-linux-musl/release/podvm"
+            echo "IMG_HOST=$RUNNER_TEMP/vos/base.vhdx"
+            cat experiments/lib/kvm-owned.sh experiments/lib/kvm-guest-base.sh
+          } >"$RUNNER_TEMP/guest.sh"
+          rc=0
+          timeout 65m sh "$RUNNER_TEMP/guest.sh" >experiments/results/kvm-guest-hosted.txt 2>&1 || rc=$?
+          cat experiments/results/kvm-guest-hosted.txt
+          if pgrep -a qemu-system; then
+            echo "an emulator stayed after the run"
+            pkill -9 qemu-system || true
+            rc=1
+          fi
+          exit "$rc"
+
+      - name: keep the transcript
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kvm-windows-transcript
+          path: experiments/results/kvm-guest-hosted.txt
+          if-no-files-found: warn

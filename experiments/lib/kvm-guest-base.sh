@@ -13,8 +13,10 @@ PODVM="$KVM/podvm"
 : "${IMG_HOST:?the host driver supplies the image}"
 VHDX_LEN=910163968
 VHDX_SHA256="063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f"
-CODE="/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd"
-VARS="/usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd"
+# The firmware of the base (Arch's edk2-ovmf); a hosted runner names
+# Ubuntu's (package ovmf) through the two variables.
+CODE="${PODVM_392_OVMF_CODE:-/usr/share/edk2-ovmf/x64/OVMF_CODE.4m.fd}"
+VARS="${PODVM_392_OVMF_VARS:-/usr/share/edk2-ovmf/x64/OVMF_VARS.4m.fd}"
 
 fail=0
 say() { printf '%s\n' "$*"; }
