@@ -120,6 +120,18 @@ of the user's range, so it writes only in a directory that the range may
 write (mode 0777 in the clause); a directory of mode 0755 of the user is
 read-only to it.
 
+## An instance that stays (T-1722)
+
+`run -d` and `create` with `--podvm-tier=incus` make an instance with the
+label `user.podvm=1`, podvm's init `guest-hold --run`, and the command in
+`/.podvm/cmd`; the init writes the command's output to `/.podvm/log` and
+its exit code to `/.podvm/exit`, and the instance stops when the command
+ends. `ps`, `start`, `stop`, `rm`, `logs` and `exec` with the tier call the
+API on the instance of that name. incusd keeps the state: a record of
+podvm's container table belongs to a launcher, and its reconcile calls a
+running record with no launcher dead. Clause 12 of experiment 434 runs each
+verb against the incusd of route A.
+
 ## What stays open
 
 * incus virtual machines and their speed: they need `/dev/kvm`; the runner

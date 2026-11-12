@@ -27,7 +27,8 @@
 #      /etc/shadow 0:42), from podvm's .meta.jsonl.
 #   7. a second run takes the image from incus (no import); the median
 #      milliseconds of RUNS runs of `true`.
-#   8. create and exec refuse the incus tier by name (exit 125).
+#   8. exec on a name that is no instance exits 125 and names it
+#      (T-1722; before it, create and exec refused the tier).
 #   9. no instance stays in incus after the runs; after the cleanup, no
 #      process of the user or its range stays.
 #  10. where no incusd answers, a run refuses by name (exit 125).
@@ -36,6 +37,12 @@
 #      volume refuses a write. The instance's root is an id of the user's
 #      range, so the directory is mode 0777 (a directory of mode 0755 of
 #      the user is read-only to the instance: recorded, not a clause).
+#  12. an instance that stays (T-1722): `run -d --name` prints the name and
+#      `ps` lists it Running; `exec` runs in it with its exit code; `logs`
+#      gives the command's output; `stop` makes it Stopped in `ps -a`;
+#      `start` runs it again; `rm` of a running one refuses and `rm -f`
+#      removes it; `create` makes a Stopped one; a command that ends stops
+#      its instance.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (not root, no user namespaces, no package).
@@ -174,11 +181,10 @@ done
 grep -q "from incus" "$WORK/c7.err" || { note "7: the second run imported the image again"; fail=1; }
 
 # ---- clause 8 -----------------------------------------------------------
-P create --podvm-tier=incus "$OCI" true >/dev/null 2>"$WORK/c8.err"; rc_c=$?
-P exec --podvm-tier=incus none true >/dev/null 2>>"$WORK/c8.err"; rc_e=$?
-{ echo ""; echo "== 8. the other verbs"; echo "  create exit  $rc_c"; echo "  exec exit    $rc_e"; sed 's/^/  stderr  /' "$WORK/c8.err"; } >>"$REPORT"
-[ "$rc_c" -eq 125 ] && [ "$rc_e" -eq 125 ] && [ "$(grep -cE 'tier=incus[^(]* serves? run only' "$WORK/c8.err")" -eq 2 ] ||
-	{ note "8: create or exec did not refuse the incus tier by name"; fail=1; }
+P exec --podvm-tier=incus none434 true >/dev/null 2>"$WORK/c8.err"; rc_e=$?
+{ echo ""; echo "== 8. a name that is no instance"; echo "  exec exit    $rc_e"; sed 's/^/  stderr  /' "$WORK/c8.err"; } >>"$REPORT"
+[ "$rc_e" -eq 125 ] && grep -q "none434" "$WORK/c8.err" ||
+	{ note "8: exec on no instance did not exit 125 naming it"; fail=1; }
 
 # ---- clause 11 ----------------------------------------------------------
 V="$B/vol"; VR="$B/volro"
@@ -193,6 +199,48 @@ echo "$out" | grep -q "Read-only file system" || { note "11: a write in the :ro 
 runuser -u "$U" -- sh -c "mkdir -p '$B/vol755' && chmod 0755 '$B/vol755'"
 out=$(T -v "$B/vol755:/d" "$OCI" sh -c 'touch /d/x 2>&1; true' </dev/null 2>/dev/null)
 echo "  a directory of mode 0755: $(echo "$out" | head -1 | cut -c1-80)" >>"$REPORT"
+
+# ---- clause 12 ----------------------------------------------------------
+I() { P "$@" --podvm-tier=incus; }
+{
+echo ""; echo "== 12. an instance that stays"
+echo "  run -d   $(P run -d --name web434 --podvm-tier=incus "$OCI" sh -c 'echo started; while true; do sleep 1; done' </dev/null 2>/dev/null)"
+sleep 2
+echo "  ps       $(I ps 2>&1 | grep web434 | tr -s ' ')"
+x=$(P exec --podvm-tier=incus web434 sh -c 'echo in-exec; exit 5' 2>&1); rc=$?
+echo "  exec     $x exit=$rc"
+echo "  logs     $(I logs web434 2>&1)"
+echo "  stop     $(I stop web434 2>&1)"
+echo "  ps -a    $(I ps -a 2>&1 | grep web434 | tr -s ' ')"
+echo "  start    $(I start web434 2>&1)"
+sleep 2
+echo "  ps       $(I ps 2>&1 | grep web434 | tr -s ' ')"
+x=$(I rm web434 2>&1); rc=$?
+echo "  rm       $x exit=$rc"
+x=$(I rm -f web434 2>&1); rc=$?
+echo "  rm -f    $x exit=$rc"
+echo "  create   $(P create --name made434 --podvm-tier=incus "$OCI" true </dev/null 2>/dev/null)"
+echo "  ps -a    $(I ps -a 2>&1 | grep made434 | tr -s ' ')"
+echo "  run -d   $(P run -d --name brief434 --podvm-tier=incus "$OCI" sh -c 'echo brief; exit 3' </dev/null 2>/dev/null)"
+sleep 5
+echo "  ps -a    $(I ps -a 2>&1 | grep brief434 | tr -s ' ')"
+echo "  logs     $(I logs brief434 2>&1)"
+echo "  rm       $(I rm made434 brief434 2>&1 | tr '\n' ' ')"
+echo "  ps -a    $(I ps -a 2>&1 | grep -c 434) of 434"
+} >"$WORK/c12.txt" 2>&1
+cat "$WORK/c12.txt" >>"$REPORT"
+c12() { grep -q "$1" "$WORK/c12.txt" || { note "12: $2"; fail=1; }; }
+c12 "^  run -d   web434$" "run -d did not print the name"
+c12 "^  ps       web434 Running" "ps did not list the instance Running"
+c12 "^  exec     in-exec exit=5$" "exec did not give the output and the exit code"
+c12 "^  logs     started$" "logs did not give the output of the command"
+c12 "^  ps -a    web434 Stopped" "stop did not make it Stopped"
+c12 "^  rm       .*the instance runs.* exit=1$" "rm of a running instance did not refuse"
+c12 "^  rm -f    web434 exit=0$" "rm -f did not remove it"
+c12 "^  ps -a    made434 Stopped" "create did not make a Stopped instance"
+c12 "^  ps -a    brief434 Stopped" "a command that ended did not stop its instance"
+c12 "^  logs     brief$" "logs of the ended command"
+c12 "^  ps -a    0 of 434$" "an instance of clause 12 stayed"
 
 # ---- clause 9 -----------------------------------------------------------
 left_i=$(RI list --format csv -c n 2>&1 | grep -c .)

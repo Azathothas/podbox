@@ -42,14 +42,16 @@ pub fn exec(args: &[String]) -> i32 {
     if tier == crate::tier::Tier::Machine {
         return crate::tier::enter_machine("exec", o.mem);
     }
+    // TODO/machine.md T-1722: exec in an instance of the incus tier.
+    if tier == crate::tier::Tier::Incus {
+        let name = o.image.clone().unwrap_or_default();
+        return crate::incus::verbs::exec(&name, &o.command, &o.env, o.workdir.as_deref());
+    }
     if matches!(
         tier,
-        crate::tier::Tier::Incus
-            | crate::tier::Tier::Emulate
-            | crate::tier::Tier::Syscall
-            | crate::tier::Tier::Runsc
+        crate::tier::Tier::Emulate | crate::tier::Tier::Syscall | crate::tier::Tier::Runsc
     ) {
-        eprintln!("podvm exec: --podvm-tier=incus, emulate, syscall and runsc serve run only (TODO/machine.md T-1718, TODO/enter.md T-1651, T-1657, T-1729)");
+        eprintln!("podvm exec: --podvm-tier=emulate, syscall and runsc serve run only (TODO/enter.md T-1651, T-1657, T-1729)");
         return EXIT_FLAG_ERROR;
     }
     if !o.qemu_args.is_empty() {

@@ -2042,9 +2042,24 @@ a new podvm build imports the image again; a run pushes only its stdin.
 The tests of `crates/podvm/src/incus/tests.rs` hold the alias, the entry
 of the tarball and a run with no push of podvm. Experiment 434 now runs
 the release binary and exits 0: PID 1 is still `/.podvm/podvm
-guest-hold`, and a run of `true` takes 1 070 ms (median of 5). Remaining:
-`create`, `start`, `exec`, `ps`, `stop`, `rm` and `logs` of an instance
-that stays, and the ladder and `.EnteredRung`.
+guest-hold`, and a run of `true` takes 1 070 ms (median of 5). 
+
+**Partial 2026-11-12, the verbs.** Decision (this session's call,
+AGENTS.md section 10): incusd keeps the state of an instance that stays,
+and podvm keeps no record of it in its container table, whose `reconcile`
+calls a running record with no launcher lock dead. `run -d` and `create`
+with the tier make an instance labelled `user.podvm=1` (and the image in
+`user.podvm.image`) whose init is `podvm guest-hold --run`: it runs the
+command of `/.podvm/cmd`, appends its output to `/.podvm/log`, writes its
+code to `/.podvm/exit`, passes a stop signal to it, and ends with its code
+(`crates/podvm/src/incus.rs`, `crates/podvm/src/incus/verbs.rs`). `ps
+[-a]`, `start`, `stop`, `rm [-f]`, `logs` and `exec` with
+`--podvm-tier=incus` call the API on the instance of that name and refuse
+an instance with no label. `sh experiments/434-incus-tier.sh` exits 0 with
+the new clause 12 (each verb, an instance that stops when its command
+ends, nothing left) and clause 8 rewritten (`exec` on no instance exits
+125 and names it). Remaining: the ladder selects incus by configuration and
+`.EnteredRung` names it; `logs -f` and `inspect`.
 
 # T-1723: The microVM of run: the microvm machine, a shared /workspace and an interactive stdin
 

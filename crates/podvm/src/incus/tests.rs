@@ -291,6 +291,7 @@ fn a_run_imports_creates_pushes_starts_execs_and_deletes() {
             ("/h/ws".into(), "/workspace".into(), false),
             ("/h/cfg".into(), "/cfg".into(), true),
         ],
+        detach: None,
     });
     unsafe { std::env::remove_var("PODVM_INCUS_SOCKET") };
     assert_eq!(code, 7, "the exit code of the command");
@@ -371,4 +372,33 @@ fn a_run_imports_creates_pushes_starts_execs_and_deletes() {
         .unwrap_or(0);
     assert_eq!(tars, 0, "the tarball of the import goes");
     let _ = std::fs::remove_dir_all(&d);
+}
+
+/// TODO/machine.md T-1722: the flag of the tier on a verb of an instance.
+#[test]
+fn the_tier_flag_selects_the_incus_verbs_and_leaves_the_rest() {
+    use super::verbs::{valid_name, wants};
+    let a = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    assert_eq!(wants(&a(&["-a", "--podvm-tier=incus"])), Some(a(&["-a"])));
+    assert_eq!(
+        wants(&a(&["--podvm-tier", "incus", "web"])),
+        Some(a(&["web"]))
+    );
+    assert_eq!(wants(&a(&["-a"])), None);
+    assert_eq!(wants(&a(&["--podvm-tier=machine"])), None);
+    assert!(valid_name("web-1"));
+    assert!(!valid_name("1web"));
+    assert!(!valid_name("web_1"));
+    assert!(!valid_name(&"a".repeat(64)));
+}
+
+/// The command file of an instance that stays reads back as it was written.
+#[test]
+fn the_command_file_reads_back() {
+    let c = super::Cmd {
+        argv: vec!["sh".into(), "-c".into(), "echo 'a b'".into()],
+        env: vec!["A=1".into()],
+        cwd: "/w".into(),
+    };
+    assert_eq!(super::Cmd::parse(&c.to_json()).unwrap(), c);
 }

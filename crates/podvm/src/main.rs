@@ -151,6 +151,12 @@ fn main() -> std::process::ExitCode {
 
     let argv0 = argv.first().cloned().unwrap_or_else(|| "podvm".into());
     let rest = if argv.len() > 2 { &argv[2..] } else { &[] };
+    // TODO/machine.md T-1722: the verbs of an incus instance that stays.
+    if let (Some(v @ ("ps" | "start" | "stop" | "rm" | "logs")), Some(a)) =
+        (argv.get(1).map(String::as_str), incus::verbs::wants(rest))
+    {
+        return exit(incus::verbs::dispatch(v, &a));
+    }
     match argv.get(1).map(String::as_str) {
         Some("run") => exit(run::run(rest)),
         Some("exec") => exit(exec::exec(rest)),
@@ -177,7 +183,7 @@ fn main() -> std::process::ExitCode {
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("machine") => exit(machine::machine(rest)),
         Some("guest-net") => exit(machine::guest::net::main()), // in a guest, T-1656
-        Some("guest-hold") => exit(incus::hold()),              // an incus init, T-1718
+        Some("guest-hold") => exit(incus::hold(rest)),          // an incus init, T-1718
         Some("guest-9p") => exit(machine::guest::vol::main(rest)), // in a guest, T-1723
         Some("guest-tty") => exit(machine::guest::tty::guest_main(rest)), // in a guest, T-1723
         Some("windows") => exit(windows::windows(rest)),

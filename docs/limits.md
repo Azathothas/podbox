@@ -175,7 +175,10 @@ instance of an incusd that answers on its socket (`PODVM_INCUS_SOCKET`, or
 `INCUS_DIR/unix.socket`), and gives its stdout, stderr and exit code
 (T-1718, [incus](incus.md)). podvm imports its extracted image with the
 owners that the image intended, and is the init of the instance. The
-command is not PID 1. Only `run` takes the tier; `-v` is a disk device of the
+command is not PID 1. `run -d` and `create` keep the instance, and `ps`,
+`start`, `stop`, `rm`, `logs` and `exec` with the tier act on it; incusd
+keeps its state, and podvm keeps no record of it (T-1722). `logs -f`,
+`inspect` and the ladder do not take the tier yet; `-v` is a disk device of the
 instance (T-1722), and `--podvm-mem` and `--podvm-qemu-arg` are refused by
 name, and the instance has no network
 under route A. A run where no incusd answers exits 125 and names the

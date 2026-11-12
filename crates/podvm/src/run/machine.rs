@@ -190,10 +190,10 @@ pub(super) fn incus_tier(
     platform: &Platform,
     policy: &Policy,
 ) -> i32 {
-    if verb != "run" {
+    if verb != "run" && verb != "create" {
         eprintln!(
-            "podvm {verb}: --podvm-tier=incus serves run only: each run is a disposable \
-             instance (TODO/machine.md T-1718)"
+            "podvm {verb}: --podvm-tier=incus serves run and create (TODO/machine.md T-1718, \
+             T-1722)"
         );
         return EXIT_FLAG_ERROR;
     }
@@ -217,6 +217,12 @@ pub(super) fn incus_tier(
         env: p.env,
         workdir: p.workdir,
         stdin: p.stdin,
+        // TODO/machine.md T-1722: create and run -d keep the instance.
+        detach: (verb == "create" || o.detach).then(|| crate::incus::verbs::Detach {
+            name: o.name.clone(),
+            start: verb == "run",
+            image: o.image.clone().unwrap_or_default(),
+        }),
         // TODO/machine.md T-1722: each -v is a disk device of the instance.
         volumes: o
             .volumes

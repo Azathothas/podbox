@@ -17,6 +17,8 @@ Deployed: not released.
   the instance as a disk device, so a write lands on the host.
 - The incus image of an OCI image carries podvm, so a run pushes no binary
   into the instance.
+- `run -d` and `create` with `--podvm-tier=incus` keep the instance; `ps`,
+  `start`, `stop`, `rm`, `logs` and `exec` with the tier act on it.
 
 ### Changed: a volume of the machine tier is a 9p mount, and -t a terminal, 2026-11-12
 

@@ -41,8 +41,8 @@ pub(crate) fn prepare(
         &o.insecure,
         o.tls_verify,
     )?;
-    // TODO/machine.md T-1723: `run` mounts a volume in the guest with 9p.
-    let volumes_refused = verb != "run" && !o.volumes.is_empty();
+    let volumes_refused = // T-1722: `create` of the incus tier takes -v
+        verb != "run" && !o.volumes.is_empty() && tier != crate::tier::Tier::Incus;
     if guest && (!o.devices.is_empty() || volumes_refused) {
         // ⛔ Refused rather than silently dropped: the guest boots behind
         // an emulator the host cannot hand descriptors or paths to, so a

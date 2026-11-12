@@ -41,6 +41,8 @@ pub struct Job<'a> {
     pub stdin: Option<Vec<u8>>,
     /// `-v HOST:GUEST[:ro]`; `true` is read-only.
     pub volumes: Vec<(String, String, bool)>,
+    /// `run -d` and `create`: an instance that stays (T-1722).
+    pub detach: Option<super::verbs::Detach>,
 }
 
 /// One `disk` device for each volume, named `podvm-volN`.
@@ -177,6 +179,9 @@ async fn run_async(job: &Job<'_>, sock: PathBuf) -> i32 {
         sock.display(),
         if cached { "from incus" } else { "imported now" }
     );
+    if let Some(d) = &job.detach {
+        return super::verbs::detached(&c, job, &image, d).await;
+    }
     let nonce =
         crate::machine::guest::init::nonce().unwrap_or_else(|_| format!("{}", std::process::id()));
     let inst = format!("podvm-{}", &nonce[..nonce.len().min(12)]);

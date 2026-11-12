@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-12T12:05:00Z
+date              2026-11-12T12:26:13Z
 host kernel       Linux 6.18.44-fc-v378
 cgroup            tmpfs
 incus package     6.0.0-1ubuntu0.3
@@ -9,21 +9,21 @@ runs              5
 == 1. a run
   stdout  hello
   exit    0
-  ms      1235 (with the import)
+  ms      1187 (with the import)
   stderr  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   stderr  podvm: 517 of 517 entries carry an id this machine cannot apply; what the image intended is in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   stderr  podvm: restore ownership with chown of bin (uid 0, gid 0): EINVAL
   stderr    the id has no mapping in this user namespace, which reads as a bad argument
   stderr    uid 0 is not mapped in this user namespace (/proc/self/uid_map: 0 0 4294967295); gid 0 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
   stderr    extract without ownership and record the intended ids; intended metadata recorded in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 imported now (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-4b0d16ef7e57a4df-v3 imported now (TODO/machine.md T-1718)
 
 == 2. the exit code
   exit    7
 
 == 3. stdout and stderr
   stdout  out
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 from incus (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-4b0d16ef7e57a4df-v3 from incus (TODO/machine.md T-1718)
   stderr  err
 
 == 4. stdin
@@ -36,17 +36,15 @@ runs              5
   PID 1                 /.podvm/podvm guest-hold 
   owner of /etc/passwd  0:0
   owner of /etc/shadow  0:42
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 from incus (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-4b0d16ef7e57a4df-v3 from incus (TODO/machine.md T-1718)
 
 == 7. the cached image
-  run true ms  1070 (median of 5)
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 from incus (TODO/machine.md T-1718)
+  run true ms  912 (median of 5)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-4b0d16ef7e57a4df-v3 from incus (TODO/machine.md T-1718)
 
-== 8. the other verbs
-  create exit  125
+== 8. a name that is no instance
   exec exit    125
-  stderr  podvm create: --podvm-tier=incus serves run only: each run is a disposable instance (TODO/machine.md T-1718)
-  stderr  podvm exec: --podvm-tier=incus, emulate, syscall and runsc serve run only (TODO/machine.md T-1718, TODO/enter.md T-1651, T-1657, T-1729)
+  stderr  podvm exec: none434: GET /1.0/instances/none434: incus refused the call (404, error_code 404): Failed to fetch instance "none434" in project "default": Instance not found
 
 == 11. volumes
   exit    0
@@ -55,6 +53,25 @@ runs              5
   stdout  touch: /ro/x: Read-only file system
   host    guest-434
   a directory of mode 0755: touch: /d/x: Permission denied
+
+== 12. an instance that stays
+  run -d   web434
+  ps       web434 Running mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  exec     in-exec exit=5
+  logs     started
+  stop     web434
+  ps -a    web434 Stopped mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  start    web434
+  ps       web434 Running mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  rm       podvm rm: web434: the instance runs: stop it, or rm -f exit=1
+  rm -f    web434 exit=0
+  create   made434
+  ps -a    made434 Stopped mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  run -d   brief434
+  ps -a    brief434 Stopped mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+  logs     brief
+  rm       made434 brief434 
+  ps -a    0 of 434
 
 == 9. nothing stays
   instances in incus              0
