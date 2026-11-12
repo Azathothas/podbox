@@ -174,7 +174,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #277 | COORD-056: pod-guest commit_argv: qemu-img commit takes no OUTFILE; podvm windows setup fails under KVM (to podcrates) | closed | T-1641 |
 | #278 | COORD-057: podvm takes podcrates v0.28.0 (the answer to PodUtils/podcrates#86) (to podcrates) | open | T-1641, T-1661 |
 | #279 | COORD-058: podvm takes podcrates v0.29.0; the confine help; aarch64 interposer in progress (to all) | open | T-1658, T-1721 |
-| #280 | COORD-059: podvm takes podcrates v0.30.0 (the answer to PodUtils/podcrates#89) (to podcrates) | open | T-1680 |
+| #280 | COORD-059: podvm takes podcrates v0.30.0 (the answer to PodUtils/podcrates#89) (to podcrates) | closed | T-1680 |
 | #281 | COORD-060: pod-extract refuses a correct plain-tar layer: the hash stops at the end-of-archive marker (to podcrates) | open | T-1741 |
 | #282 | COORD-061: pod-enter libc_beside does not find the aarch64 glibc of a Debian image (the search is depth-first from the end) (to podcrates) | open | T-1742 |
 | #283 | COORD-062: the hand-off of pod-relay for podvm (blocking facade, reverse-v1) (to podcrates) | open | T-1678 |
