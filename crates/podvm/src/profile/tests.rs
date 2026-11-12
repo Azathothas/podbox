@@ -265,3 +265,46 @@ fn confine_gives_the_flag_from_the_paths_and_the_ports() {
     let t: toml::Table = toml::from_str("[fs]\nread = [\"/etc\"]\n").unwrap();
     assert!(check(&t).unwrap_err().contains("confine = true"));
 }
+
+/// TODO/cli.md T-1694: the Chromium profile gives the browser's flags
+/// (`--no-sandbox` explicit) and the confine layer.
+#[test]
+fn chromium_profile_flags() {
+    let (t, _) = resolve("playwright-chromium", None).unwrap();
+    let c = check(&t).unwrap();
+    assert!(c.confine);
+    assert!(c.wrap.iter().any(|w| w == "--no-sandbox"), "{:?}", c.wrap);
+    assert!(c.wrap.iter().any(|w| w == "--headless"));
+    assert!(
+        c.image.as_deref().unwrap().contains("@sha256:"),
+        "the image is pinned"
+    );
+    let a = run_args(&c, &std::env::temp_dir()).unwrap();
+    let spec = a
+        .iter()
+        .find(|x| x.starts_with("--podvm-confine="))
+        .expect("the layer");
+    assert!(spec.contains("exec=/ms-playwright"), "{spec}");
+    assert!(spec.contains("write=/workspace"), "{spec}");
+    assert!(a.contains(&"--entrypoint=".to_string()), "{a:?}");
+}
+
+/// TODO/cli.md T-1694: where the layer is absent, the Chromium profile
+/// refuses by name: it never runs Chromium unconfined.
+#[test]
+fn chromium_profile_refuses_without_confine() {
+    let (t, _) = resolve("playwright-chromium", None).unwrap();
+    let c = check(&t).unwrap();
+    let a = run_args(&c, &std::env::temp_dir()).unwrap();
+    let spec = a
+        .iter()
+        .find_map(|x| x.strip_prefix("--podvm-confine="))
+        .unwrap();
+    let ask = podvm_enter::confine::parse(spec).unwrap();
+    use podvm_probe::select::Rung;
+    let no_landlock = crate::lifecycle::confine::check(&ask, Rung::Userland, true, None);
+    assert!(no_landlock.unwrap_err().contains("no Landlock"));
+    let supervise = crate::lifecycle::confine::check(&ask, Rung::Supervise, false, Some(7));
+    assert!(supervise.unwrap_err().contains("supervise rung"));
+    assert!(crate::lifecycle::confine::check(&ask, Rung::Userland, true, Some(7)).is_ok());
+}

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-346 entries: 6 open, 7 partial, 5 blocked, 328 done.
+348 entries: 6 open, 7 partial, 5 blocked, 330 done.
 
 The state on 2026-11-11:
 
@@ -67,8 +67,9 @@ that is not done. Read its Prove before you start. Set its status with
    release. [T-1406](podssh.md), partial, proves live-relay pairing
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.
 5. After podvm's own order (the owner's ruling "Priority",
-   2026-11-09): the asks of cfb, [T-1694](cli.md); the podrunner part
-   (issues 229 to 240); and the clauses of PodUtils/podcrates#39.
+   2026-11-09): the podrunner part (issues 229 to 240); the children of
+   Chromium, [T-1739](interpose.md); and the clauses of
+   PodUtils/podcrates#39.
 
 The entries done since the resume of 2026-11-11 are in the record; the
 handoff (`docs/HANDOFF.md`) names them.

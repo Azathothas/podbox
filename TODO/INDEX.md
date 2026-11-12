@@ -368,7 +368,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1691](supervise.md) | P1 | S | none | supervise | done | `stop -t 0` is a stop: no grace sends SIGKILL at once, and a failed bound is not a gone launcher |
 | [T-1692](milestones.md) | P2 | S | none | windows | done | The `windows --podvm-mem` row says what the verb does about `RLIMIT_FSIZE` |
 | [T-1693](packaging.md) | P2 | S | none | packaging | done | README and SECURITY name the last podbox tag that the verifier uses |
-| [T-1694](cli.md) | P2 | L | none | cli | open | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
+| [T-1694](cli.md) | P2 | L | none | cli | done | Headless Chromium of Playwright runs as a proven payload with its flags in one profile |
 | [T-1695](cli.md) | P1 | L | none | cli | done | One JSON report for each run, and real labels on records |
 | [T-1696](cli.md) | P2 | M | none | cli | done | `--secret` places a file with no argv and no env, and a read-once mode |
 | [T-1697](interpose.md) | P1 | L | none | interpose | done | A raw `statx` of libuv misses the path table, so npm cannot find its modules |
@@ -412,10 +412,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1735](complete.md) | P2 | M | none | complete | done | The dangling-directory-link test and the reachability test, then retire `85-completion-symlink-escape.sh` |
 | [T-1736](machine.md) | P3 | S | none | machine | done | A test of the refusal of `windows --dos` with no DOS base image |
 | [T-1737](packaging.md) | P3 | M | none | packaging | done | Decide where the SSH packaging scripts go, and port scripts/package-ssh.sh into `podvm-release` |
+| [T-1738](interpose.md) | P1 | S | none | interpose | done | A buffer of the interposer reaches the free of a program that has its own allocator |
+| [T-1739](interpose.md) | P2 | M | none | interpose | open | Chromium's child processes do not start on the loader family |
 
 ## Counts
 
-346 entries: 6 open, 7 partial, 5 blocked, 328 done.
+348 entries: 6 open, 7 partial, 5 blocked, 330 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -425,10 +427,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 0 | 3 | 0 | 147 | 150 |
-| P2 | 3 | 3 | 5 | 104 | 115 |
+| P1 | 0 | 3 | 0 | 148 | 151 |
+| P2 | 3 | 3 | 5 | 105 | 116 |
 | P3 | 3 | 0 | 0 | 13 | 16 |
-| **All** | 6 | 7 | 5 | 328 | 346 |
+| **All** | 6 | 7 | 5 | 330 | 348 |
 
 ## Work order
 

@@ -84,6 +84,27 @@ pub fn under(prefix: &[String], drops: &[String], argv: Vec<String>) -> Vec<Stri
     prefix.iter().chain(rest.iter()).cloned().collect()
 }
 
+/// The keys of a runtime agree (TODO/cli.md T-1661): `fs.read`, `fs.write`
+/// and `fs.exec` need a runtime or the confine layer, and a runtime and
+/// `fs.wrap` both prefix the command, so a profile has one of them.
+pub(super) fn check(c: &super::model::Checked) -> Result<(), String> {
+    match &c.runtime {
+        None if !c.confine && !(c.read.is_empty() && c.write.is_empty() && c.exec.is_empty()) => {
+            Err(
+                "`fs.read` and `fs.write` give the flags of a runtime or the confine layer, \
+             and the profile names no `runtime` and no `confine = true` (TODO/cli.md \
+             T-1661, TODO/enter.md T-1658)"
+                    .to_string(),
+            )
+        }
+        Some(_) if !c.wrap.is_empty() => {
+            Err("`runtime` and `fs.wrap` both prefix the command: give one of them".to_string())
+        }
+        Some(r) => prefix(r, &c.read, &c.write).map(|_| ()),
+        None => Ok(()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

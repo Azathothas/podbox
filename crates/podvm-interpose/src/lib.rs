@@ -317,8 +317,24 @@ crate::real!(pub fn next_readlinkat = "readlinkat"(c_int, *const c_char, *mut c_
 crate::real!(pub fn next_realpath = "realpath" @ "GLIBC_2.3"(*const c_char, *mut c_char) -> *mut c_void);
 crate::real!(pub fn next_canonicalize = "canonicalize_file_name"(*const c_char) -> *mut c_void);
 crate::real!(pub fn next_get_current_dir_name = "get_current_dir_name"() -> *mut c_char);
-crate::real!(fn next_malloc = "malloc"(usize) -> *mut c_void);
-crate::real!(fn next_free = "free"(*mut c_void) -> ());
+// TODO/cli.md T-1694: the global `malloc` and `free` (`RTLD_DEFAULT`),
+// the allocator that the payload's own `free` pairs with.
+fn next_malloc() -> Option<unsafe extern "C" fn(usize) -> *mut c_void> {
+    static NEXT: real::Next = real::Next::new();
+    let p = unsafe { NEXT.get_global(b"malloc\0") };
+    // SAFETY: `malloc` has this signature.
+    (!p.is_null()).then(|| unsafe {
+        core::mem::transmute::<*mut c_void, unsafe extern "C" fn(usize) -> *mut c_void>(p)
+    })
+}
+fn next_free() -> Option<unsafe extern "C" fn(*mut c_void)> {
+    static NEXT: real::Next = real::Next::new();
+    let p = unsafe { NEXT.get_global(b"free\0") };
+    // SAFETY: `free` has this signature.
+    (!p.is_null()).then(|| unsafe {
+        core::mem::transmute::<*mut c_void, unsafe extern "C" fn(*mut c_void)>(p)
+    })
+}
 crate::real!(pub fn next_getxattr = "getxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
 crate::real!(pub fn next_lgetxattr = "lgetxattr"(*const c_char, *const c_char, *mut c_void, usize) -> isize);
 crate::real!(pub fn next_setxattr = "setxattr"(*const c_char, *const c_char, *const c_void, usize, c_int) -> c_int);

@@ -8,6 +8,22 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: headless Chromium of Playwright, 2026-11-12
+
+Record: T-1694, T-1738, T-1739.
+Deployed: not deployed; no version change.
+
+- `podvm run --profile playwright-chromium -- --dump-dom file:///workspace/page.html`
+  runs Playwright's headless Chromium under the confine layer where
+  chroot is denied, and `--screenshot=/workspace/s.png` writes a PNG.
+  `--no-sandbox` and `--single-process` are set; Chromium under podvm is
+  no boundary against a hostile page.
+- Fixed: the interposer allocated the buffers that a caller frees with
+  libc's `malloc`, so a program with its own allocator (Chromium) aborted
+  in `free`.
+- A profile takes `fs.exec`: paths that the confine layer gives read and
+  execute.
+
 ### Added: a JSON report of each run, and image labels, 2026-11-11
 
 Record: T-1695.

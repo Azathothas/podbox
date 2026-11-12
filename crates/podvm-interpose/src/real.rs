@@ -83,6 +83,10 @@ core::arch::global_asm!(
 /// `RTLD_NEXT`, which is `((void *) -1)` in both glibc's and musl's `dlfcn.h`.
 const RTLD_NEXT: *mut c_void = usize::MAX as *mut c_void;
 
+/// `RTLD_DEFAULT`, which is `((void *) 0)` in both glibc's and musl's
+/// `dlfcn.h`: the global scope, the executable first.
+const RTLD_DEFAULT: *mut c_void = core::ptr::null_mut();
+
 /// One cached pointer to the next definition of a symbol.
 pub struct Next(AtomicPtr<c_void>);
 
@@ -117,6 +121,31 @@ impl Next {
         // find is retried rather than remembered as absent. That costs a dlsym
         // per call on a payload whose libc lacks the symbol, which is the case
         // podvm refuses before loading anyway.
+        if !p.is_null() {
+            self.0.store(p, Ordering::Release);
+        }
+        p
+    }
+
+    /// The global definition of a symbol (`RTLD_DEFAULT`), not the next
+    /// one after this object: for `malloc` and `free`, which must be the
+    /// allocator that the payload's own `free` pairs with. A program that
+    /// defines its own allocator (Chromium's PartitionAlloc exports `malloc`
+    /// and `free`) is first in the global scope, before this object and
+    /// libc, and `RTLD_NEXT` would skip it: a buffer of libc's `malloc`
+    /// then reached the program's `free` and aborted the program with
+    /// "free(): invalid pointer" (TODO/cli.md T-1694). libc's own calls bind
+    /// to the global definition too, so a buffer that the real call
+    /// allocated is freed by the same allocator.
+    ///
+    /// # Safety
+    /// As [`Next::get`].
+    pub unsafe fn get_global(&self, name: &[u8]) -> *mut c_void {
+        let cached = self.0.load(Ordering::Acquire);
+        if !cached.is_null() {
+            return cached;
+        }
+        let p = unsafe { dlsym(RTLD_DEFAULT, name.as_ptr() as *const c_char) };
         if !p.is_null() {
             self.0.store(p, Ordering::Release);
         }

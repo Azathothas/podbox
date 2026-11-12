@@ -10,6 +10,15 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
+/// Hosts that podvm names and that `pod-services` does not list yet. Each
+/// was reported to podcrates; the test fails when the crate lists one, so
+/// this list only shrinks.
+const WAITING: &[&str] = &[
+    // The image of the profile playwright-chromium (TODO/cli.md T-1694),
+    // reported in COORD-050.
+    "mcr.microsoft.com",
+];
+
 /// Hosts that are podvm's own or no host of another party.
 const OWN: &[&str] = &["localhost", "example.com", "example.org"];
 
@@ -124,12 +133,23 @@ fn each_host_that_podvm_names_is_in_pod_services() {
     let missing: Vec<&String> = named
         .iter()
         .filter(|h| !listed.contains(*h) && !OWN.contains(&h.as_str()) && !reserved(h))
+        .filter(|h| !WAITING.contains(&h.as_str()))
         .collect();
     assert!(
         missing.is_empty(),
         "podvm names hosts that pod-services does not list: {missing:?}; report \
          each to podcrates (TODO/deps.md T-1679), podvm keeps no second list"
     );
+    for w in WAITING {
+        assert!(
+            !listed.contains(*w),
+            "pod-services lists {w} now: drop it from WAITING"
+        );
+        assert!(
+            named.contains(*w),
+            "podvm no longer names {w}: drop it from WAITING"
+        );
+    }
     // The values that podvm reads resolve.
     assert!(crate::machine::guest::kernel::url().starts_with("https://dl-cdn.alpinelinux.org/"));
     assert_eq!(crate::machine::guest::kernel::kernel_sha256().len(), 64);

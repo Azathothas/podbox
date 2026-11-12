@@ -1635,7 +1635,7 @@ defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 
 **Source:** the T-1111 nix unpack (the symptom is in
   `experiments/results/tar-symlink-modes-prefix.txt`);
-  `crates/podvm-interpose/src/lib.rs:356`,
+  `crates/podvm-interpose/src/lib.rs:372`,
   `crates/podvm-interpose/src/stat_calls.rs:296`
 **Category:** interpose
 **Milestone:** none
@@ -1659,7 +1659,7 @@ Measured 2026-09-21 on host podman, same image, back to back:
 under `podvm run` the minimal tar-symlink repro exits 2 with
 one such error per link; in the plain driver container the same
 commands exit 0. The interposed `fchmodat` is declared with
-three arguments (`crates/podvm-interpose/src/lib.rs:356`) and
+three arguments (`crates/podvm-interpose/src/lib.rs:372`) and
 forwards three (`crates/podvm-interpose/src/stat_calls.rs:296`),
 while libc takes four `(dirfd, path, mode, flags)`: the real
 call receives a fourth register the wrapper never set, so any
@@ -1700,7 +1700,7 @@ podman, with the conditions block naming the driver.
 ## Done
 
 **Done 2026-09-21.** The declaration and the wrapper carry `flags`
-(`crates/podvm-interpose/src/lib.rs:356`,
+(`crates/podvm-interpose/src/lib.rs:372`,
 `crates/podvm-interpose/src/stat_calls.rs:296`); every other flags-taking
 `*at` wrapper already did, so the audit closes with this one. Guard:
 `tests::fchmodat_forwards_flags` compares the interposed entry point
@@ -3465,3 +3465,107 @@ fixture, `cat /home/link` of alpine reads the rootfs file. Limits:
 `utimensat` and `fchmodat` with `AT_SYMLINK_NOFOLLOW`, and `linkat` with
 `AT_SYMLINK_FOLLOW`, keep the default of their name. Remaining: the run of
 experiment 356 with clause 34.
+
+# T-1738: A buffer of the interposer reaches the free of a program that has its own allocator
+
+**Source:** T-1694 (the first run of Playwright's Chromium on the
+  loader family, 2026-11-12); `crates/podvm-interpose/src/real.rs`;
+  `crates/podvm-interpose/src/stat_calls.rs`
+**Category:** interpose
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Headless Chromium of Playwright, `--single-process`, aborted on the
+loader family with "free(): invalid pointer". The interposer gives back
+memory that the caller frees (`realpath` with a NULL buffer and its
+kin), and it took that memory from the `malloc` of `dlsym(RTLD_NEXT)`.
+
+## Premise
+
+`RTLD_NEXT` from the interposer skips the executable, so it answers
+libc's `malloc`. Chromium's executable exports its own `malloc` and
+`free` (PartitionAlloc), and the global scope puts the executable
+first. A buffer of libc's `malloc` then reached Chromium's `free`.
+
+## Approach
+
+Resolve `malloc` and `free` in the global scope (`RTLD_DEFAULT`), so
+the interposer allocates with the allocator that the payload's own
+`free` pairs with. libc's own calls bind to the same global
+definition, so a buffer that the real call allocated is freed by the
+same allocator too.
+
+## Decision
+
+`RTLD_DEFAULT` for the two allocator calls only; each other forwarded
+call keeps `RTLD_NEXT`, which must skip the interposer itself.
+
+## Prove
+
+```sh
+RUSTFLAGS='-C target-feature=-crt-static' cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target x86_64-unknown-linux-gnu -- --test-threads=1
+sh experiments/425-chromium.sh
+```
+
+Each exits 0 (T-1694).
+
+## Done
+
+**Done 2026-11-12.** `Next::get_global` of
+`crates/podvm-interpose/src/real.rs` resolves through `RTLD_DEFAULT`, and
+`next_malloc` and `next_free` of `crates/podvm-interpose/src/lib.rs` use
+it. The 86 tests of the interposer pass. On the chroot-denying fixture,
+`chrome-headless-shell --single-process --no-zygote` of
+`mcr.microsoft.com/playwright:v1.65.0-noble` printed the DOM of a page of
+`/workspace` after the fix and aborted before it; under
+`--podvm-confine` it also wrote a screenshot of 3252 bytes.
+
+# T-1739: Chromium's child processes do not start on the loader family
+
+**Source:** T-1694 (the first run of Playwright's Chromium on the
+  loader family, 2026-11-12)
+**Category:** interpose
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the loader family, headless Chromium in its default mode (a zygote,
+a GPU process, a network service) stops with "GPU process isn't
+usable. Goodbye." The zygote child sends no ping ("Did not receive ping
+from zygote child"), and with `--no-zygote` each GPU process launch
+fails (`error_code=1002`) or exits with code 5. `--single-process`
+works (T-1738), so the profile of T-1694 uses it.
+
+## Premise
+
+Chromium starts each child by `execve` of `/proc/self/exe` with
+`--type=...`, after it moves the descriptors of the child to fixed
+numbers and closes each other descriptor. An `exec` of `/proc/self/exe`
+works on the loader family (measured with bash), so the cause is in
+what the child inherits: the descriptors that the interposer needs (the
+memo and the tables), or its environment, are closed or cleared by
+Chromium's launcher. Not measured yet.
+
+## Approach
+
+Trace the launch of one GPU child (the `--type=gpu-process` argv, its
+descriptors and its environment), find the call that fails, and fix it
+in the interposer or name it. Then drop `--single-process` from the
+profile.
+
+## Decision
+
+The profile keeps `--single-process` until this entry is done: a
+working browser in one process is better than none.
+
+## Prove
+
+`sh experiments/425-chromium.sh` exits 0 with the profile's flags
+without `--single-process`.

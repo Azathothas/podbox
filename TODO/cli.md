@@ -2945,7 +2945,7 @@ of T-1658, which is blocked on COORD-040).
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3007,6 +3007,39 @@ leaves no child process.
 Chromium of Playwright; a workerd profile with no network". The workerd
 half is in T-1661. The ask is a new capability and nothing documented is
 broken, so the priority is P2.
+
+## Done
+
+**Done 2026-11-12.** The built-in profile `playwright-chromium` runs
+`chrome-headless-shell` of `mcr.microsoft.com/playwright:v1.65.0-noble`,
+pinned by digest (`sha256:9beb5460...`), with `--headless`,
+`--no-sandbox`, `--no-zygote`, `--single-process`,
+`--disable-dev-shm-usage` and `--disable-gpu` in `fs.wrap`, so the
+arguments after `--` go to the browser. It sets `confine = true` with
+read of the font, CA and identity files, write of `/workspace` and
+`/tmp`, and execute of `/ms-playwright`, through the new key `fs.exec`
+(Landlock gives a library mapped executable only with the EXECUTE right).
+`--no-sandbox` is in the profile and its `leaves_out` says that the
+browser is no boundary against a hostile page.
+
+The chain of the first run: the namespace rung mounts no `/proc`, and
+Chromium finds its ICU data through `/proc/self/exe`, so the profile runs
+on the loader family (named in `leaves_out`); there, Chromium aborted with
+"free(): invalid pointer" because the interposer gave back libc's
+`malloc` buffers to a program with its own allocator (T-1738, fixed); the
+children of the default mode do not start (T-1739, open), so the profile
+uses `--single-process`.
+
+`cargo test -p podvm` exits 0 with `chromium_profile_flags` and
+`chromium_profile_refuses_without_confine`. `sh
+experiments/425-chromium.sh` exits 0 on the chroot-denying fixture: the
+DOM of a page of `/workspace` is printed (12 s), a screenshot of 3252
+bytes is written, a page that loads an image from a host listener makes
+no connection under `-s net.ports=[9]` (the control with no port rule
+connects once), and no process of the browser stays. The host
+`mcr.microsoft.com` waits in the reported list of
+`crates/podvm/src/hosts_tests.rs` for `pod-services` (COORD-050).
+
 
 # T-1695: One JSON report for each run, and real labels on records
 

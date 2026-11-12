@@ -33,6 +33,7 @@ const FS: &[&str] = &[
     "tmpfs",
     "read",
     "write",
+    "exec",
 ];
 const LIMITS: &[&str] = &["file_max", "memory", "cpus", "timeout"];
 const NET: &[&str] = &["mode", "ports", "allow"];
@@ -56,6 +57,8 @@ pub struct Checked {
     pub confine: bool,
     pub read: Vec<String>,
     pub write: Vec<String>,
+    /// `fs.exec`: read and execute under the layer (TODO/cli.md T-1694).
+    pub exec: Vec<String>,
     /// The image of the shape.
     pub image: Option<String>,
     /// `--entrypoint=` of the run; `""` clears it (TODO/cli.md T-1659).
@@ -284,6 +287,7 @@ pub fn check(t: &Table) -> Result<Checked, String> {
         c.tmpfs = strings(fs, "fs", "tmpfs")?;
         c.read = strings(fs, "fs", "read")?;
         c.write = strings(fs, "fs", "write")?;
+        c.exec = strings(fs, "fs", "exec")?;
     }
     if let Some(l) = want_table(t, "limits")? {
         only(l, "limits", LIMITS)?;
@@ -338,27 +342,8 @@ pub fn check(t: &Table) -> Result<Checked, String> {
             }
         }
     }
-    runtime_check(&c)?;
+    super::runtime::check(&c)?;
     Ok(c)
-}
-
-/// TODO/cli.md T-1661: `fs.read` and `fs.write` give the flags of a
-/// runtime, so each needs one; a runtime and `fs.wrap` both prefix the
-/// command, so a profile has one of them.
-fn runtime_check(c: &Checked) -> Result<(), String> {
-    match &c.runtime {
-        None if !c.confine && (!c.read.is_empty() || !c.write.is_empty()) => Err(
-            "`fs.read` and `fs.write` give the flags of a runtime or the confine layer, \
-             and the profile names no `runtime` and no `confine = true` (TODO/cli.md \
-             T-1661, TODO/enter.md T-1658)"
-                .to_string(),
-        ),
-        Some(_) if !c.wrap.is_empty() => {
-            Err("`runtime` and `fs.wrap` both prefix the command: give one of them".to_string())
-        }
-        Some(r) => super::runtime::prefix(r, &c.read, &c.write).map(|_| ()),
-        None => Ok(()),
-    }
 }
 
 /// The `run` flags of a checked profile. `cwd` resolves a relative
@@ -432,7 +417,7 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
         let ask = podvm_enter::confine::Ask {
             read: c.read.clone(),
             write: c.write.clone(),
-            exec: Vec::new(),
+            exec: c.exec.clone(),
             connect: (!c.net_ports.is_empty()).then(|| c.net_ports.clone()),
         };
         a.push(format!(

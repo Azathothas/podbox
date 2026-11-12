@@ -1,0 +1,22 @@
+== conditions
+date              2026-11-12T00:26:42Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.4
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+profile           image = "mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe"
+
+== clause 1  the DOM of a page of /workspace
+  exit 0 in 18 s: <h1 id="t">hello-425</h1>
+
+== clause 2  a screenshot
+  exit 0; s.png: 3252 bytes,  211 P N G  
+ 032
+
+== clause 3  no network connection
+  exit 0; the page: <p id="n">net-425</p>; connections to the host listener: 0
+  control with no port rule: connections: 1
+
+== clause 4  no process stays
+  processes of the browser left: 0
+
+verdict: HEADLESS CHROMIUM RUNS CONFINED WHERE CHROOT IS DENIED
