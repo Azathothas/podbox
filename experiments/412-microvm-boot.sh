@@ -32,6 +32,10 @@
 #  10. without -t, the command's stdout and stderr are not terminals
 #      (T-1728): `[ -t 1 ]` and `[ -t 2 ]` are false, and `ls` writes no
 #      colour escape.
+#  11. with -t (T-1723), under script(1)'s terminal of 33 rows and 99
+#      columns: the command's stdin and stdout are terminals, `stty size`
+#      gives `33 99`, a typed line reaches `read`, and the exit code comes
+#      back. Skipped by name where script(1) is not there.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (no build, no pull, no qemu).
@@ -175,6 +179,22 @@ rc=$?
 [ "$(head -1 "$WORK/c10.out")" = "out-pipe" ] || { note "10: stdout is a terminal"; fail=1; }
 grep -qx "err-pipe" "$WORK/c10.err" || { note "10: stderr is a terminal"; fail=1; }
 grep -q "$(printf '\033')" "$WORK/c10.out" && { note "10: ls wrote a colour escape"; fail=1; }
+
+# Clause 11: a terminal with -t (T-1723).
+if command -v script >/dev/null 2>&1; then
+	(sleep 20; printf 'typed-412\r'; sleep 40) | timeout 300 script -qec \
+		"stty rows 33 cols 99; '$PB' run -t --podvm-tier=machine '$ALPINE' sh -c '[ -t 0 ] && [ -t 1 ] && echo both-tty; stty size; read l; echo got=\$l; exit 6'" \
+		/dev/null >"$WORK/c11.raw" 2>&1
+	rc=$?
+	tr -d '\r' <"$WORK/c11.raw" >"$WORK/c11.out"
+	{ echo ""; echo "== 11. a terminal with -t"; echo "exit              $rc"; grep -v "machine tier" "$WORK/c11.out" | sed 's/^/  /'; } >>"$REPORT"
+	[ "$rc" -eq 6 ] || { note "11: wanted exit 6, got $rc"; fail=1; }
+	grep -qx "both-tty" "$WORK/c11.out" || { note "11: stdin and stdout are not terminals under -t"; fail=1; }
+	grep -qx "33 99" "$WORK/c11.out" || { note "11: the size of the terminal did not reach the guest"; fail=1; }
+	grep -qx "got=typed-412" "$WORK/c11.out" || { note "11: the typed line did not reach read"; fail=1; }
+else
+	echo "clause 11: skipped: no script(1)" >>"$REPORT"
+fi
 
 # Clause 9.
 if pgrep -f "qemu-system-x86_64.*podvm-init" >/dev/null 2>&1; then note "9: an emulator stayed"; pkill -9 -f "qemu-system-x86_64.*podvm-init"; fail=1; fi

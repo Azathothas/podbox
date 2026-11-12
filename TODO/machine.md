@@ -2100,6 +2100,19 @@ with EROFS ([the run](../experiments/results/microvm-boot.txt)).
 Remaining: `-M microvm` under KVM (twenty boots), a terminal on stdin,
 and the run of 412 in `kvm.yml`.
 
+**Partial 2026-11-12, the terminal.** `run -t --podvm-tier=machine` gives
+the emulator a `virtconsole` on a unix socket of the run
+(`crates/podvm/src/machine/guest/tty.rs`; `virtio_console` is built into
+the pinned kernel). In the guest `podvm guest-tty` starts a session with
+`/dev/hvc0` as its controlling terminal, sets the size of the host
+terminal, and execs the command; on the host podvm puts its terminal in
+raw mode and copies stdin and stdout through the socket. `sh
+experiments/412-microvm-boot.sh` exits 0 under TCG with the new clause 11:
+under script(1) with 33 rows and 99 columns, `[ -t 0 ]` and `[ -t 1 ]`
+are true, `stty size` gives `33 99`, a typed line reaches `read`, and the
+exit code 6 comes back. Remaining: `-M microvm` under KVM (twenty boots,
+experiment 440 in `kvm.yml`) and the run of 412 in `kvm.yml`.
+
 # T-1727: Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718
 
 **Source:** PodUtils/podcrates#65 (COORD-040 of podcrates) and #63

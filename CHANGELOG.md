@@ -8,11 +8,13 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
-### Changed: a volume of the machine tier is a 9p mount, 2026-11-12
+### Changed: a volume of the machine tier is a 9p mount, and -t a terminal, 2026-11-12
 
 Record: T-1723.
 Deployed: not released.
 
+- `run -t --podvm-tier=machine` runs the command on a terminal of the
+  guest with the size of the host terminal, and stdin goes there live.
 - `run --podvm-tier=machine -v HOST:GUEST[:ro]` mounts the host directory
   in the guest with 9p, so a write in the guest lands on the host, and
   `:ro` refuses a write. podvm takes the 9p modules out of the pinned

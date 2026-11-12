@@ -12,28 +12,31 @@
 //!
 //! A `-v HOST:GUEST` is a 9p mount of the host directory ([`vol`],
 //! TODO/machine.md T-1723), so a write in the guest lands on the host; with
-//! a kernel of `PODVM_MACHINE_KERNEL` (no 9p module) it is a copy. Limits
-//! (named in the banner and in `docs/limits.md`): no terminal on stdin.
+//! a kernel of `PODVM_MACHINE_KERNEL` (no 9p module) it is a copy. `-t`
+//! runs the command on a terminal of a virtio console ([`tty`]).
 
 pub(crate) mod archive;
 pub(crate) mod cpio;
+mod drive;
 pub(crate) mod init;
 pub(crate) mod kernel;
 pub(crate) mod net;
 pub(crate) mod squashfs;
 pub(crate) mod stderr;
+pub(crate) mod tty;
 pub(crate) mod vol;
 
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
+
+use std::time::Duration;
 
 use podvm_image::error::EXIT_RUNTIME_ERROR;
 use podvm_windows::plan::Accel;
 
 pub use archive::run_archive;
 use archive::tools;
+use drive::drive;
 
 /// The version of the base archive format; a change of [`cpio`] bumps it,
 /// so an old cached archive is not reused. 2 keeps the hard links.
@@ -68,6 +71,9 @@ pub struct Request<'a> {
     /// podvm's stdin where it is a pipe or a file, read to its end: the
     /// command's stdin in the guest (`/podvm/stdin`).
     pub stdin: Option<Vec<u8>>,
+    /// `-t`: the command runs on a terminal of a virtio console, and stdin
+    /// goes there live ([`tty`], TODO/machine.md T-1723).
+    pub tty: bool,
 }
 
 /// The most bytes of stdin that a guest takes.
@@ -244,6 +250,16 @@ pub fn boot(r: &Request) -> i32 {
         Ok(b) => b,
         Err(e) => return fail(e),
     };
+    if r.tty && tools.is_none() {
+        return fail(
+            "-t needs podvm in the guest, and the kernel of PODVM_MACHINE_KERNEL brings no \
+             module set for it (TODO/machine.md T-1723)"
+                .to_string(),
+        );
+    }
+    let size = tty::size()
+        .map(|(rows, cols)| format!("{rows}x{cols}"))
+        .unwrap_or_default();
     let nonce = match init::nonce() {
         Ok(n) => n,
         Err(e) => return fail(e),
@@ -256,7 +272,15 @@ pub fn boot(r: &Request) -> i32 {
     let made = std::fs::create_dir_all(&dir)
         .and_then(|()| std::fs::copy(&base, &initrd))
         .and_then(|_| {
-            let script = init::script(&nonce, &r.argv, &r.env, &r.workdir, tools.is_some(), &vols);
+            let script = init::script(
+                &nonce,
+                &r.argv,
+                &r.env,
+                &r.workdir,
+                tools.is_some(),
+                &vols,
+                r.tty.then_some(size.as_str()),
+            );
             run_archive(&script, tools.as_ref(), &copies, r.stdin.as_deref())
         })
         .and_then(|extra| {
@@ -313,6 +337,10 @@ pub fn boot(r: &Request) -> i32 {
     let sock = stderr::socket_path(&nonce);
     let _ = std::fs::remove_file(&sock);
     let mut extra = stderr::argv(&sock);
+    if r.tty {
+        let _ = std::fs::remove_file(tty::socket_path(&sock));
+        extra.extend(tty::argv(&tty::socket_path(&sock)));
+    }
     for (v, (host, _, _)) in vols.iter().zip(&r.volumes) {
         extra.push("-virtfs".to_string());
         extra.push(vol::virtfs(host, v));
@@ -354,136 +382,9 @@ pub fn boot(r: &Request) -> i32 {
     }
     let code = drive(r, &qemu, &argv, &nonce, &dir, &sock);
     let _ = std::fs::remove_file(&sock);
+    let _ = std::fs::remove_file(tty::socket_path(&sock));
     let _ = std::fs::remove_dir_all(&dir);
     code
-}
-
-/// Spawn the emulator and read its console to the exit marker.
-fn drive(r: &Request, qemu: &Path, argv: &[String], nonce: &str, dir: &Path, sock: &Path) -> i32 {
-    use std::os::unix::process::CommandExt;
-    let errlog = dir.join("qemu.err");
-    let mut child = match Command::new(qemu)
-        .args(argv)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(
-            std::fs::File::create(&errlog)
-                .map(Stdio::from)
-                .unwrap_or(Stdio::null()),
-        )
-        .process_group(0)
-        .spawn()
-    {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("podvm {}: machine tier: {}: {e}", r.verb, qemu.display());
-            return EXIT_RUNTIME_ERROR;
-        }
-    };
-    let pid = child.id() as i32;
-    let deadline = Instant::now() + r.timeout.unwrap_or(DEFAULT_TIMEOUT);
-    let gone = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
-    let errs = stderr::pump(sock.to_path_buf(), deadline, gone.clone());
-    let out = child.stdout.take().expect("piped");
-    let (tx, rx) = std::sync::mpsc::channel::<String>();
-    std::thread::spawn(move || {
-        for line in BufReader::new(out).split(b'\n').map_while(Result::ok) {
-            if tx
-                .send(String::from_utf8_lossy(&line).into_owned())
-                .is_err()
-            {
-                break;
-            }
-        }
-    });
-    let mut console = init::Console::new(nonce);
-    let mut blanks = 0usize;
-    let mut code: Option<i32> = None;
-    let stdout = std::io::stdout();
-    loop {
-        let left = deadline.saturating_duration_since(Instant::now());
-        match rx.recv_timeout(left.max(Duration::from_millis(1))) {
-            Ok(line) => match console.line(&line) {
-                init::Line::Before | init::Line::Ready => {}
-                init::Line::Out("") => blanks += 1,
-                init::Line::Out(s) => {
-                    let mut o = stdout.lock();
-                    for _ in 0..blanks {
-                        let _ = writeln!(o);
-                    }
-                    blanks = 0;
-                    let _ = writeln!(o, "{s}");
-                }
-                init::Line::Exit(c, before) => {
-                    // The script's `echo` before the marker ends a last line
-                    // without a newline; that one blank line is not output.
-                    let mut o = stdout.lock();
-                    for _ in 0..blanks.saturating_sub(1) {
-                        let _ = writeln!(o);
-                    }
-                    if !before.is_empty() {
-                        let _ = writeln!(o, "{before}");
-                    }
-                    code = Some(c);
-                    break;
-                }
-            },
-            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => break,
-        }
-        if Instant::now() >= deadline {
-            break;
-        }
-    }
-    // The guest resets after the marker and the emulator exits; a guest
-    // that does not, and each child of the emulator, goes with SIGKILL.
-    let ended = wait_bounded(&mut child, Duration::from_secs(10));
-    if !ended {
-        // SAFETY: a plain system call on the process group that `spawn`
-        // made for the emulator.
-        unsafe { kill(-pid, 9) };
-        let _ = child.wait();
-    }
-    // The port closed with the emulator: the pump has each byte now.
-    gone.store(true, std::sync::atomic::Ordering::Release);
-    let _ = errs.join();
-    match code {
-        Some(c) => c,
-        None => {
-            let tail = std::fs::read_to_string(dir.join("qemu.err")).unwrap_or_default();
-            let tail = tail.lines().last().unwrap_or("");
-            eprintln!(
-                "podvm {}: machine tier: the guest gave no exit marker{}{}",
-                r.verb,
-                if Instant::now() >= deadline {
-                    " before the timeout"
-                } else {
-                    ""
-                },
-                if tail.is_empty() {
-                    String::new()
-                } else {
-                    format!("; qemu: {tail}")
-                }
-            );
-            EXIT_RUNTIME_ERROR
-        }
-    }
-}
-
-unsafe extern "C" {
-    fn kill(pid: i32, sig: i32) -> i32;
-}
-
-fn wait_bounded(child: &mut std::process::Child, d: Duration) -> bool {
-    let end = Instant::now() + d;
-    while Instant::now() < end {
-        if let Ok(Some(_)) = child.try_wait() {
-            return true;
-        }
-        std::thread::sleep(Duration::from_millis(50));
-    }
-    false
 }
 
 #[cfg(test)]

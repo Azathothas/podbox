@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-12T10:54:27Z
+date              2026-11-12T11:31:07Z
 host kernel       Linux 6.18.44-fc-v378
 input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 boots             20
@@ -15,7 +15,7 @@ podvm: probed this machine rather than using the cache: /workspace/podvm/experim
 
 == 1. one command
 exit              7
-seconds           10 (with the kernel fetch and the base archive)
+seconds           8 (with the kernel fetch and the base archive)
   6.12.110-0-virt
   25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep412-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
@@ -31,7 +31,7 @@ exit              0
 
 == 3. boots in a row
 reached           20 of 20
-seconds           85
+seconds           84
 
 == 4. KVM asked
 exit              125
@@ -58,13 +58,20 @@ exit              4
     err-412
 
 == 8. stdin
-host sha256       f0ecf80a60870b38a5fbd916c8691c0cb287c51e8cbf3d467226f3a01dab27c7
-guest sha256      f0ecf80a60870b38a5fbd916c8691c0cb287c51e8cbf3d467226f3a01dab27c7
+host sha256       94f5ec31f74df440f84f04daef09a51b5bfcb8ab73b4e8608f211dfb8cd92237
+guest sha256      94f5ec31f74df440f84f04daef09a51b5bfcb8ab73b4e8608f211dfb8cd92237
 from /dev/null    eof-ok
 
 == 10. no terminal
 exit              0
   stdout line 1:   out-pipe
   stderr:          err-pipe
+
+== 11. a terminal with -t
+exit              6
+  both-tty
+  33 99
+  typed-412
+  got=typed-412
 
 verdict           THE GUEST RUNS THE COMMAND

@@ -20,7 +20,9 @@ pub fn sh_quote(w: &str) -> String {
 /// configures the network; a failure of it is a line of output. `vols`
 /// runs `podvm guest-9p` before the `cd`, so the working directory can be
 /// in a volume (TODO/machine.md T-1723); where a mount fails, the run ends
-/// with 125 and the reason, and the command does not run.
+/// with 125 and the reason, and the command does not run. `tty` (`-t`, the
+/// size `ROWSxCOLS` or empty) runs the command through `podvm guest-tty` on
+/// the virtio console (TODO/machine.md T-1723) in place of the FIFOs.
 pub fn script(
     nonce: &str,
     argv: &[String],
@@ -28,6 +30,7 @@ pub fn script(
     workdir: &str,
     net: bool,
     vols: &[super::vol::Vol],
+    tty: Option<&str>,
 ) -> String {
     let mut s = String::from("#!/bin/sh\n");
     s.push_str("mount -t proc proc /proc 2>/dev/null\n");
@@ -59,6 +62,18 @@ pub fn script(
     s.push_str("if [ -f /podvm/stdin ]; then exec 0</podvm/stdin; else exec 0</dev/null; fi\n");
     let words: Vec<String> = argv.iter().map(|a| sh_quote(a)).collect();
     s.push_str(&format!("set -- {}\n", words.join(" ")));
+    if let Some(size) = tty {
+        let size = if size.is_empty() {
+            String::new()
+        } else {
+            format!("{} ", sh_quote(size))
+        };
+        s.push_str(&format!(
+            "/podvm/podvm guest-tty {size}-- \"$@\"\nrc=$?\necho; echo PODVM-EXIT-{nonce} $rc\n"
+        ));
+        s.push_str("sync\nreboot -f 2>/dev/null\necho b > /proc/sysrq-trigger\n");
+        return s;
+    }
     // TODO/machine.md T-1728. The command's stdout and stderr are FIFOs, as
     // docker's are without -t: a serial port is a terminal, so `ls` coloured
     // its output and `[ -t 1 ]` was true. One `cat` copies each FIFO to its

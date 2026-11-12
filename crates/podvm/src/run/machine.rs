@@ -173,6 +173,7 @@ pub(super) fn machine_tier(
         qemu_args: o.qemu_args.clone(),
         copies,
         volumes,
+        tty: o.tty,
         stdin: p.stdin,
     });
     if let Some(d) = probe {

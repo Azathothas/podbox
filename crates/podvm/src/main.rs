@@ -179,6 +179,7 @@ fn main() -> std::process::ExitCode {
         Some("guest-net") => exit(machine::guest::net::main()), // in a guest, T-1656
         Some("guest-hold") => exit(incus::hold()),              // an incus init, T-1718
         Some("guest-9p") => exit(machine::guest::vol::main(rest)), // in a guest, T-1723
+        Some("guest-tty") => exit(machine::guest::tty::guest_main(rest)), // in a guest, T-1723
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("profile") => exit(profile::main(rest)), // TODO/cli.md T-1654

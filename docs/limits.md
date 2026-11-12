@@ -152,7 +152,10 @@ in the guest lands there with the host user's ownership, and `:ro` refuses a
 write with EROFS. The 9p modules come from the pinned modloop. With a kernel
 of `PODVM_MACHINE_KERNEL` a volume is a copy, and the run says so. stderr comes back on its own
 serial port. stdin reaches the guest where it is a pipe or a file (at
-most 64 MiB, read before the boot); a terminal does not. `create` and `exec`
+most 64 MiB, read before the boot). With `-t` the command runs on a terminal
+of a virtio console with the size of the host terminal, stdin goes there
+live, and stdout and stderr share it, as under docker (T-1723); a change of
+the size during the run does not reach the guest. `create` and `exec`
 with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).
