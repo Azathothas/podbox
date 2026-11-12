@@ -2228,17 +2228,10 @@ Preserve the base and supplied image. Save proof before collecting its session.
 
 ## Done
 
-**Measured 2026-11-12, third run: KVM-GUEST-OK.** `kvm.yml` run
-43165884364 at `b56e3361` (job 131012003071, a hosted `ubuntu-latest`
-with `/dev/kvm`, QEMU 10.2.1): the Linux half of experiment 392 exits 0.
-`podvm windows setup` provisions the guest; `podvm windows run ver`
-exits 0 with `Microsoft Windows [Version 10.0.26100.9278]` under
-`-accel kvm -cpu host`; the guest's own exit 42 passes through; `podvm
-run --podvm-tier=machine --platform windows/amd64` reaches the disk guest
-with exit 0; no scratch directory and no emulator stay. The second run
-(43160003509) is the timeout clause: its first boot did not power off
-within 540 s, and podvm said "the emulator 7390 was killed and reaped, so
-its process group is gone"; no emulator stayed.
+**Measured 2026-11-12: KVM-GUEST-OK.** The Linux half of experiment 392
+passes on a hosted runner with `/dev/kvm` (`kvm.yml` run 43165884364 at
+`b56e3361`); the record of the run is in T-1641 (TODO/gate.md),
+"Measured 2026-11-12, third run".
 
 **Partial 2026-09-30.** Explicit inputs, unique experiment numbering,
 owned runtime scratch, emulator cleanup, and artifact export are implemented.
@@ -3406,7 +3399,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
 **Source:** `refactor/recon-c.md:88-187`, the 100-row task table, read
   off disk on this machine 2026-10-02;
   `refactor/PLAN.md:261` and `:263`; `refactor/DEFERRALS.md:47-55`;
-  `TODO/gate.md:2407`; `docs/history/resume-before-2026-11-10.txt:129-132`
+  `TODO/gate.md:2400`; `docs/history/resume-before-2026-11-10.txt:129-132`
 **Category:** gate
 **Milestone:** none
 **Priority:** P1
