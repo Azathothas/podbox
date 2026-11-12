@@ -3569,3 +3569,24 @@ working browser in one process is better than none.
 
 `sh experiments/425-chromium.sh` exits 0 with the profile's flags
 without `--single-process`.
+
+## Correction
+
+**Measured 2026-11-12.** With `--no-zygote --enable-logging=stderr --v=1`,
+each GPU and network-service child exits with code 5 and writes no line:
+it dies before Chromium's logging starts. `strace -f` of the run shows
+the child as the loader family execs it (the image's
+`ld-linux-x86-64.so.2 --inhibit-cache --library-path ... --argv0 ...
+--type=gpu-process ... --field-trial-handle=3,... --pseudonymization-salt-handle=7,...`):
+it loads its libraries and locale files, opens `/dev/null`, opens
+`/proc/self/status`, and then gets SIGTRAP (an assertion of Chromium).
+Under strace, `TracerPid` of that file is not 0, so the traced child can
+fail another check than the untraced one; the trace does not show the
+cause yet. Ruled out: the interposer exits nowhere on its own, and its
+memo descriptor (17) is not one of the child's mapped descriptors (3 and
+7); Chromium closes each descriptor that it does not map, so the child's
+interposer has no memo descriptor, which it tolerates. Next: run one
+`--type=gpu-process` child by hand under the loader family with the same
+descriptors, or read the check of Chromium's child start that reads
+`/proc/self/status`.
+
