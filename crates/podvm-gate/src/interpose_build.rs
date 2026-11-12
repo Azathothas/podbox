@@ -59,7 +59,16 @@ const GLIBC_CEILING: &str = "GLIBC_2.27";
 // The numbers `crates/podvm-interpose/src/lib.rs` carries, asserted by
 // check B rather than believed. They agree on x86_64 and that is this
 // architecture's property, not a general one.
+#[cfg(not(target_arch = "aarch64"))]
 const WANT_OFFSETS: &str = "sizeof=144 dev=0 ino=8 mode=24 uid=28 gid=32|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|";
+// aarch64, the generic layout (experiments/439-stat-layout.sh; T-1721).
+#[cfg(target_arch = "aarch64")]
+const WANT_OFFSETS: &str = "sizeof=128 dev=0 ino=8 mode=16 uid=24 gid=28|statx sizeof=256 mask=0 uid=20 gid=24 ino=32 devmaj=136 devmin=140|";
+// The zig triples of check B: the host's own machine, whose programs it runs.
+#[cfg(not(target_arch = "aarch64"))]
+const HOST_ZIG: (&str, &str) = ("x86_64-linux-gnu.2.17", "x86_64-linux-musl");
+#[cfg(target_arch = "aarch64")]
+const HOST_ZIG: (&str, &str) = ("aarch64-linux-gnu.2.17", "aarch64-linux-musl");
 
 fn find_root() -> Option<PathBuf> {
     let exe = env::current_exe().ok()?;
