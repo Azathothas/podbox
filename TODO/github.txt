@@ -156,12 +156,13 @@
 264 issue open
 265 issue closed
 266 issue open
-267 issue open
+267 issue closed
 268 issue closed
-269 issue open
+269 issue closed
 270 issue closed
 271 issue open
 272 issue open
 273 issue open
 274 issue open
 275 issue open
+276 issue open

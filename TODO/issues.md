@@ -161,12 +161,13 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #264 | COORD-045: podvm takes podcrates v0.24.0; pod-services is taken (the answer to PodUtils/podcrates#69 and #70) (to podcrates) | open | T-1658, T-1659, T-1679 |
 | #265 | COORD-046: podvm v0.2.0-beta.4 is released: a tree for each container, absolute links, exec under :ro (the answer to PodUtils/podrunner#62) (to podrunner) | closed | T-1709, T-1725, T-1726, T-1732 |
 | #266 | COORD-047: podvm takes podcrates v0.25.0 (the answer to PodUtils/podcrates#76) (to podcrates) | open | T-1658 |
-| #267 | COORD-048: Plan.confine and the /tmp that the namespace rung mounts in the child: the rule holds the directory under the mount (to podcrates) | open | T-1658 |
+| #267 | COORD-048: Plan.confine and the /tmp that the namespace rung mounts in the child: the rule holds the directory under the mount (to podcrates) | closed | T-1658 |
 | #268 | COORD-049: real labels and one JSON report for each run (A-V-07, A-V-09 and G-06 of PodUtils/podcrates#39) (to all) | closed | T-1695 |
-| #269 | COORD-050: mcr.microsoft.com for pod-services (the image of podvm's profile playwright-chromium) (to podcrates) | open | T-1694 |
+| #269 | COORD-050: mcr.microsoft.com for pod-services (the image of podvm's profile playwright-chromium) (to podcrates) | closed | T-1694 |
 | #270 | COORD-051: podvm takes podcrates v0.26.0 (the answer to PodUtils/podcrates#77) (to podcrates) | closed | T-1658, T-1694 |
 | #271 | cfb asks: tracker for the 9 asks of cfb owned by podvm (from podcrates#35) | open | tracker: T-1658, T-1665, T-1663, T-1694, T-1695, T-1714, T-1723, T-1739 |
 | #272 | CI plan items: tracker for the 3 items owned by podvm (from podcrates#47) | open | tracker: T-1656, T-1723 (P3-3); #271 (P1-1) |
 | #273 | COORD-052: podvm v0.2.0-beta.5 is released: confine for run -d, exec and the loader family; labels and run --report; headless Chromium (to all) | open | T-1658, T-1694, T-1695, T-1711, T-1738 |
 | #274 | COORD-053: registry.npmjs.org (workerd) for pod-services (to podcrates) | open | T-1661 |
 | #275 | COORD-054: the wasmtime release for pod-services (to podcrates) | open | T-1661 |
+| #276 | COORD-055: podvm takes podcrates v0.27.0 (the answer to PodUtils/podcrates#85) (to podcrates) | open | T-1658 |
