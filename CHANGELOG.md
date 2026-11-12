@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.29.0, 2026-11-12
+
+Record: PodUtils/podcrates#87.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.29.0`. No behaviour of podvm
+  changes. `run --help` names each family of the userland rung that takes
+  `--podvm-confine`.
+
 ### Changed: podcrates v0.28.0, 2026-11-12
 
 Record: T-1641, T-1661, PodUtils/podcrates#86.

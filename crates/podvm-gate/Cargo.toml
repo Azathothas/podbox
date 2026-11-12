@@ -63,4 +63,4 @@ name = "podvm-libc-interpose"
 path = "src/libc_interpose.rs"
 
 [dependencies]
-pod-todo = { git = "https://github.com/PodUtils/podcrates", tag = "v0.28.0" }
+pod-todo = { git = "https://github.com/PodUtils/podcrates", tag = "v0.29.0" }
