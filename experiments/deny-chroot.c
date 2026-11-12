@@ -31,6 +31,16 @@
 #include <string.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
+
+/* The architecture of the filter is the one this file is built for: the
+ * numbers are the native headers' (TODO/interpose.md T-1721). */
+#if defined(__x86_64__)
+#define FIXTURE_AUDIT_ARCH AUDIT_ARCH_X86_64
+#elif defined(__aarch64__)
+#define FIXTURE_AUDIT_ARCH AUDIT_ARCH_AARCH64
+#else
+#error "deny-chroot.c: add the AUDIT_ARCH of this machine"
+#endif
 #include <unistd.h>
 
 int main(int argc, char **argv)
@@ -47,7 +57,7 @@ int main(int argc, char **argv)
 	struct sock_filter f[] = {
 		BPF_STMT(BPF_LD + BPF_W + BPF_ABS,
 			 offsetof(struct seccomp_data, arch)),
-		BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, AUDIT_ARCH_X86_64, 1, 0),
+		BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, FIXTURE_AUDIT_ARCH, 1, 0),
 		BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_ALLOW),
 		BPF_STMT(BPF_LD + BPF_W + BPF_ABS,
 			 offsetof(struct seccomp_data, nr)),
