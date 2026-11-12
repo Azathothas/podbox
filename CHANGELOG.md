@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: Chromium's child processes on the loader family, 2026-11-12
+
+Record: T-1739.
+Deployed: not released.
+
+- A child process that closed the interposer's memo descriptor read the
+  loader's path from `/proc/self/exe`, and Chromium's children stopped
+  with SIGTRAP. The interposer now gives the program's path also with no
+  memo descriptor. The profile `playwright-chromium` runs Chromium's
+  default mode, with child processes, and no longer `--single-process`.
+
 ### Added: the confine layer on the dispatcher rungs, 2026-11-12
 
 Record: T-1658.

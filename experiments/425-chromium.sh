@@ -6,8 +6,9 @@
 # allocator of the interposer) and T-1739 (the children of the browser).
 # The profile playwright-chromium runs chrome-headless-shell of
 # mcr.microsoft.com/playwright:v1.65.0-noble (pinned by digest) with
-# --no-sandbox and --single-process under the confine layer (T-1658), on
-# the loader family of the userland rung.
+# --no-sandbox, in its default mode (a zygote and child processes, T-1739),
+# under the confine layer (T-1658), on the loader family of the userland
+# rung.
 #
 # Fixture: the chroot-denying wrapper of experiment 356.
 #
@@ -19,6 +20,9 @@
 #      that loads an image from a host listener makes no connection to it;
 #      the control with no port rule connects.
 #   4. no process of the browser stays after the runs.
+#   5. the profile runs the default mode: its command has no
+#      --single-process, so the DOM of clause 1 came from a renderer child
+#      (T-1739).
 #
 # Exit: 0 each clause matched, 1 a clause disagreed, 2 the lane could not
 # run.
@@ -115,6 +119,15 @@ sleep 1
 left=$(ps -eo args | grep -c '[c]hrome-headless-shell')
 note "  processes of the browser left: $left"
 [ "$left" -eq 0 ] || bad "a process of the browser stayed"
+note ""
+
+note "== clause 5  the default mode, with child processes"
+cmd=$("$PB" profile show playwright-chromium 2>/dev/null | grep '^# the command runs under')
+note "  $(echo "$cmd" | cut -c1-160)"
+case "$cmd" in
+	*--single-process*) bad "the profile still runs one process" ;;
+	"") bad "profile show printed no command" ;;
+esac
 note ""
 
 if [ "$fail" -eq 0 ]; then

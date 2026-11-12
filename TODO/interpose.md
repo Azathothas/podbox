@@ -3532,7 +3532,7 @@ it. The 86 tests of the interposer pass. On the chroot-denying fixture,
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3589,4 +3589,27 @@ interposer has no memo descriptor, which it tolerates. Next: run one
 `--type=gpu-process` child by hand under the loader family with the same
 descriptors, or read the check of Chromium's child start that reads
 `/proc/self/status`.
+
+## Done
+
+**Done 2026-11-12.** The cause: Chromium closes each descriptor that it
+does not hand on to a child, and so the memo descriptor (17) too. The
+interposer answered `readlink` of `/proc/self/exe` only when its tally
+in the memo succeeded; else it fell back to the real call, which names
+the image's loader. The child then looked for `icudtl.dat` beside the
+loader, and a CHECK of Chromium stopped it with SIGTRAP (exit 133, 128 +
+5). Measured with `strace -ff`: the child's write to descriptor 17 fails
+with EBADF, then the child reads `/proc/self/status` on its crash path.
+
+The fix: under the exe override, the answers of `readlink` and `open` of
+`/proc/self/exe` no longer depend on the tally; the tally is best effort
+(`proc_readlink_exe` and `proc_open_exe` of
+`crates/podvm-interpose/src/path_calls.rs`). The test
+`readlink_of_self_exe_answers_with_the_memo_closed` holds it. The profile
+`playwright-chromium` drops `--no-zygote` and `--single-process`, so the
+browser runs its default mode: a zygote, a renderer and a GPU process.
+
+`sh experiments/425-chromium.sh` exits 0 on the chroot-denying fixture
+(clauses 1 to 5): the DOM, a screenshot, no connection under
+`net.ports`, no process left, and a command with no `--single-process`.
 

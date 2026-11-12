@@ -160,19 +160,18 @@ write = ["?/tmp", "?/dev/full", "?/dev/tty"]
 "#
         }
         "playwright-chromium" => {
-            r#"description = "headless Chromium of Playwright (chrome-headless-shell) under the confine layer: --no-sandbox, one process; the arguments after -- go to the browser"
+            r#"description = "headless Chromium of Playwright (chrome-headless-shell) under the confine layer: --no-sandbox; the arguments after -- go to the browser"
 extends = "workspace"
 confine = true
 leaves_out = [
   "Chromium's own sandbox: it needs user namespaces, so --no-sandbox is set, and the boundary is the confine layer, not the browser; this is no boundary against a hostile page",
-  "the processes of the browser: --single-process until Chromium's children start on the loader family (TODO/interpose.md T-1739)",
   "the namespace rung: it mounts no /proc, and Chromium finds its ICU data through /proc/self/exe; the profile runs on the loader family, where chroot is denied",
   "the network: a page loads from /workspace (file://); TCP is free unless net.ports names the ports",
 ]
 [fs]
 image = "mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe"
 entrypoint = ""
-wrap = ["/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-linux64/chrome-headless-shell", "--headless", "--no-sandbox", "--no-zygote", "--single-process", "--disable-dev-shm-usage", "--disable-gpu"]
+wrap = ["/ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-linux64/chrome-headless-shell", "--headless", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
 read = ["?/etc/fonts", "?/etc/ssl", "?/etc/passwd", "?/etc/group", "?/etc/nsswitch.conf", "?/etc/ld.so.cache", "?/etc/localtime", "?/usr/share/fonts"]
 write = ["/workspace", "?/tmp"]
 exec = ["/ms-playwright"]

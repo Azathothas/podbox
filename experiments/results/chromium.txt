@@ -1,15 +1,15 @@
 == conditions
-date              2026-11-12T00:26:42Z
+date              2026-11-12T03:01:06Z
 host kernel       Linux 6.18.44-fc-v378
-podvm             podvm 0.2.0-beta.4
+podvm             podvm 0.2.0-beta.5
 fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
 profile           image = "mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe"
 
 == clause 1  the DOM of a page of /workspace
-  exit 0 in 18 s: <h1 id="t">hello-425</h1>
+  exit 0 in 10 s: <h1 id="t">hello-425</h1>
 
 == clause 2  a screenshot
-  exit 0; s.png: 3252 bytes,  211 P N G  
+  exit 0; s.png: 3293 bytes,  211 P N G  
  032
 
 == clause 3  no network connection
@@ -18,5 +18,8 @@ profile           image = "mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9be
 
 == clause 4  no process stays
   processes of the browser left: 0
+
+== clause 5  the default mode, with child processes
+  # the command runs under: /ms-playwright/chromium_headless_shell-1254/chrome-headless-shell-linux64/chrome-headless-shell --headless --no-sandbox --disable-dev-
 
 verdict: HEADLESS CHROMIUM RUNS CONFINED WHERE CHROOT IS DENIED

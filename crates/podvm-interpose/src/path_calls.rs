@@ -401,10 +401,11 @@ pub(super) unsafe fn proc_readlink_exe(buf: *mut c_char, n: usize) -> Option<isi
     unsafe {
         core::ptr::copy_nonoverlapping(guest.as_ptr(), buf as *mut u8, take);
     }
-    if !crate::emulate::tally(crate::emulate::OP_PROC, 3, 0, 0) {
-        set_errno(crate::procfs::ENOENT);
-        return Some(-1);
-    }
+    // ⛔ T-1739. The tally is best effort here: the real call names the
+    // loader, which is a wrong answer and not an honest failure. A child
+    // that closed the memo descriptor (Chromium closes each descriptor that
+    // it does not hand on) still gets its own path.
+    let _ = crate::emulate::tally(crate::emulate::OP_PROC, 3, 0, 0);
     Some(take as isize)
 }
 
@@ -413,8 +414,9 @@ pub(super) unsafe fn proc_readlink_exe(buf: *mut c_char, n: usize) -> Option<isi
 /// The guest path goes back through the table: it names the image as the
 /// payload sees it, so a deliberate mapping applies to it like any other
 /// guest path. The flags ride through to the same file, which is what the
-/// kernel applies them to. Counted only where the open succeeded: a failed
-/// open told the payload nothing but the kernel's errno.
+/// kernel applies them to. Counted only where the open succeeded and a memo
+/// descriptor exists: a failed open told the payload nothing but the
+/// kernel's errno.
 pub(super) unsafe fn proc_open_exe(flags: c_int, mode: c_uint) -> Option<c_int> {
     let mut guest = [0u8; crate::map::OUT];
     let _ = unsafe { proc_exe_value(&mut guest) }?;
@@ -430,15 +432,10 @@ pub(super) unsafe fn proc_open_exe(flags: c_int, mode: c_uint) -> Option<c_int> 
         return Some(-1);
     };
     let fd = unsafe { open(p, flags, mode) };
-    // No tally behind it, no emulation: the open closes and the failure
-    // reads as the memo write's own errno.
-    if fd >= 0 && !crate::emulate::tally(crate::emulate::OP_PROC, 4, 0, 0) {
-        let e = errno();
-        if let Some(close) = next_close() {
-            unsafe { close(fd) };
-        }
-        set_errno(e);
-        return Some(-1);
+    // Best effort, as for `readlink` above (T-1739): the real open gives
+    // the loader, not the program.
+    if fd >= 0 {
+        let _ = crate::emulate::tally(crate::emulate::OP_PROC, 4, 0, 0);
     }
     Some(fd)
 }

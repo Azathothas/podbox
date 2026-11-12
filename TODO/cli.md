@@ -3027,8 +3027,9 @@ Chromium finds its ICU data through `/proc/self/exe`, so the profile runs
 on the loader family (named in `leaves_out`); there, Chromium aborted with
 "free(): invalid pointer" because the interposer gave back libc's
 `malloc` buffers to a program with its own allocator (T-1738, fixed); the
-children of the default mode do not start (T-1739, open), so the profile
-uses `--single-process`.
+children of the default mode did not start (T-1739), so the profile used
+`--single-process` until T-1739 was done; it now runs the default mode,
+with a zygote and a GPU process.
 
 `cargo test -p podvm` exits 0 with `chromium_profile_flags` and
 `chromium_profile_refuses_without_confine`. `sh

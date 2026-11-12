@@ -413,11 +413,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1736](machine.md) | P3 | S | none | machine | done | A test of the refusal of `windows --dos` with no DOS base image |
 | [T-1737](packaging.md) | P3 | M | none | packaging | done | Decide where the SSH packaging scripts go, and port scripts/package-ssh.sh into `podvm-release` |
 | [T-1738](interpose.md) | P1 | S | none | interpose | done | A buffer of the interposer reaches the free of a program that has its own allocator |
-| [T-1739](interpose.md) | P2 | M | none | interpose | open | Chromium's child processes do not start on the loader family |
+| [T-1739](interpose.md) | P2 | M | none | interpose | done | Chromium's child processes do not start on the loader family |
 
 ## Counts
 
-348 entries: 6 open, 7 partial, 5 blocked, 330 done.
+348 entries: 5 open, 7 partial, 5 blocked, 331 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -428,9 +428,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 0 | 3 | 0 | 148 | 151 |
-| P2 | 3 | 3 | 5 | 105 | 116 |
+| P2 | 2 | 3 | 5 | 106 | 116 |
 | P3 | 3 | 0 | 0 | 13 | 16 |
-| **All** | 6 | 7 | 5 | 330 | 348 |
+| **All** | 5 | 7 | 5 | 331 | 348 |
 
 ## Work order
 

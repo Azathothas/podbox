@@ -28,7 +28,10 @@
 //! ⛔ **Counted like T-0708.** Every served answer tallies
 //! [`crate::emulate::OP_PROC`] through the memo descriptor with what it
 //! served in the detail word. No tally behind it, no emulation: the
-//! wrappers fall back to the real call and its honest failure.
+//! wrappers fall back to the real call and its honest failure. The
+//! exception is `/proc/self/exe` under the override (T-1739): there the
+//! real call names the loader, a wrong answer, so the answer stays and the
+//! tally is best effort.
 //!
 //! ⛔ **No allocation and no locks on this path**, T-0701's constraint 2.
 //! Every buffer here is on the caller's stack, including the fixture.

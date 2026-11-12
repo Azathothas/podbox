@@ -146,3 +146,33 @@ fn realpath_of_self_exe_names_the_program_as_readlink_does() {
     drop(_env);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// T-1739: a child that closed the memo descriptor (Chromium closes each
+/// descriptor that it does not hand on) still reads its own path from
+/// `/proc/self/exe`, not the loader's.
+#[test]
+fn readlink_of_self_exe_answers_with_the_memo_closed() {
+    let dir = std::env::temp_dir().join(format!("podvm-exe-nomemo-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    let prog = dir.join("prog");
+    std::fs::write(&prog, b"\x7fELF").expect("prog");
+    let env = Override::set(&prog, &dir.join("memo"));
+    // The variable names a descriptor that is not open: each memo write
+    // fails with EBADF, as in the child.
+    // SAFETY: as in `Override::set`.
+    unsafe {
+        std::env::set_var(
+            std::str::from_utf8(crate::memo::MEMO_FD_VAR).unwrap(),
+            "1017",
+        );
+    }
+    let exe = CString::new("/proc/self/exe").unwrap();
+    let read: ReadlinkFn = lookup(RTLD_DEFAULT, "readlink");
+    let mut buf = [0u8; 4096];
+    let n = unsafe { read(exe.as_ptr(), buf.as_mut_ptr() as *mut c_char, buf.len()) };
+    drop(env);
+    assert!(n > 0, "readlink failed with the memo closed");
+    assert_eq!(&buf[..n as usize], prog.as_os_str().as_bytes(), "readlink");
+    let _ = std::fs::remove_dir_all(&dir);
+}
