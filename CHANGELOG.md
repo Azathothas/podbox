@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.6 (2026-11-12)
+
 ### Added: the interposer on aarch64, 2026-11-12
 
 Record: T-1721, PodUtils/podrunner#52.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - `podvm` for aarch64 embeds aarch64 interposer objects (glibc and musl),
   so the userland rung runs arm64 payloads where chroot is denied.
@@ -21,7 +23,7 @@ Deployed: not released.
 ### Fixed: podcrates v0.31.0, 2026-11-12
 
 Record: PodUtils/podcrates#90, T-1741, T-1742.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - podvm takes the crates of podcrates at `v0.31.0`. `extract` and `run` no
   longer refuse a correct plain tar layer whose end padding is past the last
@@ -31,7 +33,7 @@ Deployed: not released.
 ### Changed: a volume of the incus tier, 2026-11-12
 
 Record: T-1722.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - `run --podvm-tier=incus -v HOST:GUEST[:ro]` maps the host directory into
   the instance as a disk device, so a write lands on the host.
@@ -43,7 +45,7 @@ Deployed: not released.
 ### Changed: a volume of the machine tier is a 9p mount, and -t a terminal, 2026-11-12
 
 Record: T-1723.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - `run -t --podvm-tier=machine` runs the command on a terminal of the
   guest with the size of the host terminal, and stdin goes there live.
@@ -58,7 +60,7 @@ Deployed: not released.
 ### Added: the runsc tier, 2026-11-12
 
 Record: T-1729.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - `run --podvm-tier=runsc` runs the image under gVisor's `runsc`, rootless
   with platform systrap, where the host grants user namespaces. Each `-v`
@@ -69,7 +71,7 @@ Deployed: not released.
 ### Changed: podcrates v0.30.0, 2026-11-12
 
 Record: PodUtils/podcrates#89.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - podvm takes the crates of podcrates at `v0.30.0`. No behaviour of podvm
   changes.
@@ -77,7 +79,7 @@ Deployed: not released.
 ### Changed: podcrates v0.29.0, 2026-11-12
 
 Record: PodUtils/podcrates#87.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - podvm takes the crates of podcrates at `v0.29.0`. No behaviour of podvm
   changes. `run --help` names each family of the userland rung that takes
@@ -86,7 +88,7 @@ Deployed: not released.
 ### Changed: podcrates v0.28.0, 2026-11-12
 
 Record: T-1641, T-1661, PodUtils/podcrates#86.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - podvm takes the crates of podcrates at `v0.28.0`. `pod-guest` writes
   the provisioned image of `podvm windows setup` with `qemu-img convert`
@@ -100,7 +102,7 @@ Deployed: not released.
 ### Added: a dynamic program on the native-static rung, 2026-11-12
 
 Record: T-1731.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - The native-static rung and `--podvm-tier=syscall` run a dynamic
   program of the image: podvm's loader maps the image's interpreter
@@ -110,7 +112,7 @@ Deployed: not released.
 ### Changed: podcrates v0.27.0, 2026-11-12
 
 Record: T-1658, PodUtils/podcrates#85.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - podvm takes the crates of podcrates at `v0.27.0`. On the namespace
   rung, the confine layer now covers the tmpfs at `/tmp`: a profile that
@@ -122,7 +124,7 @@ Deployed: not released.
 ### Added: the profiles workerd-test and wasmtime-wasi, 2026-11-12
 
 Record: T-1661.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - `podvm run --profile wasmtime-wasi -- MODULE` runs `wasmtime run
   --dir=/workspace` of a WASI module: a pinned wasmtime 50.0.1, checked
@@ -140,7 +142,7 @@ Deployed: not released.
 ### Fixed: Chromium's child processes on the loader family, 2026-11-12
 
 Record: T-1739.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - A child process that closed the interposer's memo descriptor read the
   loader's path from `/proc/self/exe`, and Chromium's children stopped
@@ -151,7 +153,7 @@ Deployed: not released.
 ### Added: the confine layer on the dispatcher rungs, 2026-11-12
 
 Record: T-1658.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - `--podvm-confine` runs on the native-static rung, the syscall tier and
   the emulate tier. podvm gives the host path of its own dispatcher, and

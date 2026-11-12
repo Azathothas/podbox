@@ -19,7 +19,7 @@ file when each step below is done.
 * Commit signing is off for this repository (`.claude/session-start.sh`,
   `docs/decisions.md`, "Commit signing"), so the stop hook of a cloud
   session asks for no rewrite of the author.
-* podvm takes the crates of PodUtils/podcrates at `v0.30.0`:
+* podvm takes the crates of PodUtils/podcrates at `v0.31.0`:
   `pod-confine` and `Plan.confine` (T-1658), and the hosts and module sums
   of `pod-services` (T-1679, at `v0.24.0`).
 * **The record is in the format of `pod-todo` since 2026-11-11** (T-1672,
@@ -61,7 +61,11 @@ file when each step below is done.
 1. podvm takes podcrates `v0.24.0` (T-1679, T-1659 done; T-1658 partial).
    Next: the rest of T-1658 (the rungs with no chroot, `run -d`, `exec`),
    then `workerd-test` of T-1661, which needs the layer.
-2. podrunner and cfb read COORD-052 (beta.5); #271 tracks cfb's asks.
+2. Release `0.2.0-beta.6` (the version is set; the trial nightly run
+   43230523018 passed): it carries the aarch64 interposer (T-1721) for
+   PodUtils/podrunner#52, the runsc tier (T-1729), the 9p volumes and `-t`
+   of the machine tier (T-1723), the incus verbs (T-1722) and podcrates
+   `v0.31.0`. Then tell podrunner on PodUtils/podrunner#52.
 3. Done on 2026-11-11 after the first handoff: T-1660, T-1668, T-1672,
    T-1659, T-1665, T-1673, T-1679, T-1680, T-1683, T-1684, T-1685, T-1735, T-1737, T-1732, T-1733, T-1734, T-1736; partial:
    T-1659, T-1661, T-1679. Defects fixed on the way: the hard links of a
