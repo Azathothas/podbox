@@ -8,6 +8,14 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.26.0, 2026-11-12
+
+Record: PodUtils/podcrates#77.
+Deployed: not deployed; no version change.
+
+- podvm takes the crates of podcrates at `v0.26.0`. No behaviour of podvm
+  changes.
+
 ### Added: headless Chromium of Playwright, 2026-11-12
 
 Record: T-1694, T-1738, T-1739.

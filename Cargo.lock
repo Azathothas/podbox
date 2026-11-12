@@ -480,8 +480,8 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pod-broker"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "base64",
  "libc",
@@ -498,8 +498,8 @@ dependencies = [
 
 [[package]]
 name = "pod-confine"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -507,8 +507,8 @@ dependencies = [
 
 [[package]]
 name = "pod-core"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "libc",
  "rand",
@@ -518,8 +518,8 @@ dependencies = [
 
 [[package]]
 name = "pod-enter"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-confine",
  "pod-core",
@@ -528,8 +528,8 @@ dependencies = [
 
 [[package]]
 name = "pod-extract"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "flate2",
  "pod-core",
@@ -541,8 +541,8 @@ dependencies = [
 
 [[package]]
 name = "pod-guest"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -552,8 +552,8 @@ dependencies = [
 
 [[package]]
 name = "pod-hostprobe"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "linux-raw-sys",
  "pod-core",
@@ -562,8 +562,8 @@ dependencies = [
 
 [[package]]
 name = "pod-incus"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-core",
  "pod-proxy",
@@ -576,8 +576,8 @@ dependencies = [
 
 [[package]]
 name = "pod-oci"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "base64",
  "pod-core",
@@ -591,8 +591,8 @@ dependencies = [
 
 [[package]]
 name = "pod-proxy"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "base64",
  "libc",
@@ -607,8 +607,8 @@ dependencies = [
 
 [[package]]
 name = "pod-rootfs"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-core",
  "pod-extract",
@@ -617,8 +617,8 @@ dependencies = [
 
 [[package]]
 name = "pod-services"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-core",
  "toml",
@@ -626,8 +626,8 @@ dependencies = [
 
 [[package]]
 name = "pod-supervise"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -637,16 +637,16 @@ dependencies = [
 
 [[package]]
 name = "pod-term"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "unicode-width",
 ]
 
 [[package]]
 name = "pod-tls"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "base64",
  "p256",
@@ -664,13 +664,13 @@ dependencies = [
 
 [[package]]
 name = "pod-todo"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 
 [[package]]
 name = "pod-ws"
-version = "0.25.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.25.0#80f5dc78b4bbe343a2ece750a1a00310c2100f1e"
+version = "0.26.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.26.0#fdb08f6644cc02fa298e34456f4b29c8e756ee4c"
 dependencies = [
  "base64",
  "bytes",
