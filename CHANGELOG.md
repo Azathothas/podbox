@@ -8,18 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.6 (2026-11-12)
+
 ### Changed: the relay of podvm-ssh is pod-relay, 2026-11-12
 
 Record: T-1678, PodUtils/podcrates#93.
-Deployed: not released.
+Deployed: version 0.2.0-beta.6.
 
 - podvm takes podcrates `v0.32.0`. The relay node and operator of
   podvm-ssh run over `pod-relay`'s blocking facade; the wire stays
   `reverse-v1`. A token under 8 characters, or a name that starts with
   `-` or `.`, now exits 125; a wrong node token ends the node with 125;
   the lines that the node and the operator print change.
-
-## 0.2.0-beta.6 (2026-11-12)
 
 ### Added: the interposer on aarch64, 2026-11-12
 
