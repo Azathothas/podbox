@@ -3171,8 +3171,11 @@ the options of its run, as `run -d` does), `ps --filter label=KEY` and
 `.Labels` (`KEY=VALUE`, a comma between two). A label with no key is a
 flag error (125). The parity row of `--label` moves from Stub to Native.
 `cargo test -p podvm --test labels` exits 0 with `label_reaches_ps_filter`
-and `label_reaches_inspect`, on an image that `podvm import` records and a
-container that `create` writes, with no registry.
+and `label_reaches_inspect`, on an image that `podvm import` records (a
+static program) and the record of a foreground run, with no registry. The
+first form used `create` of a `#!` script: CI denies chroot, and there
+`create` found no entry for it (gate run 43135351382); the test was
+corrected on 2026-11-12.
 
 
 

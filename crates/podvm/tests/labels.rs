@@ -1,8 +1,8 @@
 //! TODO/cli.md T-1695: `--label` reaches the container record. `ps
 //! --filter label=KEY[=VALUE]` matches it, and `inspect` prints `.Labels`.
 //!
-//! Hermetic: the image is a one-file rootfs that `podvm import` records,
-//! and `create` writes the record without starting anything.
+//! Hermetic: the image is a one-file rootfs that `podvm import` records
+//! (a static program), and a foreground `run` leaves its record.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -22,6 +22,7 @@ fn podvm(store: &Path, args: &[&str]) -> (i32, String, String) {
 
 /// A ustar archive of one executable file, in pure std.
 fn write_ustar(path: &Path, name: &str, data: &[u8]) {
+    assert!(data.len() < 8 << 30, "ustar size field: under 8 GiB");
     let mut hdr = [0u8; 512];
     hdr[..name.len()].copy_from_slice(name.as_bytes());
     hdr[100..108].copy_from_slice(b"0000755\0");
@@ -49,22 +50,37 @@ fn labelled(tag: &str) -> (PathBuf, String) {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let tar = dir.join("r.tar");
-    write_ustar(&tar, "hello", b"#!/bin/sh\necho hi\n");
+    // A static program, which runs on each rung: a `#!` script needs an
+    // interpreter in the image, which a one-file image has not (CI denies
+    // chroot). The test binary itself is a static musl program; `--list`
+    // prints the names of its tests and exits 0.
+    let me = std::fs::read(std::env::current_exe().unwrap()).unwrap();
+    write_ustar(&tar, "hello", &me);
     let store = dir.join("store");
     let (rc, _, err) = podvm(&store, &["import", tar.to_str().unwrap(), "lab/one:1"]);
     assert_eq!(rc, 0, "import: {err}");
-    let (rc, out, err) = podvm(
+    // A foreground run that leaves its record: where chroot is denied, a
+    // static program has no detached driver, so `create` refuses it there.
+    let (rc, _, err) = podvm(
         &store,
         &[
-            "create",
+            "run",
+            "--name",
+            "lab",
             "--label",
             "job=7",
             "--label=tier=x",
             "lab/one:1",
             "/hello",
+            "--list",
         ],
     );
-    assert_eq!(rc, 0, "create: {err}");
+    assert_eq!(rc, 0, "run: {err}");
+    let (rc, out, err) = podvm(
+        &store,
+        &["ps", "-a", "-q", "--no-trunc", "--filter", "name=lab"],
+    );
+    assert_eq!(rc, 0, "ps: {err}");
     (store, out.trim().to_string())
 }
 
