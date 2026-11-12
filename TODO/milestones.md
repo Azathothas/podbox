@@ -1033,7 +1033,7 @@ procfs row pins the six fixup hooks that use process substitution.
 **Milestone:** none
 **Priority:** P1
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1080,6 +1080,10 @@ operator on 2026-10-02 and is not part of this entry's
 acceptance; see the Decision.
 
 ## Done
+
+**Done 2026-11-12.** The KVM leg, the remaining acceptance, passes in
+the hosted run of T-1641 (`kvm.yml` run 43171009630, KVM-GUEST-OK). The
+ReactOS clause stays descoped (the Decision).
 
 **Measured 2026-11-12.** The KVM leg of this entry passed in the hosted
 run that T-1641 (TODO/gate.md) records as its third run.

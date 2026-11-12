@@ -2228,6 +2228,11 @@ Preserve the base and supplied image. Save proof before collecting its session.
 
 ## Done
 
+**Partial 2026-11-12.** The KVM run passes on the hosted runner (T-1641,
+`kvm.yml` run 43171009630). Remaining: the default wrapper of the Windows
+host that exports podvm and four helpers, which belongs to the parked
+Windows lane (AGENTS.md, section 12).
+
 **Measured 2026-11-12: KVM-GUEST-OK.** The Linux half of experiment 392
 passes on a hosted runner with `/dev/kvm` (`kvm.yml` run 43165884364 at
 `b56e3361`); the record of the run is in T-1641 (TODO/gate.md),
@@ -3399,7 +3404,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
 **Source:** `refactor/recon-c.md:88-187`, the 100-row task table, read
   off disk on this machine 2026-10-02;
   `refactor/PLAN.md:261` and `:263`; `refactor/DEFERRALS.md:47-55`;
-  `TODO/gate.md:2400`; `docs/history/resume-before-2026-11-10.txt:129-132`
+  `TODO/gate.md:2405`; `docs/history/resume-before-2026-11-10.txt:129-132`
 **Category:** gate
 **Milestone:** none
 **Priority:** P1
@@ -4319,7 +4324,7 @@ Approach records the arithmetic that found them.
 **Milestone:** none
 **Priority:** P0
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4467,6 +4472,20 @@ file it is backed by. The correction is a scratch overlay committed into
 a *separate* standalone file.
 
 ## Done
+
+**Done 2026-11-12.** `kvm.yml` run 43171009630 at `c781afb2` (job
+131024980757): the Linux half of experiment 392 is KVM-GUEST-OK with each
+clause of this Prove that podvm owns: "ok: the provisioned image has no
+backing file", "ok: the vendor image keeps its digest after setup" (the
+pinned digest of `lib/kvm-guest-base.sh` before and after `podvm windows
+setup`), `ver` and exit 42 under `-accel kvm -cpu host`, and no emulator
+and no scratch directory left. The timeout clause is run 43160003509
+(below): "the emulator 7390 was killed and reaped, so its process group
+is gone", and the steps after it say "skipped: an earlier step already
+failed". The plant of each fix moved with the code into `pod-guest` of
+podcrates (T-1681): its `guest.yml` holds the plant
+`guest-commit-has-no-output-file` and the test `convert.rs`, which runs
+the host's `qemu-img`.
 
 **Measured 2026-11-12, third run: KVM-GUEST-OK.** `kvm.yml` run
 43165884364 at `b56e3361` (job 131012003071, a hosted `ubuntu-latest`

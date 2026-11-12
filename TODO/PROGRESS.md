@@ -7,7 +7,7 @@ start.
 
 ## State
 
-349 entries: 4 open, 6 partial, 5 blocked, 334 done.
+349 entries: 4 open, 4 partial, 5 blocked, 336 done.
 
 The state on 2026-11-11:
 
@@ -47,8 +47,8 @@ podrunner first ("podrunner first", the same day). Take the first entry
 that is not done. Read its Prove before you start. Set its status with
 `podvm-count` in the same commit as the work.
 
-1. The KVM legs on a host with `/dev/kvm`: [T-1641](gate.md),
-   [T-1350](gate.md) and [T-1112](milestones.md), in one bounded run.
+1. The KVM legs passed on the hosted runner of `kvm.yml` on 2026-11-12;
+   [T-1350](gate.md) keeps only the wrapper of the parked Windows lane.
    [T-1723](machine.md) (the `microvm` machine, a shared `/workspace`)
    and [T-1722](machine.md) (the other verbs of incus) come after the
    scope entries of step 2.

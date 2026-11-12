@@ -179,7 +179,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1109](milestones.md) | P1 | M | none | milestones | done | The negative tests, which are tests |
 | [T-1110](milestones.md) | P0 | L | none | milestones | done | M6's acceptance: a payload the interposer is the only reason works |
 | [T-1111](milestones.md) | P1 | L | none | milestones | done | M8 the nix acceptance: a real payload the chroot tier is exactly the answer for |
-| [T-1112](milestones.md) | P1 | L | none | milestones | partial | A disposable guest that is not Linux |
+| [T-1112](milestones.md) | P1 | L | none | milestones | done | A disposable guest that is not Linux |
 | [T-1201](gate.md) | P0 | S | none | gate | done | The gate reaches every file this project wrote |
 | [T-1202](gate.md) | P0 | M | none | gate | done | Every check is planted against, and a plant that stops reaching its subject says so |
 | [T-1203](gate.md) | P1 | M | none | gate | done | A measurement taken on one host is a property of that host |
@@ -315,7 +315,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1639](interpose.md) | P1 | S | none | interpose | done | Record the six interpose members and their excluded-crate proofs as separate jobs |
 | [T-1640](interpose.md) | P1 | S | none | interpose | done | Record that the interpose export check needs no `rlib` and no new test |
 
-| [T-1641](gate.md) | P0 | M | none | windows | partial | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
+| [T-1641](gate.md) | P0 | M | none | windows | done | The provisioner writes into the vendor's backing image, and a timed-out run orphans its emulator |
 | [T-1642](deps.md) | P1 | S | none | deps | done | Refuse a Linux-target cargo build launched on a Windows host |
 | [T-1643](interpose.md) | P1 | M | none | interpose | done | A relative path resolves against the host cwd and gets the rootfs prefix twice |
 | [T-1644](interpose.md) | P1 | M | none | interpose | done | Admit a glibc payload against its whole NEEDED closure, read inside the rootfs |
@@ -418,7 +418,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-349 entries: 4 open, 6 partial, 5 blocked, 334 done.
+349 entries: 4 open, 4 partial, 5 blocked, 336 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -427,11 +427,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 1 | 0 | 64 | 65 |
-| P1 | 0 | 3 | 0 | 148 | 151 |
+| P0 | 0 | 0 | 0 | 65 | 65 |
+| P1 | 0 | 2 | 0 | 149 | 151 |
 | P2 | 1 | 1 | 5 | 109 | 116 |
 | P3 | 3 | 1 | 0 | 13 | 17 |
-| **All** | 4 | 6 | 5 | 334 | 349 |
+| **All** | 4 | 4 | 5 | 336 | 349 |
 
 ## Work order
 
