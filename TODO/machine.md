@@ -2070,7 +2070,15 @@ host after the run, and a command that reads a terminal.
 **Filed 2026-11-11.** From the rest of T-1656. Measured 2026-11-12: the
 9p modules of the pinned kernel 6.12.110-0-virt are `netfs`, `9pnet`,
 `9pnet_virtio` and `9p` (their `modules.dep` of the modloop), and none is
-built in.
+built in. Measured the same day under TCG on this host, with
+`sh experiments/440-microvm-machine.sh` (20 boots of each machine; [the
+run](../experiments/results/microvm-machine.txt)): the pinned kernel
+boots `-M microvm` (ACPI on: with `acpi=off` it found no device and hung)
+17 of 20 times, and the 3 others hang before the first console line;
+`-M pc,acpi=off` boots 20 of 20 times, 3.0 s each. On microvm the NIC is
+`virtio-net-device` and a volume `-fsdev` with `virtio-9p-device`
+(`-virtfs` asks for PCI), and only the first serial port is wired, so
+stderr apart needs a virtio console there. The TCG leg stays `-M pc`.
 
 ## Done
 

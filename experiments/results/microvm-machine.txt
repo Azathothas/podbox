@@ -1,0 +1,22 @@
+== conditions
+date              2026-11-12T11:12:35Z
+host kernel       Linux 6.18.44-fc-v378
+emulator          QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
+accelerator       tcg
+guest kernel      vmlinuz-6b58e5d779e44e57 (the pin of alpine-netboot)
+boots             20 of each machine
+
+== -M microvm
+  up 17 of 20, two virtio devices 17, a 9p write on the host 17
+  hung at the timeout of 120 s: 8(before-up) 16(before-up) 18(before-up)
+  wall time 20 boots: 406334 ms, 20316 ms each
+  DISAGREES: -M microvm booted 17 of 20 times
+  DISAGREES: -M microvm hung: 8(before-up) 16(before-up) 18(before-up)
+  DISAGREES: -M microvm saw the two virtio devices 17 of 20 times
+  DISAGREES: -M microvm wrote through 9p 17 of 20 times
+== -M pc,acpi=off
+  up 20 of 20, two virtio devices 20, a 9p write on the host 20
+  hung at the timeout of 120 s: none
+  wall time 20 boots: 60406 ms, 3020 ms each
+
+verdict: A CLAUSE DISAGREED
