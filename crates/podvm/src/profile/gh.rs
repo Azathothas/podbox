@@ -15,8 +15,8 @@ use std::process::Command;
 #[derive(Debug)]
 pub struct Release {
     pub repo: &'static str,
-    pub tag: &'static str,
-    pub asset: &'static str,
+    pub tag: String,
+    pub asset: String,
 }
 
 /// How the bytes came.
@@ -35,8 +35,8 @@ pub fn fetch(
     fallback: impl FnOnce() -> Result<Vec<u8>, String>,
 ) -> Result<(Vec<u8>, Via), String> {
     let out = Command::new(gh)
-        .args(["release", "download", r.tag, "-R", r.repo])
-        .args(["-p", r.asset, "-O", "-"])
+        .args(["release", "download", &r.tag, "-R", r.repo])
+        .args(["-p", &r.asset, "-O", "-"])
         .output();
     let why = match out {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
@@ -74,11 +74,13 @@ pub fn fetch(
 mod tests {
     use super::*;
 
-    const R: Release = Release {
-        repo: "owner/repo",
-        tag: "v1",
-        asset: "a.tar.xz",
-    };
+    fn r() -> Release {
+        Release {
+            repo: "owner/repo",
+            tag: "v1".into(),
+            asset: "a.tar.xz".into(),
+        }
+    }
 
     /// A planted `gh` in a directory of its own.
     fn planted(tag: &str, body: &str) -> std::path::PathBuf {
@@ -95,7 +97,10 @@ mod tests {
     #[test]
     fn a_rejected_gh_token_falls_back_to_the_public_url() {
         let gh = planted("rejected", "echo 'HTTP 401: Bad credentials' >&2; exit 1");
-        let (b, via) = fetch(&R, gh.to_str().unwrap(), 1 << 20, || Ok(b"public".to_vec())).unwrap();
+        let (b, via) = fetch(&r(), gh.to_str().unwrap(), 1 << 20, || {
+            Ok(b"public".to_vec())
+        })
+        .unwrap();
         assert_eq!((b.as_slice(), via), (&b"public"[..], Via::PublicUrl));
         let _ = std::fs::remove_dir_all(gh.parent().unwrap());
     }
@@ -105,7 +110,7 @@ mod tests {
         // The planted gh prints its arguments: the call names the tag, the
         // repository and the asset, and writes to standard output.
         let gh = planted("works", "printf '%s ' \"$@\"");
-        let (b, via) = fetch(&R, gh.to_str().unwrap(), 1 << 20, || {
+        let (b, via) = fetch(&r(), gh.to_str().unwrap(), 1 << 20, || {
             panic!("no fallback where gh works")
         })
         .unwrap();
@@ -114,14 +119,14 @@ mod tests {
             String::from_utf8(b).unwrap(),
             "release download v1 -R owner/repo -p a.tar.xz -O - "
         );
-        let (_, via) = fetch(&R, gh.to_str().unwrap(), 4, || Ok(Vec::new())).unwrap();
+        let (_, via) = fetch(&r(), gh.to_str().unwrap(), 4, || Ok(Vec::new())).unwrap();
         assert_eq!(via, Via::PublicUrl, "an answer over the limit falls back");
         let _ = std::fs::remove_dir_all(gh.parent().unwrap());
     }
 
     #[test]
     fn no_gh_falls_back_to_the_public_url() {
-        let (_, via) = fetch(&R, "/nonexistent/podvm-gh", 1, || Ok(Vec::new())).unwrap();
+        let (_, via) = fetch(&r(), "/nonexistent/podvm-gh", 1, || Ok(Vec::new())).unwrap();
         assert_eq!(via, Via::PublicUrl);
     }
 }

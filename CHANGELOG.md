@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.28.0, 2026-11-12
+
+Record: T-1641, T-1661, PodUtils/podcrates#86.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.28.0`. `pod-guest` writes
+  the provisioned image of `podvm windows setup` with `qemu-img convert`
+  (COORD-056): `qemu-img commit` took no output file.
+- The pins of workerd and wasmtime are facts of `pod-services` now
+  (`cloudflare-workerd-npm`, `wasmtime-release`); podvm keeps no copy.
+  No host of another party waits for `pod-services`.
+- `pod-confine` refuses a TCP list on a target with `socketcall(2)` (i686,
+  powerpc64le) by name.
+
 ### Added: a dynamic program on the native-static rung, 2026-11-12
 
 Record: T-1731.

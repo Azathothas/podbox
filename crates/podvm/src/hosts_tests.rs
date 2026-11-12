@@ -13,11 +13,7 @@ use std::path::{Path, PathBuf};
 /// Hosts that podvm names and that `pod-services` does not list yet. Each
 /// was reported to podcrates; the test fails when the crate lists one, so
 /// this list only shrinks.
-const WAITING: &[&str] = &[
-    // The npm package of workerd, the pin of the profile workerd-test
-    // (TODO/cli.md T-1661), reported in COORD-053.
-    "registry.npmjs.org",
-];
+const WAITING: &[&str] = &[];
 
 /// Hosts that are podvm's own or no host of another party.
 const OWN: &[&str] = &["localhost", "example.com", "example.org"];

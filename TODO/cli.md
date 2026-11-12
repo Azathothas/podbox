@@ -2918,6 +2918,11 @@ sh experiments/417-runtime-profiles.sh` exits 0 with each of its six
 clauses: clause 6 prints `hello from wasi`, and `/workspace` is the only
 preopened directory of the module.
 
+Since podcrates `v0.28.0` the URL, the version and the sums of both pins
+are facts of `pod-services` (`cloudflare-workerd-npm`, `wasmtime-release`;
+COORD-053 and COORD-054), and `crates/podvm/src/profile/tools.rs` reads
+them there; `WAITING` of `crates/podvm/src/hosts_tests.rs` is empty.
+
 **Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
 `one_profile_gives_the_runtime_flags_and_the_path_map` (the paths of
 `node-permission` give both `node --permission --allow-fs-read=/workspace

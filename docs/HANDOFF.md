@@ -19,7 +19,7 @@ file when each step below is done.
 * Commit signing is off for this repository (`.claude/session-start.sh`,
   `docs/decisions.md`, "Commit signing"), so the stop hook of a cloud
   session asks for no rewrite of the author.
-* podvm takes the crates of PodUtils/podcrates at `v0.27.0`:
+* podvm takes the crates of PodUtils/podcrates at `v0.28.0`:
   `pod-confine` and `Plan.confine` (T-1658), and the hosts and module sums
   of `pod-services` (T-1679, at `v0.24.0`).
 * **The record is in the format of `pod-todo` since 2026-11-11** (T-1672,

@@ -7,9 +7,10 @@
 //! profile (a config). The run mounts the directory read-only at the
 //! tool's guest directory.
 //!
-//! ⚠ `pod-services` does not hold these pins yet: COORD-053 asks for
-//! workerd (its host waits in `WAITING` of `crates/podvm/src/hosts_tests.rs`)
-//! and COORD-054 for wasmtime. The pins then move there.
+//! The URL, the version and the sums are facts of `pod-services`
+//! (`cloudflare-workerd-npm`, `wasmtime-release`; podcrates `v0.28.0`,
+//! COORD-053 and COORD-054): podvm keeps no second copy of a host of
+//! another party.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -23,62 +24,46 @@ pub enum Pack {
     TarXz,
 }
 
-/// One pinned program.
+/// One pinned program: podvm's own facts of it, and the service of
+/// `pod-services` that holds its pins.
 #[derive(Debug)]
 pub struct Tool {
     pub name: &'static str,
-    pub version: &'static str,
-    pub url: &'static str,
+    /// The id of the service in `pod-services`.
+    pub service: &'static str,
     pub pack: Pack,
-    pub archive_sha256: &'static str,
     /// A larger answer is not the pin.
     pub max_archive: u64,
-    pub member: &'static str,
-    pub bin_sha256: &'static str,
     /// Where the run sees the program and the files.
     pub guest_dir: &'static str,
     /// Each file that podvm writes beside the program: (name, text).
     pub files: &'static [(&'static str, &'static str)],
-    /// The release on GitHub, fetched through `gh` first (T-1667).
-    pub release: Option<super::gh::Release>,
+    /// The repository of a release on GitHub, fetched through `gh` first
+    /// (T-1667).
+    pub gh_repo: Option<&'static str>,
 }
 
-/// workerd: the npm package `@cloudflare/workerd-linux-64` of 2026-10-29.
-/// The registry's `dist.integrity` of the archive is
-/// `sha512-HkZx+YRRhsZ9HTZYqR7/Ivyhb52XtSngL5Dn208PyS9x05thTlIVxQiF3f2gRMSMoWqJ6l1EO1qQTnThQfeHKg==`,
-/// and it agrees with the archive of the pin.
+/// workerd: the npm package `@cloudflare/workerd-linux-64`.
 pub const WORKERD: Tool = Tool {
     name: "workerd",
-    version: "1.20261029.1",
-    url: "https://registry.npmjs.org/@cloudflare/workerd-linux-64/-/workerd-linux-64-1.20261029.1.tgz",
+    service: "cloudflare-workerd-npm",
     pack: Pack::TarGz,
-    archive_sha256: "771936b71cbc88d01e5cbb2779ebabc91a5b79070b8f41d3d203973afb779c85",
     max_archive: 128 << 20,
-    member: "package/bin/workerd",
-    bin_sha256: "685acc339ac78bf7b605928c1845fef8d8a89e919b079556b571a3404b95db3e",
     guest_dir: "/opt/podvm-workerd",
     files: &[("config.capnp", super::workerd::CONFIG)],
-    release: None,
+    gh_repo: None,
 };
 
-/// wasmtime: the release v50.0.1 of 2026-10-29. Its party publishes no
-/// checksum (F25 of issue 176), so the pin is podvm's own measurement.
+/// wasmtime: the release archive. Its party publishes no checksum (F25 of
+/// issue 176), so the pin is podvm's own measurement.
 pub const WASMTIME: Tool = Tool {
     name: "wasmtime",
-    version: "50.0.1",
-    url: "https://github.com/bytecodealliance/wasmtime/releases/download/v50.0.1/wasmtime-v50.0.1-x86_64-linux.tar.xz",
+    service: "wasmtime-release",
     pack: Pack::TarXz,
-    archive_sha256: "685466455dd42a14774a86c36c8f2e45cbb9bd6d92a850139315df60a75498a5",
     max_archive: 64 << 20,
-    member: "wasmtime-v50.0.1-x86_64-linux/wasmtime",
-    bin_sha256: "983e57573a320cf44c93ccaa571a25640cf38b15e8e14160aa7bb919336caae8",
     guest_dir: "/opt/podvm-wasmtime",
     files: &[],
-    release: Some(super::gh::Release {
-        repo: "bytecodealliance/wasmtime",
-        tag: "v50.0.1",
-        asset: "wasmtime-v50.0.1-x86_64-linux.tar.xz",
-    }),
+    gh_repo: Some("bytecodealliance/wasmtime"),
 };
 
 /// The pinned program of `runtime`, where podvm brings one.
@@ -95,6 +80,52 @@ impl Tool {
     pub fn guest_program(&self) -> String {
         format!("{}/{}", self.guest_dir, self.name)
     }
+
+    fn svc(&self) -> &'static pod_services::Service {
+        pod_services::get(self.service)
+            .unwrap_or_else(|| panic!("pod-services holds {} (TODO/cli.md T-1661)", self.service))
+    }
+
+    fn fact(&self, name: &str) -> &'static str {
+        self.svc()
+            .text(name)
+            .unwrap_or_else(|| panic!("{} has the fact {name}", self.service))
+    }
+
+    /// The URL of the archive.
+    pub fn url(&self) -> String {
+        self.svc()
+            .endpoint("archive")
+            .unwrap_or_else(|| panic!("{} has the endpoint archive", self.service))
+            .url()
+    }
+
+    pub fn version(&self) -> &'static str {
+        self.fact("version")
+    }
+
+    pub fn archive_sha256(&self) -> &'static str {
+        self.fact("archive-sha256")
+    }
+
+    pub fn member(&self) -> &'static str {
+        self.fact("bin-member")
+    }
+
+    pub fn bin_sha256(&self) -> &'static str {
+        self.fact("bin-sha256")
+    }
+
+    /// The asset of the release on GitHub: the tag `v` and the version,
+    /// and the last part of the URL.
+    pub fn release(&self) -> Option<super::gh::Release> {
+        let url = self.url();
+        self.gh_repo.map(|repo| super::gh::Release {
+            repo,
+            tag: format!("v{}", self.version()),
+            asset: url.rsplit('/').next().unwrap_or_default().to_string(),
+        })
+    }
 }
 
 const LIMITS: Limits = Limits {
@@ -107,7 +138,7 @@ const LIMITS: Limits = Limits {
 pub fn ensure(store_root: &Path, t: &Tool) -> Result<PathBuf, String> {
     let dir = store_root
         .join("tools")
-        .join(format!("{}-{}", t.name, &t.bin_sha256[..16]));
+        .join(format!("{}-{}", t.name, &t.bin_sha256()[..16]));
     let bin = dir.join(t.name);
     let fresh = t
         .files
@@ -119,7 +150,7 @@ pub fn ensure(store_root: &Path, t: &Tool) -> Result<PathBuf, String> {
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     if !bin.is_file() {
         crate::assets::space_floor(&dir, t.name, 512 << 20)?;
-        let bytes = fetch(t).map_err(|e| format!("{} {}: {e}", t.name, t.version))?;
+        let bytes = fetch(t).map_err(|e| format!("{} {}: {e}", t.name, t.version()))?;
         let tmp = dir.join(format!("{}.partial", t.name));
         std::fs::write(&tmp, &bytes).map_err(|e| format!("{}: {e}", tmp.display()))?;
         use std::os::unix::fs::PermissionsExt;
@@ -137,7 +168,8 @@ pub fn ensure(store_root: &Path, t: &Tool) -> Result<PathBuf, String> {
 /// The program out of the pinned archive, each SHA-256 checked.
 fn fetch(t: &Tool) -> Result<Vec<u8>, String> {
     use crate::machine::guest::kernel::{sha256_hex, tar_members};
-    let url = t.url;
+    let url = t.url();
+    let url = url.as_str();
     let public = || -> Result<Vec<u8>, String> {
         let (config, _roots) = podvm_image::tls::client_config();
         let mut net = Net::from_environment(config)?;
@@ -150,34 +182,35 @@ fn fetch(t: &Tool) -> Result<Vec<u8>, String> {
             .map_err(|e| format!("{url}: {e}"))?;
         Ok(archive)
     };
-    let archive = match &t.release {
+    let archive = match &t.release() {
         Some(r) => super::gh::fetch(r, "gh", t.max_archive, public)?.0,
         None => public()?,
     };
     let got = sha256_hex(&archive);
-    if got != t.archive_sha256 {
+    if got != t.archive_sha256() {
         return Err(format!(
             "{url}: the archive has SHA-256 {got}, not the pin {}",
-            t.archive_sha256
+            t.archive_sha256()
         ));
     }
     let members = match t.pack {
-        Pack::TarGz => tar_members(flate2::read::GzDecoder::new(&archive[..]), &[t.member]),
+        Pack::TarGz => tar_members(flate2::read::GzDecoder::new(&archive[..]), &[t.member()]),
         Pack::TarXz => tar_members(
             xz4rust::XzReader::new(std::io::Cursor::new(archive)),
-            &[t.member],
+            &[t.member()],
         ),
     };
     let bin = members
         .map_err(|e| format!("{url}: {e}"))?
         .pop()
         .flatten()
-        .ok_or(format!("{url}: no {}", t.member))?;
+        .ok_or(format!("{url}: no {}", t.member()))?;
     let got = sha256_hex(&bin);
-    if got != t.bin_sha256 {
+    if got != t.bin_sha256() {
         return Err(format!(
             "{url}: {} has SHA-256 {got}, not the pin {}",
-            t.member, t.bin_sha256
+            t.member(),
+            t.bin_sha256()
         ));
     }
     Ok(bin)
@@ -190,12 +223,17 @@ mod tests {
     #[test]
     fn each_pin_names_its_version_and_its_guest_directory() {
         for t in [&WORKERD, &WASMTIME] {
-            assert!(t.url.contains(t.version), "{t:?}");
-            assert_eq!(t.archive_sha256.len(), 64);
-            assert_eq!(t.bin_sha256.len(), 64);
+            assert!(t.url().contains(t.version()), "{t:?}");
+            assert_eq!(t.archive_sha256().len(), 64);
+            assert_eq!(t.bin_sha256().len(), 64);
             assert!(t.guest_dir.starts_with("/opt/podvm-"));
-            assert!(t.member.ends_with(t.name));
+            assert!(t.member().ends_with(t.name));
         }
+        // The asset of the release names the version of the service.
+        let r = WASMTIME.release().unwrap();
+        assert_eq!(r.tag, "v50.0.1");
+        assert_eq!(r.asset, "wasmtime-v50.0.1-x86_64-linux.tar.xz");
+        assert!(WORKERD.release().is_none());
         assert_eq!(of_runtime("node").map(|t| t.name), None);
         assert_eq!(WASMTIME.guest_program(), "/opt/podvm-wasmtime/wasmtime");
     }
