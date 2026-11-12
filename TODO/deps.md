@@ -1854,6 +1854,12 @@ relay, for podssh and podnet; the notes of that release say "podvm needs
 no code change". The blocker stays: a `pod-relay` release, or a podcrates
 hand-off that names the crate podvm takes for its relay.
 
+**Still blocked, 2026-11-12.** podcrates `v0.30.0` (`613058c`), which
+podvm takes, has `pod-relay` with the feature `blocking`, and its README
+names the facade for podvm. Its `adoption/podvm/` has no `pod-relay.*`.
+COORD-062 (issue 283) asks for the hand-off, or for a word that podvm
+writes the take itself. Clears when: one of the two answers.
+
 # T-1679: Take `pod-services` for the third-party hosts compiled into podvm
 
 **Source:** COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One
