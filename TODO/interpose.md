@@ -3399,8 +3399,11 @@ payloads with each object: alpine's musl busybox (clauses 4, 25 to 28,
   library": the search of pod-enter does not get to
   `/usr/lib/aarch64-linux-gnu/libc.so.6`, T-1742 (issue 282).
 
-Remaining: the run of `arm.yml` after podvm takes the tags with the fixes
-of T-1741 and T-1742.
+The next run (43200347935, at `5da7d62e`) confirms it: the clauses that
+fail are the gcc clauses 19 and 22 (T-1742) and the images of clauses 29
+and 32 (T-1741); clauses 5, 18, 24, 33 and 36 are skipped by name, and the
+host rung of the arm runner is `userland`. Remaining: the run of `arm.yml`
+after podvm takes the tags with the fixes of T-1741 and T-1742.
 
 **Progress 2026-11-12, step 3.** `podvm-interpose-build` builds the two
 aarch64 objects (`TARGETS="aarch64-unknown-linux-gnu
