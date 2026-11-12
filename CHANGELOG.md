@@ -8,6 +8,14 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.30.0, 2026-11-12
+
+Record: PodUtils/podcrates#89.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.30.0`. No behaviour of podvm
+  changes.
+
 ### Changed: podcrates v0.29.0, 2026-11-12
 
 Record: PodUtils/podcrates#87.
