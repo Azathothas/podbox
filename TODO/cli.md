@@ -3404,6 +3404,18 @@ F31: a run failed with "no space left on device" at 188 MiB free; the
 
 ## Done
 
+**Partial 2026-11-12.** The `gh` clause: the pin of wasmtime (T-1661) is
+the first GitHub release that podvm fetches. `crates/podvm/src/profile/gh.rs`
+runs `gh release download TAG -R REPO -p ASSET -O -` first, and takes the
+public URL where that call fails (no `gh`, a rejected token, an answer over
+the limit), with the reason on stderr; it asks no `gh auth status`. The pin's
+SHA-256 checks the bytes of each path. `cargo test -p podvm` exits 0 with
+`a_rejected_gh_token_falls_back_to_the_public_url` (a planted `gh` that
+answers "HTTP 401: Bad credentials"), `gh_gives_the_bytes_where_its_call_works`
+and `no_gh_falls_back_to_the_public_url`. Measured on the cloud host: its
+`gh` exits 1 (the proxy refuses GraphQL), podvm names that and fetches the
+public URL, and `wasmtime-wasi` runs.
+
 **Partial 2026-11-11.** Done: `cargo test -p podvm` exits 0 with
 `a_planted_changed_asset_is_refused` and
 `a_run_below_the_space_floor_refuses_and_names_the_path`
@@ -3428,10 +3440,6 @@ floor of 64 MiB first and names the path. `scope.assets` says what each
 check proves: integrity, not who built the file.
 
 Remaining clauses:
-* The `gh` fetch with the fallback to the public API, and its planted
-  rejected token: podvm fetches no GitHub release today. The first
-  installer that does (a runtime of T-1661 or T-1660) takes the rule and
-  the test.
 * "Labs in a guest": a check for it comes with the network entries
   T-1662 to T-1665.
 

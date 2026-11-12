@@ -39,6 +39,8 @@ pub struct Tool {
     pub guest_dir: &'static str,
     /// Each file that podvm writes beside the program: (name, text).
     pub files: &'static [(&'static str, &'static str)],
+    /// The release on GitHub, fetched through `gh` first (T-1667).
+    pub release: Option<super::gh::Release>,
 }
 
 /// workerd: the npm package `@cloudflare/workerd-linux-64` of 2026-10-29.
@@ -56,6 +58,7 @@ pub const WORKERD: Tool = Tool {
     bin_sha256: "685acc339ac78bf7b605928c1845fef8d8a89e919b079556b571a3404b95db3e",
     guest_dir: "/opt/podvm-workerd",
     files: &[("config.capnp", super::workerd::CONFIG)],
+    release: None,
 };
 
 /// wasmtime: the release v50.0.1 of 2026-10-29. Its party publishes no
@@ -71,6 +74,11 @@ pub const WASMTIME: Tool = Tool {
     bin_sha256: "983e57573a320cf44c93ccaa571a25640cf38b15e8e14160aa7bb919336caae8",
     guest_dir: "/opt/podvm-wasmtime",
     files: &[],
+    release: Some(super::gh::Release {
+        repo: "bytecodealliance/wasmtime",
+        tag: "v50.0.1",
+        asset: "wasmtime-v50.0.1-x86_64-linux.tar.xz",
+    }),
 };
 
 /// The pinned program of `runtime`, where podvm brings one.
@@ -130,15 +138,22 @@ pub fn ensure(store_root: &Path, t: &Tool) -> Result<PathBuf, String> {
 fn fetch(t: &Tool) -> Result<Vec<u8>, String> {
     use crate::machine::guest::kernel::{sha256_hex, tar_members};
     let url = t.url;
-    let (config, _roots) = podvm_image::tls::client_config();
-    let mut net = Net::from_environment(config)?;
-    let body = net
-        .send("GET", url, &[], true, LIMITS)
-        .map_err(|e| format!("{url}: {e}"))?;
-    let mut archive = Vec::new();
-    body.take(t.max_archive + 1)
-        .read_to_end(&mut archive)
-        .map_err(|e| format!("{url}: {e}"))?;
+    let public = || -> Result<Vec<u8>, String> {
+        let (config, _roots) = podvm_image::tls::client_config();
+        let mut net = Net::from_environment(config)?;
+        let body = net
+            .send("GET", url, &[], true, LIMITS)
+            .map_err(|e| format!("{url}: {e}"))?;
+        let mut archive = Vec::new();
+        body.take(t.max_archive + 1)
+            .read_to_end(&mut archive)
+            .map_err(|e| format!("{url}: {e}"))?;
+        Ok(archive)
+    };
+    let archive = match &t.release {
+        Some(r) => super::gh::fetch(r, "gh", t.max_archive, public)?.0,
+        None => public()?,
+    };
     let got = sha256_hex(&archive);
     if got != t.archive_sha256 {
         return Err(format!(

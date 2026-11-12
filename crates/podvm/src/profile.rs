@@ -12,6 +12,7 @@
 //! KEY=VALUE]...` prints the effective profile and its `run` flags.
 
 pub mod builtin;
+mod gh;
 pub mod model;
 pub mod runtime;
 pub mod tools;

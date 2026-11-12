@@ -55,7 +55,7 @@ that is not done. Read its Prove before you start. Set its status with
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1658](enter.md) (partial: `/tmp` on the namespace rung remains,
    COORD-048, issue 267); [T-1667](cli.md) (partial:
-   the `gh` fallback waits for an installer); the network entries
+   the check of labs in a guest waits for the network entries); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
    wait with T-1662).

@@ -15,7 +15,9 @@ Deployed: not released.
 
 - `podvm run --profile wasmtime-wasi -- MODULE` runs `wasmtime run
   --dir=/workspace` of a WASI module: a pinned wasmtime 50.0.1, checked
-  by SHA-256 and kept in the store.
+  by SHA-256 and kept in the store. podvm fetches the release with `gh
+  release download` first, and takes the public URL where that call
+  fails (T-1667).
 - `podvm run --profile workerd-test` runs `workerd test` of
   `/workspace/worker.js`: a pinned workerd (the npm package
   1.20261029.1, checked by SHA-256 and kept in the store), a config with
