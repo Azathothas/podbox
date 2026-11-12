@@ -2192,7 +2192,7 @@ targets.
 ## Done
 
 **Done 2026-10-02.** No `rlib`, and the decision rests on the existing export check at
-`crates/podvm-gate/src/interpose_build/build.rs:186-202`, inside the per-target
+`crates/podvm-gate/src/interpose_build/build.rs:213-229`, inside the per-target
 loop at lines 790-797 at `c36e0db672d2`. It compares `declared_exports` against `exported_symbols`
 for equality at line 508 at `c36e0db672d2`, and the map declares 112 names. Check B, the
 `struct stat` and `struct statx` offsets at lines 601-700 at `c36e0db672d2`, needs `cc` and joins
@@ -2209,7 +2209,7 @@ for a test target to name. A `tests/*.rs` in that crate fails with
 obvious repair and it is the wrong one here.
 
 **The export check is already written, and it stands as the check.** It lives in
-`crates/podvm-gate/src/interpose_build/build.rs:186-202`, inside the per-target
+`crates/podvm-gate/src/interpose_build/build.rs:213-229`, inside the per-target
 loop at lines 790-797 at `c36e0db672d2`, so it runs once for every target `TARGETS` names. The
 comparison is `declared_exports(&krate.join(MAP))` at line 501 at `c36e0db672d2` against
 `exported_symbols(&so, root)` at line 506 at `c36e0db672d2`. `declared_exports` parses
@@ -2582,7 +2582,7 @@ fixture. Clause 21 of experiment 356 holds it. `sh experiments/356-no-chroot-run
   issue 114 section 2 item 2 and section 6 item 3;
   `crates/podvm-interpose/src/exec/calls.rs:20-195`;
   `crates/podvm/src/lifecycle/entry.rs:451`;
-  `experiments/356-no-chroot-rung.sh:453-454`;
+  `experiments/356-no-chroot-rung.sh:462-463`;
   A-V-04 of PodUtils/podcrates#39
 **Category:** interpose
 **Milestone:** none
@@ -3376,6 +3376,28 @@ exits 0 there with the pinned image of 356 for arm64 on the
 chroot-denied fixture.
 
 ## Correction
+
+**Progress 2026-11-12, step 3.** `podvm-interpose-build` builds the two
+aarch64 objects (`TARGETS="aarch64-unknown-linux-gnu
+aarch64-unknown-linux-musl"`), linked through zig: the glibc one with the
+stub `dl-stub-aarch64.S` (node `GLIBC_2.17`, `brk #0`) and
+`ZIG_TARGET=aarch64-linux-gnu.2.17`, the musl one with
+`ZIG_TARGET=aarch64-linux-musl`; `scripts/zig-cc.sh` drops
+`-Wl,--fix-cortex-a53-843419`, which zig's linker refuses. Each object
+passes the checks of the tool: its libc, glibc needs up to `GLIBC_2.17`,
+137 exports as `interpose.map` declares, under the interpose ceiling of `scripts/build-interpose.sh`. Under
+`qemu-aarch64-static` with each object in `LD_PRELOAD` and
+`PODVM_MAPS=/work:HOSTDIR`, `cat`, `stat` and `ls` of debian's glibc and
+alpine's musl busybox resolve `/work` through the table, and fail with
+ENOENT without it. `crates/podvm/build.rs` embeds the objects of the
+binary's own machine and refuses an object of another machine; the
+aarch64 binary prints `interpose-gnu-machine: 0xb7` and
+`interpose-musl-machine: 0xb7`, the x86_64 binary `0x3e`. The smoke of
+`nightly.yml` requires an embed that matches the artefact on x86_64 and
+aarch64 (PodUtils/podrunner#52, request 2), and its aarch64 leg builds
+the aarch64 pair. `bootstrap-env.sh` installs zig on an arm64 host.
+Remaining: `.github/workflows/arm.yml` on a hosted `ubuntu-24.04-arm`
+runner, the Prove.
 
 **Progress 2026-11-12, step 2.** The interposer compiles for
 `aarch64-unknown-linux-gnu`: the offsets of `stat` (`lib.rs`,

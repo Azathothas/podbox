@@ -96,18 +96,23 @@ jobs:
       # Before the binary, because the two objects are an input to it.
       # crates/podvm/build.rs embeds them; a binary built first embeds
       # two empty placeholders and this job passes with a podvm that
-      # interposes nothing. The pair is the x86_64 one on every arch: the
-      # interposer is x86_64-only by design (TODO/interpose.md T-1327),
-      # and on other archs the tier declines by name on the machine
-      # mismatch. The builder is the podvm-interpose-build binary, built
-      # for the runner.
+      # interposes nothing. The pair is the one of the leg's machine on
+      # x86_64 and aarch64 (TODO/interpose.md T-1721); build.rs embeds an
+      # object only where its ELF machine is the binary's, and on each
+      # other arch the tier declines by name. The builder is the
+      # podvm-interpose-build binary, built for the runner.
       - name: interposer, one object per libc
         run: |
           rustup target add x86_64-unknown-linux-musl
           cargo build --release -p podvm-gate --bin podvm-interpose-build
           mkdir -p target/release
           cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
-          ./target/release/podvm-interpose-build
+          if [ "${{ matrix.arch }}" = aarch64 ]; then
+            rustup target add aarch64-unknown-linux-gnu aarch64-unknown-linux-musl
+            TARGETS="aarch64-unknown-linux-gnu aarch64-unknown-linux-musl" ./target/release/podvm-interpose-build
+          else
+            ./target/release/podvm-interpose-build
+          fi
 
       - name: build
         run: cargo build --release --target ${{ matrix.triple }}

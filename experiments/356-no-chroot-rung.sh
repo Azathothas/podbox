@@ -206,32 +206,41 @@ echo "dynamic input     $DEBIAN"
 command -v cargo >/dev/null 2>&1 || { echo "cargo missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 command -v cc >/dev/null 2>&1 || { echo "cc missing: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 unshare -Urm true >/dev/null 2>&1 || { echo "user+mount namespaces refused: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-echo "== bootstrap the lane toolchain"
-if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc zig tools >>"$WORK/bootstrap.log" 2>&1; then
-	echo "bootstrap         ok" >>"$REPORT"
+# TODO/interpose.md T-1721: PODVM_356_BIN names a binary built elsewhere
+# (the aarch64 binary that arm.yml builds across, with its objects), and
+# the lane neither bootstraps nor builds.
+if [ -n "${PODVM_356_BIN:-}" ]; then
+	PB="$PODVM_356_BIN"
+	[ -x "$PB" ] || { echo "PODVM_356_BIN $PB is not executable: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+	echo "binary            $PB (PODVM_356_BIN)" >>"$REPORT"
 else
-	echo "bootstrap         FAILED" | tee -a "$REPORT"
-	tail -15 "$WORK/bootstrap.log"
-	exit 2
+	echo "== bootstrap the lane toolchain"
+	if timeout 1200 ./scripts/common/bootstrap-env.sh rust cc zig tools >>"$WORK/bootstrap.log" 2>&1; then
+		echo "bootstrap         ok" >>"$REPORT"
+	else
+		echo "bootstrap         FAILED" | tee -a "$REPORT"
+		tail -15 "$WORK/bootstrap.log"
+		exit 2
+	fi
+	echo "== interposer objects"
+	if timeout 1200 ./scripts/build-interpose.sh >>"$WORK/interpose.log" 2>&1; then
+		echo "interpose         ok" >>"$REPORT"
+	else
+		echo "interpose         FAILED" | tee -a "$REPORT"
+		tail -15 "$WORK/interpose.log"
+		exit 2
+	fi
+	echo "== build the debug binary"
+	if timeout 1800 cargo build >>"$WORK/build.log" 2>&1; then
+		echo "build             ok" >>"$REPORT"
+	else
+		echo "build             FAILED" | tee -a "$REPORT"
+		tail -15 "$WORK/build.log"
+		exit 1
+	fi
+	PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
+	[ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
 fi
-echo "== interposer objects"
-if timeout 1200 ./scripts/build-interpose.sh >>"$WORK/interpose.log" 2>&1; then
-	echo "interpose         ok" >>"$REPORT"
-else
-	echo "interpose         FAILED" | tee -a "$REPORT"
-	tail -15 "$WORK/interpose.log"
-	exit 2
-fi
-echo "== build the debug binary"
-if timeout 1800 cargo build >>"$WORK/build.log" 2>&1; then
-	echo "build             ok" >>"$REPORT"
-else
-	echo "build             FAILED" | tee -a "$REPORT"
-	tail -15 "$WORK/build.log"
-	exit 1
-fi
-PB="$REPO/target/x86_64-unknown-linux-musl/debug/podvm"
-[ -x "$PB" ] || { echo "binary missing after build: FAILED" | tee -a "$REPORT"; exit 1; }
 echo "podvm            $("$PB" version)" >>"$REPORT"
 
 # shellcheck source=../scripts/common/exit-codes.sh

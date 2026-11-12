@@ -50,6 +50,8 @@ const STUB: &str = "scripts/build-interpose.sh";
 const MAP: &str = "interpose.map";
 const DL_STUB_MAP: &str = "dl-stub.map";
 const DL_STUB_SRC: &str = "dl-stub.S";
+const DL_STUB_MAP_A64: &str = "dl-stub-aarch64.map";
+const DL_STUB_SRC_A64: &str = "dl-stub-aarch64.S";
 // The object loads into payloads back to this glibc, so no needed version
 // above it may enter. A new import the build host stamps higher fails here
 // with the version named, rather than refusing somebody's container.

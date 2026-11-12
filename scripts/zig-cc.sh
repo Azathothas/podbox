@@ -116,6 +116,10 @@ for a in "$@"; do
 	-target | --target)
 		skip_next=1
 		;;
+	# rustc passes this to a GNU ld on aarch64 (the erratum 843419 of the
+	# Cortex-A53); zig's linker refuses the flag (TODO/interpose.md T-1721).
+	-Wl,--fix-cortex-a53-843419)
+		;;
 	--target=* | -target=*)
 		[ -n "${ZIG_TARGET:-}" ] || target="$(to_zig_triple "${a#*=}")"
 		;;

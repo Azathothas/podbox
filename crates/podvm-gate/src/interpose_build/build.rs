@@ -17,6 +17,21 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
     let zig_linker = root.join("scripts/zig-cc.sh");
     let mut rustflags = "-C target-feature=-crt-static".to_string();
     let mut stub_env: Vec<(String, String)> = Vec::new();
+    // TODO/interpose.md T-1721: an aarch64 object is linked across, through
+    // zig, for the first glibc of aarch64 (2.17) or for musl.
+    let aarch64 = target.starts_with("aarch64-");
+    if aarch64 {
+        let zig_target = if target.contains("musl") {
+            "aarch64-linux-musl"
+        } else {
+            "aarch64-linux-gnu.2.17"
+        };
+        stub_env.push(("ZIG_TARGET".to_string(), zig_target.to_string()));
+        if !command_present("zig") {
+            eprintln!("SKIP {target}: no zig, and an aarch64 object needs zig to link");
+            return 2;
+        }
+    }
     if target.contains("musl") {
         if command_present("zig") && zig_linker.is_file() {
             rustflags.push_str(&format!(" -C linker={}", zig_linker.display()));
@@ -37,22 +52,30 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
         // keeps as a compatibility object on both sides of the merge. musl
         // has no `libdl`, so this stays on the glibc arm the way `zig cc`
         // stays on the musl one.
-        let stub_dir = krate.join("target/dl-stub");
+        let stub_dir = krate.join("target/dl-stub").join(target);
         if fs::create_dir_all(&stub_dir).is_err() {
             eprintln!("SKIP {target}: no stub directory");
             return 2;
         }
         let stub = stub_dir.join("libdl-stub.so");
-        let stub_rc = Command::new("cc")
+        // The stub of the object's machine: on aarch64 `brk #0` and the node
+        // GLIBC_2.17, linked by zig (T-1721).
+        let (stub_cc, stub_map, stub_src) = if aarch64 {
+            (zig_linker.clone(), DL_STUB_MAP_A64, DL_STUB_SRC_A64)
+        } else {
+            (PathBuf::from("cc"), DL_STUB_MAP, DL_STUB_SRC)
+        };
+        let stub_rc = Command::new(&stub_cc)
             .args([
                 "-shared",
                 "-nostdlib",
-                &format!("-Wl,--version-script={}", krate.join(DL_STUB_MAP).display()),
+                &format!("-Wl,--version-script={}", krate.join(stub_map).display()),
                 "-Wl,-soname,libdl.so.2",
                 "-o",
                 &stub.to_string_lossy(),
-                &krate.join(DL_STUB_SRC).to_string_lossy(),
+                &krate.join(stub_src).to_string_lossy(),
             ])
+            .envs(stub_env.iter().cloned())
             .current_dir(root)
             .stdin(Stdio::null())
             .status()
@@ -91,6 +114,10 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
             "PODVM_DL_STUB".to_string(),
             stub.to_string_lossy().into_owned(),
         ));
+        if aarch64 {
+            // gnu-link-stub.sh links with $CC: zig for the aarch64 object.
+            stub_env.push(("CC".to_string(), zig_linker.to_string_lossy().into_owned()));
+        }
     }
     // THE VERSION SCRIPT. Without it a Rust cdylib exports its runtime
     // into every process it is loaded into, and this object is loaded into

@@ -56,10 +56,17 @@ fn machine_of(bytes: &[u8]) -> String {
 /// ⚠ The triples are the ones `scripts/build-interpose.sh` builds by default.
 /// A tree that overrides its `TARGETS` gets placeholders here, which is the
 /// same honest outcome as a tree that never ran it.
-const OBJECTS: &[(&str, &str)] = &[
-    ("gnu", "x86_64-unknown-linux-gnu"),
-    ("musl", "x86_64-unknown-linux-musl"),
-];
+const OBJECTS: &[(&str, &str)] = &[("gnu", "unknown-linux-gnu"), ("musl", "unknown-linux-musl")];
+
+/// The ELF machine of an interposer object for the target `arch`, or None
+/// where podvm builds no interposer for it (TODO/interpose.md T-1721).
+fn machine_for(arch: &str) -> Option<&'static str> {
+    match arch {
+        "x86_64" => Some("0x3e"),
+        "aarch64" => Some("0xb7"),
+        _ => None,
+    }
+}
 
 fn main() {
     let out = PathBuf::from(std::env::var("OUT_DIR").expect("cargo sets OUT_DIR"));
@@ -72,26 +79,31 @@ fn main() {
         .to_path_buf();
 
     let mut embedded = 0;
-    for (name, triple) in OBJECTS {
+    // TODO/interpose.md T-1721: the objects of this binary's own machine.
+    let target = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    for (name, rest) in OBJECTS {
+        let triple = format!("{target}-{rest}");
         let from = root
             .join("crates/podvm-interpose/target")
-            .join(triple)
+            .join(&triple)
             .join("release/libpodvm_interpose.so");
         // ⛔ Declared whether or not it exists. Cargo reruns this script when a
         // watched path APPEARS, which is what makes a later
         // `scripts/build-interpose.sh` reach a binary that was built without it.
         println!("cargo::rerun-if-changed={}", from.display());
         let to = out.join(format!("interpose-{name}.so"));
-        // TODO/interpose.md T-1721: the objects are x86_64 (EM_X86_64,
-        // 0x3e); a binary for another target embeds none and says so,
-        // rather than one that each payload of its own machine declines.
-        let target = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+        // TODO/interpose.md T-1721: an object embeds only where its ELF
+        // machine is the binary's; any other object is refused by name,
+        // rather than one that each payload of this machine declines.
         let read = std::fs::read(&from).ok().filter(|b| {
-            let ok = target == "x86_64" || machine_of(b) != "0x3e";
+            let want = machine_for(&target);
+            let ok = want.is_some_and(|m| machine_of(b) == m);
             if !ok {
                 println!(
-                    "cargo::warning=the {name} interposer is x86_64 and this binary is {target}: \
-                     it embeds none (TODO/interpose.md T-1721)"
+                    "cargo::warning=the {name} interposer at {} is ELF machine {} and this \
+                     binary is {target}: it embeds none (TODO/interpose.md T-1721)",
+                    from.display(),
+                    machine_of(b)
                 );
             }
             ok

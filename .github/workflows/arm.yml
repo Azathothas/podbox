@@ -1,0 +1,74 @@
+name: arm
+
+# TODO/interpose.md T-1721: the interposer of aarch64 on a hosted arm64
+# runner. The Prove of the entry: the tests of the interposer for
+# aarch64-unknown-linux-gnu pass on arm64, and experiment 356 exits 0 with
+# the aarch64 binary (the two aarch64 objects embedded) on the
+# chroot-denied fixture.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arm
+  cancel-in-progress: false
+
+jobs:
+  prove:
+    name: the aarch64 interposer on arm64 (experiment 356)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Ubuntu 24.04 restricts user namespaces of an unprivileged process
+      # through AppArmor; the fixture of 356 is `unshare -Urm`.
+      - name: allow user namespaces
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          unshare -Urm true && echo "user and mount namespaces: ok"
+
+      - name: bootstrap
+        run: ./scripts/common/bootstrap-env.sh rust cc zig tools
+
+      - name: targets
+        run: rustup target add aarch64-unknown-linux-gnu aarch64-unknown-linux-musl
+
+      - name: interposer tests (aarch64-unknown-linux-gnu)
+        env:
+          RUSTFLAGS: -C target-feature=-crt-static
+        run: cargo test --manifest-path crates/podvm-interpose/Cargo.toml --target aarch64-unknown-linux-gnu -- --test-threads=1
+
+      - name: interposer objects (aarch64)
+        run: |
+          cargo build --release --target aarch64-unknown-linux-musl -p podvm-gate --bin podvm-interpose-build
+          mkdir -p target/release
+          cp target/aarch64-unknown-linux-musl/release/podvm-interpose-build target/release/
+          TARGETS="aarch64-unknown-linux-gnu aarch64-unknown-linux-musl" ./target/release/podvm-interpose-build
+
+      - name: build podvm (aarch64)
+        run: |
+          cargo build --release --target aarch64-unknown-linux-musl -p podvm
+          ./target/aarch64-unknown-linux-musl/release/podvm version --verbose | grep -E '^interpose-(gnu|musl)-machine: 0xb7$'
+
+      - name: experiment 356 on arm64
+        env:
+          PODVM_356_BIN: ${{ github.workspace }}/target/aarch64-unknown-linux-musl/release/podvm
+          PODVM_356_MIRROR: "1"
+        run: |
+          rc=0
+          timeout 60m sh experiments/356-no-chroot-rung.sh || rc=$?
+          cat experiments/.sweep356-work/out-356.txt || true
+          exit "$rc"
+
+      - name: keep the transcripts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: arm-transcripts
+          path: experiments/.sweep356-work/out-356.txt
+          include-hidden-files: true
+          if-no-files-found: warn

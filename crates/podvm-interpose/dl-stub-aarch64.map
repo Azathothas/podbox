@@ -1,0 +1,7 @@
+/* The version node for the dlsym link stub of aarch64, TODO/interpose.md
+ * T-1312 and T-1721: GLIBC_2.17, the first version of glibc on aarch64.
+ */
+GLIBC_2.17 {
+  global: dlsym;
+  local: *;
+};

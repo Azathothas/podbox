@@ -91,10 +91,11 @@ pub(super) fn do_smoke(bin: &str, triple: &str, qemu: &str, root: &Path) -> Exit
         );
     }
 
-    // Groups 3: both interposer digests are 64 lowercase hex digits. Off
-    // x86_64 a binary embeds no interposer since TODO/interpose.md T-1721
-    // (the objects are x86_64 only), so `absent` is the decided value there.
-    let native = triple.starts_with("x86_64-");
+    // Groups 3: both interposer digests are 64 lowercase hex digits. podvm
+    // builds the objects of x86_64 and aarch64 (TODO/interpose.md T-1721);
+    // on each other arch a binary embeds none, so `absent` is the decided
+    // value there.
+    let native = triple.starts_with("x86_64-") || triple.starts_with("aarch64-");
     for key in ["interpose-gnu", "interpose-musl"] {
         let value = doc_line(&doc, key);
         if !native && value == "absent" {
@@ -173,7 +174,7 @@ pub(super) fn do_smoke(bin: &str, triple: &str, qemu: &str, root: &Path) -> Exit
         );
     }
     println!("SMOKE-EMBED-MACHINE {triple} outer=0x{outer} gnu={gnu_m} musl={musl_m}");
-    if triple.starts_with("x86_64-") {
+    if triple.starts_with("x86_64-") || triple.starts_with("aarch64-") {
         if gnu_m != format!("0x{outer}") {
             return smoke_fail(
                 triple,

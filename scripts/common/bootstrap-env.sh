@@ -67,7 +67,18 @@ ROOT="$(CDPATH= cd -- "$HERE/../.." && pwd)"
 # The checksum is from https://ziglang.org/download/index.json for this version
 # and is verified before anything is unpacked.
 ZIG_VERSION="0.16.0"
-ZIG_SHA256="70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00"
+# One tarball for each host machine (TODO/interpose.md T-1721: the arm64
+# runner of arm.yml builds the aarch64 objects natively).
+case "$(uname -m)" in
+aarch64 | arm64)
+	ZIG_ARCH="aarch64"
+	ZIG_SHA256="ea4b09bfb22ec6f6c6ceac57ab63efb6b46e17ab08d21f69f3a48b38e1534f17"
+	;;
+*)
+	ZIG_ARCH="x86_64"
+	ZIG_SHA256="70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00"
+	;;
+esac
 ZIG_PREFIX="/opt/zig"
 
 # What a build or an image pull needs before it starts, per TODO/RULES.md
@@ -310,7 +321,7 @@ if want zig; then
 		bad "zig: not attempted, the disk allowance is short and the tarball is ~53 MB"
 	else
 		tmp="$(mktemp -d)"
-		url="https://ziglang.org/download/$ZIG_VERSION/zig-x86_64-linux-$ZIG_VERSION.tar.xz"
+		url="https://ziglang.org/download/$ZIG_VERSION/zig-$ZIG_ARCH-linux-$ZIG_VERSION.tar.xz"
 		# ⛔ Verified before it is unpacked. A download this script cannot check
 		# is a failure: `docs/conventions/code.md` calls an unverified restore
 		# the class that corrupts silently.
@@ -324,7 +335,7 @@ if want zig; then
            https://ziglang.org/download/index.json if the version moved."
 			elif timeout 300 tar -xf "$tmp/zig.tar.xz" -C "$tmp" &&
 				$SUDO rm -rf "${ZIG_PREFIX:?}" &&
-				$SUDO mv "$tmp/zig-x86_64-linux-$ZIG_VERSION" "$ZIG_PREFIX" &&
+				$SUDO mv "$tmp/zig-$ZIG_ARCH-linux-$ZIG_VERSION" "$ZIG_PREFIX" &&
 				$SUDO ln -sf "$ZIG_PREFIX/zig" /usr/local/bin/zig &&
 				[ "$(zig version 2>/dev/null)" = "$ZIG_VERSION" ]; then
 				did "zig: $ZIG_VERSION at $ZIG_PREFIX, linked as /usr/local/bin/zig"
