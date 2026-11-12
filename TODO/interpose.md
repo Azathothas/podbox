@@ -3329,7 +3329,7 @@ from a listener of the host.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3464,6 +3464,22 @@ in `x8`); the version of `dlsym` in `src/real.rs` and `src/dl_calls.rs`
 podvm --target aarch64-unknown-linux-musl` warns "the gnu interposer is
 x86_64 and this binary is aarch64: it embeds none (TODO/interpose.md
 T-1721)".
+
+## Done
+
+**Done 2026-11-12.** `.github/workflows/arm.yml` run 43228497851 (at
+`d4ed988e`, hosted `ubuntu-24.04-arm`, podcrates `v0.31.0`): the 87 tests
+of the interposer pass for `aarch64-unknown-linux-gnu`, the aarch64
+binary embeds the two objects of machine `0xb7`, and `PODVM_356_MIRROR=1
+sh experiments/356-no-chroot-rung.sh` exits 0 with that binary on the
+chroot-denied fixture. The loader family runs arm64 payloads of alpine
+(musl), debian, gcc and golang bookworm (glibc), python and node; clauses
+5, 18, 24, 33 and 36 are skipped by name (the native-static rung is
+x86_64 only, TODO/enter.md T-1652). The runner's user has no root outside
+a user namespace, so clause 1's control runs under the fixture's
+`unshare -Urm` with no seccomp denial. On the way: T-1741 and T-1742 (two
+defects of podcrates, issues 281 and 282, fixed in `v0.31.0`), and the
+`c_char` of `guest-9p`, which is `u8` on aarch64.
 
 # T-1725: An absolute symlink in the rootfs resolves on the host for each path call
 

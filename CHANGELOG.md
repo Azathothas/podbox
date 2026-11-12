@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the interposer on aarch64, 2026-11-12
+
+Record: T-1721, PodUtils/podrunner#52.
+Deployed: not released.
+
+- `podvm` for aarch64 embeds aarch64 interposer objects (glibc and musl),
+  so the userland rung runs arm64 payloads where chroot is denied.
+  Experiment 356 exits 0 on a hosted arm64 runner. The native-static rung
+  stays x86_64 only.
+
 ### Fixed: podcrates v0.31.0, 2026-11-12
 
 Record: PodUtils/podcrates#90, T-1741, T-1742.

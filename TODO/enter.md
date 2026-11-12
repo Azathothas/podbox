@@ -3405,7 +3405,7 @@ liburing themselves.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3445,3 +3445,11 @@ PodUtils/podcrates#90): `libc_beside` looks first at the multiarch places
 of each library root, and walks a real directory once. Its test
 `the_multiarch_libc_is_found_beside_large_trees_of_a_merged_usr` holds the
 tree of issue 282 for aarch64 and x86_64. Remaining: the run of `arm.yml`.
+
+## Done
+
+**Done 2026-11-12.** `cargo test -p podvm` exits 0 on podcrates
+`v0.31.0`, and `.github/workflows/arm.yml` run 43228497851 runs experiment
+356 on arm64 with exit 0: clauses 19 and 22 (the gcc bookworm image, with
+the glibc object) and the dladdr and library clauses of the debian image
+pass; the loader family finds `/usr/lib/aarch64-linux-gnu/libc.so.6`.
