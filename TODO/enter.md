@@ -2544,9 +2544,15 @@ chroot-denying fixture): alpine on the loader family reads `/etc/passwd`,
 is denied `/etc/shadow` and `/tmp`, and reads and writes a `-v` volume at
 `/workspace`; by hand, `run -d` and an `exec` into it hold the same.
 
-Remaining: the userland rung with podvm's dispatcher or an emulator (the
-native-static rung, the syscall and the emulate tier: each refuses by
-name), and the write of `/tmp` on the namespace rung (COORD-048). The report of
+The dispatcher families take the layer too. On the native-static rung and
+the syscall tier the payload's process runs podvm's own dispatcher, and on
+the emulate tier a host qemu: the host spec gives each of those host paths
+read and execute (`decide` of `crates/podvm/src/lifecycle/confine.rs`).
+Experiment 414 clause 4 (the chroot-denying fixture): the static busybox
+on the native-static rung and on the syscall tier, and the arm64 busybox
+on the emulate tier, read `/etc/passwd` and are denied `/etc/shadow`.
+
+Remaining: the write of `/tmp` on the namespace rung (COORD-048). The report of
 T-1695 (`run --report`) names the confine SPEC of the run. The ABI is in `podvm probe` already (the
 probe `landlock_create_ruleset(VERSION)`), and `podvm doctor` names what
 the layer does with it: under ABI 3 it is MISSING, under ABI 4 it runs

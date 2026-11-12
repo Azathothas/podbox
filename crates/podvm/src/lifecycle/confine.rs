@@ -2,12 +2,13 @@
 //!
 //! The layer runs on a rung with a chroot (the namespace rung and the
 //! chroot rung), where the paths of the spec are guest paths and
-//! `pod-enter` opens each under the root before the fork, and on the loader
-//! family of the userland rung, where each guest path becomes its host path
-//! through the table of the interposer (the rootfs and each `-v`). The
-//! record keeps the SPEC, so the launcher of `run -d` and each `exec` apply
-//! it too. Each other case refuses by name, before anything runs: a payload
-//! that asked for the layer never runs without it.
+//! `pod-enter` opens each under the root before the fork, and on each
+//! family of the userland rung (the loader family, the native-static rung,
+//! the syscall and the emulate tier), where each guest path becomes its
+//! host path through the table of the interposer (the rootfs and each
+//! `-v`). The record keeps the SPEC, so the launcher of `run -d` and each
+//! `exec` apply it too. Each other case refuses by name, before anything
+//! runs: a payload that asked for the layer never runs without it.
 
 use podvm_enter::confine::{self, Ask, Spec};
 use podvm_probe::select::Rung;
@@ -28,34 +29,42 @@ pub fn decide(
     let Some(ask) = ask else {
         return Ok(None);
     };
-    // The loader family: the image's loader runs the payload, with no
-    // dispatcher of podvm and no emulator in its process.
-    let loader =
-        userland.filter(|u| u.dispatch_exe.is_none() && u.emulator.is_none() && !u.syscall);
-    if let Err(why) = check(ask, entered, loader.is_some(), confine::abi()) {
+    // Each family of the userland rung runs with no chroot, so the layer
+    // takes host paths. Beside the image, the payload's process runs
+    // podvm's own dispatcher (the native-static rung, the syscall tier) or
+    // a host emulator (the emulate tier): each gets read and execute.
+    if let Err(why) = check(ask, entered, userland.is_some(), confine::abi()) {
         return Err(refuse(verb, why));
     }
-    Ok(Some(match loader {
-        Some(u) => confine::host_spec(ask, &u.maps),
-        None => confine::spec_in(ask, std::path::Path::new(rootfs)),
-    }))
+    let Some(u) = userland else {
+        return Ok(Some(confine::spec_in(ask, std::path::Path::new(rootfs))));
+    };
+    let rx = confine::Access::READ | confine::Access::EXECUTE;
+    let mut spec = confine::host_spec(ask, &u.maps);
+    if (u.dispatch_exe.is_some() || u.syscall || u.emulator.is_some())
+        && let Ok(me) = std::env::current_exe()
+    {
+        spec = spec.allow(me.to_string_lossy().to_string(), rx);
+    }
+    if let Some((_, host)) = u.emulator.as_deref().and_then(|e| e.split_once(':')) {
+        spec = spec.allow(host.to_string(), rx);
+    }
+    Ok(Some(spec))
 }
 
 /// The refusals of the layer, as a pure function of its inputs.
-pub fn check(ask: &Ask, entered: Rung, loader: bool, abi: Option<u32>) -> Result<(), String> {
-    let carried = confine::rung_carries(entered) || (entered == Rung::Userland && loader);
+pub fn check(ask: &Ask, entered: Rung, userland: bool, abi: Option<u32>) -> Result<(), String> {
+    let carried = confine::rung_carries(entered) || (entered == Rung::Userland && userland);
     if !carried {
         let which = if entered == Rung::Userland {
-            "the userland rung with podvm's dispatcher or an emulator (the native-static \
-             rung, the syscall or the emulate tier)"
-                .to_string()
+            "the userland rung with no table of host paths".to_string()
         } else {
             format!("the {} rung", entered.word())
         };
         return Err(format!(
             "the layer runs on a rung with a chroot (namespace or chroot) and on the \
-             loader family of the userland rung, and this run enters {which}, so podvm \
-             refuses: a payload that asks for the layer never runs without it"
+             userland rung, and this run enters {which}, so podvm refuses: a payload \
+             that asks for the layer never runs without it"
         ));
     }
     match abi {
@@ -86,7 +95,7 @@ mod tests {
         assert!(check(&ask, Rung::Namespace, false, Some(7)).is_ok());
         assert!(check(&ask, Rung::Userland, true, Some(7)).is_ok());
         let e = check(&ask, Rung::Userland, false, Some(7)).unwrap_err();
-        assert!(e.contains("dispatcher or an emulator"), "{e}");
+        assert!(e.contains("no table of host paths"), "{e}");
         let e = check(&ask, Rung::Supervise, false, Some(7)).unwrap_err();
         assert!(e.contains("supervise rung"), "{e}");
         let e = check(&ask, Rung::Namespace, false, None).unwrap_err();

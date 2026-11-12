@@ -1,7 +1,7 @@
 == conditions
-date              2026-11-11T21:34:33Z
+date              2026-11-12T02:46:47Z
 host kernel       Linux 6.18.44-fc-v378
-podvm             podvm 0.2.0-beta.4
+podvm             podvm 0.2.0-beta.5
 rung              namespace
 image             mirror.gcr.io/library/busybox:musl
 listeners         127.0.0.1:A and 127.0.0.1:B
@@ -10,8 +10,8 @@ listeners         127.0.0.1:A and 127.0.0.1:B
     2013d9003084: Extracted (430 entries, 0 whiteouts)
     root:x:0:0:root:/root:/bin/sh
     cat: can't open '/etc/shadow': Permission denied
-    sh: line 0: can't create /tmp/w: Permission deniedshadow=1
-    
+    shadow=1
+    sh: line 0: can't create /tmp/w: Permission denied
     write=1
     hello-A
     a=0
@@ -32,7 +32,9 @@ listeners         127.0.0.1:A and 127.0.0.1:B
 
 == clause 4  the loader family of the userland rung (chroot denied)
   loader family: exit 0: shadow=1 w=0 tmp=1 out.txt on the host
-  native-static: exit 125: podvm run: --podvm-confine: the layer runs on a rung with a chroot (namespace or chroot) and on the loader family of the userland rung, and this run e
+  native-static: exit 0: shadow=1
+  syscall: exit 0: shadow=1
+  emulate: exit 0: shadow=1
 
 == clause 5  run -d and exec take the layer of the record
   run -d: exit 0; d-shadow=1 e-shadow=1 

@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the confine layer on the dispatcher rungs, 2026-11-12
+
+Record: T-1658.
+Deployed: not released.
+
+- `--podvm-confine` runs on the native-static rung, the syscall tier and
+  the emulate tier. podvm gives the host path of its own dispatcher, and
+  of the host qemu, read and execute. Before this change, these rungs
+  refused the layer by name. Experiment 414 clause 4 shows it.
+
 ## 0.2.0-beta.5 (2026-11-12)
 
 ### Changed: podcrates v0.26.0, 2026-11-12

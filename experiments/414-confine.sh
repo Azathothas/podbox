@@ -26,7 +26,10 @@
 #      a dynamic program (alpine) runs on the loader family with the layer
 #      in host paths, through the table: /etc/passwd reads, /etc/shadow and
 #      /tmp are denied, and a `-v` volume at /workspace reads and writes;
-#      the static busybox (the native-static rung) refuses by name, 125.
+#      the static busybox reads /etc/passwd and is denied /etc/shadow on
+#      the native-static rung and on the syscall tier; where a host
+#      qemu-aarch64 exists, the arm64 busybox does the same on the emulate
+#      tier (else the case prints SKIP).
 #   5. `run -d` with the layer: the detached payload cannot read
 #      /etc/shadow, and `exec` into the container takes the same layer from
 #      the record.
@@ -153,11 +156,34 @@ grep -q "^shadow=1" "$WORK/c4.out" || bad "loader family: /etc/shadow read"
 grep -q "^in$" "$WORK/c4.out" || bad "loader family: the volume did not read"
 [ -f "$WORK/proj/out.txt" ] || bad "loader family: the write to the volume did not land"
 grep -q "^tmp=1" "$WORK/c4.out" || bad "loader family: /tmp was writable"
-timeout 300 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm --podvm-confine="read=/etc/passwd" "$IMG" true >"$WORK/c4b.out" 2>&1
-rc=$?
-note "  native-static: exit $rc: $(grep -m1 -- '--podvm-confine' "$WORK/c4b.out" | cut -c1-150)"
-[ "$rc" -eq 125 ] || bad "the native-static run exited $rc"
-grep -q "dispatcher or an emulator" "$WORK/c4b.out" || bad "the refusal does not name the rung"
+# The families with podvm's dispatcher: the native-static rung (a static
+# image) and the syscall tier. The payload's process runs podvm itself, so
+# the layer gives podvm's host path read and execute.
+for fam in native-static syscall; do
+	tier=""; [ "$fam" = syscall ] && tier="--podvm-tier=syscall"
+	timeout 300 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm $tier --podvm-confine="read=/etc/passwd" "$IMG" sh -c 'head -1 /etc/passwd; cat /etc/shadow >/dev/null 2>&1; echo "shadow=$?"' >"$WORK/c4-$fam.out" 2>&1
+	rc=$?
+	note "  $fam: exit $rc: $(grep -E '^shadow=' "$WORK/c4-$fam.out")"
+	[ "$rc" -eq 0 ] || bad "the $fam run exited $rc"
+	grep -q "^root:" "$WORK/c4-$fam.out" || bad "$fam: /etc/passwd did not read"
+	grep -q "^shadow=1" "$WORK/c4-$fam.out" || bad "$fam: /etc/shadow read"
+done
+# The emulate tier: a host qemu runs in the payload's process, so the layer
+# gives its host path read and execute too.
+if command -v qemu-aarch64-static >/dev/null 2>&1 || command -v qemu-aarch64 >/dev/null 2>&1; then
+	if timeout 600 "$PB" pull --platform linux/arm64 "$IMG" >>"$WORK/pull.log" 2>&1; then
+		timeout 300 unshare -Urm sh "$WORK/wrap.sh" "$WORK" "$PB" run --rm --platform linux/arm64 --podvm-tier=emulate --podvm-confine="read=/etc/passwd" "$IMG" sh -c 'head -1 /etc/passwd; cat /etc/shadow >/dev/null 2>&1; echo "shadow=$?"' >"$WORK/c4-emu.out" 2>&1
+		rc=$?
+		note "  emulate: exit $rc: $(grep -E '^shadow=' "$WORK/c4-emu.out")"
+		[ "$rc" -eq 0 ] || bad "the emulate run exited $rc"
+		grep -q "^root:" "$WORK/c4-emu.out" || bad "emulate: /etc/passwd did not read"
+		grep -q "^shadow=1" "$WORK/c4-emu.out" || bad "emulate: /etc/shadow read"
+	else
+		note "  emulate: SKIP (the pull of the arm64 image failed)"
+	fi
+else
+	note "  emulate: SKIP (no host qemu-aarch64)"
+fi
 note ""
 
 note "== clause 5  run -d and exec take the layer of the record"

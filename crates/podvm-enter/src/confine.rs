@@ -19,8 +19,7 @@
 //! `/dev/random` and `/dev/urandom` (read). `/etc` is not among them: a
 //! profile names each file of `/etc` that it reads.
 
-use pod_confine::Access;
-pub use pod_confine::Spec;
+pub use pod_confine::{Access, Spec};
 
 /// The system directories that a program of the image runs from.
 /// `/.podvm` is podvm's own directory of the rootfs (the probe of
