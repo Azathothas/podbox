@@ -28,11 +28,10 @@
 #      /workspace/worker.js passes; `typeof process` is undefined;
 #      `node:fs` and `node:child_process` do not import; a `fetch` to a host
 #      listener fails, and the listener counts no connection.
-#   6. wasmtime-wasi: no profile yet. wasmtime needs a download recorded by
-#      hash on first use (F25 of issue 176). The clause reports WAITS, which
-#      is not a pass, and the entry stays partial.
+#   6. wasmtime-wasi: `hello.wat` of /workspace prints "hello from wasi",
+#      and the only preopened directory that it lists is /workspace.
 #
-# Exit: 0 each clause matched (a WAITS clause aside), 1 a clause disagreed,
+# Exit: 0 each clause matched, 1 a clause disagreed,
 # 2 the lane could not run.
 set -u
 
@@ -81,6 +80,35 @@ t("read /etc/hostname", () => Deno.readTextFileSync("/etc/hostname"));
 t("write /tmp/out.txt", () => Deno.writeTextFileSync("/tmp/out.txt", "x"));
 t("env HOME", () => Deno.env.get("HOME"));
 t("read /workspace/perm.ts", () => Deno.readTextFileSync("/workspace/perm.ts"));
+EOF
+cat >"$WORK/proj/hello.wat" <<'EOF'
+(module
+  (import "wasi_snapshot_preview1" "fd_write" (func $fd_write (param i32 i32 i32 i32) (result i32)))
+  (import "wasi_snapshot_preview1" "fd_prestat_get" (func $prestat (param i32 i32) (result i32)))
+  (import "wasi_snapshot_preview1" "fd_prestat_dir_name" (func $dirname (param i32 i32 i32) (result i32)))
+  (memory (export "memory") 1)
+  (data (i32.const 64) "hello from wasi\n")
+  (data (i32.const 96) "preopen ")
+  (data (i32.const 104) "\n")
+  ;; write len bytes at ptr to stdout; iovec at 0, nwritten at 8
+  (func $out (param $ptr i32) (param $len i32)
+    (i32.store (i32.const 0) (local.get $ptr))
+    (i32.store (i32.const 4) (local.get $len))
+    (drop (call $fd_write (i32.const 1) (i32.const 0) (i32.const 1) (i32.const 8))))
+  (func (export "_start") (local $fd i32) (local $n i32)
+    (call $out (i32.const 64) (i32.const 16))
+    (local.set $fd (i32.const 3))
+    (block $done
+      (loop $next
+        ;; prestat at 16: tag (u8) then name length (u32) at 20
+        (br_if $done (i32.ne (call $prestat (local.get $fd) (i32.const 16)) (i32.const 0)))
+        (local.set $n (i32.load (i32.const 20)))
+        (drop (call $dirname (local.get $fd) (i32.const 256) (local.get $n)))
+        (call $out (i32.const 96) (i32.const 8))
+        (call $out (i32.const 256) (local.get $n))
+        (call $out (i32.const 104) (i32.const 1))
+        (local.set $fd (i32.add (local.get $fd) (i32.const 1)))
+        (br $next)))))
 EOF
 cat >"$WORK/proj/worker.js" <<'EOF'
 export default {
@@ -187,11 +215,17 @@ grep -q '^fetch failed' "$WORK/c5.out" || bad "the fetch did not fail"
 note ""
 
 note "== clause 6  wasmtime-wasi"
-note "  WAITS: wasmtime needs a download recorded by hash on first use (F25 of issue 176)"
+fx run --rm --profile wasmtime-wasi -- hello.wat >"$WORK/c6.out" 2>&1
+rc=$?
+note "  exit $rc: $(grep -E '^(hello|preopen)' "$WORK/c6.out" | tr '\n' ';')"
+[ "$rc" -eq 0 ] || { bad "the wasmtime-wasi run exited $rc"; grep -v '^  ' "$WORK/c6.out" | tail -3 | sed 's/^/    /' | tee -a "$OUT"; }
+grep -qx 'hello from wasi' "$WORK/c6.out" || bad "the module did not print hello from wasi"
+[ "$(grep -c '^preopen ' "$WORK/c6.out")" = 1 ] || bad "the module does not see one preopened directory"
+grep -qx 'preopen /workspace' "$WORK/c6.out" || bad "/workspace is not the preopened directory"
 note ""
 
 if [ "$fail" -eq 0 ]; then
-	note "verdict: THE RUNTIME PROFILES HOLD (a WAITS clause aside)"
+	note "verdict: THE RUNTIME PROFILES HOLD"
 else
 	note "verdict: A CLAUSE DISAGREED"
 fi

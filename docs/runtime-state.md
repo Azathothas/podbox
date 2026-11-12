@@ -78,3 +78,4 @@ Separate crate: `crates/podvm-interpose`.
 | `tar` | `0.4.46` |
 | `tokio` | `1.54.1` |
 | `toml` | `1.2.1+spec-1.1.0` |
+| `xz4rust` | `0.2.3` |

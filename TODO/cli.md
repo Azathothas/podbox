@@ -2828,7 +2828,7 @@ and each fill removes a partial tree whose process is gone.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2902,6 +2902,22 @@ T-1694.
 
 ## Done
 
+**Done 2026-11-12.** `wasmtime-wasi` is a built-in profile: `podvm run
+--profile wasmtime-wasi -- MODULE` runs `wasmtime run --dir=/workspace`
+of a module of `/workspace`. wasmtime publishes no checksum (F25), so
+podvm pins its own measurement of the release v50.0.1: the SHA-256 of
+`wasmtime-v50.0.1-x86_64-linux.tar.xz` and of the program in it. The
+pinned programs of workerd and wasmtime share one table and one fetch
+(`crates/podvm/src/profile/tools.rs`, a `.tar.gz` and a `.tar.xz`), and
+each goes to `<store>/tools/` once. COORD-053 (issue 274) and COORD-054
+(issue 275) ask podcrates to hold the pins in `pod-services`.
+
+`cargo test -p podvm` exits 0 with
+`each_pin_names_its_version_and_its_guest_directory`. `PODVM_417_MIRROR=1
+sh experiments/417-runtime-profiles.sh` exits 0 with each of its six
+clauses: clause 6 prints `hello from wasi`, and `/workspace` is the only
+preopened directory of the module.
+
 **Partial 2026-11-11.** `cargo test -p podvm` exits 0 with
 `one_profile_gives_the_runtime_flags_and_the_path_map` (the paths of
 `node-permission` give both `node --permission --allow-fs-read=/workspace
@@ -2958,8 +2974,6 @@ the test of the worker passes, `typeof process = undefined`, `node:fs`
 and `node:child_process` do not import, and a `fetch` to a host listener
 fails with no connection.
 
-Remaining: `wasmtime-wasi` (wasmtime needs a download, recorded by hash on
-first use, F25 of issue 176).
 
 # T-1694: Headless Chromium of Playwright runs as a proven payload with its flags in one profile
 

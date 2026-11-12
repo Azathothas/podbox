@@ -7,7 +7,7 @@ start.
 
 ## State
 
-348 entries: 5 open, 7 partial, 5 blocked, 331 done.
+348 entries: 5 open, 6 partial, 5 blocked, 332 done.
 
 The state on 2026-11-11:
 
@@ -58,9 +58,7 @@ that is not done. Read its Prove before you start. Set its status with
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
-   wait with T-1662); the profile entry
-   [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset
-   record).
+   wait with T-1662).
 3. The record and the tree: no entry is open.
 4. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
    release. [T-1406](podssh.md), partial, proves live-relay pairing

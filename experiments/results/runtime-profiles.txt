@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-12T03:16:36Z
+date              2026-11-12T03:24:41Z
 host kernel       Linux 6.18.44-fc-v378
 podvm             podvm 0.2.0-beta.5
 fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied (clauses 1 and 2)
@@ -36,6 +36,6 @@ machine tier      TCG (clause 3)
   connections to the host listener: 0
 
 == clause 6  wasmtime-wasi
-  WAITS: wasmtime needs a download recorded by hash on first use (F25 of issue 176)
+  exit 0: hello from wasi;preopen /workspace;
 
-verdict: THE RUNTIME PROFILES HOLD (a WAITS clause aside)
+verdict: THE RUNTIME PROFILES HOLD

@@ -710,6 +710,7 @@ dependencies = [
  "tar",
  "tokio",
  "toml",
+ "xz4rust",
 ]
 
 [[package]]

@@ -8,11 +8,14 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
-### Added: the profile workerd-test, 2026-11-12
+### Added: the profiles workerd-test and wasmtime-wasi, 2026-11-12
 
 Record: T-1661.
 Deployed: not released.
 
+- `podvm run --profile wasmtime-wasi -- MODULE` runs `wasmtime run
+  --dir=/workspace` of a WASI module: a pinned wasmtime 50.0.1, checked
+  by SHA-256 and kept in the store.
 - `podvm run --profile workerd-test` runs `workerd test` of
   `/workspace/worker.js`: a pinned workerd (the npm package
   1.20261029.1, checked by SHA-256 and kept in the store), a config with

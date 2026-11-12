@@ -54,8 +54,9 @@ pub fn prefix(
         // boundary, and the profile says so in `leaves_out`.
         "bun" => (vec![p("bun")], vec![p("bun")]),
         // WASI: the module sees only its preopened directories.
+        // The program is podvm's pin in the store (super::tools).
         "wasmtime" => {
-            let mut a = vec![p("wasmtime"), p("run")];
+            let mut a = vec![super::tools::WASMTIME.guest_program(), p("run")];
             a.extend(reads.iter().map(|d| format!("--dir={d}")));
             (a, vec![p("wasmtime"), p("run")])
         }
@@ -137,7 +138,10 @@ mod tests {
             v(&["deno", "run", "--no-prompt", "--allow-read=/workspace"])
         );
         let (n, _) = prefix("wasmtime", &v(&["/workspace"]), &v(&["/workspace"])).unwrap();
-        assert_eq!(n, v(&["wasmtime", "run", "--dir=/workspace"]));
+        assert_eq!(
+            n,
+            v(&["/opt/podvm-wasmtime/wasmtime", "run", "--dir=/workspace"])
+        );
         assert!(prefix("python", &[], &[]).unwrap_err().contains("python"));
     }
 

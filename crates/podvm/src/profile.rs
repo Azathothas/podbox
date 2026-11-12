@@ -14,6 +14,7 @@
 pub mod builtin;
 pub mod model;
 pub mod runtime;
+pub mod tools;
 mod values;
 pub mod workerd;
 
@@ -69,14 +70,15 @@ pub fn run_args(verb: &str, name: &str, sets: &[String]) -> Result<Shape, i32> {
     let cwd = std::env::current_dir()
         .map_err(|e| fail(format!("profile {name}: the current directory: {e}")))?;
     let mut flags = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
-    // TODO/cli.md T-1661: the pinned workerd and its config, read-only.
-    if c.runtime.as_deref() == Some("workerd") {
+    // TODO/cli.md T-1661: the pinned program of the runtime and its
+    // files, read-only.
+    if let Some(t) = c.runtime.as_deref().and_then(tools::of_runtime) {
         let dir = podvm_image::store::Store::default_root(|| None)
             .map_err(|e| e.to_string())
-            .and_then(|root| workerd::ensure(&root))
-            .map_err(|e| fail(format!("profile {name}: workerd: {e}")))?;
+            .and_then(|root| tools::ensure(&root, t))
+            .map_err(|e| fail(format!("profile {name}: {}: {e}", t.name)))?;
         flags.push("-v".into());
-        flags.push(format!("{}:{}:ro", dir.display(), workerd::GUEST_DIR));
+        flags.push(format!("{}:{}:ro", dir.display(), t.guest_dir));
     }
     let (wrap, drops) = match &c.runtime {
         Some(r) => runtime::prefix(r, &c.read, &c.write)

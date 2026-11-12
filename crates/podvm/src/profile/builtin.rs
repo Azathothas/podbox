@@ -24,6 +24,7 @@ pub const NAMES: &[&str] = &[
     "errand",
     "playwright-chromium",
     "workerd-test",
+    "wasmtime-wasi",
 ];
 
 /// The text of a built-in profile.
@@ -203,6 +204,19 @@ leaves_out = [
 image = "public.ecr.aws/docker/library/node:lts-slim"
 read = ["/workspace"]
 write = ["/workspace"]
+"#
+        }
+        "wasmtime-wasi" => {
+            r#"description = "wasmtime run of a WASI module: only /workspace is preopened, no socket"
+extends = "workspace"
+runtime = "wasmtime"
+leaves_out = [
+  "a socket: WASI preview 1 gives the module none, and wasmtime grants no network without -S inherit-network",
+  "the arm64 host: the pin is the x86_64 binary of the release",
+]
+[fs]
+image = "gcr.io/distroless/cc-debian12@sha256:e5d81ddde149641e2a9ba55be4545bc125c67de07508b03ba4c22e6eb0ded5aa"
+read = ["/workspace"]
 "#
         }
         "workerd-test" => {
