@@ -28,9 +28,9 @@ const MS_RDONLY: u64 = 1;
 
 unsafe extern "C" {
     fn mount(
-        src: *const i8,
-        target: *const i8,
-        fstype: *const i8,
+        src: *const std::ffi::c_char,
+        target: *const std::ffi::c_char,
+        fstype: *const std::ffi::c_char,
         flags: u64,
         data: *const u8,
     ) -> i32;
