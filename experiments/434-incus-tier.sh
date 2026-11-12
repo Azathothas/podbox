@@ -31,6 +31,11 @@
 #   9. no instance stays in incus after the runs; after the cleanup, no
 #      process of the user or its range stays.
 #  10. where no incusd answers, a run refuses by name (exit 125).
+#  11. -v HOSTDIR:/data (T-1722) is a disk device: the command reads a host
+#      file there, its write is on the host after the run, and a `:ro`
+#      volume refuses a write. The instance's root is an id of the user's
+#      range, so the directory is mode 0777 (a directory of mode 0755 of
+#      the user is read-only to the instance: recorded, not a clause).
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (not root, no user namespaces, no package).
@@ -172,8 +177,22 @@ grep -q "from incus" "$WORK/c7.err" || { note "7: the second run imported the im
 P create --podvm-tier=incus "$OCI" true >/dev/null 2>"$WORK/c8.err"; rc_c=$?
 P exec --podvm-tier=incus none true >/dev/null 2>>"$WORK/c8.err"; rc_e=$?
 { echo ""; echo "== 8. the other verbs"; echo "  create exit  $rc_c"; echo "  exec exit    $rc_e"; sed 's/^/  stderr  /' "$WORK/c8.err"; } >>"$REPORT"
-[ "$rc_c" -eq 125 ] && [ "$rc_e" -eq 125 ] && [ "$(grep -c 'tier=incus serves run only' "$WORK/c8.err")" -eq 2 ] ||
+[ "$rc_c" -eq 125 ] && [ "$rc_e" -eq 125 ] && [ "$(grep -cE 'tier=incus[^(]* serves? run only' "$WORK/c8.err")" -eq 2 ] ||
 	{ note "8: create or exec did not refuse the incus tier by name"; fail=1; }
+
+# ---- clause 11 ----------------------------------------------------------
+V="$B/vol"; VR="$B/volro"
+runuser -u "$U" -- sh -c "mkdir -p '$V' '$VR' && chmod 0777 '$V' '$VR' && echo host-434 >'$V/in.txt'"
+out=$(T -v "$V:/data" -v "$VR:/ro:ro" "$OCI" sh -c 'cat /data/in.txt; echo guest-434 > /data/out.txt && echo wrote; touch /ro/x 2>&1; true' </dev/null 2>"$WORK/c11.err"); rc=$?
+{ echo ""; echo "== 11. volumes"; echo "  exit    $rc"; echo "$out" | sed 's/^/  stdout  /'; echo "  host    $(cat "$V/out.txt" 2>/dev/null || echo -)"; grep -v "incus tier" "$WORK/c11.err" | sed 's/^/  stderr  /'; } >>"$REPORT"
+[ "$rc" -eq 0 ] || { note "11: wanted exit 0, got $rc"; fail=1; }
+echo "$out" | grep -qx host-434 || { note "11: the command did not read the host file"; fail=1; }
+[ "$(cat "$V/out.txt" 2>/dev/null)" = guest-434 ] || { note "11: the write of the command is not on the host"; fail=1; }
+echo "$out" | grep -q "Read-only file system" || { note "11: a write in the :ro volume was not refused"; fail=1; }
+[ -e "$VR/x" ] && { note "11: a write in the :ro volume is on the host"; fail=1; }
+runuser -u "$U" -- sh -c "mkdir -p '$B/vol755' && chmod 0755 '$B/vol755'"
+out=$(T -v "$B/vol755:/d" "$OCI" sh -c 'touch /d/x 2>&1; true' </dev/null 2>/dev/null)
+echo "  a directory of mode 0755: $(echo "$out" | head -1 | cut -c1-80)" >>"$REPORT"
 
 # ---- clause 9 -----------------------------------------------------------
 left_i=$(RI list --format csv -c n 2>&1 | grep -c .)

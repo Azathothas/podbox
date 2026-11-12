@@ -8,6 +8,14 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: a volume of the incus tier, 2026-11-12
+
+Record: T-1722.
+Deployed: not released.
+
+- `run --podvm-tier=incus -v HOST:GUEST[:ro]` maps the host directory into
+  the instance as a disk device, so a write lands on the host.
+
 ### Changed: a volume of the machine tier is a 9p mount, and -t a terminal, 2026-11-12
 
 Record: T-1723.

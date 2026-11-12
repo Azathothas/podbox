@@ -275,6 +275,10 @@ fn a_run_imports_creates_pushes_starts_execs_and_deletes() {
         env: vec!["PATH=/bin".into()],
         workdir: "/".into(),
         stdin: Some(b"in".to_vec()),
+        volumes: vec![
+            ("/h/ws".into(), "/workspace".into(), false),
+            ("/h/cfg".into(), "/cfg".into(), true),
+        ],
     });
     unsafe { std::env::remove_var("PODVM_INCUS_SOCKET") };
     assert_eq!(code, 7, "the exit code of the command");
@@ -306,6 +310,14 @@ fn a_run_imports_creates_pushes_starts_execs_and_deletes() {
         "lxc.init.cmd = /.podvm/podvm guest-hold"
     );
     assert_eq!(body("POST /1.0/images/aliases")["target"], "f00d");
+    // TODO/machine.md T-1722: each -v is a disk device; :ro is read-only.
+    assert_eq!(
+        create["devices"],
+        json!({
+            "podvm-vol0": {"type": "disk", "source": "/h/ws", "path": "/workspace"},
+            "podvm-vol1": {"type": "disk", "source": "/h/cfg", "path": "/cfg", "readonly": "true"}
+        })
+    );
     let exec = seen
         .iter()
         .find(|(m, p, _)| m == "POST" && p.ends_with("/exec"))

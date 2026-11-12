@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-11T10:20:43Z
+date              2026-11-12T11:59:00Z
 host kernel       Linux 6.18.44-fc-v378
 cgroup            tmpfs
 incus package     6.0.0-1ubuntu0.3
@@ -9,7 +9,7 @@ runs              5
 == 1. a run
   stdout  hello
   exit    0
-  ms      2363 (with the import)
+  ms      2369 (with the import)
   stderr  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   stderr  podvm: 517 of 517 entries carry an id this machine cannot apply; what the image intended is in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   stderr  podvm: restore ownership with chown of bin (uid 0, gid 0): EINVAL
@@ -39,14 +39,22 @@ runs              5
   stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
 
 == 7. the cached image
-  run true ms  1375 (median of 5)
+  run true ms  1593 (median of 5)
   stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
 
 == 8. the other verbs
   create exit  125
   exec exit    125
   stderr  podvm create: --podvm-tier=incus serves run only: each run is a disposable instance (TODO/machine.md T-1718)
-  stderr  podvm exec: --podvm-tier=incus serves run only (TODO/machine.md T-1718)
+  stderr  podvm exec: --podvm-tier=incus, emulate, syscall and runsc serve run only (TODO/machine.md T-1718, TODO/enter.md T-1651, T-1657, T-1729)
+
+== 11. volumes
+  exit    0
+  stdout  host-434
+  stdout  wrote
+  stdout  touch: /ro/x: Read-only file system
+  host    guest-434
+  a directory of mode 0755: touch: /d/x: Permission denied
 
 == 9. nothing stays
   instances in incus              0

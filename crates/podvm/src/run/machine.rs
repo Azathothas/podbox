@@ -197,14 +197,9 @@ pub(super) fn incus_tier(
         );
         return EXIT_FLAG_ERROR;
     }
-    if !o.volumes.is_empty()
-        || o.mem.is_some()
-        || o.cpus.is_some()
-        || !o.qemu_args.is_empty()
-        || o.broker
-    {
+    if o.mem.is_some() || o.cpus.is_some() || !o.qemu_args.is_empty() || o.broker {
         eprintln!(
-            "podvm {verb}: --podvm-tier=incus takes no -v, --podvm-mem, --podvm-cpus, \
+            "podvm {verb}: --podvm-tier=incus takes no --podvm-mem, --podvm-cpus, \
              --podvm-qemu-arg or --network broker yet (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;
@@ -222,5 +217,17 @@ pub(super) fn incus_tier(
         env: p.env,
         workdir: p.workdir,
         stdin: p.stdin,
+        // TODO/machine.md T-1722: each -v is a disk device of the instance.
+        volumes: o
+            .volumes
+            .iter()
+            .map(|v| {
+                (
+                    v.host.clone(),
+                    v.guest.clone(),
+                    o.ro_volumes.contains(&v.guest),
+                )
+            })
+            .collect(),
     })
 }

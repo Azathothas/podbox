@@ -1977,7 +1977,7 @@ selection, `.EnteredRung`) is T-1722. podcrates takes the client as
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2019,6 +2019,23 @@ incusd of route A with exit 0.
 ## Correction
 
 **Filed 2026-11-11.** From the rest of T-1718.
+
+## Done
+
+**Partial 2026-11-12, the volumes.** `run --podvm-tier=incus -v
+HOST:GUEST[:ro]` adds one `disk` device for each volume to the new
+instance (`disk_devices` of `crates/podvm/src/incus/run.rs`; `:ro` sets
+`readonly`). The test of the stand-in server checks the devices of the
+request. `sh experiments/434-incus-tier.sh` exits 0 against the incusd of
+route A on this host with the new clause 11: the command reads a host file,
+its write is on the host after the run, and a `:ro` volume refuses a write
+([the run](../experiments/results/incus-tier.txt)). Under route A the root
+of the instance is an id of the user's range, so a directory of mode 0755
+of the user is read-only to it (measured: "Permission denied"); the clause
+uses mode 0777. Clause 8 now takes the refusal of `exec` that names each
+tier of `run` only. Remaining: `create`, `start`, `exec`, `ps`, `stop`,
+`rm` and `logs` of an instance that stays, the ladder and `.EnteredRung`,
+and podvm pushed one time for each image.
 
 # T-1723: The microVM of run: the microvm machine, a shared /workspace and an interactive stdin
 

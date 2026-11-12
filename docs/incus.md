@@ -107,11 +107,18 @@ interposer is the cost.
 
 [Experiment 434](../experiments/434-incus-tier.sh) proves it against the
 incusd of route A ([its run](../experiments/results/incus-tier.txt)): each
-of its ten clauses matches. A run with the image in incus took about 1.3 s
+of its eleven clauses matches. A run with the image in incus took about 1.3 s
 (median of 5); most of it is the push of the debug binary (82 MB) into each
-instance. `create` and `exec` refuse the tier by name, and so do `-v`,
-`--podvm-mem` and `--podvm-qemu-arg`. T-1722 has the rest of the verbs, the
-selection by the ladder, and the volumes.
+instance. `create` and `exec` refuse the tier by name, and so do
+`--podvm-mem` and `--podvm-qemu-arg`. T-1722 has the rest of the verbs and
+the selection by the ladder.
+
+`-v HOST:GUEST[:ro]` is a `disk` device of the instance (T-1722, clause 11
+of experiment 434): a write in the instance lands in the host directory,
+and `:ro` refuses a write. Under route A the root of the instance is an id
+of the user's range, so it writes only in a directory that the range may
+write (mode 0777 in the clause); a directory of mode 0755 of the user is
+read-only to it.
 
 ## What stays open
 

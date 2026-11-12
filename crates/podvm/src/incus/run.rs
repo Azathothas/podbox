@@ -13,6 +13,10 @@
 //!    come back apart with the exit code. Piped stdin goes in as a file.
 //! 4. The end: the instance is deleted, as under `--rm`.
 //!
+//! A `-v HOST:GUEST[:ro]` is a `disk` device of the instance
+//! ([`disk_devices`], TODO/machine.md T-1722): incusd maps the host
+//! directory into the instance, so a write lands on the host.
+//!
 //! The command is not PID 1 here (the hold is); the parity note says so.
 
 use std::collections::BTreeMap;
@@ -35,6 +39,26 @@ pub struct Job<'a> {
     pub env: Vec<String>,
     pub workdir: String,
     pub stdin: Option<Vec<u8>>,
+    /// `-v HOST:GUEST[:ro]`; `true` is read-only.
+    pub volumes: Vec<(String, String, bool)>,
+}
+
+/// One `disk` device for each volume, named `podvm-volN`.
+pub fn disk_devices(volumes: &[(String, String, bool)]) -> pod_incus::Devices {
+    volumes
+        .iter()
+        .enumerate()
+        .map(|(i, (host, guest, ro))| {
+            let mut d = BTreeMap::new();
+            d.insert("type".to_string(), "disk".to_string());
+            d.insert("source".to_string(), host.clone());
+            d.insert("path".to_string(), guest.clone());
+            if *ro {
+                d.insert("readonly".to_string(), "true".to_string());
+            }
+            (format!("podvm-vol{i}"), d)
+        })
+        .collect()
 }
 
 /// The socket of an incusd: `PODVM_INCUS_SOCKET`, else `INCUS_DIR`'s, else
@@ -170,6 +194,7 @@ async fn run_in(c: &Client, job: &Job<'_>, image: &str, inst: &str) -> i32 {
         EXIT_RUNTIME_ERROR
     };
     let mut new = NewInstance::container(inst, Source::Alias(image.to_string()));
+    new.devices = disk_devices(&job.volumes);
     new.config.insert(
         "raw.lxc".into(),
         "lxc.init.cmd = /.podvm/podvm guest-hold".into(),
