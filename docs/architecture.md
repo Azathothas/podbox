@@ -108,8 +108,11 @@ Each guest run has bounded waits.
 
 ## SSH
 
-The `podvm-ssh` crate owns transport, TLS, WebSocket frames, multiplexing,
-server supervision, and the interactive session without a pty.
+The `podvm-ssh` crate owns transport, server supervision, and the
+interactive session without a pty. The relay legs (TLS, WebSocket frames,
+multiplexing, the redial) are the blocking client of `pod-relay`
+(PodUtils/podcrates); `podvm-ssh` gives it the TLS roots, the proxy of the
+environment and the server of each session.
 Remote dispatch calls the helper executables beside podvm or on PATH.
 The remote relay path uses the multiplexed protocol.
 Local forwarding uses the transport appropriate to its fixed endpoint.

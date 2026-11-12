@@ -123,8 +123,9 @@ The remote CLI needs compatible helpers beside podvm or on PATH.
 Each release target since beta.10 carries the helper archive
 (T-1405 in [podssh](../TODO/podssh.md)). The beta.9 assets contain podvm only.
 
-The relay legs carry 10 s DNS and write deadlines; a stalled peer ends
-the operation loud instead of wedging the loop. Node redial pairing is
+The relay legs carry a 10 s bound on each connection, pings on each
+socket, and a 10 s write bound on the server of each session; a stalled
+peer ends its session or its socket loud instead of wedging the node. Node redial pairing is
 proven on the loopback fake relay; pairing against the live relay is the
 one remaining clause of T-1406, which is `partial` and owns both the
 bounds and the reconnect evidence. The earlier T-1403 acceptance proves

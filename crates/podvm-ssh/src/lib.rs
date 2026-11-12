@@ -2,8 +2,9 @@
 //! `TODO/podssh.md` T-1401.
 //!
 //! The relay legs live here too: [`mux`] speaks the multiplexed reverse
-//! protocol (`reverse-v1`) on the node and operator sides, over the [`ws`]
-//! framing and the [`tls`] client. The one-pair rendezvous for local paths
+//! protocol (`reverse-v1`) on the node and operator sides, through the
+//! blocking client of `pod-relay` (PodUtils/podcrates), which owns the
+//! framing, TLS and the redial. The one-pair rendezvous for local paths
 //! is not in this crate; TODO/podssh.md T-1403 records the split and the
 //! remainder.
 //!
@@ -36,12 +37,12 @@ pub mod mux;
 pub mod pump;
 pub mod server;
 pub mod session;
-pub mod tls;
 pub mod transport;
-pub mod ws;
 
 pub use error::{Error, Kind, EXIT_RUNTIME_ERROR};
 pub use hold::hold_until_banner;
 pub use pump::{is_would_block, pump, READ_TIMEOUT};
-pub use server::{probe_server, spawn_stdio, write_sshd_config, ServerChild, PROBE_WINDOW};
+pub use server::{
+    probe_server, spawn_socket, spawn_stdio, write_sshd_config, ServerChild, PROBE_WINDOW,
+};
 pub use transport::{parse_port, Dialer, Stdio, Stream, Target};

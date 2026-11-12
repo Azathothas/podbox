@@ -43,8 +43,7 @@ pub(super) fn serve(
         match listener.accept() {
             Ok((s, _)) => {
                 s.set_read_timeout(Some(Duration::from_secs(15))).unwrap();
-                let base: Box<dyn podvm_ssh::Stream> = Box::new(Tcp(s));
-                let Ok((mut ws, req)) = Ws::server(base) else {
+                let Ok((upgrade, req)) = Ws::server(s) else {
                     continue;
                 };
                 let token = req
@@ -57,21 +56,21 @@ pub(super) fn serve(
                     let _ = name;
                     if token != node_token {
                         // ⛔ The real relay refuses a wrong token at
-                        // the HTTP upgrade with 403. This mock
-                        // answers 101 and then closes: the observed
-                        // behaviour the tests assert (fail before
-                        // hello, exit 125, no session) is the same,
-                        // and no test asserts the refusal mechanism.
+                        // the HTTP upgrade with 403, which ends the
+                        // node of `pod-relay` for good (exit 125).
                         records.lock().unwrap().wrong_tokens += 1;
-                        let _ = ws.send_close(4403, b"forbidden");
+                        upgrade.refuse(403, "reverse: forbidden");
                         continue;
                     }
                     if node.is_some() {
                         // One name holds one node socket: the second
                         // is refused, and the live one is undisturbed.
-                        let _ = ws.send_close(4409, b"conflict");
+                        upgrade.refuse(409, "reverse: name in use");
                         continue;
                     }
+                    let Ok(mut ws) = upgrade.accept() else {
+                        continue;
+                    };
                     records.lock().unwrap().node_conns += 1;
                     node_since = Some(Instant::now());
                     match mode {
@@ -94,9 +93,12 @@ pub(super) fn serve(
                 } else if req.path.strip_prefix("/v1/connect/").is_some() {
                     if token != connect_token {
                         records.lock().unwrap().wrong_tokens += 1;
-                        let _ = ws.send_close(4403, b"forbidden");
+                        upgrade.refuse(403, "reverse: forbidden");
                         continue;
                     }
+                    let Ok(mut ws) = upgrade.accept() else {
+                        continue;
+                    };
                     match mode {
                         Mode::RejectAll => {
                             let id = mint_id();

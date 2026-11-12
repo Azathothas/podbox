@@ -1,13 +1,16 @@
 //! Two concurrent sessions on one multiplexed node connection.
 //!
 //! A fake relay speaks the relay side of `reverse-v1` on loopback TCP (plain
-//! `ws`, no TLS): hello, open, ready forwarding, id prefixing and stripping,
+//! `ws`, no TLS, over the frame codec of `pod-ws`): the 403 of a wrong token
+//! and the 409 of a second node at the upgrade, hello, open, ready
+//! forwarding, id prefixing and stripping,
 //! per-side closes, and the r12 refusal rules it can trigger without a
 //! network, including the 1009 oversize closes that mirror the relay's frame
 //! rules on both legs (R12:163, R12:165). Neither close arm is a tripwire
 //! any driver reaches (both shipped legs size their reads at the cap),
 //! so they are spec, and the entry names the guards that do trip. The
-//! node and operator under test are the real binaries. One test drives
+//! node and operator under test are the real binaries, which run the client
+//! of `pod-relay` (PodUtils/podcrates) through its blocking facade. One test drives
 //! session mechanics through `cat`; the next drives three real,
 //! authenticated SSH sessions (two concurrent at a time) through real
 //! servers the node spawns.
@@ -35,8 +38,9 @@ use common::{
     current_user, ensure_privsep, fresh_tmp, make_keys, require_binary, run_ssh, wait_for,
 };
 
-use podvm_ssh::transport::Tcp;
-use podvm_ssh::ws::{Frame, Ws};
+#[path = "mux_two_client/ws.rs"]
+mod ws;
+use ws::{Frame, Ws};
 
 const DEADLINE: Duration = Duration::from_secs(30);
 const IO_DEADLINE: Duration = Duration::from_secs(20);

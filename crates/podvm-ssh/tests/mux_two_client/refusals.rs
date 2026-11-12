@@ -38,7 +38,7 @@ fn operator_fails_loud_when_ready_never_comes() {
     let start = Instant::now();
     loop {
         let text = op.stderr.drain().join("\n");
-        if text.contains("no ready frame within 2s") {
+        if text.contains("did not answer ready within 2 s") {
             break;
         }
         if start.elapsed() >= DEADLINE {
@@ -112,66 +112,60 @@ fn bad_invocations_exit_125_with_usage_before_any_byte() {
     }
 }
 
-// ------------------------------------------------------------ hello refusals
+// ------------------------------------------------------------ hello
 
 #[test]
-fn node_refuses_a_hello_it_does_not_speak() {
-    // The hello version and caps are the dial gate: a wrong one fails the
-    // dial with the relay named, and the socket never reaches sessions.
-    for (hello, needle) in [
-        (
-            r#"{"type":"hello","version":2,"maxFrameBytes":65536,"maxSessions":64}"#,
-            "version is 2",
-        ),
-        (
-            r#"{"type":"hello","version":1,"maxFrameBytes":10,"maxSessions":64}"#,
-            "maxFrameBytes 10",
-        ),
-        (
-            r#"{"type":"hello","version":1,"maxFrameBytes":65536,"maxSessions":0}"#,
-            "maxSessions 0",
-        ),
-        (
-            // ⛔ Built at runtime and leaked for the 'static the relay mode
-            // holds: the committed source carries no 32-hex literal,
-            // which a scanner reading a value rather than a shape would
-            // report, while the value stays a valid id,
-            // which the "not hello" diagnosis needs.
-            &*Box::leak(
-                format!(r#"{{"type":"open","id":"{id}"}}"#, id = mint_id()).into_boxed_str(),
-            ),
-            "not hello",
-        ),
-    ] {
-        let relay = FakeRelay::start("node-tok-h", "conn-tok-h", Mode::CustomHello(hello));
-        let (node, node_err) = spawn_node(
-            &relay.origin(),
-            "mux-h",
-            "node-tok-h",
-            &["--server", "cat", "--once"],
-            &[],
-        );
-        let st = node.wait_deadline("node", DEADLINE);
-        assert_eq!(st.code(), Some(125));
-        node_err.wait_contains("node", needle, DEADLINE);
-        relay.stop();
-    }
-}
-
-#[test]
-fn node_refuses_data_before_hello() {
-    let relay = FakeRelay::start("node-tok-hb", "conn-tok-hb", Mode::BinaryFirst);
+fn node_refuses_a_hello_of_another_dialect() {
+    // `reverse-v1` is the hello of version 1: `pod-relay` reads it as its
+    // dialect 1, and a relay of another dialect ends the node, with a line
+    // that names both sides; the socket never reaches sessions.
+    let hello = r#"{"type":"hello","version":2,"maxFrameBytes":65536,"maxSessions":64}"#;
+    let relay = FakeRelay::start("node-tok-h", "conn-tok-h", Mode::CustomHello(hello));
     let (node, node_err) = spawn_node(
         &relay.origin(),
-        "mux-hb",
-        "node-tok-hb",
+        "mux-h",
+        "node-tok-h",
         &["--server", "cat", "--once"],
         &[],
     );
     let st = node.wait_deadline("node", DEADLINE);
     assert_eq!(st.code(), Some(125));
-    node_err.wait_contains("node", "data before hello", DEADLINE);
+    node_err.wait_contains("node", "dialect 2", DEADLINE);
     relay.stop();
+}
+
+#[test]
+fn node_takes_the_caps_of_a_hello_as_a_hint() {
+    // `pod-relay` takes the caps of a `hello` as a hint, clamped to the
+    // published caps, and a node with no `hello` yet keeps the floor: a
+    // tiny frame cap, no sessions, an `open` or data before the `hello`
+    // leave the node registered, where podvm's own node refused them.
+    let open_first: &'static str = Box::leak(
+        // ⛔ Built at runtime: the committed source carries no 32-hex
+        // literal, which a scanner reading a value would report.
+        format!(r#"{{"type":"open","id":"{id}"}}"#, id = mint_id()).into_boxed_str(),
+    );
+    for mode in [
+        Mode::CustomHello(r#"{"type":"hello","version":1,"maxFrameBytes":10,"maxSessions":64}"#),
+        Mode::CustomHello(r#"{"type":"hello","version":1,"maxFrameBytes":65536,"maxSessions":0}"#),
+        Mode::CustomHello(open_first),
+        Mode::BinaryFirst,
+    ] {
+        let relay = FakeRelay::start("node-tok-hb", "conn-tok-hb", mode);
+        let (mut node, node_err) = spawn_node(
+            &relay.origin(),
+            "mux-hb",
+            "node-tok-hb",
+            &["--server", "cat"],
+            &[],
+        );
+        node_err.wait_contains("node", "registered as mux-hb", DEADLINE);
+        std::thread::sleep(Duration::from_millis(500));
+        let ended = node.child.as_mut().unwrap().try_wait().unwrap();
+        assert!(ended.is_none(), "{mode:?}: the node ended: {ended:?}");
+        node.kill();
+        relay.stop();
+    }
 }
 
 #[test]
@@ -270,8 +264,15 @@ fn megabyte_queued_with_no_ready_fails_loud() {
 
 #[test]
 fn bye_before_ready_is_a_failure_not_a_session() {
+    // `pod-relay`'s operator reads no `bye`: the session fails at its wait
+    // for `ready`, not at once.
     let relay = FakeRelay::start("node-tok-y", "conn-tok-y", Mode::Bye);
-    let op = spawn_operator(&relay.origin(), "mux-y", "conn-tok-y", &[]);
+    let op = spawn_operator(
+        &relay.origin(),
+        "mux-y",
+        "conn-tok-y",
+        &["--ready-wait", "2"],
+    );
     let st = op.proc_.wait_deadline("op", DEADLINE);
     assert_eq!(st.code(), Some(125));
     relay.stop();

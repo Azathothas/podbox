@@ -7,7 +7,7 @@ start.
 
 ## State
 
-351 entries: 0 open, 5 partial, 5 blocked, 341 done.
+351 entries: 0 open, 5 partial, 4 blocked, 342 done.
 
 The state on 2026-11-11:
 
@@ -58,9 +58,9 @@ that is not done. Read its Prove before you start. Set its status with
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
    wait with T-1662).
 3. The record and the tree: no entry is open.
-4. Blocked on podcrates: [T-1678](deps.md) waits for the hand-off of
-   `pod-relay` that podcrates writes (podcrates@T-326, PodUtils/podcrates#91). [T-1406](podssh.md), partial, proves live-relay pairing
-   after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.
+4. [T-1406](podssh.md), partial: live-relay pairing over `pod-relay`.
+   Blocked on podcrates: [T-1714](probe.md) waits for
+   the schema of podcrates@T-107.
 5. After podvm's own order (the owner's ruling "Priority",
    2026-11-09): the podrunner part (issues 229 to 240) and the clauses
    of PodUtils/podcrates#39.

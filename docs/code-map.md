@@ -19,7 +19,7 @@ The `Cargo.toml` of each crate names its `pod-*` dependencies.
 | `crates/podvm-dispatch` | The native-static rung: the loader of a static program, the SIGSYS handler of Syscall User Dispatch, the path calls through `openat2(RESOLVE_IN_ROOT)`, the clone trampoline and the re-exec of `execve` (T-1652); x86_64 only | none |
 | `crates/podvm-supervise` | The store and names of the container table, the fields of a podvm record, the launcher entry of a payload, the ownership memo | `pod-supervise` (launcher, pidfd, control socket, logs, lifecycle verbs) |
 | `crates/podvm-windows` | podvm's names and places for the Windows and DOS guest driver, the base caches, docker's exit range | `pod-guest` (boot plan, overlay, FAT16 mailbox, agent, QMP, bounded stop) |
-| `crates/podvm-ssh` | SSH transport, relay frames, multiplexing, server, interactive session; the `node`, `operator`, `proxy` and `shell` helpers | `pod-tls`, `pod-proxy`, `pod-term` (line discipline) |
+| `crates/podvm-ssh` | SSH transport, the relay legs, server, interactive session; the `node`, `operator`, `proxy` and `shell` helpers | `pod-relay` (the relay legs, through its blocking facade), `pod-ws`, `pod-tls`, `pod-proxy`, `pod-term` (line discipline) |
 | `crates/podvm-interpose` | The `LD_PRELOAD` interposer, one object for glibc and one for musl; outside the workspace | none |
 | `crates/podvm-gate` | `podvm-gate`, `podvm-count`, `podvm-plant`, `podvm-dev`, `podvm-smoke`, `podvm-interpose-build`, `podvm-libc-interpose` | `pod-todo` (the reader of check 35, T-1680) |
 | `crates/podvm-todo` | `podvm-todo check`: pod-todo's reader of the record with the facts of `TODO/todo.toml` (T-1672) | `pod-todo` |

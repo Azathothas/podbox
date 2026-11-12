@@ -37,7 +37,7 @@ TLS verification remains enabled on the relay path.
 | Host operation probes | `pod-hostprobe` (PodUtils/podcrates); `crates/podvm-probe/src/` |
 | Entry and process lifecycle | `pod-enter`, `pod-supervise` (PodUtils/podcrates); `crates/podvm-enter/src/`, `crates/podvm-supervise/src/` |
 | Root completion writes | `crates/podvm-complete/src/`; `src/write.rs`, `src/write/follow.rs` of `pod-rootfs` (PodUtils/podcrates) |
-| Relay framing and sessions | `crates/podvm-ssh/src/`; `pod-tls`, `pod-proxy`, `pod-term` (PodUtils/podcrates) |
+| Relay framing and sessions | `crates/podvm-ssh/src/`; `pod-relay`, `pod-ws`, `pod-tls`, `pod-proxy`, `pod-term` (PodUtils/podcrates) |
 | Guest disk and mailbox | `pod-guest` (PodUtils/podcrates); `crates/podvm-windows/src/` |
 
 ## Invariants

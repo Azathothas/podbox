@@ -89,13 +89,6 @@ xz4rust = { version = "0.2.3", default-features = false, features = ["std", "bcj
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# T-0209 prefers the registry crate over a hand-rolled encoding (a second
-# implementation of a seam with exactly one, which the vendor-and-registry
-# table refuses). The pin has moved since that measurement: the workspace
-# resolves `base64` 0.23.1, the one version in the graph since the registry
-# left `ureq` for `pod-proxy`.
-base64 = "0.23"
-
 # TODO/cli.md T-1654: the profiles. podvm checks each key
 # and each type itself, so that an error names the key.
 toml = "1"

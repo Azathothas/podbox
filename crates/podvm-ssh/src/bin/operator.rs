@@ -12,12 +12,9 @@
 //! `PODSSH_CONNECT_TOKEN` environment; the token never appears in a log line
 //! or an error.
 //!
-//! ⛔ Every read waits bounded. The dial carries a connect timeout, the DNS
-//! lookup carries the tighter of that and `DNS_DEADLINE`, the wait for
-//! `ready` defaults to 20 s, relay-leg writes carry `WRITE_DEADLINE`, and
-//! the goodbye after stdin ends to 10 s. A relay that stops reading ends
-//! the op inside the write bound.
-//! Stdin before `ready` is queued up to 1 MiB, then fails loud.
+//! ⛔ Every wait is bounded. `pod-relay` dials within `mux::DIAL_TIMEOUT`,
+//! the wait for `ready` defaults to 20 s, and the goodbye after stdin ends
+//! to 10 s. Stdin before `ready` is queued up to 1 MiB, then fails loud.
 
 #![forbid(unsafe_code)]
 
@@ -47,10 +44,9 @@ fn run(argv: &[String]) -> i32 {
 
 fn run_inner(argv: &[String]) -> Result<(), Error> {
     let cfg = parse_args(argv)?;
-    // ⛔ Standard descriptors belong to the SSH client. A failure to take
-    // them is a server-side error on this end, reported like any other.
-    let mut stdio = podvm_ssh::Stdio::new().map_err(|e| Error::server("operator stdio", e))?;
-    podvm_ssh::mux::run_operator(&cfg, &mut stdio)
+    // ⛔ Standard descriptors belong to the SSH client: two threads of the
+    // relay client read stdin and write stdout.
+    podvm_ssh::mux::run_operator(&cfg, std::io::stdin(), std::io::stdout())
 }
 
 fn parse_args(argv: &[String]) -> Result<OperatorConfig, Error> {
@@ -118,7 +114,7 @@ mod tests {
             "--name",
             "n1",
             "--connect-token",
-            "tok",
+            "tok-0123456789",
             "--ready-wait",
             "7",
         ]))
@@ -131,7 +127,7 @@ mod tests {
             "--name",
             "n1",
             "--connect-token",
-            "tok",
+            "tok-0123456789",
         ]))
         .unwrap();
         assert_eq!(cfg.ready_wait, Duration::from_secs(20));
@@ -149,7 +145,7 @@ mod tests {
                 "--name",
                 "n1",
                 "--connect-token",
-                "tok",
+                "tok-0123456789",
             ]),
             args(&[
                 "--relay",
@@ -157,7 +153,7 @@ mod tests {
                 "--name",
                 "has space",
                 "--connect-token",
-                "tok",
+                "tok-0123456789",
             ]),
             args(&[
                 "--relay",
@@ -173,7 +169,7 @@ mod tests {
                 "--name",
                 "n1",
                 "--connect-token",
-                "tok",
+                "tok-0123456789",
                 "--ready-wait",
                 "0",
             ]),
@@ -183,7 +179,7 @@ mod tests {
                 "--name",
                 "n1",
                 "--connect-token",
-                "tok",
+                "tok-0123456789",
                 "--ready-wait",
                 "301",
             ]),
@@ -193,7 +189,7 @@ mod tests {
                 "--name",
                 "n1",
                 "--connect-token",
-                "tok",
+                "tok-0123456789",
                 "--ready-wait",
                 "soon",
             ]),

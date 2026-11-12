@@ -1644,8 +1644,8 @@ on a registry.
 # T-1676: Take `pod-tls` for both TLS stacks, with its synchronous face
 
 **Source:** COORD-001, issue 194, row 2; PodUtils podcrates issue 3,
-  question 1 (call C20 of podcrates); `crates/podvm-ssh/src/tls.rs:1`;
-  `crates/podvm-image/src/tls.rs:1`
+  question 1 (call C20 of podcrates); crates/podvm-ssh/src/tls.rs line 1
+  at `c5b61b45`; `crates/podvm-image/src/tls.rs:1`
 **Category:** deps
 **Milestone:** none
 **Priority:** P2
@@ -1654,8 +1654,8 @@ on a registry.
 
 ## Problem
 
-podvm has two TLS setups: `crates/podvm-ssh/src/tls.rs` (153
-lines) and `crates/podvm-image/src/tls.rs` (290 lines). It
+podvm has two TLS setups: crates/podvm-ssh/src/tls.rs (153
+lines at `c5b61b45`; T-1678 removed it) and `crates/podvm-image/src/tls.rs` (290 lines). It
 needs TLS 1.2, RSA and `ring` for intercepting proxies.
 podcrates makes this `pod-tls`.
 
@@ -1805,18 +1805,19 @@ above.
 # T-1678: Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1`
 
 **Source:** COORD-001, issue 194, row 4; PodUtils podcrates issue 3;
-  `crates/podvm-ssh/src/mux.rs:1`; `crates/podvm-ssh/src/ws.rs:1`
+  `crates/podvm-ssh/src/mux.rs:1`; crates/podvm-ssh/src/ws.rs line 1 at
+  `c5b61b45`
 **Category:** deps
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
 podvm carries its own relay: `crates/podvm-ssh/src/mux.rs`
-(1,356 lines), `crates/podvm-ssh/src/ws.rs` (1,051 lines), and a
-pairing through curl in `crates/podvm/src/remote/`. podcrates
+(1,356 lines at `c5b61b45`), crates/podvm-ssh/src/ws.rs (1,051 lines at
+`c5b61b45`), and a pairing through curl in `crates/podvm/src/remote/`. podcrates
 makes the relay a shared crate, `pod-relay`.
 
 ## Premise
@@ -1843,7 +1844,7 @@ change is its own entry with a version bump.
 mux and relay tests passing through `pod-relay`, and
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
 
-## Blocker
+## Correction
 
 **Blocked 2026-11-06.** Blocker: podcrates' wave M2 and a `pod-relay`
 release with feature `blocking`. Clears when: that release and its
@@ -1868,6 +1869,25 @@ relay glue over `pod_relay::blocking::Client`, and a tag when
 podvm's `reverse-v1`, so the wire does not change. A fix of `mux.rs`,
 `ws.rs` or `remote/` before the take goes to podcrates#91. Clears when: the
 tag with the trial exists.
+
+## Done
+
+**Done 2026-11-12.** podvm takes podcrates `v0.32.0` (`032e86f`,
+PodUtils/podcrates#93) with its trial `adoption/podvm/pod-relay.patch`
+(podcrates@T-326, calls C130 to C134 of podcrates). The relay glue is
+module `mux` of podvm-ssh over `pod_relay::blocking` with the features
+`blocking` and `plain-ws` (`mux.rs`, `mux/node.rs`, `mux/origin.rs`);
+`ws.rs`, `tls.rs` and `mux/operator.rs` are gone. The wire stays
+`reverse-v1` (dialect 1 of pod-relay). Each step of `pod-relay.run` passes
+on this host: `cargo test -p podvm-ssh` (83 unit tests, the binaries, and
+`mux_two_client` with the fake relay and the SSH test of three sessions
+through `sshd`), `cargo test -p podvm remote::` (25), clippy and fmt, the
+features of pod-relay in the tree, no copy of the moved items, the
+toolchain pins, and the static check of `node` and `operator`;
+`podvm-gate` exits 0. What changes for users: a token under 8 characters
+or a name that starts with `-` or `.` exits 125; a wrong node token (403)
+ends the node at once with 125; a 409 at the first registration is tried
+again for 30 s; the lines of the node and the operator are pod-relay's.
 
 # T-1679: Take `pod-services` for the third-party hosts compiled into podvm
 

@@ -45,6 +45,19 @@ impl Drop for ServerChild {
 /// and return the other end. The command runs through `/bin/sh -c`, so a
 /// full server line with flags fits in one string.
 pub fn spawn_stdio(command: &str) -> Result<ServerChild, Error> {
+    let (parent, child) = spawn_socket(command)?;
+    Ok(ServerChild {
+        stream: Box::new(transport::Unix(parent)),
+        child: Some(child),
+    })
+}
+
+/// [`spawn_stdio`] as its parts: the parent end of the socketpair, and the
+/// child, which the caller kills and reaps. The relay node reads and writes
+/// the socket on two threads (`crate::mux`).
+pub fn spawn_socket(
+    command: &str,
+) -> Result<(std::os::unix::net::UnixStream, std::process::Child), Error> {
     let (parent, child_end) = std::os::unix::net::UnixStream::pair()
         .map_err(|e| Error::server("spawn server socketpair", e))?;
     let fd: OwnedFd = child_end.into();
@@ -64,10 +77,7 @@ pub fn spawn_stdio(command: &str) -> Result<ServerChild, Error> {
                 io::Error::other(format!("cannot start {command:?}: {e}")),
             )
         })?;
-    Ok(ServerChild {
-        stream: Box::new(transport::Unix(parent)),
-        child: Some(child),
-    })
+    Ok((parent, child))
 }
 
 /// Try to start `command` once on a throwaway socketpair, and report the

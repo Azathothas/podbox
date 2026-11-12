@@ -2472,7 +2472,7 @@ pinned to a commit SHA like every other action in this
 repository, scanning the working tree and the history.
 Update `docs/security/secrets.md`, which currently names the
 shell script as the review mechanism. Update the comments
-at `crates/podvm-ssh/src/mux/tests.rs:71` and
+at `crates/podvm-ssh/src/mux/tests.rs:42` and
 `crates/podvm-ssh/tests/mux_two_client/refusals.rs:136`, which
 cite the check as the reason for their placeholder shapes,
 and `experiments/270-multiarch-image.sh:117`.

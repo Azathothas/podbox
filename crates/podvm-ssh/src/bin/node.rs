@@ -9,13 +9,11 @@
 //! environment; the token never appears in a log line or an error, so
 //! passing it on the command line stays out of every committed artefact.
 //!
-//! ⛔ Every read waits bounded. The dial carries a connect timeout, the DNS
-//! lookup carries the tighter of that and `DNS_DEADLINE`, the hello carries
-//! its own window, relay-leg writes carry `WRITE_DEADLINE`, and the redial
-//! backs off 1 s to 30 s with jitter. A relay that stops reading ends the
-//! socket inside the write bound, and the node redials.
-//! `--once` exits after the first socket ends: 0 when at least one
-//! session completed, 1 when none did.
+//! ⛔ Every wait is bounded. `pod-relay` dials within `mux::DIAL_TIMEOUT`,
+//! pings the relay, and backs off between tries; each try that gives no
+//! socket, and each end of one, is a line. `--once` exits after the first
+//! socket ends: 0 when at least one session completed, 1 when none did; a
+//! first try that gives no socket exits with the runtime code.
 
 #![forbid(unsafe_code)]
 
@@ -125,7 +123,7 @@ mod tests {
             "--name",
             "n1",
             "--node-token",
-            "tok",
+            "tok-0123456789",
             "--server",
             "cat",
             "--once",
@@ -149,7 +147,7 @@ mod tests {
                 "--name",
                 "n1",
                 "--node-token",
-                "tok",
+                "tok-0123456789",
                 "--bogus",
             ]),
             args(&[
@@ -158,7 +156,7 @@ mod tests {
                 "--name",
                 "n1",
                 "--node-token",
-                "tok",
+                "tok-0123456789",
             ]),
             args(&[
                 "--relay",
@@ -166,7 +164,7 @@ mod tests {
                 "--name",
                 "has space",
                 "--node-token",
-                "tok",
+                "tok-0123456789",
             ]),
             args(&[
                 "--relay",

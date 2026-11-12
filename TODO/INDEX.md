@@ -352,7 +352,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1675](deps.md) | P2 | M | none | deps | done | Take `pod-term` for the SSH line discipline |
 | [T-1676](deps.md) | P2 | M | none | deps | done | Take `pod-tls` for both TLS stacks, with its synchronous face |
 | [T-1677](deps.md) | P2 | L | none | deps | done | Take `pod-proxy` with feature `blocking`: HTTPS_PROXY egress for pulls and the SSH dial |
-| [T-1678](deps.md) | P2 | L | none | deps | blocked | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
+| [T-1678](deps.md) | P2 | L | none | deps | done | Take `pod-relay` with feature `blocking` for the relay, keeping `reverse-v1` |
 | [T-1679](deps.md) | P2 | M | none | deps | done | Take `pod-services` for the third-party hosts compiled into podvm |
 | [T-1680](deps.md) | P2 | L | none | deps | done | Take `pod-todo` for the record half of `podvm-gate` |
 | [T-1681](deps.md) | P2 | L | none | deps | done | Hand the seven generic crates to podcrates and freeze their files |
@@ -420,7 +420,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-351 entries: 0 open, 5 partial, 5 blocked, 341 done.
+351 entries: 0 open, 5 partial, 4 blocked, 342 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -431,9 +431,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 0 | 150 | 152 |
-| P2 | 0 | 1 | 5 | 111 | 117 |
+| P2 | 0 | 1 | 4 | 112 | 117 |
 | P3 | 0 | 2 | 0 | 15 | 17 |
-| **All** | 0 | 5 | 5 | 341 | 351 |
+| **All** | 0 | 5 | 4 | 342 | 351 |
 
 ## Work order
 
