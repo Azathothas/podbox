@@ -107,9 +107,9 @@ interposer is the cost.
 
 [Experiment 434](../experiments/434-incus-tier.sh) proves it against the
 incusd of route A ([its run](../experiments/results/incus-tier.txt)): each
-of its eleven clauses matches. A run with the image in incus took about 1.3 s
-(median of 5); most of it is the push of the debug binary (82 MB) into each
-instance. `create` and `exec` refuse the tier by name, and so do
+of its eleven clauses matches. The image carries podvm at `/.podvm/podvm`
+(T-1722), so a run pushes no binary: a run of `true` with the image in incus
+takes about 1.1 s with the release binary (median of 5, 2026-11-12). `create` and `exec` refuse the tier by name, and so do
 `--podvm-mem` and `--podvm-qemu-arg`. T-1722 has the rest of the verbs and
 the selection by the ladder.
 

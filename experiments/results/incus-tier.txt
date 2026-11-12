@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-12T11:59:00Z
+date              2026-11-12T12:05:00Z
 host kernel       Linux 6.18.44-fc-v378
 cgroup            tmpfs
 incus package     6.0.0-1ubuntu0.3
@@ -9,21 +9,21 @@ runs              5
 == 1. a run
   stdout  hello
   exit    0
-  ms      2369 (with the import)
+  ms      1235 (with the import)
   stderr  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   stderr  podvm: 517 of 517 entries carry an id this machine cannot apply; what the image intended is in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
   stderr  podvm: restore ownership with chown of bin (uid 0, gid 0): EINVAL
   stderr    the id has no mapping in this user namespace, which reads as a bad argument
   stderr    uid 0 is not mapped in this user namespace (/proc/self/uid_map: 0 0 4294967295); gid 0 is not mapped in this user namespace (/proc/self/gid_map: 0 0 4294967295)
   stderr    extract without ownership and record the intended ids; intended metadata recorded in /srv/podvm434/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 imported now (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 imported now (TODO/machine.md T-1718)
 
 == 2. the exit code
   exit    7
 
 == 3. stdout and stderr
   stdout  out
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 from incus (TODO/machine.md T-1718)
   stderr  err
 
 == 4. stdin
@@ -36,11 +36,11 @@ runs              5
   PID 1                 /.podvm/podvm guest-hold 
   owner of /etc/passwd  0:0
   owner of /etc/shadow  0:42
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 from incus (TODO/machine.md T-1718)
 
 == 7. the cached image
-  run true ms  1593 (median of 5)
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-v2 from incus (TODO/machine.md T-1718)
+  run true ms  1070 (median of 5)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-7bb0f3ec45bd2be3-v3 from incus (TODO/machine.md T-1718)
 
 == 8. the other verbs
   create exit  125

@@ -3,12 +3,12 @@
 //! incus REST API are `pod-incus` of PodUtils/podcrates (T-1727).
 //!
 //! 1. The image: podvm's extracted rootfs as an incus unified tarball
-//!    ([`super::image`]), imported one time for each manifest digest under
-//!    the alias `podvm-HEX16-vN`.
+//!    ([`super::image`]) with podvm itself at `/.podvm/podvm`, imported
+//!    one time for each manifest digest and podvm build under the alias
+//!    `podvm-HEX16-PODVM16-vN` (TODO/machine.md T-1722).
 //! 2. The instance: from that alias, with podvm itself as its init
 //!    (`lxc.init.cmd = /.podvm/podvm guest-hold`), so an image with no
-//!    `sleep` and no shell still starts. podvm pushes itself before the
-//!    start.
+//!    `sleep` and no shell still starts.
 //! 3. The command: the exec API with `record-output`, so stdout and stderr
 //!    come back apart with the exit code. Piped stdin goes in as a file.
 //! 4. The end: the instance is deleted, as under `--rm`.
@@ -75,14 +75,15 @@ pub fn socket_path() -> PathBuf {
 
 /// The alias of the image in incus: imported now where it is not there.
 async fn ensure_image(c: &Client, job: &Job<'_>) -> Result<(String, bool), String> {
-    let name = alias(job.digest);
+    let me = std::fs::read("/proc/self/exe").map_err(|e| format!("/proc/self/exe: {e}"))?;
+    let name = alias(job.digest, &crate::machine::guest::kernel::sha256_hex(&me));
     if c.alias(&name).await.map_err(|e| e.to_string())?.is_some() {
         return Ok((name, true));
     }
     let dir = job.store_root.join("incus");
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let tarball: PathBuf = dir.join(format!("{name}.tar"));
-    unified_tarball(job.rootfs, &tarball)?;
+    unified_tarball(job.rootfs, &tarball, &me)?;
     let file = tokio::fs::File::open(&tarball)
         .await
         .map_err(|e| format!("{}: {e}", tarball.display()))?;
@@ -202,17 +203,8 @@ async fn run_in(c: &Client, job: &Job<'_>, image: &str, inst: &str) -> i32 {
     if let Err(e) = c.create_instance(&new).await {
         return fail(e.to_string());
     }
-    let me = match std::fs::read("/proc/self/exe") {
-        Ok(b) => b,
-        Err(e) => return fail(format!("/proc/self/exe: {e}")),
-    };
-    let mut pushes = vec![
-        ("/.podvm", owned(FileWrite::directory(), 0o755)),
-        (
-            "/.podvm/podvm",
-            owned(FileWrite::file(Payload::bytes(me)), 0o755),
-        ),
-    ];
+    // podvm is in the image (T-1722): a run pushes only its stdin.
+    let mut pushes = Vec::new();
     if let Some(b) = &job.stdin {
         pushes.push((
             "/.podvm/stdin",

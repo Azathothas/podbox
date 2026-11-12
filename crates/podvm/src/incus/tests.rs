@@ -20,9 +20,15 @@ fn scratch(name: &str) -> PathBuf {
 
 #[test]
 fn the_alias_names_the_digest_and_the_format() {
-    let a = alias("sha256:0123456789abcdef0123");
-    assert_eq!(a, format!("podvm-0123456789abcdef-v{IMAGE_FORMAT}"));
-    assert_ne!(a, alias("sha256:0123456789abcdee0123"));
+    let me = "fedcba9876543210ffff";
+    let a = alias("sha256:0123456789abcdef0123", me);
+    assert_eq!(
+        a,
+        format!("podvm-0123456789abcdef-fedcba9876543210-v{IMAGE_FORMAT}")
+    );
+    assert_ne!(a, alias("sha256:0123456789abcdee0123", me));
+    // TODO/machine.md T-1722: another podvm build is another image.
+    assert_ne!(a, alias("sha256:0123456789abcdef0123", "0000000000000000"));
 }
 
 #[test]
@@ -70,7 +76,7 @@ fn the_unified_tarball_carries_the_metadata_and_the_intended_owners() {
     )
     .unwrap();
     let out = d.join("img.tar");
-    unified_tarball(&d.join("img/rootfs"), &out).unwrap();
+    unified_tarball(&d.join("img/rootfs"), &out, b"podvm-bytes").unwrap();
     let mut a = tar::Archive::new(std::fs::File::open(&out).unwrap());
     let mut seen = Vec::new();
     for e in a.entries().unwrap() {
@@ -81,6 +87,12 @@ fn the_unified_tarball_carries_the_metadata_and_the_intended_owners() {
         match p.as_str() {
             "rootfs/etc/shadow" => assert_eq!(ids, (0, 42, 0o640), "the intended owner"),
             "rootfs/bin/ash" => assert!(h.entry_type().is_symlink(), "a link stays a link"),
+            "rootfs/.podvm/podvm" => {
+                assert_eq!(ids, (0, 0, 0o755), "podvm is the init (T-1722)");
+                let mut b = Vec::new();
+                e.read_to_end(&mut b).unwrap();
+                assert_eq!(b, b"podvm-bytes");
+            }
             "metadata.yaml" => {
                 let mut t = String::new();
                 e.read_to_string(&mut t).unwrap();
@@ -336,24 +348,27 @@ fn a_run_imports_creates_pushes_starts_execs_and_deletes() {
     );
     assert_eq!(exec["environment"], json!({"PATH": "/bin"}));
     assert_eq!(exec["record-output"], true);
-    for p in ["/.podvm/podvm", "/.podvm/stdin"] {
-        assert!(
-            calls
-                .iter()
-                .any(|c| c.ends_with(&format!("files?path={p}|"))),
-            "{p}: {calls:#?}"
-        );
-    }
+    assert!(
+        calls
+            .iter()
+            .any(|c| c.ends_with("files?path=/.podvm/stdin|")),
+        "{calls:#?}"
+    );
+    // TODO/machine.md T-1722: podvm is in the image, not pushed for a run.
+    assert!(
+        !calls
+            .iter()
+            .any(|c| c.ends_with("files?path=/.podvm/podvm|")),
+        "{calls:#?}"
+    );
     let stdin = seen
         .iter()
         .find(|(_, p, _)| p.ends_with("path=/.podvm/stdin"))
         .unwrap();
     assert_eq!(stdin.2, b"in");
-    assert!(!d
-        .join(format!(
-            "incus/{}.tar",
-            alias("sha256:00112233445566778899")
-        ))
-        .exists());
+    let tars = std::fs::read_dir(d.join("incus"))
+        .map(|r| r.count())
+        .unwrap_or(0);
+    assert_eq!(tars, 0, "the tarball of the import goes");
     let _ = std::fs::remove_dir_all(&d);
 }

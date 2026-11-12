@@ -15,6 +15,8 @@ Deployed: not released.
 
 - `run --podvm-tier=incus -v HOST:GUEST[:ro]` maps the host directory into
   the instance as a disk device, so a write lands on the host.
+- The incus image of an OCI image carries podvm, so a run pushes no binary
+  into the instance.
 
 ### Changed: a volume of the machine tier is a 9p mount, and -t a terminal, 2026-11-12
 

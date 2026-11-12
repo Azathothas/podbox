@@ -2033,9 +2033,18 @@ its write is on the host after the run, and a `:ro` volume refuses a write
 of the instance is an id of the user's range, so a directory of mode 0755
 of the user is read-only to it (measured: "Permission denied"); the clause
 uses mode 0777. Clause 8 now takes the refusal of `exec` that names each
-tier of `run` only. Remaining: `create`, `start`, `exec`, `ps`, `stop`,
-`rm` and `logs` of an instance that stays, the ladder and `.EnteredRung`,
-and podvm pushed one time for each image.
+tier of `run` only.
+
+**Partial 2026-11-12, podvm in the image.** The unified tarball carries
+podvm at `/.podvm/podvm` (owner 0, mode 0755), and the alias names the
+first 16 hex digits of podvm's own SHA-256 (`podvm-HEX16-PODVM16-v3`), so
+a new podvm build imports the image again; a run pushes only its stdin.
+The tests of `crates/podvm/src/incus/tests.rs` hold the alias, the entry
+of the tarball and a run with no push of podvm. Experiment 434 now runs
+the release binary and exits 0: PID 1 is still `/.podvm/podvm
+guest-hold`, and a run of `true` takes 1 070 ms (median of 5). Remaining:
+`create`, `start`, `exec`, `ps`, `stop`, `rm` and `logs` of an instance
+that stays, and the ladder and `.EnteredRung`.
 
 # T-1723: The microVM of run: the microvm machine, a shared /workspace and an interactive stdin
 

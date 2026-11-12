@@ -7,6 +7,10 @@
 //! the instance belong to whom the image says (`/etc/shadow` is
 //! `root:shadow`). An entry with no record gets the owner 0 and its mode on
 //! disk.
+//!
+//! The tarball also carries podvm itself at `/.podvm/podvm`, the init of
+//! the instance (TODO/machine.md T-1722): a run then pushes no binary. The
+//! alias names podvm's own digest, so a new podvm imports the image again.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -14,12 +18,16 @@ use std::path::Path;
 use serde_json::Value;
 
 /// The version of the tarball's form; a change gives a new alias.
-pub const IMAGE_FORMAT: u32 = 2;
+pub const IMAGE_FORMAT: u32 = 3;
 
-/// The alias of an image of `digest`.
-pub fn alias(digest: &str) -> String {
+/// The alias of an image of `digest` with the podvm of digest `me`.
+pub fn alias(digest: &str, me: &str) -> String {
     let hex = digest.trim_start_matches("sha256:");
-    format!("podvm-{}-v{IMAGE_FORMAT}", &hex[..hex.len().min(16)])
+    format!(
+        "podvm-{}-{}-v{IMAGE_FORMAT}",
+        &hex[..hex.len().min(16)],
+        &me[..me.len().min(16)]
+    )
 }
 
 /// The intended uid, gid and mode for each path of the sidecar; a later
@@ -50,8 +58,9 @@ pub fn intended(sidecar: &str) -> HashMap<String, (u64, u64, u32)> {
 }
 
 /// The unified tarball of `rootfs` at `out`: `metadata.yaml` and
-/// `rootfs/`, with the owners and modes of `.meta.jsonl` beside `rootfs`.
-pub fn unified_tarball(rootfs: &Path, out: &Path) -> Result<(), String> {
+/// `rootfs/`, with the owners and modes of `.meta.jsonl` beside `rootfs`,
+/// and `podvm` at `rootfs/.podvm/podvm` (owner 0, mode 0755).
+pub fn unified_tarball(rootfs: &Path, out: &Path, podvm: &[u8]) -> Result<(), String> {
     let sidecar = rootfs.with_file_name(".meta.jsonl");
     let meant = intended(&std::fs::read_to_string(&sidecar).unwrap_or_default());
     let f = std::fs::File::create(out).map_err(|e| format!("{}: {e}", out.display()))?;
@@ -75,6 +84,25 @@ pub fn unified_tarball(rootfs: &Path, out: &Path) -> Result<(), String> {
     b.append_data(&mut h, "metadata.yaml", meta.as_bytes())
         .map_err(err)?;
     walk(&mut b, rootfs, "", &meant).map_err(err)?;
+    for (path, mode, data) in [
+        ("rootfs/.podvm", 0o755, None),
+        ("rootfs/.podvm/podvm", 0o755, Some(podvm)),
+    ] {
+        let mut h = tar::Header::new_gnu();
+        h.set_entry_type(if data.is_some() {
+            tar::EntryType::Regular
+        } else {
+            tar::EntryType::Directory
+        });
+        h.set_size(data.map_or(0, |d| d.len() as u64));
+        h.set_mode(mode);
+        h.set_uid(0);
+        h.set_gid(0);
+        h.set_mtime(now);
+        h.set_cksum();
+        b.append_data(&mut h, path, data.unwrap_or(&[]))
+            .map_err(err)?;
+    }
     b.into_inner()
         .and_then(|mut w| std::io::Write::flush(&mut w))
         .map_err(err)

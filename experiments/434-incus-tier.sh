@@ -70,7 +70,7 @@ DEBIAN_FRONTEND=noninteractive timeout 600 apt-get install -y -qq "incus=$INCUS_
 	{ echo "apt-get install FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 INCUSD=/usr/libexec/incus/incusd
 [ -x "$INCUSD" ] || { echo "no $INCUSD: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
-timeout 1800 cargo build >"$WORK/build.log" 2>&1 || { echo "build FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
+timeout 1800 cargo build --release -p podvm >"$WORK/build.log" 2>&1 || { echo "build FAILED: COULD NOT RUN" | tee -a "$REPORT"; exit 2; }
 
 # ---- the one preparation, by root (as in experiment 433) ---------------
 ranged() { ps -eo pid=,uid= | awk -v u="$(id -u "$U" 2>/dev/null || echo -1)" '$2 == u || ($2 >= 2000000000 && $2 < 2100000000) {print $1}'; }
@@ -92,7 +92,7 @@ for c in /sys/fs/cgroup/*/; do
 	chown -R "$U:$U" "$c$U"
 done
 mkdir -p "$B/state" /var/log/incus /var/cache/incus
-cp "$REPO/target/x86_64-unknown-linux-musl/debug/podvm" "$B/podvm"
+cp "$REPO/target/x86_64-unknown-linux-musl/release/podvm" "$B/podvm"
 cat >"$B/ns.sh" <<EOF
 #!/bin/sh
 set -u
@@ -206,7 +206,7 @@ left=$(ranged | wc -l)
 # The store stays for this clause: the cleanup above removed $B, so the
 # image is pulled again into a store of root.
 S10="$WORK/store10"
-out=$(env PODVM_STORE="$S10" INCUS_DIR="$WORK/no-incus" "$REPO/target/x86_64-unknown-linux-musl/debug/podvm" run --podvm-tier=incus "$OCI" true </dev/null 2>&1); rc=$?
+out=$(env PODVM_STORE="$S10" INCUS_DIR="$WORK/no-incus" "$REPO/target/x86_64-unknown-linux-musl/release/podvm" run --podvm-tier=incus "$OCI" true </dev/null 2>&1); rc=$?
 { echo ""; echo "== 10. no incusd"; echo "  exit    $rc"; echo "$out" | grep "incus tier" | sed 's/^/  stderr  /'; } >>"$REPORT"
 [ "$rc" -eq 125 ] && echo "$out" | grep -q "no incusd answers at $WORK/no-incus/unix.socket" ||
 	{ note "10: a run with no incusd did not refuse by name"; fail=1; }
