@@ -689,7 +689,7 @@ dependencies = [
 
 [[package]]
 name = "podvm"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "flate2",
  "pod-broker",
@@ -714,11 +714,11 @@ dependencies = [
 
 [[package]]
 name = "podvm-buildstate"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 
 [[package]]
 name = "podvm-complete"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-rootfs",
  "podvm-image",
@@ -728,11 +728,11 @@ dependencies = [
 
 [[package]]
 name = "podvm-dispatch"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 
 [[package]]
 name = "podvm-enter"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-confine",
  "pod-core",
@@ -742,7 +742,7 @@ dependencies = [
 
 [[package]]
 name = "podvm-extract"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-core",
  "pod-extract",
@@ -753,14 +753,14 @@ dependencies = [
 
 [[package]]
 name = "podvm-gate"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-todo",
 ]
 
 [[package]]
 name = "podvm-image"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-core",
  "pod-hostprobe",
@@ -779,14 +779,14 @@ dependencies = [
 
 [[package]]
 name = "podvm-measure"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-services",
 ]
 
 [[package]]
 name = "podvm-probe"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-hostprobe",
  "podvm-dispatch",
@@ -794,11 +794,11 @@ dependencies = [
 
 [[package]]
 name = "podvm-release"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 
 [[package]]
 name = "podvm-ssh"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "base64",
  "pod-proxy",
@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "podvm-supervise"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-core",
  "pod-supervise",
@@ -825,14 +825,14 @@ dependencies = [
 
 [[package]]
 name = "podvm-todo"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-todo",
 ]
 
 [[package]]
 name = "podvm-windows"
-version = "0.2.0-beta.4"
+version = "0.2.0-beta.5"
 dependencies = [
  "pod-guest",
 ]

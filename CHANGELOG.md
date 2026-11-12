@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.5 (2026-11-12)
+
 ### Changed: podcrates v0.26.0, 2026-11-12
 
 Record: PodUtils/podcrates#77.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - podvm takes the crates of podcrates at `v0.26.0`. No behaviour of podvm
   changes.
@@ -19,7 +21,7 @@ Deployed: not deployed; no version change.
 ### Added: headless Chromium of Playwright, 2026-11-12
 
 Record: T-1694, T-1738, T-1739.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - `podvm run --profile playwright-chromium -- --dump-dom file:///workspace/page.html`
   runs Playwright's headless Chromium under the confine layer where
@@ -35,7 +37,7 @@ Deployed: not deployed; no version change.
 ### Added: a JSON report of each run, and image labels, 2026-11-11
 
 Record: T-1695.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - `run --report PATH` writes one JSON document of the run to PATH, also
   when podvm refuses: the rung, the exit code or the signal, the times,
@@ -46,7 +48,7 @@ Deployed: not deployed; no version change.
 ### Added: labels on container records, 2026-11-11
 
 Record: T-1695.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - `run --label KEY=VALUE` and `create --label` are kept in the record:
   `ps --filter label=KEY[=VALUE]` finds the container, and `inspect
@@ -55,7 +57,7 @@ Deployed: not deployed; no version change.
 ### Added: the confine layer on the loader family, 2026-11-11
 
 Record: T-1658; issue 170.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - Where chroot is denied, a dynamic program of the image (the loader
   family of the userland rung) runs under `--podvm-confine` too: each
@@ -64,7 +66,7 @@ Deployed: not deployed; no version change.
 ### Added: the profile errand, 2026-11-11
 
 Record: T-1658; issue 170.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - `podvm run --profile errand IMAGE CMD` confines CMD with the policy of
   errand's bailey backend: the system directories, the ld.so files, the
@@ -74,7 +76,7 @@ Deployed: not deployed; no version change.
 ### Added: the confine layer for run -d and exec, 2026-11-11
 
 Record: T-1658; issue 170.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - The container record keeps the SPEC of `--podvm-confine`, so a
   detached payload and each `exec` into its container run under the same
@@ -83,7 +85,7 @@ Deployed: not deployed; no version change.
 ### Changed: podcrates v0.25.0, 2026-11-11
 
 Record: T-1658; PodUtils/podcrates#76.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.5.
 
 - The confine layer closes the Landlock scopes (signals, abstract Unix
   sockets), MPTCP under a port list and io_uring, and a confined root
