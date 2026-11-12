@@ -1,0 +1,24 @@
+== conditions
+date              2026-11-12T10:34:02Z
+host kernel       Linux 6.18.44-fc-v378
+podvm             podvm 0.2.0-beta.5
+runsc             runsc version release-20261102.0
+image             mirror.gcr.io/library/alpine:3.20
+
+== clause 1  uname -r and the exit code
+  uname -r: 4.19.0-gvisor, exit 3
+== clause 2  a volume write and stdin
+  exit 0, host file: in436
+== clause 3  --read-only and :ro
+  touch: /x: Read-only file system
+  touch: /ro/y: Read-only file system
+== clause 4  nothing of the run stays
+  left: none
+== clause 5  no runsc
+  exit 125: podvm run: --podvm-tier=runsc: PODVM_RUNSC=/nonexistent/runsc names no file (TODO/enter.md T-1729)
+== clause 6  no user namespaces
+  exit 125: podvm run: --podvm-tier=runsc: this host denies user namespaces (unshare(CLONE_NEWUSER): EPERM), and rootless runsc needs one (TODO/enter.md T-1729)
+== clause 7  exec
+  exit 125: podvm exec: --podvm-tier=incus, emulate, syscall and runsc serve run only (TODO/machine.md T-1718, TODO/enter.md T-1651, T-1657, T-1729)
+
+verdict: THE RUNSC TIER RUNS AND REFUSES BY NAME

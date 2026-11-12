@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the runsc tier, 2026-11-12
+
+Record: T-1729.
+Deployed: not released.
+
+- `run --podvm-tier=runsc` runs the image under gVisor's `runsc`, rootless
+  with platform systrap, where the host grants user namespaces. Each `-v`
+  is a bind mount, so a write lands on the host. Where the host has no
+  `runsc` or denies user namespaces, the tier refuses by name with exit
+  125. Experiment 436 is the proof.
+
 ### Changed: podcrates v0.30.0, 2026-11-12
 
 Record: PodUtils/podcrates#89.

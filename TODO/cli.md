@@ -1809,7 +1809,7 @@ the userland rung.
 
 **Source:** issues 77 and 79;
   `crates/podvm/src/complete.rs:57`;
-  `crates/podvm/src/run/prepare.rs:210`; [T-0804](cli.md)
+  `crates/podvm/src/run/prepare.rs:213`; [T-0804](cli.md)
 **Category:** cli
 **Milestone:** none
 **Priority:** P2
@@ -2063,7 +2063,7 @@ exits 0 and reports 6 matches.
 **Source:** issue 92; issue 114 section 3.3 and section 6 item 7;
   `crates/podvm/src/lifecycle/script.rs:105`;
   `src/memfd.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/prepare.rs:237`;
+  `crates/podvm/src/run/prepare.rs:240`;
   A-V-04 of PodUtils/podcrates#39
 **Category:** cli
 **Milestone:** none
@@ -3117,7 +3117,7 @@ of `ps` says that a label filter matches nothing
 (`crates/podvm/src/lifecycle.rs` line 41 at `9962ba77`), and so does the help of
 `images` (`crates/podvm/src/images.rs` line 106 at `9962ba77`). The only JSON
 that podvm writes for a caller today is `probe --json`
-(`crates/podvm/src/main.rs:352`). The foreground run knows
+(`crates/podvm/src/main.rs:353`). The foreground run knows
 the exit code at its end (`crates/podvm/src/run/foreground.rs:204`)
 and its start is `crates/podvm/src/run/foreground.rs:233`.
 The record that `run` prepares is
@@ -3248,7 +3248,7 @@ the first process only.
 `--env-file` reads a file at parse time
 (`crates/podvm/src/run/parse.rs:108`, used at
 `crates/podvm/src/run/parse.rs:224`) and the values go into
-the environment (`crates/podvm/src/run/prepare.rs:242`). The
+the environment (`crates/podvm/src/run/prepare.rs:245`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.
 A foreground run removes its files at the end
@@ -3471,7 +3471,7 @@ run refuses on the same host.
 `crates/podvm/src/doctor.rs:317` keeps the hard limit. The
 infinity test is at `crates/podvm/src/doctor.rs:329` and the
 comparison at `crates/podvm/src/doctor.rs:343`. The soft
-readers are `crates/podvm/src/tier.rs:114`,
+readers are `crates/podvm/src/tier.rs:121`,
 `crates/podvm/src/machine/ssh/qemu.rs:260`,
 `crates/podvm/src/windows/plan.rs:88`,
 `crates/podvm-probe/src/nongoals.rs:190` and
@@ -3521,7 +3521,7 @@ before; at 64 GiB, above the free space, the row fails with its fix line.
   PodUtils/podcrates#39; T-1704 (`realpath` of
   `/proc/self/exe`); T-1705 (the doubled prefix); T-1707 (a
   first program relative to `-w`); T-1655 (`--ulimit`);
-  `crates/podvm/src/tier.rs:114`
+  `crates/podvm/src/tier.rs:121`
 **Category:** cli
 **Milestone:** none
 **Priority:** P2
@@ -3551,7 +3551,7 @@ M2: a `prlimit` on the podvm process reaches the payload. M1:
 the runner needs ICU or
 `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`, `libssl.so.3`, and
 a glibc loader with symbols up to `GLIBC_2.28`. podvm reads
-the soft limit for guests (`crates/podvm/src/tier.rs:114`)
+the soft limit for guests (`crates/podvm/src/tier.rs:121`)
 and not for a payload. No podvm record names .NET.
 
 ## Approach
@@ -3735,7 +3735,7 @@ hook makes only the calls above.
 **Source:** issue 237; the podrunner design review (the owner's design
   review of PodUtils/podcrates#47), SPEC section 10.1, its measurement
   M2 (`01-probe-rung.log`); T-1302; call C2 of
-  `docs/decisions.md`; `crates/podvm/src/tier.rs:86`;
+  `docs/decisions.md`; `crates/podvm/src/tier.rs:90`;
   `crates/podvm/src/parity.rs:245`
 **Category:** cli
 **Milestone:** none
@@ -3754,9 +3754,9 @@ mechanism gets another, and only the banner says so.
 ## Premise
 
 `resolve` maps the value to `Tier::Chroot`
-(`crates/podvm/src/tier.rs:86`). Each caller compares the tier
+(`crates/podvm/src/tier.rs:90`). Each caller compares the tier
 with `Tier::Machine` only
-(`crates/podvm/src/run/prepare.rs:25`,
+(`crates/podvm/src/run/prepare.rs:28`,
 `crates/podvm/src/exec/command.rs:42`). T-1302 made `chroot`
 the override of the argv0 default `podvm` = machine. Call C2
 (2026-11-06) removed that default, so the value has no effect

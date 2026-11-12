@@ -1112,8 +1112,8 @@ code change between them.
 
 # T-1410: Exec through the no-chroot family
 
-**Source:** issue 80; `crates/podvm/src/exec/command.rs:222`;
-  `crates/podvm/src/run/prepare.rs:46`; [T-0505](enter.md)
+**Source:** issue 80; `crates/podvm/src/exec/command.rs:225`;
+  `crates/podvm/src/run/prepare.rs:49`; [T-0505](enter.md)
 **Category:** enter
 **Milestone:** none
 **Priority:** P1
@@ -1168,7 +1168,7 @@ fixture.
 
 # T-1411: A detached launcher for the no-chroot family
 
-**Source:** issue 72; `crates/podvm/src/run/prepare.rs:47`;
+**Source:** issue 72; `crates/podvm/src/run/prepare.rs:50`;
   `crates/podvm/src/lifecycle.rs:214`; [T-1317](enter.md)
 **Category:** enter
 **Milestone:** none
@@ -3080,7 +3080,7 @@ clause 33.
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3115,7 +3115,28 @@ asks for it by name.
 
 ## Correction
 
-**Filed 2026-11-11.** Split from T-1657.
+**Filed 2026-11-11.** Split from T-1657. Measured 2026-11-12: rootless
+`runsc create` is not needed; `runsc --rootless run` of a bundle works,
+and a bind mount of the bundle writes on the host. gVisor 20261102 needs
+its sidecars of `gvisor-bin/` beside `runsc`.
+
+## Done
+
+**Done 2026-11-12.** `crates/podvm/src/runsc.rs` and
+`crates/podvm/src/run/runsc.rs`: `--podvm-tier=runsc` checks for `runsc`
+(`PODVM_RUNSC`, else `PATH`) and for user namespaces (`unshare` in a
+child) before the pull, copies the image into the container's own tree,
+writes the bundle (each `-v` a bind mount, `:ro` and `--read-only`
+read-only, a numeric `--user`), and starts `runsc --rootless
+--network=host --ignore-cgroups --platform=systrap --overlay2=none run`.
+The bundle, the tree and the state of the container go at the end. `sh
+experiments/436-runsc.sh` exits 0 on this host (Linux 6.18, gVisor
+20261102 by its SHA-512): `uname -r` gives `4.19.0-gvisor`, the exit code
+3 of the payload is the run's, a write with a line of stdin is on the
+host, `--read-only` and `:ro` give EROFS, nothing of the run stays, and
+the tier refuses at 125 by name with no `runsc` and where `unshare(2)` is
+denied ([the run](../experiments/results/runsc.txt)). The tests of
+`runsc_tests.rs` hold the bundle and the arguments.
 
 # T-1732: Take podcrates v0.22.0: a detached payload ends with its launcher
 

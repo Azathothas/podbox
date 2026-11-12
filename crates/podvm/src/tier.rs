@@ -24,6 +24,9 @@ pub enum Want {
     Emulate,
     /// TODO/enter.md T-1657: the syscall tier on the native-static rung.
     Syscall,
+    /// TODO/enter.md T-1729: gVisor's runsc, where the host grants user
+    /// namespaces.
+    Runsc,
 }
 
 /// The validated value of one `--podvm-tier` spelling, or `None` where the
@@ -34,6 +37,7 @@ pub fn want(s: &str) -> Option<Want> {
         "incus" => Some(Want::Incus),
         "emulate" => Some(Want::Emulate),
         "syscall" => Some(Want::Syscall),
+        "runsc" => Some(Want::Runsc),
         _ => None,
     }
 }
@@ -44,7 +48,7 @@ pub fn want(s: &str) -> Option<Want> {
 /// value that selected nothing gave a caller another mechanism with exit 0.
 pub fn refusal(verb: &str, value: &str) -> String {
     format!(
-        "podvm {verb}: --podvm-tier takes machine, incus, emulate or syscall, not {value:?}: with no flag the \
+        "podvm {verb}: --podvm-tier takes machine, incus, emulate, syscall or runsc, not {value:?}: with no flag the \
          ladder selects the rung, and `podvm system info --format \
          '{{{{.EnteredRung}}}}'` names the rung that a run enters (TODO/cli.md T-1712)"
     )
@@ -101,6 +105,9 @@ pub enum Tier {
     /// `--podvm-tier=syscall`: the handler of the native-static rung
     /// answers `uname`, sizes `/tmp` and serves the paths (T-1657).
     Syscall,
+    /// `--podvm-tier=runsc`: `run` runs the payload under gVisor's runsc
+    /// (T-1729).
+    Runsc,
 }
 
 /// Resolve the flag to the tier that runs.
@@ -115,6 +122,7 @@ pub fn resolve(flag: Option<Want>) -> Tier {
         Some(Want::Incus) => Tier::Incus,
         Some(Want::Emulate) => Tier::Emulate,
         Some(Want::Syscall) => Tier::Syscall,
+        Some(Want::Runsc) => Tier::Runsc,
     }
 }
 
@@ -231,6 +239,8 @@ mod tests {
         assert_eq!(want("incus"), Some(Want::Incus));
         assert_eq!(want("emulate"), Some(Want::Emulate));
         assert_eq!(want("syscall"), Some(Want::Syscall));
+        assert_eq!(want("runsc"), Some(Want::Runsc));
+        assert_eq!(resolve(Some(Want::Runsc)), Tier::Runsc);
         assert_eq!(resolve(Some(Want::Syscall)), Tier::Syscall);
         assert_eq!(want("chroot"), None);
         assert_eq!(want("sandbox"), None);
@@ -238,7 +248,7 @@ mod tests {
         let r = refusal("run", "chroot");
         assert!(
             r.starts_with(
-                "podvm run: --podvm-tier takes machine, incus, emulate or syscall, not \"chroot\""
+                "podvm run: --podvm-tier takes machine, incus, emulate, syscall or runsc, not \"chroot\""
             ),
             "{r}"
         );

@@ -32,6 +32,7 @@ mod parity;
 mod profile;
 mod remote;
 mod run;
+mod runsc;
 mod sandprobe;
 mod system;
 mod tier;

@@ -17,23 +17,24 @@ pub(super) fn guest_tier(tier: crate::tier::Tier) -> Option<Guest> {
     match tier {
         crate::tier::Tier::Machine => Some(machine_tier),
         crate::tier::Tier::Incus => Some(incus_tier),
+        crate::tier::Tier::Runsc => Some(super::runsc::runsc_tier),
         _ => None,
     }
 }
 
 /// What both tiers take from the store and the image config.
-struct Prepared {
-    digest: String,
-    rootfs: std::path::PathBuf,
-    argv: Vec<String>,
-    env: Vec<String>,
-    workdir: String,
-    stdin: Option<Vec<u8>>,
+pub(super) struct Prepared {
+    pub(super) digest: String,
+    pub(super) rootfs: std::path::PathBuf,
+    pub(super) argv: Vec<String>,
+    pub(super) env: Vec<String>,
+    pub(super) workdir: String,
+    pub(super) stdin: Option<Vec<u8>>,
     /// Held while the run uses the rootfs.
     _held: podvm_image::store::Lock,
 }
 
-fn prepare_image(
+pub(super) fn prepare_image(
     verb: &str,
     store: &podvm_image::Store,
     o: &Opts,

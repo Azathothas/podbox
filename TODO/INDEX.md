@@ -403,7 +403,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1726](cli.md) | P1 | S | none | cli | done | `exec` into a container ignores its `:ro` volumes and `--read-only` |
 | [T-1727](machine.md) | P2 | S | none | machine | done | Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718 |
 | [T-1728](machine.md) | P2 | S | none | machine | done | Without `-t`, a command of the machine tier writes to a terminal |
-| [T-1729](enter.md) | P3 | M | none | enter | open | An optional `runsc` backend where a host grants user namespaces |
+| [T-1729](enter.md) | P3 | M | none | enter | done | An optional `runsc` backend where a host grants user namespaces |
 | [T-1730](enter.md) | P1 | S | none | enter | done | A detached thread of a static payload ends with SIGSEGV on the native-static rung |
 | [T-1731](enter.md) | P2 | L | none | enter | done | A dynamic program on the native-static rung: its loader under the handler |
 | [T-1732](enter.md) | P1 | S | none | enter | done | Take podcrates v0.22.0: a detached payload ends with its launcher |
@@ -420,7 +420,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-351 entries: 3 open, 5 partial, 7 blocked, 336 done.
+351 entries: 2 open, 5 partial, 7 blocked, 337 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -432,8 +432,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 1 | 149 | 152 |
 | P2 | 0 | 2 | 6 | 109 | 117 |
-| P3 | 3 | 1 | 0 | 13 | 17 |
-| **All** | 3 | 5 | 7 | 336 | 351 |
+| P3 | 2 | 1 | 0 | 14 | 17 |
+| **All** | 2 | 5 | 7 | 337 | 351 |
 
 ## Work order
 

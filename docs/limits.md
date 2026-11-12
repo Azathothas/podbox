@@ -78,6 +78,13 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   rename into `/tmp`, are not counted. A dynamic program and a detached
   run refuse by name. The handler shares the payload's address space, so
   the tier is a compatibility layer, not a boundary.
+- `--podvm-tier=runsc` (T-1729) needs a `runsc` (`PODVM_RUNSC` or
+  `PATH`, with its `gvisor-bin/` sidecars) and a host that grants user
+  namespaces; otherwise it refuses by name. It serves a foreground `run`
+  only, with no terminal, a numeric `--user`, and no `--timeout`,
+  `--tmpfs`, `--network broker` or `--podvm-confine`. The network is the
+  host's. Where podvm runs as root, `runsc` keeps a mounted `null-netns`
+  in `<store>/runsc/state`; unmount it before you remove the store.
 - Each container has its own rootfs (T-1709): `run` and `create` copy
   the extracted image into `<store>/trees/<id>/`, and completion and the
   payload write only in that copy. A write in one container is not read

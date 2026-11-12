@@ -1433,7 +1433,7 @@ the exit status of one command.
 
 ## Premise
 
-`enter_machine` (`crates/podvm/src/tier.rs:105`) assesses the
+`enter_machine` (`crates/podvm/src/tier.rs:112`) assesses the
 machine profile and exits 125 with "running a guest arrives
 with TODO/machine.md T-1303 and T-1304" (`tier.rs:138-141`).
 T-1303 builds the initramfs from an extracted rootfs with an
@@ -1638,7 +1638,7 @@ virtiofs); an interactive stdin. They are T-1723.
 
 **Source:** the migration of 2026-11-06 to cloud sessions; `TODO/RULES.md:139`
   (the KVM deferral lifted); `experiments/392-kvm-guest.sh:1`;
-  `crates/podvm/src/tier.rs:105`;
+  `crates/podvm/src/tier.rs:112`;
   A-V-08 of PodUtils/podcrates#39
 **Category:** machine
 **Milestone:** none
@@ -1661,7 +1661,7 @@ GitHub's hosted Linux runners expose `/dev/kvm` to a job that
 enables it with a udev rule; this is a documented runner
 property, not measured here. The KVM guest experiment is
 `experiments/392-kvm-guest.sh`. The machine tier's entry point
-is `enter_machine` (`crates/podvm/src/tier.rs:105`). The
+is `enter_machine` (`crates/podvm/src/tier.rs:112`). The
 owner lifted the KVM deferral of 2026-10-02 on 2026-11-09
 (`TODO/RULES.md:139`, `docs/decisions.md`).
 

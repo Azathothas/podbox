@@ -226,6 +226,8 @@ mod wall;
 // TODO/machine.md T-1656: a guest from an OCI image.
 mod foreign;
 mod machine;
+// TODO/enter.md T-1729: gVisor's runsc.
+mod runsc;
 
 // TODO/cli.md T-1706: the reason of a SIGXFSZ death.
 mod exit_note;

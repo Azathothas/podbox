@@ -17,7 +17,10 @@ pub(crate) fn prepare(
     // fetched: a machine-tier refusal names the legs, and there is nothing
     // to pull for a tier that cannot run.
     let tier = crate::tier::resolve(o.tier);
-    let guest = matches!(tier, crate::tier::Tier::Machine | crate::tier::Tier::Incus);
+    let guest = matches!(
+        tier,
+        crate::tier::Tier::Machine | crate::tier::Tier::Incus | crate::tier::Tier::Runsc
+    );
     // ⭐ TODO/packaging.md T-1003. A forced launch rung is refused here, before
     // anything is fetched, where the verb cannot honor it: only foreground
     // `run` drives the ladder, and no guest tier reaches it (so it sits first).

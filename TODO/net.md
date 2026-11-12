@@ -43,7 +43,7 @@ a lab on the host.
 A machine-tier guest kernel is root inside, so namespaces,
 nftables, `tc netem`, tayga and WireGuard work there. The
 machine tier runs under TCG on the target host
-(`crates/podvm/src/tier.rs:144`), at 3x to 21x the native cost
+(`crates/podvm/src/tier.rs:152`), at 3x to 21x the native cost
 (T-1308). User-mode networking carried a guest in
 `experiments/361-guest-usernet.sh:299`. Running a guest from
 `run` is T-1656. The issue names `pod-dns` and `pod-proxy`;
