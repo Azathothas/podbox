@@ -3343,3 +3343,55 @@ search bit of a directory) to the source for the moment of its copy, and
 restores the image's mode on the source and on the copy; the test
 `a_file_and_a_directory_of_mode_0000_are_copied_with_their_modes` holds it. The tree of `rmi` after a new
 pull (M2, Unverified) is not changed by this entry.
+
+# T-1741: A plain tar layer whose end padding is past the last read is refused as a digest mismatch
+
+**Source:** issue 281 (COORD-060); T-1721 (experiment 356 on arm64);
+  pod-extract v0.30.0 `layer::open_hashed` and `extract_layers`
+**Category:** image
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`podvm extract` and `podvm run` refuse a correct uncompressed layer with
+"digest mismatch". pod-extract hashes only the raw bytes that the tar
+reader pulls, and the tar reader stops at the end-of-archive marker. GNU
+tar pads an archive to 10 240 bytes. When the padding goes past the last
+read of 64 KiB, the hash does not include it. `podvm import` of a GNU
+tar then fails at random, on each architecture.
+
+## Premise
+
+Measured 2026-11-12 with podvm at podcrates v0.30.0 on x86_64: one file
+of 60 000 bytes, `tar -cf` (71 680 bytes), `podvm import` and then
+`podvm extract` gives the mismatch. An strace of a layer of 5 048 320
+bytes shows 5 046 272 bytes read.
+
+## Approach
+
+pod-extract belongs to podcrates. podcrates reads each pass to the end of
+the raw blob before it compares the digest (issue 281 has the
+recommended fix). podvm takes that tag and adds the reproduction as a
+test of `podvm-image`.
+
+## Decision
+
+Blocked on podcrates (issue 281). podvm does not change the bytes of an
+imported tar: the digest of the layer stays the digest of the file.
+
+## Prove
+
+`cargo test -p podvm-image` exits 0 with a test that imports and extracts
+a tar of one file of 60 000 bytes with the record of 10 240 bytes
+
+## Blocker
+
+PodUtils/podcrates: the fix of pod-extract (issue 281). podvm takes the
+tag that has it.
+
+## Correction
+
+None.
