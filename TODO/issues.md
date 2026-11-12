@@ -165,3 +165,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #268 | COORD-049: real labels and one JSON report for each run (A-V-07, A-V-09 and G-06 of PodUtils/podcrates#39) (to all) | closed | T-1695 |
 | #269 | COORD-050: mcr.microsoft.com for pod-services (the image of podvm's profile playwright-chromium) (to podcrates) | open | T-1694 |
 | #270 | COORD-051: podvm takes podcrates v0.26.0 (the answer to PodUtils/podcrates#77) (to podcrates) | closed | T-1658, T-1694 |
+| #271 | cfb asks: tracker for the 9 asks of cfb owned by podvm (from podcrates#35) | open | tracker: T-1658, T-1665, T-1663, T-1694, T-1695, T-1714, T-1723, T-1739 |
