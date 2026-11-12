@@ -147,8 +147,10 @@ runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
 The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
 podvm fetches into the store. The image needs `/bin/sh`. The guest
 has QEMU's user-mode network: it reaches the host's loopback at
-10.0.2.2. `-v HOST:GUEST` is a copy into the guest: the run says so, and a
-write in the guest does not return to the host. stderr comes back on its own
+10.0.2.2. `-v HOST:GUEST[:ro]` is a 9p mount of the host directory (T-1723): a write
+in the guest lands there with the host user's ownership, and `:ro` refuses a
+write with EROFS. The 9p modules come from the pinned modloop. With a kernel
+of `PODVM_MACHINE_KERNEL` a volume is a copy, and the run says so. stderr comes back on its own
 serial port. stdin reaches the guest where it is a pipe or a file (at
 most 64 MiB, read before the boot); a terminal does not. `create` and `exec`
 with the machine tier report the profile and exit 125.

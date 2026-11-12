@@ -1563,7 +1563,7 @@ the machine tier runs TCG".
   amendment of 2026-11-09); podcrates podcrates@T-107; ask 2.7 of
   COORD-021 (issue 227); the podrunner design review (the
   owner's design review of PodUtils/podcrates#47), SPEC section 10.1;
-  `crates/podvm/src/main.rs:353`
+  `crates/podvm/src/main.rs:354`
 **Category:** probe
 **Milestone:** none
 **Priority:** P2
@@ -1582,7 +1582,7 @@ podcrates podcrates@T-107 owns the schema of `pod-hostprobe`. T-1670
 saved the first sample
 (`experiments/results/cloud-host-probe.json`) and said that
 podvm needs this entry when podcrates@T-107 releases the schema. The
-`--json` switch of `probe` is `crates/podvm/src/main.rs:353`.
+`--json` switch of `probe` is `crates/podvm/src/main.rs:354`.
 
 ## Approach
 

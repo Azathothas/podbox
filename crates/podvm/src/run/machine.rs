@@ -115,12 +115,20 @@ pub(super) fn machine_tier(
         Ok(p) => p,
         Err(c) => return c,
     };
-    // `-v HOST:GUEST`: a copy into the guest (`:ro` changes nothing there).
-    let mut copies: Vec<_> = o
+    // `-v HOST:GUEST[:ro]`: a 9p mount of the host directory
+    // (TODO/machine.md T-1723).
+    let volumes: Vec<_> = o
         .volumes
         .iter()
-        .map(|v| (std::path::PathBuf::from(&v.host), v.guest.clone()))
+        .map(|v| {
+            (
+                std::path::PathBuf::from(&v.host),
+                v.guest.clone(),
+                o.ro_volumes.contains(&v.guest),
+            )
+        })
         .collect();
+    let mut copies = Vec::new();
     // TODO/probe.md T-1666: the probe of probe-inside, at /.podvm.
     let probe = crate::sandprobe::guest_copy(store.root());
     copies.extend(probe.clone().map(|d| (d, "/.podvm".to_string())));
@@ -164,6 +172,7 @@ pub(super) fn machine_tier(
         timeout: o.timeout.map(std::time::Duration::from_secs),
         qemu_args: o.qemu_args.clone(),
         copies,
+        volumes,
         stdin: p.stdin,
     });
     if let Some(d) = probe {

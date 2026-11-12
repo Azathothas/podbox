@@ -2027,7 +2027,7 @@ incusd of route A with exit 0.
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2067,7 +2067,30 @@ host after the run, and a command that reads a terminal.
 
 ## Correction
 
-**Filed 2026-11-11.** From the rest of T-1656.
+**Filed 2026-11-11.** From the rest of T-1656. Measured 2026-11-12: the
+9p modules of the pinned kernel 6.12.110-0-virt are `netfs`, `9pnet`,
+`9pnet_virtio` and `9p` (their `modules.dep` of the modloop), and none is
+built in.
+
+## Done
+
+**Partial 2026-11-12, the volumes.** `-v HOST:GUEST[:ro]` of `run
+--podvm-tier=machine` is a 9p mount of the host directory. podvm reads
+the four modules out of the pinned modloop (its SHA-256 is a fact of
+`alpine-netboot`) with its own reader of squashfs and xz
+(`crates/podvm/src/machine/guest/squashfs.rs`; its tests read a fixture of
+`mksquashfs`, and the pinned modloop gives the same bytes as
+`unsquashfs`). The guest loads them and mounts each tag before the `cd`
+(`podvm guest-9p`, `crates/podvm/src/machine/guest/vol.rs`); the host
+passes `-virtfs local,...,security_model=none` (`readonly=on` for
+`:ro`). A failed mount ends the run with 125 before the command. A kernel
+of `PODVM_MACHINE_KERNEL` keeps the copy, and the run says so. `sh
+experiments/412-microvm-boot.sh` exits 0 under TCG on this host with the
+new clause 6: the guest reads a host file with `-w` in the volume, its
+write is on the host after the run, and a write in a `:ro` volume fails
+with EROFS ([the run](../experiments/results/microvm-boot.txt)).
+Remaining: `-M microvm` under KVM (twenty boots), a terminal on stdin,
+and the run of 412 in `kvm.yml`.
 
 # T-1727: Take podcrates v0.21.0: `pod-incus` replaces the incus client of T-1718
 

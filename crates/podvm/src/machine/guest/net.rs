@@ -94,7 +94,7 @@ fn err() -> std::io::Error {
     std::io::Error::last_os_error()
 }
 
-fn load(name: &str) -> Result<(), String> {
+pub(crate) fn load(name: &str) -> Result<(), String> {
     let path = format!("{DIR}/{name}.ko");
     let f = std::fs::File::open(&path).map_err(|e| format!("{path}: {e}"))?;
     // SAFETY: finit_module with an open descriptor and an empty string.

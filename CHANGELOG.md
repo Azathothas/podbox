@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: a volume of the machine tier is a 9p mount, 2026-11-12
+
+Record: T-1723.
+Deployed: not released.
+
+- `run --podvm-tier=machine -v HOST:GUEST[:ro]` mounts the host directory
+  in the guest with 9p, so a write in the guest lands on the host, and
+  `:ro` refuses a write. podvm takes the 9p modules out of the pinned
+  modloop of the guest kernel. A kernel of `PODVM_MACHINE_KERNEL` keeps the
+  copy of before.
+
 ### Added: the runsc tier, 2026-11-12
 
 Record: T-1729.

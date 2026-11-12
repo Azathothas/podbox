@@ -1,12 +1,12 @@
 == conditions
-date              2026-11-11T11:43:11Z
+date              2026-11-12T10:54:27Z
 host kernel       Linux 6.18.44-fc-v378
 input             mirror.gcr.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
 boots             20
 /dev/kvm          does not open
 qemu              QEMU emulator version 8.2.2 (Debian 1:8.2.2+ds-0ubuntu1.18)
 build             ok
-podvm             podvm 0.2.0-beta.3
+podvm             podvm 0.2.0-beta.5
 3.20: Pulling from library/alpine
 25f1d6b1951a: Pull complete
 Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
@@ -15,7 +15,7 @@ podvm: probed this machine rather than using the cache: /workspace/podvm/experim
 
 == 1. one command
 exit              7
-seconds           7 (with the kernel fetch and the base archive)
+seconds           10 (with the kernel fetch and the base archive)
   6.12.110-0-virt
   25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
   podvm: 1 of 517 entries carry an id this machine cannot apply; what the image intended is in /workspace/podvm/experiments/.sweep412-work/store/rootfs/sha256_c64c687cbea9300178b30c95835354e34c4e4febc4badfe27102879de0483b5e/.meta.jsonl
@@ -31,7 +31,7 @@ exit              0
 
 == 3. boots in a row
 reached           20 of 20
-seconds           59
+seconds           85
 
 == 4. KVM asked
 exit              125
@@ -45,8 +45,10 @@ exit              0
 exit              0
   host-file
   wrote
+  touch: /ro/x: Read-only file system
   podvm run: machine tier: a guest under TCG (the emulator process is the boundary, not hardware isolation), base archive from the cache (TODO/machine.md T-1656)
-  podvm run: machine tier: -v /workspace/podvm/experiments/.sweep412-work/ws:/workspace is a copy into the guest: writes in the guest do not return to the host (TODO/machine.md T-1656)
+  podvm run: machine tier: -v /workspace/podvm/experiments/.sweep412-work/ws:/workspace is a 9p mount of the host directory: a write in the guest lands there, with the host user's ownership (TODO/machine.md T-1723)
+  podvm run: machine tier: -v /workspace/podvm/experiments/.sweep412-work/ro:/ro:ro is a read-only 9p mount of the host directory (TODO/machine.md T-1723)
 
 == 7. stderr apart
 exit              4
@@ -56,8 +58,8 @@ exit              4
     err-412
 
 == 8. stdin
-host sha256       660e635bc83fe491e0a271839638352d6a2f909130d2ac5e007d7e59608fc97c
-guest sha256      660e635bc83fe491e0a271839638352d6a2f909130d2ac5e007d7e59608fc97c
+host sha256       f0ecf80a60870b38a5fbd916c8691c0cb287c51e8cbf3d467226f3a01dab27c7
+guest sha256      f0ecf80a60870b38a5fbd916c8691c0cb287c51e8cbf3d467226f3a01dab27c7
 from /dev/null    eof-ok
 
 == 10. no terminal

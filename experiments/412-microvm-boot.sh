@@ -20,9 +20,10 @@
 #   5. the guest fetches a URL through an HTTP proxy that listens on the
 #      host's loopback (10.0.2.2 in the guest): `http_proxy` sends busybox
 #      wget there, and the proxy answers with the URL that it got.
-#   6. `-v HOSTDIR:/workspace`: the guest reads a host file there, the
-#      banner says that the volume is a copy, and a file that the guest
-#      writes there is not on the host.
+#   6. `-v HOSTDIR:/workspace` (T-1723): the guest reads a host file
+#      there, the banner says that the volume is a 9p mount, a file that
+#      the guest writes there is on the host after the run, and `-w` in the
+#      volume works. A second volume with `:ro` refuses a write with EROFS.
 #   7. stderr comes back apart from stdout: `echo out; echo err >&2`
 #      gives `out` on podvm's stdout and `err` on its stderr only.
 #   8. stdin: 100000 random bytes piped in give the same SHA-256 in the
@@ -135,17 +136,19 @@ kill "$pp" 2>/dev/null; wait "$pp" 2>/dev/null
 [ "$rc" -eq 0 ] || { note "5: wanted exit 0, got $rc"; fail=1; }
 grep -qx "proxied http://podvm-412.invalid/through-the-proxy" "$WORK/c5.out" || { note "5: the proxy did not answer the guest"; fail=1; }
 
-# Clause 6: a volume is a copy.
-mkdir -p "$WORK/ws" && echo host-file >"$WORK/ws/in.txt"
-timeout 300 "$PB" run --podvm-tier=machine -v "$WORK/ws:/workspace" "$ALPINE" \
-	sh -c 'cat /workspace/in.txt; echo guest > /workspace/out.txt && echo wrote' >"$WORK/c6.out" 2>"$WORK/c6.err"
+# Clause 6: a volume is a 9p mount of the host directory (T-1723).
+mkdir -p "$WORK/ws" "$WORK/ro" && echo host-file >"$WORK/ws/in.txt"
+timeout 300 "$PB" run --podvm-tier=machine -v "$WORK/ws:/workspace" -v "$WORK/ro:/ro:ro" -w /workspace "$ALPINE" \
+	sh -c 'cat in.txt; echo guest > out.txt && echo wrote; touch /ro/x 2>&1; true' >"$WORK/c6.out" 2>"$WORK/c6.err"
 rc=$?
 { echo ""; echo "== 6. a volume"; echo "exit              $rc"; sed 's/^/  /' "$WORK/c6.out" "$WORK/c6.err"; } >>"$REPORT"
 [ "$rc" -eq 0 ] || { note "6: wanted exit 0, got $rc"; fail=1; }
 grep -qx "host-file" "$WORK/c6.out" || { note "6: the guest did not read the host file"; fail=1; }
 grep -qx "wrote" "$WORK/c6.out" || { note "6: the guest did not write"; fail=1; }
-grep -q "is a copy into the guest" "$WORK/c6.err" || { note "6: the run did not say that the volume is a copy"; fail=1; }
-[ -e "$WORK/ws/out.txt" ] && { note "6: the guest's write is on the host, and the run said copy"; fail=1; }
+grep -q "is a 9p mount of the host directory" "$WORK/c6.err" || { note "6: the run did not say that the volume is a 9p mount"; fail=1; }
+[ "$(cat "$WORK/ws/out.txt" 2>/dev/null)" = guest ] || { note "6: the guest's write is not on the host"; fail=1; }
+grep -q "Read-only file system" "$WORK/c6.out" || { note "6: a write in the :ro volume was not refused"; fail=1; }
+[ -e "$WORK/ro/x" ] && { note "6: a write in the :ro volume is on the host"; fail=1; }
 
 # Clause 7: stderr on its own port.
 timeout 300 "$PB" run --podvm-tier=machine "$ALPINE" sh -c 'echo out-412; echo err-412 >&2; exit 4' >"$WORK/c7.out" 2>"$WORK/c7.err"

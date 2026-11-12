@@ -3117,7 +3117,7 @@ of `ps` says that a label filter matches nothing
 (`crates/podvm/src/lifecycle.rs` line 41 at `9962ba77`), and so does the help of
 `images` (`crates/podvm/src/images.rs` line 106 at `9962ba77`). The only JSON
 that podvm writes for a caller today is `probe --json`
-(`crates/podvm/src/main.rs:353`). The foreground run knows
+(`crates/podvm/src/main.rs:354`). The foreground run knows
 the exit code at its end (`crates/podvm/src/run/foreground.rs:204`)
 and its start is `crates/podvm/src/run/foreground.rs:233`.
 The record that `run` prepares is

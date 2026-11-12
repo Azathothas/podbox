@@ -10,15 +10,19 @@
 //! asks for TCG. The command's exit code comes back through the markers of
 //! [`init`]. The guest has user-mode networking.
 //!
-//! Limits of this slice (named in the banner and in `docs/limits.md`): no
-//! volume and no `/workspace` back to the host; stdout and stderr share one
-//! serial line; no stdin.
+//! A `-v HOST:GUEST` is a 9p mount of the host directory ([`vol`],
+//! TODO/machine.md T-1723), so a write in the guest lands on the host; with
+//! a kernel of `PODVM_MACHINE_KERNEL` (no 9p module) it is a copy. Limits
+//! (named in the banner and in `docs/limits.md`): no terminal on stdin.
 
+pub(crate) mod archive;
 pub(crate) mod cpio;
 pub(crate) mod init;
 pub(crate) mod kernel;
 pub(crate) mod net;
+pub(crate) mod squashfs;
 pub(crate) mod stderr;
+pub(crate) mod vol;
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -27,6 +31,9 @@ use std::time::{Duration, Instant};
 
 use podvm_image::error::EXIT_RUNTIME_ERROR;
 use podvm_windows::plan::Accel;
+
+pub use archive::run_archive;
+use archive::tools;
 
 /// The version of the base archive format; a change of [`cpio`] bumps it,
 /// so an old cached archive is not reused. 2 keeps the hard links.
@@ -52,9 +59,12 @@ pub struct Request<'a> {
     pub broker: Option<u16>,
     pub timeout: Option<Duration>,
     pub qemu_args: Vec<String>,
-    /// `-v HOST:GUEST`: each host path, copied into the guest at GUEST.
-    /// Writes in the guest do not return to the host.
+    /// Host paths copied into the guest at GUEST (the probe of
+    /// probe-inside). Writes in the guest do not return to the host.
     pub copies: Vec<(PathBuf, String)>,
+    /// `-v HOST:GUEST[:ro]`: each a 9p mount of the host directory
+    /// (TODO/machine.md T-1723); `true` is read-only.
+    pub volumes: Vec<(PathBuf, String, bool)>,
     /// podvm's stdin where it is a pipe or a file, read to its end: the
     /// command's stdin in the guest (`/podvm/stdin`).
     pub stdin: Option<Vec<u8>>,
@@ -123,65 +133,6 @@ pub fn base_archive(
     }
     std::fs::rename(&tmp, &path).map_err(|e| format!("{}: {e}", path.display()))?;
     Ok((path, false))
-}
-
-/// podvm's own bytes and the modules of the network, for a guest
-/// ([`net`]).
-pub struct Tools {
-    pub podvm: Vec<u8>,
-    pub modules: Vec<(&'static str, Vec<u8>)>,
-}
-
-/// The archive of one run: `/podvm-init`, the console nodes, and, where
-/// `tools` gives them, podvm itself and the modules of the network.
-pub fn run_archive(
-    script: &str,
-    tools: Option<&Tools>,
-    copies: &[(PathBuf, String)],
-    stdin: Option<&[u8]>,
-) -> std::io::Result<Vec<u8>> {
-    let mut w = cpio::Newc::new(Vec::new());
-    for (host, guest) in copies {
-        w.tree_at(host, guest)?;
-    }
-    if let Some(bytes) = stdin {
-        w.entry("podvm", cpio::DIR | 0o755, &[], (0, 0))?;
-        w.entry("podvm/stdin", cpio::REG | 0o600, bytes, (0, 0))?;
-    }
-    w.entry("dev", cpio::DIR | 0o755, &[], (0, 0))?;
-    w.entry("dev/console", cpio::CHR | 0o600, &[], (5, 1))?;
-    w.entry("dev/ttyS0", cpio::CHR | 0o660, &[], (4, 64))?;
-    if let Some(t) = tools {
-        w.entry("podvm", cpio::DIR | 0o755, &[], (0, 0))?;
-        w.entry("podvm/podvm", cpio::REG | 0o755, &t.podvm, (0, 0))?;
-        w.entry("podvm/modules", cpio::DIR | 0o755, &[], (0, 0))?;
-        for (n, bytes) in &t.modules {
-            w.entry(
-                &format!("podvm/modules/{n}.ko"),
-                cpio::REG | 0o644,
-                bytes,
-                (0, 0),
-            )?;
-        }
-    }
-    w.entry("podvm-init", cpio::REG | 0o755, script.as_bytes(), (0, 0))?;
-    w.finish()
-}
-
-/// podvm's own bytes and the module files, for the run archive.
-fn tools(modules: &[(&'static str, PathBuf)]) -> Result<Option<Tools>, String> {
-    if modules.is_empty() {
-        return Ok(None);
-    }
-    let podvm = std::fs::read("/proc/self/exe").map_err(|e| format!("/proc/self/exe: {e}"))?;
-    let mut m = Vec::new();
-    for (n, p) in modules {
-        m.push((
-            *n,
-            std::fs::read(p).map_err(|e| format!("{}: {e}", p.display()))?,
-        ));
-    }
-    Ok(Some(Tools { podvm, modules: m }))
 }
 
 /// The accelerator: `Err` where KVM was asked for and does not open.
@@ -264,7 +215,27 @@ pub fn boot(r: &Request) -> i32 {
         Ok(k) => k,
         Err(e) => return fail(format!("the guest kernel: {e}")),
     };
-    let tools = match tools(&assets.modules) {
+    // TODO/machine.md T-1723: a volume is a 9p mount where the kernel has
+    // the modules (the pin); a kernel of PODVM_MACHINE_KERNEL has none, and
+    // a volume is then a copy, as before.
+    let nine = !r.volumes.is_empty() && !assets.volume_modules.is_empty();
+    let mut copies = r.copies.clone();
+    let vols = if nine {
+        let g: Vec<_> = r
+            .volumes
+            .iter()
+            .map(|(_, g, ro)| (g.clone(), *ro))
+            .collect();
+        vol::vols(&g)
+    } else {
+        copies.extend(r.volumes.iter().map(|(h, g, _)| (h.clone(), g.clone())));
+        Vec::new()
+    };
+    let mut modules = assets.modules.clone();
+    if nine {
+        modules.extend(assets.volume_modules.iter().cloned());
+    }
+    let tools = match tools(&modules) {
         Ok(t) => t,
         Err(e) => return fail(e),
     };
@@ -285,8 +256,8 @@ pub fn boot(r: &Request) -> i32 {
     let made = std::fs::create_dir_all(&dir)
         .and_then(|()| std::fs::copy(&base, &initrd))
         .and_then(|_| {
-            let script = init::script(&nonce, &r.argv, &r.env, &r.workdir, tools.is_some());
-            run_archive(&script, tools.as_ref(), &r.copies, r.stdin.as_deref())
+            let script = init::script(&nonce, &r.argv, &r.env, &r.workdir, tools.is_some(), &vols);
+            run_archive(&script, tools.as_ref(), &copies, r.stdin.as_deref())
         })
         .and_then(|extra| {
             let mut f = std::fs::OpenOptions::new().append(true).open(&initrd)?;
@@ -313,17 +284,39 @@ pub fn boot(r: &Request) -> i32 {
             "built now"
         }
     );
-    for (host, guest) in &r.copies {
-        eprintln!(
-            "podvm {}: machine tier: -v {}:{guest} is a copy into the guest: writes in the \
-             guest do not return to the host (TODO/machine.md T-1656)",
-            r.verb,
-            host.display()
-        );
+    for (host, guest, ro) in &r.volumes {
+        if nine && *ro {
+            eprintln!(
+                "podvm {}: machine tier: -v {}:{guest}:ro is a read-only 9p mount of the \
+                 host directory (TODO/machine.md T-1723)",
+                r.verb,
+                host.display()
+            );
+        } else if nine {
+            eprintln!(
+                "podvm {}: machine tier: -v {}:{guest} is a 9p mount of the host directory: \
+                 a write in the guest lands there, with the host user's ownership \
+                 (TODO/machine.md T-1723)",
+                r.verb,
+                host.display()
+            );
+        } else {
+            eprintln!(
+                "podvm {}: machine tier: -v {}:{guest} is a copy into the guest: the kernel \
+                 of PODVM_MACHINE_KERNEL has no 9p module, so writes in the guest do not \
+                 return to the host (TODO/machine.md T-1723)",
+                r.verb,
+                host.display()
+            );
+        }
     }
     let sock = stderr::socket_path(&nonce);
     let _ = std::fs::remove_file(&sock);
     let mut extra = stderr::argv(&sock);
+    for (v, (host, _, _)) in vols.iter().zip(&r.volumes) {
+        extra.push("-virtfs".to_string());
+        extra.push(vol::virtfs(host, v));
+    }
     extra.extend(r.qemu_args.iter().cloned());
     let mut argv = qemu_argv(
         accel,

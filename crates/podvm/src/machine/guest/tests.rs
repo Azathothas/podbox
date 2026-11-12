@@ -1,6 +1,7 @@
 //! TODO/machine.md T-1656: the archive cache key, the archive bytes, the
 //! accelerator rule and the exit marker parse.
 
+use super::archive::Tools;
 use super::init::{Console, Line};
 use super::*;
 
@@ -91,6 +92,7 @@ fn the_init_script_quotes_each_word() {
         &["A=x y".into(), "1BAD-=z".into()],
         "/w d",
         true,
+        &[],
     );
     assert!(s.contains("/podvm/podvm guest-net"));
     assert!(
@@ -185,7 +187,7 @@ fn stderr_has_its_own_port() {
     let a = stderr::argv(&sock).join(" ");
     assert!(a.contains("server=on,wait=on") && a.ends_with("-serial chardev:podvmerr"));
     assert_eq!(stderr::strip_cr(b"e1\r\ne2\r\n"), b"e1\ne2\n");
-    let s = init::script("n", &["true".into()], &[], "/", false);
+    let s = init::script("n", &["true".into()], &[], "/", false, &[]);
     assert!(s.contains("cat /podvm-err >/dev/ttyS1"));
 }
 
@@ -194,7 +196,7 @@ fn stderr_has_its_own_port() {
 /// writes the exit marker.
 #[test]
 fn the_command_writes_to_fifos_not_to_a_terminal() {
-    let s = init::script("n", &["true".into()], &[], "/", false);
+    let s = init::script("n", &["true".into()], &[], "/", false, &[]);
     assert!(s.contains("mkfifo /podvm-out /podvm-err"), "{s}");
     assert!(s.contains("\"$@\" >/podvm-out 2>/podvm-err"), "{s}");
     let wait = s
@@ -209,7 +211,7 @@ fn the_command_writes_to_fifos_not_to_a_terminal() {
 fn stdin_rides_in_the_run_archive() {
     let a = run_archive("#!/bin/sh\n", None, &[], Some(b"in-bytes")).unwrap();
     assert_eq!(cpio::member(&a, "podvm/stdin"), Some(&b"in-bytes"[..]));
-    let s = init::script("n", &["cat".into()], &[], "/", false);
+    let s = init::script("n", &["cat".into()], &[], "/", false, &[]);
     assert!(s.contains("exec 0</podvm/stdin") && s.contains("exec 0</dev/null"));
 }
 
@@ -250,4 +252,32 @@ fn a_hard_link_of_the_tree_carries_its_data_once() {
         .iter()
         .all(|h| field(h, 0) == field(regs[0], 0) && field(h, 4) == 2));
     assert_eq!(regs.iter().filter(|h| field(h, 6) > 0).count(), 1);
+}
+
+/// TODO/machine.md T-1723: each volume is a tag of the emulator, mounted
+/// by `podvm guest-9p` before the `cd`; a failed mount ends the run with
+/// 125 before the command.
+#[test]
+fn each_volume_is_a_9p_tag_mounted_before_the_working_directory() {
+    let vols = super::vol::vols(&[("/data".into(), false), ("/cfg dir".into(), true)]);
+    assert_eq!(vols[0].tag, "podvm0");
+    assert_eq!(
+        super::vol::virtfs(std::path::Path::new("/h/d"), &vols[0]),
+        "local,path=/h/d,mount_tag=podvm0,security_model=none"
+    );
+    assert_eq!(
+        super::vol::virtfs(std::path::Path::new("/h/c"), &vols[1]),
+        "local,path=/h/c,mount_tag=podvm1,security_model=none,readonly=on"
+    );
+    let s = init::script("n", &["true".into()], &[], "/data", true, &vols);
+    let mount = s
+        .find("/podvm/podvm guest-9p 'podvm0=/data' 'podvm1=/cfg dir:ro'")
+        .expect(&s);
+    assert!(mount < s.find("cd '/data'").unwrap(), "{s}");
+    assert!(s.contains("echo PODVM-EXIT-n 125"), "{s}");
+    assert_eq!(
+        super::vol::parse("podvm1=/cfg dir:ro"),
+        Some(vols[1].clone())
+    );
+    assert_eq!(super::vol::parse("podvm0=relative"), None);
 }

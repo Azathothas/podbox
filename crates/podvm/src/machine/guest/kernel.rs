@@ -59,12 +59,24 @@ pub fn modules() -> [(&'static str, &'static str); 3] {
     ]
 }
 const INITRAMFS: &str = "boot/initramfs-virt";
+/// TODO/machine.md T-1723: the 9p modules are only in the modloop, a
+/// squashfs image of the same archive, pinned by its SHA-256.
+const MODLOOP: &str = "boot/modloop-virt";
 
-/// What a guest boots with: the kernel, and the module files of the
-/// network (none where `PODVM_MACHINE_KERNEL` names the kernel).
+/// The SHA-256 of the modloop, a fact of `alpine-netboot`.
+pub fn modloop_sha256() -> &'static str {
+    netboot()
+        .text("modloop-virt-sha256")
+        .expect("alpine-netboot has the fact modloop-virt-sha256")
+}
+
+/// What a guest boots with: the kernel, the module files of the network,
+/// and the module files of the 9p volumes (T-1723); no module where
+/// `PODVM_MACHINE_KERNEL` names the kernel.
 pub struct Assets {
     pub kernel: PathBuf,
     pub modules: Vec<(&'static str, PathBuf)>,
+    pub volume_modules: Vec<(&'static str, PathBuf)>,
 }
 
 fn cached(dir: &Path) -> Option<Assets> {
@@ -73,8 +85,20 @@ fn cached(dir: &Path) -> Option<Assets> {
         .iter()
         .map(|(n, sha)| (*n, dir.join(format!("{n}-{}.ko", &sha[..16]))))
         .collect();
-    let all = kernel.is_file() && modules.iter().all(|(_, p)| p.is_file());
-    all.then_some(Assets { kernel, modules })
+    let volume_modules: Vec<_> = super::vol::MODULES
+        .iter()
+        .map(|n| (*n, dir.join(format!("{n}-{}.ko", &modloop_sha256()[..16]))))
+        .collect();
+    let all = kernel.is_file()
+        && modules
+            .iter()
+            .chain(volume_modules.iter())
+            .all(|(_, p)| p.is_file());
+    all.then_some(Assets {
+        kernel,
+        modules,
+        volume_modules,
+    })
 }
 
 /// The guest's kernel and modules: the variable's kernel, or the pin in
@@ -90,6 +114,7 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
             Ok(Assets {
                 kernel: p,
                 modules: Vec::new(),
+                volume_modules: Vec::new(),
             })
         } else {
             Err(format!(
@@ -113,13 +138,16 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
         .send("GET", &url, &[], true, LIMITS)
         .map_err(|e| format!("{url}: {e}"))?;
     let gz = flate2::read::GzDecoder::new(body.take(MAX_ARCHIVE));
-    let mut got = tar_members(gz, &[MEMBER, INITRAMFS]).map_err(|e| format!("{url}: {e}"))?;
+    let mut got =
+        tar_members(gz, &[MEMBER, INITRAMFS, MODLOOP]).map_err(|e| format!("{url}: {e}"))?;
+    let modloop = got.pop().flatten().ok_or(format!("{url}: no {MODLOOP}"))?;
     let initramfs = got
         .pop()
         .flatten()
         .ok_or(format!("{url}: no {INITRAMFS}"))?;
     let kernel = got.pop().flatten().ok_or(format!("{url}: no {MEMBER}"))?;
     check(&kernel, kernel_sha256(), MEMBER)?;
+    check(&modloop, modloop_sha256(), MODLOOP)?;
     let mut cpio = Vec::new();
     flate2::read::GzDecoder::new(&initramfs[..])
         .read_to_end(&mut cpio)
@@ -137,8 +165,37 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
         check(bytes, sha, &format!("{n}.ko"))?;
         put(format!("{n}-{}.ko", &sha[..16]), bytes)?;
     }
+    for (n, bytes) in volume_modules(&modloop)? {
+        put(format!("{n}-{}.ko", &modloop_sha256()[..16]), &bytes)?;
+    }
     put(format!("vmlinuz-{}", &kernel_sha256()[..16]), &kernel)?;
     cached(&dir).ok_or_else(|| format!("{}: the assets did not stay", dir.display()))
+}
+
+/// The 9p modules out of the modloop: one directory of `modules/` has a
+/// `modules.dep` (`firmware` has none), the version of the pinned kernel.
+pub fn volume_modules(modloop: &[u8]) -> Result<Vec<(&'static str, Vec<u8>)>, String> {
+    let img = super::squashfs::Image::new(modloop).map_err(|e| format!("{MODLOOP}: {e}"))?;
+    let kvers: Vec<String> = img
+        .names("modules")
+        .map_err(|e| format!("{MODLOOP}: {e}"))?
+        .into_iter()
+        .filter(|n| img.read(&format!("modules/{n}/modules.dep")).is_ok())
+        .collect();
+    let [kver] = kvers.as_slice() else {
+        return Err(format!(
+            "{MODLOOP}: modules/ holds {} kernel versions, not one",
+            kvers.len()
+        ));
+    };
+    super::vol::MODLOOP_PATHS
+        .iter()
+        .map(|(n, path)| {
+            img.read(&format!("modules/{kver}/{path}"))
+                .map(|b| (*n, b))
+                .map_err(|e| format!("{MODLOOP}: {e}"))
+        })
+        .collect()
 }
 
 fn check(bytes: &[u8], want: &str, what: &str) -> Result<(), String> {

@@ -17,12 +17,31 @@ pub fn sh_quote(w: &str) -> String {
 
 /// The init script for `argv` with `env` (`NAME=VALUE`) in `workdir`.
 /// `net` runs `podvm guest-net` first, which loads the NIC driver and
-/// configures the network; a failure of it is a line of output.
-pub fn script(nonce: &str, argv: &[String], env: &[String], workdir: &str, net: bool) -> String {
+/// configures the network; a failure of it is a line of output. `vols`
+/// runs `podvm guest-9p` before the `cd`, so the working directory can be
+/// in a volume (TODO/machine.md T-1723); where a mount fails, the run ends
+/// with 125 and the reason, and the command does not run.
+pub fn script(
+    nonce: &str,
+    argv: &[String],
+    env: &[String],
+    workdir: &str,
+    net: bool,
+    vols: &[super::vol::Vol],
+) -> String {
     let mut s = String::from("#!/bin/sh\n");
     s.push_str("mount -t proc proc /proc 2>/dev/null\n");
     s.push_str("mount -t sysfs sysfs /sys 2>/dev/null\n");
     s.push_str("mount -t devtmpfs devtmpfs /dev 2>/dev/null\n");
+    if !vols.is_empty() {
+        let args: Vec<String> = vols.iter().map(|v| sh_quote(&super::vol::arg(v))).collect();
+        s.push_str(&format!(
+            "/podvm/podvm guest-9p {} 2>/podvm-9p.err || {{ echo PODVM-READY-{nonce}; \
+             cat /podvm-9p.err; echo; echo PODVM-EXIT-{nonce} 125; sync; reboot -f; \
+             echo b > /proc/sysrq-trigger; }}\n",
+            args.join(" ")
+        ));
+    }
     for e in env {
         if let Some((k, v)) = e.split_once('=')
             && !k.is_empty()
