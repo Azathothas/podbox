@@ -163,7 +163,7 @@
 271 issue open
 272 issue open
 273 issue open
-274 issue open
-275 issue open
-276 issue open
+274 issue closed
+275 issue closed
+276 issue closed
 277 issue open
