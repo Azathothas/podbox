@@ -361,13 +361,23 @@ else
 fi
 
 # Clause 1: capable-host sanity, unfiltered.
-step sane-run 0 "$PB" run --rm "$ALPINE" echo capable-hi
-grep -q "capable-hi" "$WORK/out-sane-run.txt" || { echo "capable payload stdout missing" >>"$REPORT"; fail=1; }
-step sane-tty 0 "$PB" run --rm -t "$ALPINE" true
-"$PB" system info --format '{{.EnteredRung}}' >"$WORK/entered.txt" 2>&1
 # ⚠ A capable host enters a rung with a root change: chroot, or namespace
 # where the host permits user and mount namespaces (the cloud host of
-# TODO/probe.md T-1670 does). Either is the control; the run records which.
+# TODO/probe.md T-1670 does). A user with no root outside a user namespace
+# (the hosted arm64 runner, uid 1001: `clone(NEWNS)=EPERM`) enters
+# supervise; the control is then the fixture's own `unshare -Urm` with no
+# seccomp denial, so that the fixture differs from the control only in the
+# denial of chroot(2). The run records which control it took.
+CTL=""
+"$PB" system info --format '{{.EnteredRung}}' >"$WORK/entered.txt" 2>&1
+if ! grep -qE "^(chroot|namespace)$" "$WORK/entered.txt" && unshare -Urm true 2>/dev/null; then
+	echo "host rung (bare)  $(cat "$WORK/entered.txt") as uid $(id -u); the control runs under unshare -Urm" >>"$REPORT"
+	CTL="unshare -Urm"
+	$CTL "$PB" system info --format '{{.EnteredRung}}' >"$WORK/entered.txt" 2>&1
+fi
+step sane-run 0 $CTL "$PB" run --rm "$ALPINE" echo capable-hi
+grep -q "capable-hi" "$WORK/out-sane-run.txt" || { echo "capable payload stdout missing" >>"$REPORT"; fail=1; }
+step sane-tty 0 $CTL "$PB" run --rm -t "$ALPINE" true
 grep -qE "^(chroot|namespace)$" "$WORK/entered.txt" || {
 	echo "EnteredRung is not a capable rung here:" >>"$REPORT"; cat "$WORK/entered.txt" >>"$REPORT"; fail=1
 	# The reason of the host: the probe and the rung that it selects.
@@ -980,12 +990,12 @@ grep -qx "w" "$VOL/rw356" 2>/dev/null || { echo "the volume write did not land i
 # Outside the fixture the rung is the host's: a rung with no read-only
 # layer (namespace, chroot) refuses by name; the userland rung has the
 # layer and runs.
-SANE_RUNG=$("$PB" system info --format '{{.EnteredRung}}' 2>/dev/null)
+SANE_RUNG=$($CTL "$PB" system info --format '{{.EnteredRung}}' 2>/dev/null)
 echo "host rung         ${SANE_RUNG:--}" >>"$REPORT"
 if [ "$SANE_RUNG" = userland ]; then
-	step sane-read-only 0 "$PB" run --rm --read-only "$ALPINE" true
+	step sane-read-only 0 $CTL "$PB" run --rm --read-only "$ALPINE" true
 else
-	step sane-read-only "$RUN_ERR" "$PB" run --rm --read-only "$ALPINE" true
+	step sane-read-only "$RUN_ERR" $CTL "$PB" run --rm --read-only "$ALPINE" true
 	grep -q "read-only layer" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung was not refused by name" >>"$REPORT"; fail=1; }
 fi
 
