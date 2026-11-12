@@ -107,6 +107,7 @@ unsafe extern "C" fn route_dlmopen(name: *const c_char) -> Route {
 // The push keeps `mode` and aligns the stack to 16 bytes for the call.
 // Intel syntax: this is Rust's assembler default. The label `2` is not
 // `0` or `1`, which LLVM can read as a binary number in Intel syntax.
+#[cfg(target_arch = "x86_64")]
 core::arch::global_asm!(
     ".text",
     ".globl dlopen",
@@ -130,6 +131,7 @@ core::arch::global_asm!(
 // `rsi` name, `edx` mode. The namespace argument goes to the next
 // definition unchanged. Two pushes and 8 bytes align the stack for the
 // call; `r11` holds the target, because the pop of `mode` takes `rdx`.
+#[cfg(target_arch = "x86_64")]
 core::arch::global_asm!(
     ".text",
     ".globl dlmopen",
@@ -150,6 +152,60 @@ core::arch::global_asm!(
     "jmp r11",
     "2:",
     "xor eax, eax",
+    "ret",
+    ".size dlmopen, .-dlmopen",
+    route = sym route_dlmopen,
+);
+
+// aarch64 (T-1721): `x0` name, `w1` mode. The frame keeps `mode` and the
+// link register; `route` returns `Route` in `x0` and `x1` (AAPCS64, a
+// composite of 16 bytes). The tail call goes through `x16`, which a
+// target that starts with `bti c` accepts.
+#[cfg(target_arch = "aarch64")]
+core::arch::global_asm!(
+    ".text",
+    ".globl dlopen",
+    ".type dlopen, %function",
+    "dlopen:",
+    "stp x29, x30, [sp, #-32]!",
+    "mov x29, sp",
+    "str x1, [sp, #16]",
+    "bl {route}",
+    "mov x16, x1",
+    "ldr x1, [sp, #16]",
+    "ldp x29, x30, [sp], #32",
+    "cbz x16, 2f",
+    "br x16",
+    "2:",
+    "mov x0, #0",
+    "ret",
+    ".size dlopen, .-dlopen",
+    route = sym route_dlopen,
+);
+
+// aarch64: `x0` lmid, `x1` name, `w2` mode; the namespace argument goes to
+// the next definition unchanged.
+#[cfg(target_arch = "aarch64")]
+core::arch::global_asm!(
+    ".text",
+    ".globl dlmopen",
+    ".type dlmopen, %function",
+    "dlmopen:",
+    "stp x29, x30, [sp, #-48]!",
+    "mov x29, sp",
+    "str x0, [sp, #16]",
+    "str x2, [sp, #24]",
+    "mov x0, x1",
+    "bl {route}",
+    "mov x16, x1",
+    "mov x1, x0",
+    "ldr x0, [sp, #16]",
+    "ldr x2, [sp, #24]",
+    "ldp x29, x30, [sp], #48",
+    "cbz x16, 2f",
+    "br x16",
+    "2:",
+    "mov x0, #0",
     "ret",
     ".size dlmopen, .-dlmopen",
     route = sym route_dlmopen,

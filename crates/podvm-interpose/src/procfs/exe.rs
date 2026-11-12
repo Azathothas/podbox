@@ -148,7 +148,11 @@ pub const PIPEFS_MAGIC: u64 = 0x5049_5045;
 /// `struct stat` field offsets on x86_64, the same measurement `lib.rs`
 /// carries: `dev=0 ino=8 mode=24`, identical under both libcs.
 pub(super) const ST_INO: usize = 8;
+#[cfg(target_arch = "x86_64")]
 pub(super) const ST_MODE: usize = 24;
+/// aarch64: the generic layout (experiments/439-stat-layout.sh).
+#[cfg(target_arch = "aarch64")]
+pub(super) const ST_MODE: usize = 16;
 
 /// `struct statfs` on x86_64 is kernel ABI, identical under both libcs:
 /// `f_type` a `long` at 0, `f_flags` a `long` at 80, 120 bytes whole.
@@ -158,7 +162,11 @@ pub const ST_RDONLY: u64 = 1;
 
 /// `struct stat` on x86_64, 144 bytes whole. Only the header travels here:
 /// the glue fills it with the real `fstat` and these read it back.
+#[cfg(target_arch = "x86_64")]
 pub const STAT_LEN: usize = 144;
+/// `struct stat` on aarch64, 128 bytes whole.
+#[cfg(target_arch = "aarch64")]
+pub const STAT_LEN: usize = 128;
 
 /// Split device numbers back out of `st_dev`.
 ///

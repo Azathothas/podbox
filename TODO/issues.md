@@ -172,3 +172,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #275 | COORD-054: the wasmtime release for pod-services (to podcrates) | closed | T-1661 |
 | #276 | COORD-055: podvm takes podcrates v0.27.0 (the answer to PodUtils/podcrates#85) (to podcrates) | closed | T-1658 |
 | #277 | COORD-056: pod-guest commit_argv: qemu-img commit takes no OUTFILE; podvm windows setup fails under KVM (to podcrates) | closed | T-1641 |
+| #278 | COORD-057: podvm takes podcrates v0.28.0 (the answer to PodUtils/podcrates#86) (to podcrates) | open | T-1641, T-1661 |

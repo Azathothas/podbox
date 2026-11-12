@@ -1635,7 +1635,7 @@ defines no version node; and the SONAME is `libdl.so.2`, not `.6`.
 
 **Source:** the T-1111 nix unpack (the symptom is in
   `experiments/results/tar-symlink-modes-prefix.txt`);
-  `crates/podvm-interpose/src/lib.rs:372`,
+  `crates/podvm-interpose/src/lib.rs:384`,
   `crates/podvm-interpose/src/stat_calls.rs:296`
 **Category:** interpose
 **Milestone:** none
@@ -1659,7 +1659,7 @@ Measured 2026-09-21 on host podman, same image, back to back:
 under `podvm run` the minimal tar-symlink repro exits 2 with
 one such error per link; in the plain driver container the same
 commands exit 0. The interposed `fchmodat` is declared with
-three arguments (`crates/podvm-interpose/src/lib.rs:372`) and
+three arguments (`crates/podvm-interpose/src/lib.rs:384`) and
 forwards three (`crates/podvm-interpose/src/stat_calls.rs:296`),
 while libc takes four `(dirfd, path, mode, flags)`: the real
 call receives a fourth register the wrapper never set, so any
@@ -1700,7 +1700,7 @@ podman, with the conditions block naming the driver.
 ## Done
 
 **Done 2026-09-21.** The declaration and the wrapper carry `flags`
-(`crates/podvm-interpose/src/lib.rs:372`,
+(`crates/podvm-interpose/src/lib.rs:384`,
 `crates/podvm-interpose/src/stat_calls.rs:296`); every other flags-taking
 `*at` wrapper already did, so the audit closes with this one. Guard:
 `tests::fchmodat_forwards_flags` compares the interposed entry point
@@ -1779,7 +1779,7 @@ citation half is closed in the same change.
 What the lane measured, one arch at a time, is why the objects do
 not follow the binaries. `podvm-interpose` carries x86_64's
 `struct stat` field offsets as constants
-(`crates/podvm-interpose/src/lib.rs:88-91`: `ST_UID 28`,
+(`crates/podvm-interpose/src/lib.rs:92-95`: `ST_UID 28`,
 `ST_GID 32`, measured under both libcs by
 `experiments/105-interpose-ownership.sh`), and an object that wrote
 a uid at the wrong offset would corrupt whatever field is there:
@@ -3323,7 +3323,7 @@ from a listener of the host.
 # T-1721: An interposer for aarch64: the userland rung runs no arm64 payload
 
 **Source:** PodUtils/podrunner#52 (COORD-005 of podrunner, a message from
-  a peer session); `crates/podvm-interpose/src/lib.rs:56`;
+  a peer session); `crates/podvm-interpose/src/lib.rs:59`;
   `crates/podvm/build.rs`
 **Category:** interpose
 **Milestone:** none
@@ -3376,6 +3376,19 @@ exits 0 there with the pinned image of 356 for arm64 on the
 chroot-denied fixture.
 
 ## Correction
+
+**Progress 2026-11-12, step 2.** The interposer compiles for
+`aarch64-unknown-linux-gnu`: the offsets of `stat` (`lib.rs`,
+`procfs/exe.rs`), the numbers of each architecture
+(`src/raw_calls/nr.rs`; the calls that the generic table has not get a
+negative number, so their arm never applies), `svc #0` in
+`raw_calls::forward`, the `gettid` stub and `dlsym@GLIBC_2.17` of
+`real.rs`, the `dlopen` and `dlmopen` trampolines of `dl_calls.rs` (the
+tail call through `x16`), and the ELF machine of `exec/parse.rs`
+(`EM_SELF`). `cargo clippy` passes for both targets, and the 87 tests of
+the interposer pass on x86_64. Remaining: the two aarch64 objects (the
+build tool and `dl-stub.S`), each embedded only into a binary of its
+machine, and the proof on an arm64 runner.
 
 **Measured 2026-11-12.** `PODVM_439_SYSROOT=ROOTFS sh
 experiments/439-stat-layout.sh` exits 0 (zig 0.16.0 builds the program for

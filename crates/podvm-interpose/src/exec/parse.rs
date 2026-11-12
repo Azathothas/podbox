@@ -18,8 +18,12 @@ pub const PHENT: usize = 56;
 /// `PT_INTERP`.
 const PT_INTERP: u32 = 3;
 
-/// `EM_X86_64`. The only machine this object is built for (`lib.rs`).
-const EM_X86_64: u16 = 62;
+/// The ELF machine of this object (`EM_X86_64` 62, `EM_AARCH64` 183).
+#[cfg(target_arch = "x86_64")]
+const EM_SELF: u16 = 62;
+/// The machine of this object: an exec of another machine fails by name.
+#[cfg(target_arch = "aarch64")]
+const EM_SELF: u16 = 183;
 
 /// What the kernel does with a file, as far as the exec family must know.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +65,7 @@ pub fn kind(head: &[u8]) -> Kind {
     }
     // The header fields this reads: class (4), data (5), type (16),
     // machine (18), phoff (32), phentsize (54), phnum (56).
-    if head.len() < 64 || head[4] != 2 || head[5] != 1 || u16_at(head, 18) != EM_X86_64 {
+    if head.len() < 64 || head[4] != 2 || head[5] != 1 || u16_at(head, 18) != EM_SELF {
         return Kind::Foreign;
     }
     // ET_EXEC or ET_DYN. Another type is not a program.

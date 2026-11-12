@@ -530,7 +530,7 @@ the change, and `nightly.yml` parses under a real parser (7 legs, trigger
 `push tags v*`, publish needing the matrix).
 
 Every per-arch binary carries the x86_64 interposer pair: the crate is
-x86_64-only by design (`crates/podvm-interpose/src/lib.rs:50-61`), and
+x86_64-only by design (`crates/podvm-interpose/src/lib.rs:50-64`), and
 off-arch payloads decline naming both machines
 (`crates/podvm/src/interpose.rs:248-256`). Per-arch objects belong to
 the T-0704 family, not to this entry.

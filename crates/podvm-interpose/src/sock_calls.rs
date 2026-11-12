@@ -49,8 +49,7 @@ pub const SUN_PATH: usize = 108;
 const PATH_AT: usize = 2;
 /// `sizeof(struct sockaddr_un)`.
 const SUN_LEN: usize = PATH_AT + SUN_PATH;
-const SYS_OPENAT: c_long = 257;
-const SYS_CLOSE: c_long = 3;
+use crate::raw_calls::{SYS_CLOSE, SYS_OPENAT};
 const O_PATH_DIR: c_long = 0o10_000_000 | 0o200_000 | 0o2_000_000; // O_PATH|O_DIRECTORY|O_CLOEXEC
 const EINVAL: c_int = 22;
 const ENAMETOOLONG: c_int = 36;

@@ -190,7 +190,7 @@ unsafe extern "C" fn real_execveat(
 }
 
 /// `SYS_execveat` on x86_64.
-const SYS_EXECVEAT: core::ffi::c_long = 322;
+use crate::raw_calls::SYS_EXECVEAT;
 
 /// `fexecve(3)`: glibc and musl call `execveat` inside libc, past the
 /// preload, so podvm exports it and takes the descriptor route (T-1703).

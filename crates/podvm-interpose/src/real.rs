@@ -40,8 +40,11 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 // ⛔ glibc ONLY: musl defines no symbol versions, so a versioned undefined
 // reference fails its link. The musl object needs no pin: its loader
 // ignores versions entirely.
-#[cfg(target_env = "gnu")]
+#[cfg(all(target_env = "gnu", target_arch = "x86_64"))]
 core::arch::global_asm!(".symver dlsym,dlsym@GLIBC_2.2.5");
+// aarch64's first glibc version is 2.17 (T-1721).
+#[cfg(all(target_env = "gnu", target_arch = "aarch64"))]
+core::arch::global_asm!(".symver dlsym,dlsym@GLIBC_2.17");
 
 unsafe extern "C" {
     fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
@@ -64,6 +67,7 @@ unsafe extern "C" {
 // their own libc's `gettid` and `105` check A still agrees both ways.
 // Uniform across targets: a raw syscall is the same kernel interface under
 // musl, and this crate refuses non-x86_64 at compile.
+#[cfg(target_arch = "x86_64")]
 core::arch::global_asm!(
     ".text",
     // No binding directive at all: a bare label is local by default, which
@@ -76,6 +80,17 @@ core::arch::global_asm!(
     // Intel syntax: this is Rust's assembler default, not the GNU one.
     "mov eax, 186",
     "syscall",
+    "ret",
+    ".size gettid, .-gettid",
+);
+// aarch64: `SYS_gettid` is 178 in the generic table, the number in `x8`.
+#[cfg(target_arch = "aarch64")]
+core::arch::global_asm!(
+    ".text",
+    ".type gettid, %function",
+    "gettid:",
+    "mov x8, #178",
+    "svc #0",
     "ret",
     ".size gettid, .-gettid",
 );

@@ -49,86 +49,8 @@ use core::ffi::c_long;
 
 const ENOSYS: c_int = 38;
 
-// The x86_64 numbers, from the kernel's `syscall_64.tbl`.
-const SYS_OPEN: c_long = 2;
-const SYS_STAT: c_long = 4;
-const SYS_LSTAT: c_long = 6;
-const SYS_ACCESS: c_long = 21;
-const SYS_EXECVE: c_long = 59;
-const SYS_TRUNCATE: c_long = 76;
-const SYS_GETCWD: c_long = 79;
-const SYS_CHDIR: c_long = 80;
-const SYS_RENAME: c_long = 82;
-const SYS_MKDIR: c_long = 83;
-const SYS_RMDIR: c_long = 84;
-const SYS_CREAT: c_long = 85;
-const SYS_LINK: c_long = 86;
-const SYS_UNLINK: c_long = 87;
-const SYS_SYMLINK: c_long = 88;
-const SYS_READLINK: c_long = 89;
-const SYS_CHMOD: c_long = 90;
-const SYS_CHOWN: c_long = 92;
-const SYS_LCHOWN: c_long = 94;
-const SYS_UTIME: c_long = 132;
-const SYS_MKNOD: c_long = 133;
-const SYS_STATFS: c_long = 137;
-const SYS_MOUNT: c_long = 165;
-const SYS_SETXATTR: c_long = 188;
-const SYS_LSETXATTR: c_long = 189;
-const SYS_GETXATTR: c_long = 191;
-const SYS_LGETXATTR: c_long = 192;
-const SYS_LISTXATTR: c_long = 194;
-const SYS_LLISTXATTR: c_long = 195;
-const SYS_REMOVEXATTR: c_long = 197;
-const SYS_LREMOVEXATTR: c_long = 198;
-const SYS_UTIMES: c_long = 235;
-const SYS_OPENAT: c_long = 257;
-const SYS_MKDIRAT: c_long = 258;
-const SYS_FCHOWNAT: c_long = 260;
-const SYS_NEWFSTATAT: c_long = 262;
-const SYS_UNLINKAT: c_long = 263;
-const SYS_RENAMEAT: c_long = 264;
-const SYS_LINKAT: c_long = 265;
-const SYS_SYMLINKAT: c_long = 266;
-const SYS_READLINKAT: c_long = 267;
-const SYS_FCHMODAT: c_long = 268;
-const SYS_FACCESSAT: c_long = 269;
-const SYS_UTIMENSAT: c_long = 280;
-const SYS_RENAMEAT2: c_long = 316;
-const SYS_EXECVEAT: c_long = 322;
-pub(crate) const SYS_STATX: c_long = 332;
-pub(crate) const SYS_IO_URING_SETUP: c_long = 425;
-const SYS_OPENAT2: c_long = 437;
-const SYS_FACCESSAT2: c_long = 439;
-
-/// The numbers that take a path and that no entry point maps. Arm 2.
-pub(crate) const UNROUTED: &[(c_long, &[u8])] = &[
-    (134, b"uselib"),
-    (155, b"pivot_root"),
-    (161, b"chroot"),
-    (163, b"acct"),
-    (166, b"umount2"),
-    (167, b"swapon"),
-    (168, b"swapoff"),
-    (179, b"quotactl"),
-    (254, b"inotify_add_watch"),
-    (259, b"mknodat"),
-    (301, b"fanotify_mark"),
-    (303, b"name_to_handle_at"),
-    (428, b"open_tree"),
-    (429, b"move_mount"),
-    (431, b"fsconfig"),
-    (433, b"fspick"),
-    (442, b"mount_setattr"),
-    (452, b"fchmodat2"),
-    (463, b"setxattrat"),
-    (464, b"getxattrat"),
-    (465, b"listxattrat"),
-    (466, b"removexattrat"),
-    (467, b"open_tree_attr"),
-    (468, b"file_getattr"),
-    (469, b"file_setattr"),
-];
+mod nr;
+pub(crate) use nr::*;
 
 /// One system call, with the `errno` rule of libc's `syscall`: a result in
 /// `-4095..=-1` is `-errno`.
@@ -139,6 +61,7 @@ pub(crate) unsafe fn forward(n: c_long, a: [c_long; 6]) -> c_long {
     let r: c_long;
     // SAFETY: the caller upholds the contract of number `n`; the
     // instruction changes `rcx` and `r11`, which are named.
+    #[cfg(target_arch = "x86_64")]
     unsafe {
         core::arch::asm!(
             "syscall",
@@ -151,6 +74,22 @@ pub(crate) unsafe fn forward(n: c_long, a: [c_long; 6]) -> c_long {
             in("r9") a[5],
             lateout("rcx") _,
             lateout("r11") _,
+            options(nostack),
+        );
+    }
+    // SAFETY: as above; on aarch64 the number is in `x8`, the result in
+    // `x0`, and `svc #0` changes no other register (T-1721).
+    #[cfg(target_arch = "aarch64")]
+    unsafe {
+        core::arch::asm!(
+            "svc #0",
+            in("x8") n,
+            inlateout("x0") a[0] => r,
+            in("x1") a[1],
+            in("x2") a[2],
+            in("x3") a[3],
+            in("x4") a[4],
+            in("x5") a[5],
             options(nostack),
         );
     }

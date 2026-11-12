@@ -53,17 +53,21 @@
 // The allow on the macro body would itself warn as an unknown lint on a
 // toolchain without the lint, and this keeps it a no-op there instead.
 #![allow(unknown_lints)]
+// `c_char` is `i8` on x86_64 and `u8` on aarch64 (T-1721): a cast of a
+// `*const c_char` to `*const u8` is needed on one and a no-op on the other.
+#![allow(clippy::unnecessary_cast)]
 // ⛔ x86_64 ONLY, and refused by name rather than built wrong. The `stat`
 // offsets below are this architecture's, measured under both libcs; on i686 and
 // arm they differ, and an object that wrote a uid at the wrong offset would
 // corrupt whatever field is there. `scripts/build-interpose.sh` builds the two
 // x86_64 targets, so this is the set that exists rather than a limitation
 // invented here.
-#[cfg(not(target_arch = "x86_64"))]
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
 compile_error!(
-    "podvm-interpose is x86_64-only: src/lib.rs carries this architecture's \
-     `struct stat` field offsets, measured under glibc and musl, and another \
-     architecture needs its own measurement (TODO/interpose.md T-0704)"
+    "podvm-interpose serves x86_64 and aarch64: src/lib.rs carries their \
+     `struct stat` field offsets, measured under glibc and musl \
+     (experiments 105 and 439), and another architecture needs its own \
+     measurement (TODO/interpose.md T-0704, T-1721)"
 );
 
 pub mod device;
@@ -93,8 +97,16 @@ use core::ffi::{c_char, c_int, c_uint, c_ulong, c_void};
 // libc anyway, so it never has to bridge them.
 const ST_DEV: usize = 0;
 const ST_INO: usize = 8;
+#[cfg(target_arch = "x86_64")]
 const ST_UID: usize = 28;
+#[cfg(target_arch = "x86_64")]
 const ST_GID: usize = 32;
+// aarch64: the generic layout of the kernel, the same under glibc and musl
+// (experiments/439-stat-layout.sh): uid=24 gid=28 of 128 bytes.
+#[cfg(target_arch = "aarch64")]
+const ST_UID: usize = 24;
+#[cfg(target_arch = "aarch64")]
+const ST_GID: usize = 28;
 
 // ------------------------------------------------------------ `struct statx`
 //
