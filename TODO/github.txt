@@ -159,4 +159,4 @@
 267 issue open
 268 issue closed
 269 issue open
-270 issue open
+270 issue closed
