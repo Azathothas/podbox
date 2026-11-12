@@ -2582,7 +2582,7 @@ fixture. Clause 21 of experiment 356 holds it. `sh experiments/356-no-chroot-run
   issue 114 section 2 item 2 and section 6 item 3;
   `crates/podvm-interpose/src/exec/calls.rs:20-195`;
   `crates/podvm/src/lifecycle/entry.rs:451`;
-  `experiments/356-no-chroot-rung.sh:462-463`;
+  `experiments/356-no-chroot-rung.sh:474-475`;
   A-V-04 of PodUtils/podcrates#39
 **Category:** interpose
 **Milestone:** none
@@ -3329,7 +3329,7 @@ from a listener of the host.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3376,6 +3376,31 @@ exits 0 there with the pinned image of 356 for arm64 on the
 chroot-denied fixture.
 
 ## Correction
+
+**Progress 2026-11-12, step 4.** `.github/workflows/arm.yml` (run
+43194445506, on `ubuntu-24.04-arm`): the 87 tests of the interposer pass
+for `aarch64-unknown-linux-gnu`, and the aarch64 binary embeds the two
+objects of machine `0xb7`. In experiment 356 the loader family runs arm64
+payloads with each object: alpine's musl busybox (clauses 4, 25 to 28,
+30, 31, 34, 35), debian's glibc `realpath`, the fortified calls and
+`readlink /proc/self/exe`. The clauses that failed, by cause:
+
+* the native-static rung and the emulate tier on it are x86_64 only
+  (TODO/enter.md T-1652): clauses 5, 18, 24, 33 and 36. Experiment 356
+  now skips them by name on another machine.
+* the fixtures of clauses 29 and 32 used x86_64 paths and the zig target
+  `x86_64-linux-musl`; they now take the triplet of the host.
+* `sane-read-only` runs outside the fixture, so its rung is the host's
+  (the arm runner allows user namespaces). It now reads the entered rung
+  and expects a refusal only on a rung with no read-only layer.
+* the image of clauses 29 and 32 is refused with "digest mismatch": a
+  defect of pod-extract on each machine, T-1741 (issue 281).
+* the gcc and golang images (debian bookworm) are declined: "names no C
+  library": the search of pod-enter does not get to
+  `/usr/lib/aarch64-linux-gnu/libc.so.6`, T-1742 (issue 282).
+
+Remaining: the run of `arm.yml` after podvm takes the tags with the fixes
+of T-1741 and T-1742.
 
 **Progress 2026-11-12, step 3.** `podvm-interpose-build` builds the two
 aarch64 objects (`TARGETS="aarch64-unknown-linux-gnu

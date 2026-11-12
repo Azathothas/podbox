@@ -395,7 +395,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1718](machine.md) | P2 | L | none | machine | done | An incus back end: podvm drives incus over its REST API |
 | [T-1719](enter.md) | P2 | S | none | enter | done | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
 | [T-1720](supervise.md) | P1 | S | none | supervise | done | `wait` gives no exit code for a payload that ends at once |
-| [T-1721](interpose.md) | P2 | L | none | interpose | open | An interposer for aarch64: the userland rung runs no arm64 payload |
+| [T-1721](interpose.md) | P2 | L | none | interpose | partial | An interposer for aarch64: the userland rung runs no arm64 payload |
 | [T-1722](machine.md) | P3 | L | none | machine | open | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 | [T-1723](machine.md) | P3 | L | none | machine | open | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
 | [T-1724](enter.md) | P2 | M | none | enter | done | A static child of the loader family, and a volume, on the native-static rung |
@@ -416,10 +416,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1739](interpose.md) | P2 | M | none | interpose | done | Chromium's child processes do not start on the loader family |
 | [T-1740](enter.md) | P3 | M | none | enter | partial | Raw system calls of a dynamic program on the loader family: measure the syscall tier, then choose the default |
 | [T-1741](image.md) | P1 | S | none | image | blocked | A plain tar layer whose end padding is past the last read is refused as a digest mismatch |
+| [T-1742](enter.md) | P2 | S | none | enter | blocked | The loader family does not find the glibc of a Debian image on arm64 |
 
 ## Counts
 
-350 entries: 4 open, 4 partial, 6 blocked, 336 done.
+351 entries: 3 open, 5 partial, 7 blocked, 336 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -430,9 +431,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 1 | 149 | 152 |
-| P2 | 1 | 1 | 5 | 109 | 116 |
+| P2 | 0 | 2 | 6 | 109 | 117 |
 | P3 | 3 | 1 | 0 | 13 | 17 |
-| **All** | 4 | 4 | 6 | 336 | 350 |
+| **All** | 3 | 5 | 7 | 336 | 351 |
 
 ## Work order
 

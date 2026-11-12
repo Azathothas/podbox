@@ -1715,7 +1715,7 @@ HTTP 429).
   `crates/podvm/src/lifecycle/entry.rs:353`;
   `crates/podvm/src/lifecycle/entry.rs:384`;
   `crates/podvm/src/interpose.rs:365`;
-  `experiments/356-no-chroot-rung.sh:583`;
+  `experiments/356-no-chroot-rung.sh:595`;
   A-V-04 of PodUtils/podcrates#39
 **Category:** enter
 **Milestone:** none
@@ -3375,3 +3375,53 @@ mechanism (a filter that gives the handler only the calls with a path)
 would let the tier be the default. Not measured: Go with cgo and
 liburing themselves.
 
+
+# T-1742: The loader family does not find the glibc of a Debian image on arm64
+
+**Source:** issue 282 (COORD-061); T-1721 (experiment 356 on arm64,
+  clauses 18, 19 and 33); pod-enter v0.30.0 `abi::libc_beside`
+**Category:** enter
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+On arm64, the loader family declines each dynamic glibc program of a
+Debian bookworm image (gcc, golang): "/lib/ld-linux-aarch64.so.1 names no
+C library podvm can find in the image".
+
+## Premise
+
+`/lib` is a link to `usr/lib`, and `libc.so.6` is in
+`/usr/lib/aarch64-linux-gnu/`. The search of pod-enter walks with a stack,
+so it walks the last name of a directory first, and it stops after 512
+entries. `x86_64-linux-gnu` sorts last and is found; `aarch64-linux-gnu`
+sorts first and the search stops before it. Measured 2026-11-12 on a
+synthetic tree: 800 entries in the other directories of `/usr/lib` give
+`None`, 500 give the libc.
+
+## Approach
+
+pod-enter belongs to podcrates: a breadth-first walk that walks each real
+directory one time (issue 282). podvm takes that tag.
+
+## Decision
+
+Blocked on podcrates (issue 282). podvm keeps no second copy of the
+search.
+
+## Prove
+
+`cargo test -p podvm` exits 0, and clauses 19 and 22 of experiment 356
+exit 0 on arm64 (`.github/workflows/arm.yml`)
+
+## Blocker
+
+PodUtils/podcrates: the fix of `pod_enter::abi::libc_beside` (issue 282).
+podvm takes the tag that has it.
+
+## Correction
+
+None.

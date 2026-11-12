@@ -255,6 +255,16 @@ STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
 export PODVM_STORE="$STORE"
 fail=0
+# TODO/interpose.md T-1721: the loader family runs on x86_64 and aarch64.
+# The native-static rung, and the emulate tier on it, is x86_64 only
+# (TODO/enter.md T-1652): its clauses are skipped by name on another
+# machine. The fixtures of clauses 29 and 32 take the triplet of the host.
+ARCH=$(uname -m)
+native_rung() {
+	[ "$ARCH" = x86_64 ] && return 0
+	echo "clause $1: skipped on $ARCH: the native-static rung is x86_64 only (TODO/enter.md T-1652)" >>"$REPORT"
+	return 1
+}
 
 step() {
 	name="$1"; want="$2"; shift 2
@@ -425,9 +435,11 @@ grep -q "loader family" "$WORK/out-fx-alpine.txt" || { echo "musl loader banner 
 step fx-hello 0 $FX "$PB" run --rm --verbose --unsafe-host-paths "$HELLO" /hello
 grep -q "static-hi" "$WORK/out-fx-hello.txt" || { echo "memfd payload stdout missing" >>"$REPORT"; fail=1; }
 grep -q "memfd family" "$WORK/out-fx-hello.txt" || { echo "memfd banner missing the family" >>"$REPORT"; fail=1; }
-step fx-hello-native 0 $FX "$PB" run --rm --verbose "$HELLO" /hello
-grep -q "static-hi" "$WORK/out-fx-hello-native.txt" || { echo "native-static payload stdout missing" >>"$REPORT"; fail=1; }
-grep -q "native-static rung" "$WORK/out-fx-hello-native.txt" || { echo "native-static banner missing the rung" >>"$REPORT"; fail=1; }
+if native_rung 5; then
+	step fx-hello-native 0 $FX "$PB" run --rm --verbose "$HELLO" /hello
+	grep -q "static-hi" "$WORK/out-fx-hello-native.txt" || { echo "native-static payload stdout missing" >>"$REPORT"; fail=1; }
+	grep -q "native-static rung" "$WORK/out-fx-hello-native.txt" || { echo "native-static banner missing the rung" >>"$REPORT"; fail=1; }
+fi
 step fx-hello-refuse "$RUN_ERR" $FXD "$PB" run --rm "$HELLO" /hello
 grep -q "statically linked" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the static reason" >>"$REPORT"; fail=1; }
 grep -q -- "--unsafe-host-paths" "$WORK/out-fx-hello-refuse.txt" || { echo "static refusal did not name the opt-in" >>"$REPORT"; fail=1; }
@@ -659,17 +671,19 @@ grep -qx "/usr/bin/readlink" "$WORK/out-fx-exe-readlink.txt" || { echo "readlink
 # in the rootfs, and the host keeps no /tmp/g356. The three runs keep
 # their records (no --rm): a run with --rm extracts the image again, so
 # a write of one run is not in the next (measured, 2026-11-11).
-rm -rf /tmp/g356
-step fx-go-version 0 $FX "$PB" run --rm "$GOLANG" go version
-grep -q "^go version go1\.24\.7 linux/amd64$" "$WORK/out-fx-go-version.txt" || { echo "go version did not answer on the native-static rung" >>"$REPORT"; fail=1; }
-step fx-go-src 0 $FX "$PB" run --name g356src "$GOLANG" sh -c 'mkdir -p /tmp/g356 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g356-ok\") }\n" > /tmp/g356/main.go'
-step fx-go-build 0 $FX "$PB" run --name g356build -w /tmp/g356 -e GOTOOLCHAIN=local "$GOLANG" go build -o /tmp/g356/h main.go
-step fx-go-run 0 $FX "$PB" run --name g356run "$GOLANG" /tmp/g356/h
-grep -qx "g356-ok" "$WORK/out-fx-go-run.txt" || { echo "the program that go built did not print its line" >>"$REPORT"; fail=1; }
-[ -e /tmp/g356 ] && { echo "the go build wrote on the host" >>"$REPORT"; fail=1; }
-$FX "$PB" rm g356src g356build g356run >/dev/null 2>&1
-step fx-dispatch-probe 0 $FX "$PB" probe --json
-grep -q '"user_dispatch":true' "$WORK/out-fx-dispatch-probe.txt" || { echo "the probe did not report measured_by.user_dispatch true" >>"$REPORT"; fail=1; }
+if native_rung 18; then
+	rm -rf /tmp/g356
+	step fx-go-version 0 $FX "$PB" run --rm "$GOLANG" go version
+	grep -q "^go version go1\.24\.7 linux/amd64$" "$WORK/out-fx-go-version.txt" || { echo "go version did not answer on the native-static rung" >>"$REPORT"; fail=1; }
+	step fx-go-src 0 $FX "$PB" run --name g356src "$GOLANG" sh -c 'mkdir -p /tmp/g356 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g356-ok\") }\n" > /tmp/g356/main.go'
+	step fx-go-build 0 $FX "$PB" run --name g356build -w /tmp/g356 -e GOTOOLCHAIN=local "$GOLANG" go build -o /tmp/g356/h main.go
+	step fx-go-run 0 $FX "$PB" run --name g356run "$GOLANG" /tmp/g356/h
+	grep -qx "g356-ok" "$WORK/out-fx-go-run.txt" || { echo "the program that go built did not print its line" >>"$REPORT"; fail=1; }
+	[ -e /tmp/g356 ] && { echo "the go build wrote on the host" >>"$REPORT"; fail=1; }
+	$FX "$PB" rm g356src g356build g356run >/dev/null 2>&1
+	step fx-dispatch-probe 0 $FX "$PB" probe --json
+	grep -q '"user_dispatch":true' "$WORK/out-fx-dispatch-probe.txt" || { echo "the probe did not report measured_by.user_dispatch true" >>"$REPORT"; fail=1; }
+fi
 
 # Clause 19 (T-1408 gcc): the loader symlink resolves inside the rootfs
 # on a second image. Debian's /lib64/ld-linux carries an absolute
@@ -765,8 +779,10 @@ step fx-strict-echo 0 $FX "$PB" run --rm --strict "$ALPINE" /bin/echo hi
 grep -qx "hi" "$WORK/out-fx-strict-echo.txt" || { echo "--strict /bin/echo hi did not print" >>"$REPORT"; fail=1; }
 # T-1724: a static child takes the native-static rung where Syscall User
 # Dispatch arms, so --strict runs it; with the prctl denied it hits the gap.
-step fx-strict-static 0 $FX "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
-grep -q "static-hi" "$WORK/out-fx-strict-static.txt" || { echo "--strict did not run the static child on the native-static rung" >>"$REPORT"; fail=1; }
+if native_rung 24; then
+	step fx-strict-static 0 $FX "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
+	grep -q "static-hi" "$WORK/out-fx-strict-static.txt" || { echo "--strict did not run the static child on the native-static rung" >>"$REPORT"; fail=1; }
+fi
 step fx-strict-static-denied "$RUN_ERR" $FXD "$PB" run --rm --strict script-alpine:1 /bin/sh -c '/hello'
 grep -q "\[capability\].*T-1731.*This command hits it" "$WORK/out-fx-strict-static-denied.txt" || { echo "--strict did not refuse the static child naming T-1731" >>"$REPORT"; fail=1; }
 grep -q "static-hi" "$WORK/out-fx-strict-static-denied.txt" && { echo "--strict ran the static child with the prctl denied" >>"$REPORT"; fail=1; }
@@ -922,7 +938,7 @@ fi
 # the rootfs, and an open of it is not prefixed a second time.
 timeout 600 "$PB" extract "$DEBIAN" >>"$REPORT" 2>&1 || { echo "debian extract FAILED" | tee -a "$REPORT"; fail=1; }
 DROOT=$("$PB" inspect --format '{{.RootfsPath}}' "$DEBIAN" 2>/dev/null) || DROOT=""
-mkdir -p "$WORK/dl-root/usr/lib/x86_64-linux-gnu" "$WORK/dl-root/usr/bin" || exit 2
+mkdir -p "$WORK/dl-root/usr/lib/$ARCH-linux-gnu" "$WORK/dl-root/usr/bin" || exit 2
 printf 'int x356(void) { return 7; }\n' >"$WORK/x356.c"
 cat >"$WORK/dl356.c" <<'DL356'
 #define _GNU_SOURCE
@@ -939,13 +955,13 @@ int main(void) {
 }
 DL356
 if [ -d "$DROOT" ] &&
-	cc -shared -fPIC -o "$WORK/dl-root/usr/lib/x86_64-linux-gnu/libx356.so" "$WORK/x356.c" 2>>"$REPORT" &&
-	cc -o "$WORK/dl-root/usr/bin/dl356" "$WORK/dl356.c" -L"$WORK/dl-root/usr/lib/x86_64-linux-gnu" -lx356 2>>"$REPORT" &&
-	tar -cf "$WORK/dl-debian.tar" -C "$DROOT" . -C "$WORK/dl-root" usr/lib/x86_64-linux-gnu/libx356.so usr/bin/dl356 2>>"$REPORT" &&
+	cc -shared -fPIC -o "$WORK/dl-root/usr/lib/$ARCH-linux-gnu/libx356.so" "$WORK/x356.c" 2>>"$REPORT" &&
+	cc -o "$WORK/dl-root/usr/bin/dl356" "$WORK/dl356.c" -L"$WORK/dl-root/usr/lib/$ARCH-linux-gnu" -lx356 2>>"$REPORT" &&
+	tar -cf "$WORK/dl-debian.tar" -C "$DROOT" . -C "$WORK/dl-root" usr/lib/$ARCH-linux-gnu/libx356.so usr/bin/dl356 2>>"$REPORT" &&
 	timeout 300 "$PB" import "$WORK/dl-debian.tar" dl-debian:356 >>"$REPORT" 2>&1; then
 	step fx-dladdr 0 $FX "$PB" run --rm dl-debian:356 /usr/bin/dl356
 	grep -qx "open ok" "$WORK/out-fx-dladdr.txt" || { echo "the path from dladdr did not open" >>"$REPORT"; fail=1; }
-	grep -q "^dladdr .*/rootfs/.*lib/x86_64-linux-gnu/libx356.so$" "$WORK/out-fx-dladdr.txt" || { echo "dladdr did not name the library" >>"$REPORT"; fail=1; }
+	grep -q "^dladdr .*/rootfs/.*lib/$ARCH-linux-gnu/libx356.so$" "$WORK/out-fx-dladdr.txt" || { echo "dladdr did not name the library" >>"$REPORT"; fail=1; }
 else
 	echo "dladdr image     BUILD FAILED" | tee -a "$REPORT"; fail=1
 fi
@@ -956,8 +972,17 @@ grep -q "Read-only file system" "$WORK/out-fx-read-only.txt" || { echo "a write 
 grep -qx "rw-ok" "$WORK/out-fx-read-only.txt" || { echo "a write to a volume under --read-only failed" >>"$REPORT"; fail=1; }
 grep -qx "read-ok" "$WORK/out-fx-read-only.txt" || { echo "a read under --read-only failed" >>"$REPORT"; fail=1; }
 grep -qx "w" "$VOL/rw356" 2>/dev/null || { echo "the volume write did not land in the host directory" >>"$REPORT"; fail=1; }
-step sane-read-only "$RUN_ERR" "$PB" run --rm --read-only "$ALPINE" true
-grep -q "read-only layer" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung was not refused by name" >>"$REPORT"; fail=1; }
+# Outside the fixture the rung is the host's: a rung with no read-only
+# layer (namespace, chroot) refuses by name; the userland rung has the
+# layer and runs.
+SANE_RUNG=$("$PB" system info --format '{{.EnteredRung}}' 2>/dev/null)
+echo "host rung         ${SANE_RUNG:--}" >>"$REPORT"
+if [ "$SANE_RUNG" = userland ]; then
+	step sane-read-only 0 "$PB" run --rm --read-only "$ALPINE" true
+else
+	step sane-read-only "$RUN_ERR" "$PB" run --rm --read-only "$ALPINE" true
+	grep -q "read-only layer" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung was not refused by name" >>"$REPORT"; fail=1; }
+fi
 
 # Clause 31 (T-1707): a relative program resolves against -w.
 # A child of the relative program needs the interposer: without it the
@@ -972,8 +997,8 @@ grep -qx "vol-workdir-ok" "$WORK/out-fx-workdir-vol.txt" || { echo "a relative s
 L="$WORK/t1719"; mkdir -p "$L/musl/usr/local/lib" "$L/glibc/opt/t1719/lib" "$L/glibc/etc/ld.so.conf.d"
 printf 'int t1719_answer(void){return 42;}\n' >"$L/foo.c"
 printf '#include <stdio.h>\nint t1719_answer(void);\nint main(void){printf("lib-%%d\\n", t1719_answer());return 0;}\n' >"$L/main.c"
-if zig cc -target x86_64-linux-musl -shared -fPIC -Wl,-soname,libt1719.so -o "$L/musl/usr/local/lib/libt1719.so" "$L/foo.c" 2>>"$REPORT" &&
-	zig cc -target x86_64-linux-musl -dynamic -o "$L/musl/uselib" "$L/main.c" -L"$L/musl/usr/local/lib" -lt1719 2>>"$REPORT" &&
+if zig cc -target "$ARCH-linux-musl" -shared -fPIC -Wl,-soname,libt1719.so -o "$L/musl/usr/local/lib/libt1719.so" "$L/foo.c" 2>>"$REPORT" &&
+	zig cc -target "$ARCH-linux-musl" -dynamic -o "$L/musl/uselib" "$L/main.c" -L"$L/musl/usr/local/lib" -lt1719 2>>"$REPORT" &&
 	cc -shared -fPIC -Wl,-soname,libt1719.so -o "$L/glibc/opt/t1719/lib/libt1719.so" "$L/foo.c" 2>>"$REPORT" &&
 	cc -o "$L/glibc/uselib" "$L/main.c" -L"$L/glibc/opt/t1719/lib" -lt1719 2>>"$REPORT"; then
 	echo /opt/t1719/lib >"$L/glibc/etc/ld.so.conf.d/t1719.conf"
@@ -1003,24 +1028,26 @@ fi
 # Clause 33 (T-1724): a static child of the loader family, and a volume,
 # on the native-static rung. The probe is the static test payload of
 # podvm-dispatch, which the build above made.
-rm -rf /tmp/g724 /go
-step fx-go-child 0 $FX "$PB" run --name g724 "$GOLANG" sh -c 'mkdir -p /tmp/g724 && cd /tmp/g724 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g724-ok\") }\n" > main.go && GOTOOLCHAIN=local go build -o h main.go && ./h'
-grep -qx "g724-ok" "$WORK/out-fx-go-child.txt" || { echo "go build under sh did not run its program" >>"$REPORT"; fail=1; }
-{ [ -e /tmp/g724 ] || [ -e /go ]; } && { echo "go build under sh wrote on the host" >>"$REPORT"; fail=1; }
-$FX "$PB" rm g724 >/dev/null 2>&1
-V7="$WORK/vol724"; rm -rf "$V7" "$WORK/img724"; mkdir -p "$V7" "$WORK/img724/etc" "$WORK/img724/tmp"
-echo invol >"$V7/f"
-if cp "$REPO/target/x86_64-unknown-linux-musl/debug/podvm-dispatch-probe" "$WORK/img724/probe" &&
-	(cd "$WORK/img724" && tar -cf "$WORK/img724.tar" .) && "$PB" import "$WORK/img724.tar" probe724:1 >/dev/null 2>>"$REPORT"; then
-	step fx-vol-native-read 0 $FX "$PB" run --rm --verbose -v "$V7:/data" probe724:1 /probe cat /data/f
-	grep -qx "invol" "$WORK/out-fx-vol-native-read.txt" || { echo "a static payload did not read its volume" >>"$REPORT"; fail=1; }
-	grep -q "native-static rung" "$WORK/out-fx-vol-native-read.txt" || { echo "the volume run was not on the native-static rung" >>"$REPORT"; fail=1; }
-	step fx-vol-native-write 0 $FX "$PB" run --rm -v "$V7:/data" probe724:1 /probe write /data/a w724 /data/b
-	grep -qx "w724" "$V7/b" 2>/dev/null || { echo "a write of a static payload did not land in the volume" >>"$REPORT"; fail=1; }
-	step fx-vol-native-cwd 0 $FX "$PB" run --rm -w /data -v "$V7:/data" probe724:1 /probe cwd
-	grep -qx "/data" "$WORK/out-fx-vol-native-cwd.txt" || { echo "the working directory in a volume did not read back as /data" >>"$REPORT"; fail=1; }
-else
-	echo "the probe image of clause 33 did not build" >>"$REPORT"; fail=1
+if native_rung 33; then
+	rm -rf /tmp/g724 /go
+	step fx-go-child 0 $FX "$PB" run --name g724 "$GOLANG" sh -c 'mkdir -p /tmp/g724 && cd /tmp/g724 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g724-ok\") }\n" > main.go && GOTOOLCHAIN=local go build -o h main.go && ./h'
+	grep -qx "g724-ok" "$WORK/out-fx-go-child.txt" || { echo "go build under sh did not run its program" >>"$REPORT"; fail=1; }
+	{ [ -e /tmp/g724 ] || [ -e /go ]; } && { echo "go build under sh wrote on the host" >>"$REPORT"; fail=1; }
+	$FX "$PB" rm g724 >/dev/null 2>&1
+	V7="$WORK/vol724"; rm -rf "$V7" "$WORK/img724"; mkdir -p "$V7" "$WORK/img724/etc" "$WORK/img724/tmp"
+	echo invol >"$V7/f"
+	if cp "$REPO/target/x86_64-unknown-linux-musl/debug/podvm-dispatch-probe" "$WORK/img724/probe" &&
+		(cd "$WORK/img724" && tar -cf "$WORK/img724.tar" .) && "$PB" import "$WORK/img724.tar" probe724:1 >/dev/null 2>>"$REPORT"; then
+		step fx-vol-native-read 0 $FX "$PB" run --rm --verbose -v "$V7:/data" probe724:1 /probe cat /data/f
+		grep -qx "invol" "$WORK/out-fx-vol-native-read.txt" || { echo "a static payload did not read its volume" >>"$REPORT"; fail=1; }
+		grep -q "native-static rung" "$WORK/out-fx-vol-native-read.txt" || { echo "the volume run was not on the native-static rung" >>"$REPORT"; fail=1; }
+		step fx-vol-native-write 0 $FX "$PB" run --rm -v "$V7:/data" probe724:1 /probe write /data/a w724 /data/b
+		grep -qx "w724" "$V7/b" 2>/dev/null || { echo "a write of a static payload did not land in the volume" >>"$REPORT"; fail=1; }
+		step fx-vol-native-cwd 0 $FX "$PB" run --rm -w /data -v "$V7:/data" probe724:1 /probe cwd
+		grep -qx "/data" "$WORK/out-fx-vol-native-cwd.txt" || { echo "the working directory in a volume did not read back as /data" >>"$REPORT"; fail=1; }
+	else
+		echo "the probe image of clause 33 did not build" >>"$REPORT"; fail=1
+	fi
 fi
 
 # Clause 34 (T-1725): an absolute link of the image resolves in the
@@ -1049,7 +1076,9 @@ $FX "$PB" rm -f ro735 >/dev/null 2>&1
 
 # Clause 36 (T-1651): the emulate tier. qemu-user-static of the host is
 # the emulator (Ubuntu's qemu-user, static-pie).
-if command -v qemu-x86_64-static >/dev/null && command -v qemu-aarch64-static >/dev/null; then
+if ! native_rung 36; then
+	:
+elif command -v qemu-x86_64-static >/dev/null && command -v qemu-aarch64-static >/dev/null; then
 	echo "emulator          $(qemu-x86_64-static --version | head -1)" >>"$REPORT"
 	step fx-emu-go 0 $FX "$PB" run --rm --verbose --podvm-tier=emulate "$GOLANG" go version
 	grep -q "^go version go1\.24\.7 linux/amd64$" "$WORK/out-fx-emu-go.txt" || { echo "go version did not answer under the emulate tier" >>"$REPORT"; fail=1; }
