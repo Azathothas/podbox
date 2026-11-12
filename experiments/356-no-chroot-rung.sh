@@ -368,7 +368,12 @@ step sane-tty 0 "$PB" run --rm -t "$ALPINE" true
 # ⚠ A capable host enters a rung with a root change: chroot, or namespace
 # where the host permits user and mount namespaces (the cloud host of
 # TODO/probe.md T-1670 does). Either is the control; the run records which.
-grep -qE "^(chroot|namespace)$" "$WORK/entered.txt" || { echo "EnteredRung is not a capable rung here:" >>"$REPORT"; cat "$WORK/entered.txt" >>"$REPORT"; fail=1; }
+grep -qE "^(chroot|namespace)$" "$WORK/entered.txt" || {
+	echo "EnteredRung is not a capable rung here:" >>"$REPORT"; cat "$WORK/entered.txt" >>"$REPORT"; fail=1
+	# The reason of the host: the probe and the rung that it selects.
+	"$PB" system info --format '{{.Rung}} {{.EnteredRung}}' >>"$REPORT" 2>&1
+	"$PB" probe >>"$REPORT" 2>&1
+}
 echo "capable rung      $(cat "$WORK/entered.txt")" >>"$REPORT"
 
 # Clause 2: the fixture. A directory over /dev/ptmx inside a mount
