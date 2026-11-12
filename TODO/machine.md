@@ -2044,7 +2044,7 @@ and podvm pushed one time for each image.
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2098,6 +2098,18 @@ boots `-M microvm` (ACPI on: with `acpi=off` it found no device and hung)
 stderr apart needs a virtio console there. The TCG leg stays `-M pc`.
 
 ## Done
+
+**Done 2026-11-12.** `kvm.yml` run 43210445190 (at `e8f5d131`, hosted
+`ubuntu-latest` with `/dev/kvm`): experiment 412 exits 0 under KVM with
+clause 6 (the 9p volume, also in run 43205956782) and clause 11 (the
+terminal), and experiment 440 exits 0: `-M microvm` boots 20 of 20 times
+with the two virtio devices and a 9p write each time, 1 808 ms a boot;
+`-M pc,acpi=off` boots 20 of 20 times, 561 ms a boot. Decision (this
+session's call, AGENTS.md section 10): `run --podvm-tier=machine` keeps
+`-M pc,acpi=off` on both legs. Under KVM the pinned kernel boots it three
+times faster than microvm, and under TCG microvm hangs in 3 of 20 boots;
+microvm would also need a virtio console for stderr apart. `cargo test -p
+podvm` exits 0.
 
 **Partial 2026-11-12, the volumes.** `-v HOST:GUEST[:ro]` of `run
 --podvm-tier=machine` is a 9p mount of the host directory. podvm reads

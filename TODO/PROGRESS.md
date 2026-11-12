@@ -7,7 +7,7 @@ start.
 
 ## State
 
-351 entries: 0 open, 7 partial, 7 blocked, 337 done.
+351 entries: 0 open, 6 partial, 7 blocked, 338 done.
 
 The state on 2026-11-11:
 
@@ -49,9 +49,8 @@ that is not done. Read its Prove before you start. Set its status with
 
 1. The KVM legs passed on the hosted runner of `kvm.yml` on 2026-11-12;
    [T-1350](gate.md) keeps only the wrapper of the parked Windows lane.
-   [T-1723](machine.md) (the `microvm` machine, a shared `/workspace`)
-   and [T-1722](machine.md) (the other verbs of incus) come after the
-   scope entries of step 2.
+   [T-1722](machine.md) (partial: the other verbs of incus, the ladder)
+   comes after the scope entries of step 2.
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1667](cli.md) (partial:
    the check of labs in a guest waits for the network entries); the network entries

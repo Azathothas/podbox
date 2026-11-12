@@ -28,6 +28,8 @@ Deployed: not released.
   `:ro` refuses a write. podvm takes the 9p modules out of the pinned
   modloop of the guest kernel. A kernel of `PODVM_MACHINE_KERNEL` keeps the
   copy of before.
+- The guest keeps `-M pc,acpi=off`: under KVM the pinned kernel boots it in
+  561 ms against 1 808 ms for `-M microvm` (experiment 440).
 
 ### Added: the runsc tier, 2026-11-12
 

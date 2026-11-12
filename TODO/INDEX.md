@@ -397,7 +397,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1720](supervise.md) | P1 | S | none | supervise | done | `wait` gives no exit code for a payload that ends at once |
 | [T-1721](interpose.md) | P2 | L | none | interpose | partial | An interposer for aarch64: the userland rung runs no arm64 payload |
 | [T-1722](machine.md) | P3 | L | none | machine | partial | The incus back end: the verbs of an instance that stays, volumes and the ladder |
-| [T-1723](machine.md) | P3 | L | none | machine | partial | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
+| [T-1723](machine.md) | P3 | L | none | machine | done | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
 | [T-1724](enter.md) | P2 | M | none | enter | done | A static child of the loader family, and a volume, on the native-static rung |
 | [T-1725](interpose.md) | P1 | M | none | interpose | done | An absolute symlink in the rootfs resolves on the host for each path call |
 | [T-1726](cli.md) | P1 | S | none | cli | done | `exec` into a container ignores its `:ro` volumes and `--read-only` |
@@ -420,7 +420,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-351 entries: 0 open, 7 partial, 7 blocked, 337 done.
+351 entries: 0 open, 6 partial, 7 blocked, 338 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -432,8 +432,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 1 | 149 | 152 |
 | P2 | 0 | 2 | 6 | 109 | 117 |
-| P3 | 0 | 3 | 0 | 14 | 17 |
-| **All** | 0 | 7 | 7 | 337 | 351 |
+| P3 | 0 | 2 | 0 | 15 | 17 |
+| **All** | 0 | 6 | 7 | 338 | 351 |
 
 ## Work order
 
