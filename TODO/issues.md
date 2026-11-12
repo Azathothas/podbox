@@ -168,3 +168,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #271 | cfb asks: tracker for the 9 asks of cfb owned by podvm (from podcrates#35) | open | tracker: T-1658, T-1665, T-1663, T-1694, T-1695, T-1714, T-1723, T-1739 |
 | #272 | CI plan items: tracker for the 3 items owned by podvm (from podcrates#47) | open | tracker: T-1656, T-1723 (P3-3); #271 (P1-1) |
 | #273 | COORD-052: podvm v0.2.0-beta.5 is released: confine for run -d, exec and the loader family; labels and run --report; headless Chromium (to all) | open | T-1658, T-1694, T-1695, T-1711, T-1738 |
+| #274 | COORD-053: registry.npmjs.org (workerd) for pod-services (to podcrates) | open | T-1661 |

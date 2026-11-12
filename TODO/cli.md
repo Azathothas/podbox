@@ -2932,9 +2932,34 @@ Measured: on the userland rung, Bun read `/workspace/b.js` of the host's
 own `/workspace`. Bun makes its own system calls, past the interposer, so
 `bun-runtime` runs on the machine tier with 1 GiB.
 
+**Partial 2026-11-12.** `workerd-test` is a built-in profile: `podvm run
+--profile workerd-test` in a directory with `worker.js` runs `workerd test`
+of that worker. workerd has no OCI image of its party, so podvm pins the
+npm package `@cloudflare/workerd-linux-64` 1.20261029.1: the SHA-256 of
+the archive and of `package/bin/workerd` (the registry's sha512 of the
+archive agrees), fetched once into `<store>/tools/` and mounted read-only
+at `/opt/podvm-workerd` (`crates/podvm/src/profile/workerd.rs`). The
+config that podvm writes beside it has one worker, `globalOutbound =
+"none"` and a network service that allows nothing, and the compatibility
+date 2025-09-15, where `process` is undefined. The image is
+`gcr.io/distroless/cc-debian12`, pinned by digest: glibc and a CA store
+(workerd stops where it loads no CA certificate, also with no network).
+The profile sets `confine = true` and `net.ports = []`: an empty list now
+holds each TCP connect (`connect=` with no port), and no key leaves TCP
+free. A profile that names its image now runs with no command; the
+runtime workerd gives its own. `registry.npmjs.org` is in `WAITING` of
+`crates/podvm/src/hosts_tests.rs` until `pod-services` lists it (COORD-053,
+issue 274).
+
+`cargo test -p podvm` exits 0 with `workerd_profile_holds_each_tcp_connect`
+and `the_config_has_no_outbound_service`. `PODVM_417_MIRROR=1 sh
+experiments/417-runtime-profiles.sh` exits 0 (clause 5, a fresh store):
+the test of the worker passes, `typeof process = undefined`, `node:fs`
+and `node:child_process` do not import, and a `fetch` to a host listener
+fails with no connection.
+
 Remaining: `wasmtime-wasi` (wasmtime needs a download, recorded by hash on
-first use, F25 of issue 176) and `workerd-test` (it needs the confine layer
-of T-1658, which is blocked on COORD-040).
+first use, F25 of issue 176).
 
 # T-1694: Headless Chromium of Playwright runs as a proven payload with its flags in one profile
 
@@ -3184,7 +3209,7 @@ corrected on 2026-11-12.
 
 **Source:** A-V-11 and G-03 of PodUtils/podcrates#39 (COORD-015);
   T-1653 (the volume path map); the ruling of 2026-11-09 on
-  test accounts; `crates/podvm/src/run/parse.rs:91`
+  test accounts; `crates/podvm/src/run/parse.rs:108`
 **Category:** cli
 **Milestone:** none
 **Priority:** P2
@@ -3202,8 +3227,8 @@ the first process only.
 ## Premise
 
 `--env-file` reads a file at parse time
-(`crates/podvm/src/run/parse.rs:91`, used at
-`crates/podvm/src/run/parse.rs:207`) and the values go into
+(`crates/podvm/src/run/parse.rs:108`, used at
+`crates/podvm/src/run/parse.rs:224`) and the values go into
 the environment (`crates/podvm/src/run/prepare.rs:242`). The
 userland path map is one pair for the root
 (`src/userland.rs` of `pod-enter` (PodUtils/podcrates)); T-1653 adds pairs.

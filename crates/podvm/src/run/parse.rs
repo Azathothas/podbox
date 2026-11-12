@@ -26,8 +26,13 @@ pub fn usage(verb: &str) -> String {
 /// profile's flags go first, so that a flag of the command line wins over
 /// the profile where a flag takes one value. TODO/cli.md T-1654.
 pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
-    let o = parse_flags(verb, args)?;
+    // A profile can name the image, so this first read needs none.
+    let o = parse_flags_with(verb, args, false)?;
     let Some(name) = o.profile.clone() else {
+        if o.image.is_none() {
+            eprint!("{}", usage(verb));
+            return Err(EXIT_CLI_ERROR);
+        }
         if !o.sets.is_empty() {
             eprintln!("podvm {verb}: -s needs --profile NAME: it sets one key of a profile");
             return Err(EXIT_FLAG_ERROR);
@@ -40,7 +45,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         // TODO/cli.md T-1659: the profile names the image, so each word of
         // the command line after the flags is the command.
         Some(image) => {
-            let positional = 1 + o.command.len();
+            let positional = usize::from(o.image.is_some()) + o.command.len();
             let cut = args.len().saturating_sub(positional);
             flags.extend(args[..cut].iter().filter(|a| *a != "--").cloned());
             flags.push("--".into());
@@ -50,6 +55,9 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         None => flags.extend(args.iter().cloned()),
     }
     let mut o = parse_flags(verb, &flags)?;
+    if o.command.is_empty() {
+        o.command = shape.command;
+    }
     o.wrap = shape.wrap;
     o.drops = shape.drops;
     o.needs = shape.needs;
@@ -64,6 +72,15 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
 /// `create` is served here too, and every message this function writes has to
 /// name what the caller ran.
 fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
+    parse_flags_with(verb, args, true)
+}
+
+/// [`parse_flags`], where `need_image` false lets the image be absent.
+fn parse_flags_with(
+    verb: &str,
+    args: &[String],
+    need_image: bool,
+) -> std::result::Result<Opts, i32> {
     // ⭐ TODO/cli.md T-1330. Bundled shorts expand here, once, for `run`
     // and for `create`, which this parser serves: admission below then sees
     // one flag per argument, exactly as a caller spelling them out.
@@ -401,7 +418,7 @@ fn parse_flags(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
         eprintln!("podvm {verb}: {flag} needs a value");
         return Err(EXIT_FLAG_ERROR);
     }
-    if o.image.is_none() {
+    if need_image && o.image.is_none() {
         eprint!("{}", usage(verb));
         return Err(EXIT_CLI_ERROR);
     }

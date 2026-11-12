@@ -24,10 +24,13 @@
 #   3. bun-runtime: `bun` runs a script of /workspace in a guest.
 #   4. `profile show node-permission` prints the runtime's flags and
 #      podvm's path map side by side.
-#   5. wasmtime-wasi and workerd-test: no profile yet. wasmtime needs a
-#      download recorded by hash on first use (F25 of issue 176), and
-#      workerd needs the confine layer of T-1658. The clause reports WAITS,
-#      which is not a pass, and the entry stays partial.
+#   5. workerd-test (the fixture, no command): the test of
+#      /workspace/worker.js passes; `typeof process` is undefined;
+#      `node:fs` and `node:child_process` do not import; a `fetch` to a host
+#      listener fails, and the listener counts no connection.
+#   6. wasmtime-wasi: no profile yet. wasmtime needs a download recorded by
+#      hash on first use (F25 of issue 176). The clause reports WAITS, which
+#      is not a pass, and the entry stays partial.
 #
 # Exit: 0 each clause matched (a WAITS clause aside), 1 a clause disagreed,
 # 2 the lane could not run.
@@ -78,6 +81,18 @@ t("read /etc/hostname", () => Deno.readTextFileSync("/etc/hostname"));
 t("write /tmp/out.txt", () => Deno.writeTextFileSync("/tmp/out.txt", "x"));
 t("env HOME", () => Deno.env.get("HOME"));
 t("read /workspace/perm.ts", () => Deno.readTextFileSync("/workspace/perm.ts"));
+EOF
+cat >"$WORK/proj/worker.js" <<'EOF'
+export default {
+  async test(ctrl, env, ctx) {
+    console.log("typeof process = " + typeof process);
+    for (const m of ["node:fs", "node:child_process"]) {
+      try { await import(m); console.log("import " + m + " ok"); } catch (e) { console.log("import " + m + " failed"); }
+    }
+    try { await fetch("http://127.0.0.1:PORT_417/"); console.log("fetch connected"); }
+    catch (e) { console.log("fetch failed"); }
+  }
+};
 EOF
 echo 'console.log("bun " + Bun.version + " " + require("fs").readFileSync("/workspace/b.js").length)' >"$WORK/proj/b.js"
 
@@ -136,8 +151,43 @@ grep -q '^# the runtime enforces: node --permission --allow-fs-read=/workspace' 
 grep -q '^# run flags: .*:/workspace' "$WORK/c4.out" || bad "profile show does not print the path map"
 note ""
 
-note "== clause 5  wasmtime-wasi and workerd-test"
-note "  WAITS: wasmtime needs a download recorded by hash on first use (F25); workerd needs T-1658"
+note "== clause 5  workerd-test (no outbound service, no TCP connect)"
+command -v python3 >/dev/null 2>&1 || { note "python3 missing: COULD NOT RUN"; exit 2; }
+cat >"$WORK/listen.py" <<'EOF'
+import socket, sys, threading
+s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(8)
+print(s.getsockname()[1], flush=True)
+n = 0
+def serve():
+    global n
+    while True:
+        c, _ = s.accept(); n += 1
+        open(sys.argv[1], "w").write(str(n))
+        c.close()
+threading.Thread(target=serve, daemon=True).start()
+threading.Event().wait()
+EOF
+echo 0 >"$WORK/conns"
+python3 "$WORK/listen.py" "$WORK/conns" >"$WORK/port" 2>/dev/null &
+LPID=$!
+i=0; while [ ! -s "$WORK/port" ] && [ "$i" -lt 50 ]; do sleep 0.1; i=$((i + 1)); done
+sed -i "s/PORT_417/$(cat "$WORK/port")/" "$WORK/proj/worker.js"
+fx run --rm --profile workerd-test >"$WORK/c5.out" 2>&1
+rc=$?
+kill "$LPID" 2>/dev/null
+note "  exit $rc: $(grep -E '^(typeof|import|fetch)' "$WORK/c5.out" | tr '\n' ';') $(grep -o '\[ PASS \] main' "$WORK/c5.out")"
+note "  connections to the host listener: $(cat "$WORK/conns")"
+[ "$rc" -eq 0 ] || { bad "the workerd-test run exited $rc"; grep -v '^  ' "$WORK/c5.out" | tail -3 | sed 's/^/    /' | tee -a "$OUT"; }
+grep -q '\[ PASS \] main' "$WORK/c5.out" || bad "the test of the worker did not pass"
+grep -q '^typeof process = undefined' "$WORK/c5.out" || bad "process is defined"
+grep -q '^import node:fs failed' "$WORK/c5.out" || bad "node:fs imported"
+grep -q '^import node:child_process failed' "$WORK/c5.out" || bad "node:child_process imported"
+grep -q '^fetch failed' "$WORK/c5.out" || bad "the fetch did not fail"
+[ "$(cat "$WORK/conns")" = 0 ] || bad "the worker connected to the host listener"
+note ""
+
+note "== clause 6  wasmtime-wasi"
+note "  WAITS: wasmtime needs a download recorded by hash on first use (F25 of issue 176)"
 note ""
 
 if [ "$fail" -eq 0 ]; then

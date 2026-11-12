@@ -1241,7 +1241,7 @@ against the chroot control at 0.
 # T-1412: A missing workdir refuses naming the path
 
 **Source:** issue 81; `src/launch.rs` of `pod-enter` (PodUtils/podcrates);
-  `crates/podvm/src/run/parse.rs:209`
+  `crates/podvm/src/run/parse.rs:226`
 **Category:** enter
 **Milestone:** none
 **Priority:** P1

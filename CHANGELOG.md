@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the profile workerd-test, 2026-11-12
+
+Record: T-1661.
+Deployed: not released.
+
+- `podvm run --profile workerd-test` runs `workerd test` of
+  `/workspace/worker.js`: a pinned workerd (the npm package
+  1.20261029.1, checked by SHA-256 and kept in the store), a config with
+  no outbound service, and the confine layer with no TCP connect.
+- `net.ports = []` in a profile holds each TCP connect of the confine
+  layer; with no `net.ports`, TCP stays free.
+- A profile that names its image runs with no command.
+
 ### Fixed: Chromium's child processes on the loader family, 2026-11-12
 
 Record: T-1739.

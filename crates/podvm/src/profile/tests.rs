@@ -308,3 +308,29 @@ fn chromium_profile_refuses_without_confine() {
     assert!(supervise.unwrap_err().contains("supervise rung"));
     assert!(crate::lifecycle::confine::check(&ask, Rung::Userland, true, Some(7)).is_ok());
 }
+
+/// TODO/cli.md T-1661: `workerd-test` runs the pinned workerd under the
+/// confine layer, and `net.ports = []` holds each TCP connect (`connect=`
+/// with no port); a profile with no `net.ports` leaves TCP free.
+#[test]
+fn workerd_profile_holds_each_tcp_connect() {
+    let (t, _) = resolve("workerd-test", None).unwrap();
+    let c = check(&t).unwrap();
+    assert!(c.confine);
+    assert_eq!(c.net_ports, Some(Vec::new()));
+    assert!(c.image.as_deref().unwrap().contains("@sha256:"));
+    let a = run_args(&c, &std::env::temp_dir()).unwrap();
+    let spec = a
+        .iter()
+        .find(|x| x.starts_with("--podvm-confine="))
+        .expect("the layer");
+    assert!(spec.ends_with(";connect="), "{spec}");
+    assert!(spec.contains("exec=/opt/podvm-workerd"), "{spec}");
+    let ask = podvm_enter::confine::parse(spec.trim_start_matches("--podvm-confine=")).unwrap();
+    assert_eq!(ask.connect, Some(Vec::new()));
+    let (p, d) = super::runtime::prefix("workerd", &c.read, &c.write).unwrap();
+    assert_eq!(p[0], "/opt/podvm-workerd/workerd");
+    assert_eq!(d, vec!["workerd".to_string()]);
+    let (t, _) = resolve("playwright-chromium", None).unwrap();
+    assert_eq!(check(&t).unwrap().net_ports, None);
+}

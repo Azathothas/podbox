@@ -23,6 +23,7 @@ pub const NAMES: &[&str] = &[
     "bun-runtime",
     "errand",
     "playwright-chromium",
+    "workerd-test",
 ];
 
 /// The text of a built-in profile.
@@ -202,6 +203,23 @@ leaves_out = [
 image = "public.ecr.aws/docker/library/node:lts-slim"
 read = ["/workspace"]
 write = ["/workspace"]
+"#
+        }
+        "workerd-test" => {
+            r#"description = "workerd test of /workspace/worker.js: no outbound service, no TCP connect, under the confine layer"
+extends = "workspace"
+runtime = "workerd"
+confine = true
+leaves_out = [
+  "a binding of the worker: the config that podvm writes has one worker and no service but `none`",
+  "the arm64 host: the pin is the x86_64 binary of the npm package",
+]
+[fs]
+image = "gcr.io/distroless/cc-debian12@sha256:e5d81ddde149641e2a9ba55be4545bc125c67de07508b03ba4c22e6eb0ded5aa"
+read = ["/workspace", "/opt/podvm-workerd", "?/etc/ssl", "?/etc/passwd"]
+exec = ["/opt/podvm-workerd"]
+[net]
+ports = []
 "#
         }
         "deno-permissions" => {

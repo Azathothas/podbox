@@ -53,15 +53,14 @@ that is not done. Read its Prove before you start. Set its status with
    and [T-1722](machine.md) (the other verbs of incus) come after the
    scope entries of step 2.
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
-   [T-1658](enter.md) (partial: the native-static, syscall and
-   emulate rungs and `/tmp` on the namespace rung (COORD-048, issue 267)
-   remain); [T-1667](cli.md) (partial:
+   [T-1658](enter.md) (partial: `/tmp` on the namespace rung remains,
+   COORD-048, issue 267); [T-1667](cli.md) (partial:
    the `gh` fallback waits for an installer); the network entries
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
    wait with T-1662); the profile entry
    [T-1661](cli.md) (partial: wasmtime-wasi waits for a first-use asset
-   record, workerd-test for T-1658).
+   record).
 3. The record and the tree: no entry is open.
 4. Blocked on podcrates: [T-1678](deps.md) waits for a `pod-relay`
    release. [T-1406](podssh.md), partial, proves live-relay pairing

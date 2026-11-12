@@ -9,7 +9,7 @@
 //! A runtime check never stands in for the path map.
 
 /// The runtimes that a profile can name.
-pub const RUNTIMES: &[&str] = &["node", "deno", "bun", "wasmtime"];
+pub const RUNTIMES: &[&str] = &["node", "deno", "bun", "wasmtime", "workerd"];
 
 /// The command prefix of `runtime` with the flags of `read` and `write`,
 /// and the words of a command that the prefix already holds (the program,
@@ -59,6 +59,10 @@ pub fn prefix(
             a.extend(reads.iter().map(|d| format!("--dir={d}")));
             (a, vec![p("wasmtime"), p("run")])
         }
+        // workerd: `workerd test` of a config that podvm writes, with the
+        // worker `/workspace/worker.js` and no outbound service; the
+        // binary is podvm's pin in the store (super::workerd).
+        "workerd" => (super::workerd::prefix(), vec![p("workerd")]),
         other => {
             return Err(format!(
                 "`runtime` takes {}, not {other:?}",

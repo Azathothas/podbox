@@ -17,6 +17,9 @@ const WAITING: &[&str] = &[
     // The image of the profile playwright-chromium (TODO/cli.md T-1694),
     // reported in COORD-050.
     "mcr.microsoft.com",
+    // The npm package of workerd, the pin of the profile workerd-test
+    // (TODO/cli.md T-1661), reported in COORD-053.
+    "registry.npmjs.org",
 ];
 
 /// Hosts that are podvm's own or no host of another party.

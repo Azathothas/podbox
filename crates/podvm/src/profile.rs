@@ -15,6 +15,7 @@ pub mod builtin;
 pub mod model;
 pub mod runtime;
 mod values;
+pub mod workerd;
 
 #[cfg(test)]
 mod tests;
@@ -52,6 +53,9 @@ pub struct Shape {
     pub drops: Vec<String>,
     pub image: Option<String>,
     pub needs: Vec<String>,
+    /// The command where the run gives none: a runtime whose prefix is a
+    /// whole command (workerd) runs with no word of the caller.
+    pub command: Vec<String>,
 }
 
 /// The shape of `--profile name` with `sets`.
@@ -64,7 +68,16 @@ pub fn run_args(verb: &str, name: &str, sets: &[String]) -> Result<Shape, i32> {
     let (_, c, _) = effective(name, sets).map_err(fail)?;
     let cwd = std::env::current_dir()
         .map_err(|e| fail(format!("profile {name}: the current directory: {e}")))?;
-    let flags = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
+    let mut flags = model::run_args(&c, &cwd).map_err(|e| fail(format!("profile {name}: {e}")))?;
+    // TODO/cli.md T-1661: the pinned workerd and its config, read-only.
+    if c.runtime.as_deref() == Some("workerd") {
+        let dir = podvm_image::store::Store::default_root(|| None)
+            .map_err(|e| e.to_string())
+            .and_then(|root| workerd::ensure(&root))
+            .map_err(|e| fail(format!("profile {name}: workerd: {e}")))?;
+        flags.push("-v".into());
+        flags.push(format!("{}:{}:ro", dir.display(), workerd::GUEST_DIR));
+    }
     let (wrap, drops) = match &c.runtime {
         Some(r) => runtime::prefix(r, &c.read, &c.write)
             .map_err(|e| fail(format!("profile {name}: {e}")))?,
@@ -74,6 +87,10 @@ pub fn run_args(verb: &str, name: &str, sets: &[String]) -> Result<Shape, i32> {
         flags,
         wrap,
         drops,
+        command: match c.runtime.as_deref() {
+            Some("workerd") => vec!["workerd".into()],
+            _ => Vec::new(),
+        },
         image: c.image,
         needs: c.needs,
     })

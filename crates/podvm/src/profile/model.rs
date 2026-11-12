@@ -76,7 +76,8 @@ pub struct Checked {
     pub cpus: Option<u32>,
     pub timeout: Option<u64>,
     pub net_mode: Option<String>,
-    pub net_ports: Vec<u16>,
+    /// `net.ports`; `Some([])` holds each TCP connect of the confine layer.
+    pub net_ports: Option<Vec<u16>>,
     pub net_allow: Vec<String>,
     pub env: Vec<(String, String)>,
 }
@@ -301,16 +302,17 @@ pub fn check(t: &Table) -> Result<Checked, String> {
         c.net_mode = string(n, "net", "mode")?;
         c.net_allow = strings(n, "net", "allow")?;
         c.net_ports = match n.get("ports") {
-            None => Vec::new(),
-            Some(Value::Array(a)) => a
-                .iter()
-                .map(|v| match v {
-                    Value::Integer(p) if (1..=65535).contains(p) => Ok(*p as u16),
-                    other => Err(format!(
-                        "`net.ports` holds ports from 1 to 65535, not {other}"
-                    )),
-                })
-                .collect::<Result<_, _>>()?,
+            None => None,
+            Some(Value::Array(a)) => Some(
+                a.iter()
+                    .map(|v| match v {
+                        Value::Integer(p) if (1..=65535).contains(p) => Ok(*p as u16),
+                        other => Err(format!(
+                            "`net.ports` holds ports from 1 to 65535, not {other}"
+                        )),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
             Some(other) => {
                 return Err(format!(
                     "`net.ports` must be an array of ports, not {}",
@@ -418,7 +420,8 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
             read: c.read.clone(),
             write: c.write.clone(),
             exec: c.exec.clone(),
-            connect: (!c.net_ports.is_empty()).then(|| c.net_ports.clone()),
+            // `net.ports = []` holds each TCP connect; no key leaves TCP free.
+            connect: c.net_ports.clone(),
         };
         a.push(format!(
             "--podvm-confine={}",
@@ -431,8 +434,8 @@ pub fn run_args(c: &Checked, cwd: &Path) -> Result<Vec<String>, String> {
         // no mechanism holds the payload to it.
         Some("broker") => {
             a.push("--network=broker".into());
-            if !c.net_ports.is_empty() {
-                let p: Vec<String> = c.net_ports.iter().map(u16::to_string).collect();
+            if let Some(ports) = c.net_ports.as_ref().filter(|p| !p.is_empty()) {
+                let p: Vec<String> = ports.iter().map(u16::to_string).collect();
                 a.push(format!("--ports={}", p.join(",")));
             }
             for h in &c.net_allow {
