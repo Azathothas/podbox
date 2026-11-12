@@ -111,6 +111,18 @@ if [ "$fail" -eq 0 ]; then
   if timeout 1500 "$PODVM" windows setup --image "$KVM/base.vhdx" --podvm-timeout 600 >"$KVM/setup.txt" 2>&1; then
     tail -n 4 "$KVM/setup.txt"
     [ -f "$PROV" ] && ok "provisioned image beside the base" || miss "provisioned image absent"
+    # T-1641: the provisioned image stands alone (no backing file), and the
+    # vendor image keeps the pinned digest after the setup.
+    if [ -f "$PROV" ]; then
+      if qemu-img info "$PROV" 2>/dev/null | grep -qi '^backing file'; then
+        miss "the provisioned image has a backing file"
+      else
+        ok "the provisioned image has no backing file"
+      fi
+    fi
+    after=$(sha256sum "$KVM/base.vhdx" 2>/dev/null | cut -d' ' -f1)
+    [ "$after" = "$VHDX_SHA256" ] && ok "the vendor image keeps its digest after setup" \
+      || miss "the vendor image changed in setup: $after"
   else
     setup_rc=$?
     miss "setup failed with exit $setup_rc"; tail -n 10 "$KVM/setup.txt"

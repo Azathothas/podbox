@@ -2228,6 +2228,18 @@ Preserve the base and supplied image. Save proof before collecting its session.
 
 ## Done
 
+**Measured 2026-11-12, third run: KVM-GUEST-OK.** `kvm.yml` run
+43165884364 at `b56e3361` (job 131012003071, a hosted `ubuntu-latest`
+with `/dev/kvm`, QEMU 10.2.1): the Linux half of experiment 392 exits 0.
+`podvm windows setup` provisions the guest; `podvm windows run ver`
+exits 0 with `Microsoft Windows [Version 10.0.26100.9278]` under
+`-accel kvm -cpu host`; the guest's own exit 42 passes through; `podvm
+run --podvm-tier=machine --platform windows/amd64` reaches the disk guest
+with exit 0; no scratch directory and no emulator stay. The second run
+(43160003509) is the timeout clause: its first boot did not power off
+within 540 s, and podvm said "the emulator 7390 was killed and reaped, so
+its process group is gone"; no emulator stayed.
+
 **Partial 2026-09-30.** Explicit inputs, unique experiment numbering,
 owned runtime scratch, emulator cleanup, and artifact export are implemented.
 The default wrapper passed all 12 steps and exported five executables.
@@ -2281,7 +2293,7 @@ because `TODO/PROGRESS.md` records that the base was rebuilt from
 scratch on 2026-09-30 after the host failure.
 
 **The serial log is not a hang location, and the record said otherwise.**
-`experiments/lib/kvm-guest-base.sh:167-170` claims the serial watcher
+`experiments/lib/kvm-guest-base.sh:179-182` claims the serial watcher
 exists so a future hang can say where it stops. It cannot: the
 2026-09-30 third run has the same BDS-only serial ending and its `ver`
 had already succeeded. Windows writes nothing to serial after the
@@ -2798,7 +2810,7 @@ clause is the run rather than the check.
 
 **Source:** Operator authorization 2026-10-02, "a kvm is allowed
   unattended now, with a watchdog";
-  `experiments/lib/kvm-guest-base.sh` `:38` and `:205`;
+  `experiments/lib/kvm-guest-base.sh` `:38` and `:217`;
   `experiments/lib/kvm-owned.sh`; `docs/limits.md`
 **Category:** gate
 **Milestone:** none
@@ -4309,7 +4321,7 @@ Approach records the arithmetic that found them.
   `plan.rs` and `agent.rs` of that day (now `pod_guest::run`,
   `pod_guest::emulator`, `pod_guest::plan` and
   `pod_guest::agent` of PodUtils/podcrates);
-  `experiments/lib/kvm-guest-base.sh` `:191-198`
+  `experiments/lib/kvm-guest-base.sh` `:203-210`
 **Category:** windows
 **Milestone:** none
 **Priority:** P0
@@ -4414,7 +4426,7 @@ the typed scan missed" is not distinguishable from "waited for another
 reason" without timing the phases.
 
 One witness is unreliable and its own comment claims otherwise.
-`experiments/lib/kvm-guest-base.sh:167-170` says the serial watcher
+`experiments/lib/kvm-guest-base.sh:179-182` says the serial watcher
 exists so a future hang can say where it stops. It cannot: the
 2026-09-30 third run has the same BDS-only serial ending and its `ver`
 had already succeeded, and the copy the watcher produces carries a
@@ -4435,9 +4447,9 @@ useful to the next reader than a silent rewrite would be.
 | nothing verifies the emulator died | confirmed | `lib.rs:239-243`, `:337-338` |
 | the kill is ungrouped and its result discarded | confirmed | `lib.rs:223-227` sets only stdio; `:240` and `:337` are `let _ =` |
 | the orphan is unselectable by the proof and the watchdog | refuted | `experiments/lib/kvm-owned.sh:5-6` selects on `ps -eo pid,args` text and `scripts/windows/kvm-watchdog.py:108-121` on `/proc/PID/exe` plus `cmdline`; neither reads the parent |
-| the seam step swallows a non-zero exit and leaves `fail` untouched | refuted | `experiments/lib/kvm-guest-base.sh:200` calls `miss`, and `miss` sets `fail=1` at `:23` |
-| `scode=$?` is dead | confirmed | `experiments/lib/kvm-guest-base.sh:192`: `$?` inside `then` is the status of the `if` test, so `scode` is always 0 |
-| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:190` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50 at `c36e0db672d2`, where `== the podvm run seam` is followed directly by `== residue` |
+| the seam step swallows a non-zero exit and leaves `fail` untouched | refuted | `experiments/lib/kvm-guest-base.sh:212` calls `miss`, and `miss` sets `fail=1` at `:23` |
+| `scode=$?` is dead | confirmed | `experiments/lib/kvm-guest-base.sh:204`: `$?` inside `then` is the status of the `if` test, so `scode` is always 0 |
+| the seam step is silently skipped after an earlier failure | confirmed | `experiments/lib/kvm-guest-base.sh:202` and [the 2026-09-30 third result](../experiments/results/kvm-guest-2026-09-30-third.txt) lines 49-50 at `c36e0db672d2`, where `== the podvm run seam` is followed directly by `== residue` |
 | the orphan ran 8m43s with `commandline` and `parent` NULL in `/proc` | not verifiable | appears only in prose in this entry and in `docs/history/resume-before-2026-11-10.txt:90-94`; no result file under `experiments/results/` records it |
 
 The orphan survives for a reason the record did not name. The selectors
@@ -4462,6 +4474,18 @@ file it is backed by. The correction is a scratch overlay committed into
 a *separate* standalone file.
 
 ## Done
+
+**Measured 2026-11-12, third run: KVM-GUEST-OK.** `kvm.yml` run
+43165884364 at `b56e3361` (job 131012003071, a hosted `ubuntu-latest`
+with `/dev/kvm`, QEMU 10.2.1): the Linux half of experiment 392 exits 0.
+`podvm windows setup` provisions the guest; `podvm windows run ver`
+exits 0 with `Microsoft Windows [Version 10.0.26100.9278]` under
+`-accel kvm -cpu host`; the guest's own exit 42 passes through; `podvm
+run --podvm-tier=machine --platform windows/amd64` reaches the disk guest
+with exit 0; no scratch directory and no emulator stay. The second run
+(43160003509) is the timeout clause: its first boot did not power off
+within 540 s, and podvm said "the emulator 7390 was killed and reaped, so
+its process group is gone"; no emulator stayed.
 
 **Measured 2026-11-12, second run.** podcrates `v0.28.0` writes the
 provisioned image with `qemu-img convert` (COORD-056, issue 277, closed).

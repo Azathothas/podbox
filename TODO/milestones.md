@@ -1081,6 +1081,18 @@ acceptance; see the Decision.
 
 ## Done
 
+**Measured 2026-11-12, third run: KVM-GUEST-OK.** `kvm.yml` run
+43165884364 at `b56e3361` (job 131012003071, a hosted `ubuntu-latest`
+with `/dev/kvm`, QEMU 10.2.1): the Linux half of experiment 392 exits 0.
+`podvm windows setup` provisions the guest; `podvm windows run ver`
+exits 0 with `Microsoft Windows [Version 10.0.26100.9278]` under
+`-accel kvm -cpu host`; the guest's own exit 42 passes through; `podvm
+run --podvm-tier=machine --platform windows/amd64` reaches the disk guest
+with exit 0; no scratch directory and no emulator stay. The second run
+(43160003509) is the timeout clause: its first boot did not power off
+within 540 s, and podvm said "the emulator 7390 was killed and reaped, so
+its process group is gone"; no emulator stayed.
+
 **Partial 2026-09-30.** Earlier tracked results prove FreeDOS under TCG
 and ValidationOS under TCG. The saved KVM result from 2026-09-29 proves
 the guest version, exit 42, machine dispatch, and the observed emulator
