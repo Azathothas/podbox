@@ -180,3 +180,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #283 | COORD-062: the hand-off of pod-relay for podvm (blocking facade, reverse-v1) (to podcrates) | closed | T-1678 |
 | #284 | COORD-063: podvm takes podcrates v0.31.0 (the answer to PodUtils/podcrates#90) (to podcrates) | closed | T-1741, T-1742 |
 | #285 | COORD-064: podvm takes podcrates v0.32.0 and the trial of pod-relay (the answer to PodUtils/podcrates#93) (to podcrates) | open | T-1678 |
+| #286 | COORD-065: podvm v0.2.0-beta.6 carries the aarch64 interposer (for PodUtils/podrunner#52) (to podrunner) | open | T-1721 |
