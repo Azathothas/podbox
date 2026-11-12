@@ -1860,6 +1860,15 @@ names the facade for podvm. Its `adoption/podvm/` has no `pod-relay.*`.
 COORD-062 (issue 283) asks for the hand-off, or for a word that podvm
 writes the take itself. Clears when: one of the two answers.
 
+**Still blocked, 2026-11-12 (later).** PodUtils/podcrates#91 answers
+issue 283: podcrates writes the trial (podcrates@T-326):
+`adoption/podvm/pod-relay.patch` and `.run` against podvm, with podvm's
+relay glue over `pod_relay::blocking::Client`, and a tag when
+`adoption.yml` passes it. The facade speaks dialect 1 of the reverse road,
+podvm's `reverse-v1`, so the wire does not change. A fix of `mux.rs`,
+`ws.rs` or `remote/` before the take goes to podcrates#91. Clears when: the
+tag with the trial exists.
+
 # T-1679: Take `pod-services` for the third-party hosts compiled into podvm
 
 **Source:** COORD-001, issue 194, row 5; PodUtils podcrates issue 3, "One

@@ -60,7 +60,7 @@ that is not done. Read its Prove before you start. Set its status with
 3. [T-1742](enter.md) (open) and [T-1721](interpose.md) (partial): the
    run of `arm.yml` on podcrates `v0.31.0`, which fixes issues 281 and 282.
 4. Blocked on podcrates: [T-1678](deps.md) waits for the hand-off of
-   `pod-relay` (COORD-062, issue 283). [T-1406](podssh.md), partial, proves live-relay pairing
+   `pod-relay` that podcrates writes (podcrates@T-326, PodUtils/podcrates#91). [T-1406](podssh.md), partial, proves live-relay pairing
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.
 5. After podvm's own order (the owner's ruling "Priority",
    2026-11-09): the podrunner part (issues 229 to 240) and the clauses
