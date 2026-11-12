@@ -3352,7 +3352,7 @@ pull (M2, Unverified) is not changed by this entry.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -3375,23 +3375,29 @@ bytes shows 5 046 272 bytes read.
 pod-extract belongs to podcrates. podcrates reads each pass to the end of
 the raw blob before it compares the digest (issue 281 has the
 recommended fix). podvm takes that tag and adds the reproduction as a
-test of `podvm-image`.
+test.
 
 ## Decision
 
-Blocked on podcrates (issue 281). podvm does not change the bytes of an
-imported tar: the digest of the layer stays the digest of the file.
+The fix belongs to pod-extract (issue 281). podvm does not change the
+bytes of an imported tar: the digest of the layer stays the digest of the
+file.
 
 ## Prove
 
-`cargo test -p podvm-image` exits 0 with a test that imports and extracts
-a tar of one file of 60 000 bytes with the record of 10 240 bytes
-
-## Blocker
-
-PodUtils/podcrates: the fix of pod-extract (issue 281). podvm takes the
-tag that has it.
+`cargo test -p podvm --test import_padded` exits 0: the test imports and
+extracts a tar of one file of 60 000 bytes with the record of 10 240 bytes
 
 ## Correction
 
-None.
+**Corrected 2026-11-12.** The Prove named `podvm-image`; the test drives
+the binary's `import` and `extract`, so it lives in the `podvm` crate.
+
+## Done
+
+**Done 2026-11-12.** podvm takes podcrates `v0.31.0` (`45b145a`,
+PodUtils/podcrates#90): `HashedStream::finish` of pod-extract reads the
+rest of the raw blob into the hash before each check. `cargo test -p podvm
+--test import_padded` exits 0 (`crates/podvm/tests/import_padded.rs`: the
+tar of issue 281, 71 680 bytes, imports and extracts), and the
+reproduction of issue 281 by hand extracts with exit 0.

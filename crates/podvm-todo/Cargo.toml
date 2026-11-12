@@ -11,4 +11,4 @@ publish = false
 # `pod-todo`. `podvm-todo check` is pod-todo's reader with the facts of
 # TODO/todo.toml; podvm's own checks stay in `podvm-gate`.
 [dependencies]
-pod-todo = { git = "https://github.com/PodUtils/podcrates", tag = "v0.30.0" }
+pod-todo = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0" }

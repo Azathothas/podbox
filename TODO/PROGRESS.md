@@ -7,7 +7,7 @@ start.
 
 ## State
 
-351 entries: 0 open, 6 partial, 7 blocked, 338 done.
+351 entries: 1 open, 6 partial, 5 blocked, 339 done.
 
 The state on 2026-11-11:
 
@@ -57,13 +57,11 @@ that is not done. Read its Prove before you start. Set its status with
    [T-1662](net.md) (blocked on `pod-netlab` of podcrates,
    COORD-041, issue 260), [T-1663](net.md) and [T-1664](net.md) (they
    wait with T-1662).
-3. The record and the tree: no entry is open.
+3. [T-1742](enter.md) (open) and [T-1721](interpose.md) (partial): the
+   run of `arm.yml` on podcrates `v0.31.0`, which fixes issues 281 and 282.
 4. Blocked on podcrates: [T-1678](deps.md) waits for the hand-off of
    `pod-relay` (COORD-062, issue 283). [T-1406](podssh.md), partial, proves live-relay pairing
    after it. [T-1714](probe.md) waits for the schema of podcrates@T-107.
-   [T-1741](image.md) and [T-1742](enter.md) wait for the fixes of
-   pod-extract and pod-enter (issues 281 and 282); then
-   [T-1721](interpose.md), partial, runs `arm.yml` again.
 5. After podvm's own order (the owner's ruling "Priority",
    2026-11-09): the podrunner part (issues 229 to 240) and the clauses
    of PodUtils/podcrates#39.

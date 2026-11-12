@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: podcrates v0.31.0, 2026-11-12
+
+Record: PodUtils/podcrates#90, T-1741, T-1742.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.31.0`. `extract` and `run` no
+  longer refuse a correct plain tar layer whose end padding is past the last
+  read (issue 281), and the loader family finds the glibc of a Debian image
+  on arm64 (issue 282).
+
 ### Changed: a volume of the incus tier, 2026-11-12
 
 Record: T-1722.

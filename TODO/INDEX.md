@@ -415,12 +415,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1738](interpose.md) | P1 | S | none | interpose | done | A buffer of the interposer reaches the free of a program that has its own allocator |
 | [T-1739](interpose.md) | P2 | M | none | interpose | done | Chromium's child processes do not start on the loader family |
 | [T-1740](enter.md) | P3 | M | none | enter | partial | Raw system calls of a dynamic program on the loader family: measure the syscall tier, then choose the default |
-| [T-1741](image.md) | P1 | S | none | image | blocked | A plain tar layer whose end padding is past the last read is refused as a digest mismatch |
-| [T-1742](enter.md) | P2 | S | none | enter | blocked | The loader family does not find the glibc of a Debian image on arm64 |
+| [T-1741](image.md) | P1 | S | none | image | done | A plain tar layer whose end padding is past the last read is refused as a digest mismatch |
+| [T-1742](enter.md) | P2 | S | none | enter | open | The loader family does not find the glibc of a Debian image on arm64 |
 
 ## Counts
 
-351 entries: 0 open, 6 partial, 7 blocked, 338 done.
+351 entries: 1 open, 6 partial, 5 blocked, 339 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -430,10 +430,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 2 | 1 | 149 | 152 |
-| P2 | 0 | 2 | 6 | 109 | 117 |
+| P1 | 0 | 2 | 0 | 150 | 152 |
+| P2 | 1 | 2 | 5 | 109 | 117 |
 | P3 | 0 | 2 | 0 | 15 | 17 |
-| **All** | 0 | 6 | 7 | 338 | 351 |
+| **All** | 1 | 6 | 5 | 339 | 351 |
 
 ## Work order
 
