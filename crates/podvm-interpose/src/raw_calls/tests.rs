@@ -3,6 +3,17 @@
 use super::*;
 use std::ffi::CString;
 
+// The numbers of this machine that the table of the object does not name
+// (TODO/interpose.md T-1721).
+#[cfg(target_arch = "x86_64")]
+const MKNODAT: c_long = 259;
+#[cfg(target_arch = "x86_64")]
+const GETPID: c_long = 39;
+#[cfg(target_arch = "aarch64")]
+const MKNODAT: c_long = 33;
+#[cfg(target_arch = "aarch64")]
+const GETPID: c_long = 172;
+
 const AT_FDCWD: c_long = -100;
 const AT_SYMLINK_NOFOLLOW: c_long = 0x100;
 const STATX_BASIC_STATS: c_long = 0x7ff;
@@ -107,7 +118,7 @@ fn a_raw_call_with_no_route_is_refused_where_a_table_is_set() {
     const S_IFIFO: c_long = 0o010000;
     let mknodat = |p: &CString| unsafe {
         syscall(
-            259,
+            MKNODAT,
             AT_FDCWD,
             p.as_ptr() as c_long,
             S_IFIFO | 0o600,
@@ -138,7 +149,7 @@ fn a_raw_call_with_no_route_is_refused_where_a_table_is_set() {
     let is_fifo = std::os::unix::fs::FileTypeExt::is_fifo(
         &std::fs::symlink_metadata(&host).unwrap().file_type(),
     );
-    let pid = unsafe { syscall(39, 0, 0, 0, 0, 0, 0) };
+    let pid = unsafe { syscall(GETPID, 0, 0, 0, 0, 0, 0) };
     unset(&d);
     assert_eq!((refused, refused_errno), (-1, ENOSYS));
     assert_eq!((ring, ring_errno), (-1, ENOSYS));

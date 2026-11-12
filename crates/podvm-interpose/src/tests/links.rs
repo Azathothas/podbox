@@ -50,7 +50,13 @@ fn an_absolute_link_of_the_rootfs_resolves_in_the_rootfs() {
     );
     assert_eq!(cat(c"/hostonly"), Err(2), "a target that only the host has");
     let mut st = [0u8; 256];
-    let mode = |st: &[u8; 256]| u32::from_le_bytes([st[24], st[25], st[26], st[27]]);
+    // `st_mode`: 24 on x86_64, 16 on aarch64 (experiments/439-stat-layout.sh).
+    #[cfg(target_arch = "x86_64")]
+    const MODE: usize = 24;
+    #[cfg(target_arch = "aarch64")]
+    const MODE: usize = 16;
+    let mode =
+        |st: &[u8; 256]| u32::from_le_bytes([st[MODE], st[MODE + 1], st[MODE + 2], st[MODE + 3]]);
     assert_eq!(
         unsafe { crate::stat(c"/home/link".as_ptr(), st.as_mut_ptr() as *mut c_void) },
         0

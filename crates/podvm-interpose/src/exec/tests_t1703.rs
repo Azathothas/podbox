@@ -150,7 +150,7 @@ fn a_foreign_elf_refuses_and_nofollow_sees_a_link() {
     let d = tree("t1703-foreign");
     let root = d.to_string_lossy().to_string();
     let mut arm = elf(3, b"/lib/ld-linux-aarch64.so.1\0");
-    arm[18] = 183; // EM_AARCH64
+    arm[18] = super::tests::FOREIGN;
     put(&d.join("bin/arm"), &arm);
     put(&d.join("bin/plain"), &elf(1, b""));
     symlink("/bin/plain", d.join("bin/alias")).unwrap();
@@ -181,10 +181,20 @@ fn copy_real(from: &str, to: &std::path::Path) -> bool {
 fn system_and_popen_start_the_image_shell() {
     let d = tree("t1703-shell");
     let root = d.to_string_lossy().to_string();
-    let ld = "/lib64/ld-linux-x86-64.so.2";
+    // The loader and the libc of this machine (T-1721).
+    #[cfg(target_arch = "x86_64")]
+    let (ld, libc) = (
+        "/lib64/ld-linux-x86-64.so.2",
+        "/lib/x86_64-linux-gnu/libc.so.6",
+    );
+    #[cfg(target_arch = "aarch64")]
+    let (ld, libc) = (
+        "/lib/ld-linux-aarch64.so.1",
+        "/lib/aarch64-linux-gnu/libc.so.6",
+    );
     let ok = copy_real("/bin/sh", &d.join("bin/sh"))
         && copy_real(ld, &d.join(&ld[1..]))
-        && copy_real("/lib/x86_64-linux-gnu/libc.so.6", &d.join("lib/libc.so.6"));
+        && copy_real(libc, &d.join("lib/libc.so.6"));
     if !ok {
         eprintln!("no glibc /bin/sh on this host: the shell clause did not run");
         return;

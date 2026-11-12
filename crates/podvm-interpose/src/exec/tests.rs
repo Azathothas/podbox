@@ -6,13 +6,23 @@ use std::path::Path;
 
 /// A 64-bit x86_64 ELF header with one program header at offset 64 of
 /// type `ty`, and, where `interp` is given, the name at offset 120.
+/// An ELF machine that is not this object's (T-1721).
+#[cfg(target_arch = "x86_64")]
+pub(super) const FOREIGN: u8 = 183; // EM_AARCH64
+#[cfg(target_arch = "aarch64")]
+pub(super) const FOREIGN: u8 = 62; // EM_X86_64
+
 pub(super) fn elf(ty: u32, interp: &[u8]) -> Vec<u8> {
     let mut b = vec![0u8; 120];
     b[..4].copy_from_slice(b"\x7fELF");
     b[4] = 2;
     b[5] = 1;
     b[16..18].copy_from_slice(&3u16.to_le_bytes());
+    // The machine of this object (`EM_SELF` of exec/parse.rs, T-1721).
+    #[cfg(target_arch = "x86_64")]
     b[18..20].copy_from_slice(&62u16.to_le_bytes());
+    #[cfg(target_arch = "aarch64")]
+    b[18..20].copy_from_slice(&183u16.to_le_bytes());
     b[32..40].copy_from_slice(&64u64.to_le_bytes());
     b[54..56].copy_from_slice(&(PHENT as u16).to_le_bytes());
     b[56..58].copy_from_slice(&1u16.to_le_bytes());
@@ -36,7 +46,7 @@ fn the_head_tells_elf_script_and_other_apart() {
     assert_eq!(kind(b"#!/bin/sh\n"), Kind::Script);
     assert_eq!(kind(b"plain text"), Kind::Other);
     let mut foreign = dynamic.clone();
-    foreign[18] = 183; // EM_AARCH64
+    foreign[18] = FOREIGN;
     assert_eq!(kind(&foreign), Kind::Foreign);
 }
 
