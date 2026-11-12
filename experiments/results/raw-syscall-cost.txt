@@ -1,0 +1,15 @@
+== conditions
+date              2026-11-12T05:29:46Z
+host kernel       Linux 6.18.44-fc-v378
+host CPUs         4
+podvm             podvm 0.2.0-beta.5
+fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
+image             mirror.gcr.io/library/alpine:3.20
+
+== clauses 1 and 2  the wall time (ms) of each workload
+  workload  loader-family  syscall-tier  rung of the default
+  exec  1880  2392  userland
+  io  631  609  userland
+  calls  311  667  userland
+
+verdict: EACH WORKLOAD RUNS ON EACH; THE TIMES ARE ABOVE

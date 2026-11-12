@@ -3310,7 +3310,7 @@ with it back, it passed.
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3343,8 +3343,35 @@ names `--podvm-tier=syscall` as its remedy.
 
 ## Prove
 
-`sh experiments/NNN-raw-syscall-cost.sh` exits 0 with the two wall times of one workload, and `cargo test -p podvm` exits 0 with the default that the measurement chose
+`sh experiments/438-raw-syscall-cost.sh` exits 0 with the two wall times of each workload, and `cargo test -p podvm` exits 0 with the default that the measurement chose
 
 ## Correction
 
 None.
+
+## Done
+
+**Partial 2026-11-12.** `PODVM_438_STORE=... sh
+experiments/438-raw-syscall-cost.sh` exits 0 on the chroot-denying
+fixture (4 CPUs, Linux 6.18), alpine 3.20, wall times in ms:
+
+```text
+workload  loader-family  syscall-tier
+exec      1880           2392   (2000 runs of cat: +27 %)
+io        631            609    (md5sum of the image, 20 times)
+calls     311            667    (dd bs=1 of 200000 bytes: x2.1; the copy alone 0.12 s against 0.50 s)
+```
+
+Decision (the call of this session, AGENTS.md section 10): the loader
+family stays the default for a dynamic program. A workload that is made
+of system calls runs up to 4 times slower on the syscall tier, and the
+tier changes what the payload sees (`/tmp` capped, `uname` fixed, no
+`run -d`). The `--strict` gap names `--podvm-tier=syscall` as the rung
+that runs a payload with raw system calls
+(`crates/podvm/src/complete/capability.rs`).
+
+Remaining: the gap stays open while the tier costs this much; a cheaper
+mechanism (a filter that gives the handler only the calls with a path)
+would let the tier be the default. Not measured: Go with cgo and
+liburing themselves.
+
