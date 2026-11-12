@@ -1,6 +1,6 @@
 # Handoff
 
-The state on 2026-11-11, in the session that resumed podvm. A fresh
+The state on 2026-11-12, at the end of the session that resumed podvm. A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.
@@ -11,7 +11,8 @@ file when each step below is done.
   worktree or a branch. The branch `archive/podbox-worktree` is an
   archive; never merge or delete it.
 * The owner resumed podvm on 2026-11-11 and answered Q1 to Q7
-  (`docs/decisions.md`, rows of 2026-11-11). No question is open.
+  (`docs/decisions.md`, rows of 2026-11-11). No question is open. The
+  owner closed the session of 2026-11-12 for a restart in a fresh one.
 * The newest release is `v0.2.0-beta.6` (2026-11-12, release run
   43241608767 on 860d6294; 42 assets with sums and sigstore bundles; its
   `podvm-aarch64` embeds the two aarch64 interposer objects). A release
@@ -40,40 +41,53 @@ file when each step below is done.
 
 ## Open COORD issues
 
-* COORD-001 (#194, to podcrates): the takes of `pod-relay` (T-1678,
-  blocked: no release), `pod-services` (T-1679, partial) and `pod-todo`
-  (T-1680, done 2026-11-11).
-* COORD-040 (#259): `pod-confine` for T-1658, in podcrates `v0.23.0`.
-* COORD-041 (#260): `pod-netlab` and the reader of the guest's modloop
-  for T-1662 (T-1663 and T-1664 wait with it).
-* COORD-042 (#261): pod-extract and the root entry with an empty name
-  (the lambda-al2023 clause of T-1659); the fix is in `v0.23.0`.
-* COORD-044 (#263, to podcrates): `gcr.io`, `mirror.gcr.io` and the NIC
-  module sums of the guest for `pod-services` (T-1679).
-* COORD-033 (#252, to podrunner): the aarch64 interposer, T-1721 (open).
-* COORD-039 (#258, to podrunner): T-1709 is on `main`, not in
-  `v0.2.0-beta.3`; it stays open until podrunner reads it.
-* COORD-024, COORD-025, COORD-028, COORD-031, COORD-032, COORD-034,
-  COORD-035, COORD-038 and COORD-043 are closed on 2026-11-11: each peer
-  closed the issue that they answer, and each mapped entry is done.
+Each waits for a peer; podvm closes it when the peer answers.
+
+* COORD-065 (#286, to podrunner): `v0.2.0-beta.6` carries the aarch64
+  interposer for PodUtils/podrunner#52. Close it when podrunner pins the
+  beta (PodUtils/podrunner#52 then closes), or act on what fails.
+* COORD-064 (#285, to podcrates): podvm's take of `v0.32.0` and the trial
+  of `pod-relay` (`15485d1b`). Close it when PodUtils/podcrates#93 closes.
+* COORD-057 (#278), COORD-047 (#266), COORD-045 (#264): takes of
+  `v0.28.0`, `v0.25.0` and `v0.24.0`; each answers a podcrates issue that
+  is closed. Check them and close them.
+* COORD-052 (#273, beta.5) and the trackers #271 (cfb's asks) and #272
+  (the CI plan items): read them against the record before you close.
+* COORD-041 (#260): `pod-netlab` for T-1662 (T-1663 and T-1664 wait with
+  it). PodUtils/podcrates#93 says podcrates@T-207 (`pod-netlab`) is in
+  work; its offline part is on podcrates `main` for the next tag.
+* COORD-040 (#259): `pod-confine` for T-1658; T-1658 is done. Check and
+  close.
+* COORD-001 (#194, to podcrates): the crates that podvm hands over and
+  takes. T-1678 (`pod-relay`) is done now.
+* #239: `podvm probe --json` against the schema of pod-hostprobe (T-1714,
+  blocked on podcrates@T-107).
 
 ## Next steps, in order
 
-1. podvm takes podcrates `v0.24.0` (T-1679, T-1659 done; T-1658 partial).
-   Next: the rest of T-1658 (the rungs with no chroot, `run -d`, `exec`),
-   then `workerd-test` of T-1661, which needs the layer.
-2. podrunner reads COORD-065 (beta.6, for PodUtils/podrunner#52) and
-   pins it.
-3. Done on 2026-11-11 after the first handoff: T-1660, T-1668, T-1672,
-   T-1659, T-1665, T-1673, T-1679, T-1680, T-1683, T-1684, T-1685, T-1735, T-1737, T-1732, T-1733, T-1734, T-1736; partial:
-   T-1659, T-1661, T-1679. Defects fixed on the way: the hard links of a
-   container tree and of the guest's base archive, the removal of a
-   read-only tree by a user that is not root, a partial tree of a killed
-   run, `--argv0` on the first exec of the loader family, `lstat` of a
-   volume's mount point.
-4. Before an entry is set done, run `cargo test -p podvm`: the test
+1. Start the session (`AGENTS.md`, section 8): the watcher of the
+   organization, the last CI runs, `podvm-gate`. Read new messages first:
+   podrunner may answer #286, podcrates may tag `v0.33.0` (`pod-netlab`).
+2. No entry is open. The partial entries, with their remaining clauses in
+   `TODO/`: T-1722 (incus: the ladder selects incus by configuration,
+   `.EnteredRung` names it, `logs -f` and `inspect`), T-1667 (the doctor's
+   check of labs in a guest waits for the network entries), T-1406
+   (live-relay pairing; podcrates@T-330 plans podvm commands that make,
+   check and stop a pair), T-1740 (a cheaper syscall tier), T-1350 (the
+   wrapper of the parked Windows lane).
+3. Blocked on podcrates: T-1662, T-1663, T-1664 (`pod-netlab`), T-1714
+   (the schema of podcrates@T-107).
+4. Done on 2026-11-12: T-1721 (aarch64 interposer; `arm.yml`), T-1741 and
+   T-1742 (podcrates `v0.31.0` fixes found on arm64), T-1729 (runsc tier,
+   experiment 436), T-1723 (9p volumes, `-t`, microvm measured: the guest
+   keeps `-M pc`; experiments 412 and 440 in `kvm.yml`), T-1678
+   (`pod-relay`), and the release `v0.2.0-beta.6`.
+5. Before an entry is set done, run `cargo test -p podvm`: the test
    `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
    pod-todo's reader reads the files on disk: an untracked directory can
    hide a citation that a clone of CI refuses (CI run 400).
-5. CI: each push cancels the run before it. Let one run finish between
-   pushes where it can.
+6. CI: each push cancels the run before it. `release.yml` needs a
+   successful gate run on its commit: do not push between the gate and
+   the release. A crate of podvm that runs in a guest must build for
+   aarch64 too (`c_char` is `u8` there): `cargo check --target
+   aarch64-unknown-linux-musl -p podvm` before a push that touches one.

@@ -146,7 +146,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #249 | COORD-031: podvm takes podcrates v0.19.0 (to podcrates) | closed (podcrates#62) | T-1719 |
 | #250 | COORD-032: the answer to PodUtils/podrunner#51: a unix socket path takes the table on main (T-1710) (to podrunner) | closed (podrunner#51) | T-1710 |
 | #251 | [reference] Azathothas/errand-box: incus without root (route A) and its costs | closed (lesson taken in T-1717 and T-1718) | T-1717, T-1718 (open while T-1718 is open) |
-| #252 | COORD-033: the answer to PodUtils/podrunner#52: no aarch64 interposer yet; podvm T-1721 (to podrunner) | open | T-1721 |
+| #252 | COORD-033: the answer to PodUtils/podrunner#52: no aarch64 interposer yet; podvm T-1721 (to podrunner) | closed | T-1721 |
 | #253 | COORD-034: a client of the incus REST API as a podcrates crate (T-1718) (to podcrates) | closed (pod-incus, taken 1ffe87e) | T-1718 |
 | #254 | COORD-035: the answer to PodUtils/podrunner#53: podvm v0.2.0-beta.3 is released (to podrunner) | closed (podrunner#53) | T-1706, T-1720, T-1710 |
 | #255 | COORD-036: the answer to PodUtils/podrunner#61: an absolute symlink of the rootfs resolves on the host; podvm T-1725 fixes it (to podrunner) | closed | T-1725 |

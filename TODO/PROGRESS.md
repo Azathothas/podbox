@@ -9,32 +9,23 @@ start.
 
 351 entries: 0 open, 5 partial, 4 blocked, 342 done.
 
-The state on 2026-11-11:
+The state on 2026-11-12 (the end of a session; `docs/HANDOFF.md` has the
+detail):
 
-* The newest release is `v0.2.0-beta.3` (2026-11-11), the beta that
-  podrunner asked for (PodUtils/podrunner#53). `v0.2.0-beta.2`
-  (2026-11-10) is the first release with the name podvm (T-1671). A
-  release starts from a dispatched
-  `release.yml`. Dispatch `nightly.yml` with `trial=true` on `main` first.
-* podvm takes 15 crates of PodUtils/podcrates at the tag `v0.22.0`
-  (`93de04a`, T-1732): `pod-core`, `pod-tls`, `pod-proxy`, `pod-term`,
-  `pod-hostprobe`, `pod-supervise`, `pod-guest`, `pod-enter`, `pod-oci`,
-  `pod-extract`, `pod-rootfs`, `pod-incus`, `pod-broker`, `pod-services`
-  and `pod-todo`. A change of moved code goes to podcrates as a COORD
-  issue.
-* The errand-host entries T-1643 to T-1653 are done. Their issues are
-  closed, and issue 114, their dossier, is closed.
-* KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`.
-  The KVM legs of T-1112, T-1350 and T-1641 need a host with `/dev/kvm`.
-  T-1682 gives them a hosted runner.
-* podcrates `v0.22.0` (`93de04a`) is the last tag, and podvm takes it
-  (T-1732, PodUtils/podcrates#71). podvm waits for `v0.23.0`
-  (`pod-confine` and the fix of issue 261).
-* PodUtils/podrunner has a lead session since 2026-11-11 (the ruling
-  "podrunner online"): DR-1 and DR-2 are yes. Its issues are under
-  PodUtils/podrunner#1; podvm's part is T-1704 to T-1715 (issues 229 to
-  240); the crate asks are podcrates podcrates@T-160 to podcrates@T-165 and podnet podnet@T-229 to
-  podnet@T-232.
+* The newest release is `v0.2.0-beta.6` (2026-11-12, release run
+  43241608767 on `860d6294`): the aarch64 interposer (T-1721), the runsc
+  tier (T-1729), the 9p volumes and `-t` of the machine tier (T-1723),
+  the incus verbs (T-1722, partial), the relay over `pod-relay` (T-1678).
+  `release.yml` needs a successful gate run on its commit; dispatch
+  `nightly.yml` with `trial=true` on `main` first.
+* podvm takes the crates of PodUtils/podcrates at `v0.32.0` (`032e86f`,
+  with the trial of `pod-relay`). A change of moved code goes to podcrates
+  as a COORD issue.
+* KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
+  `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a
+  hosted arm64 runner (T-1721).
+* PodUtils/podrunner has a lead session; it waits to pin beta.6 for
+  PodUtils/podrunner#52 (COORD-065, issue 286).
 
 Each partial entry names its remaining clauses. Each blocked entry names
 its blocker and the condition that clears it.
