@@ -1,5 +1,7 @@
-//! The ELF of a static x86_64 program: the check, and the map of its
-//! segments into podvm's own address space.
+//! The ELF of an x86_64 program: the check, and the map of its segments
+//! into podvm's own address space. A dynamic program brings its
+//! interpreter (`PT_INTERP`), which the loader maps beside it from the
+//! root (TODO/enter.md T-1731).
 
 use crate::sys::{self, nr, sc6};
 
@@ -45,8 +47,20 @@ pub struct Ph {
 /// This runs in the handler too: it uses no allocator.
 pub fn static_x86_64(
     head: &[u8],
-    mut read: impl FnMut(u64, &mut [u8]) -> i64,
+    read: impl FnMut(u64, &mut [u8]) -> i64,
 ) -> Result<(), &'static str> {
+    match x86_64(head, read)? {
+        false => Ok(()),
+        true => Err("a dynamic program (it names an interpreter)"),
+    }
+}
+
+/// Ok(dynamic) where the file is an executable ELF of x86_64: true where
+/// it names an interpreter. This runs in the handler too: no allocator.
+pub fn x86_64(
+    head: &[u8],
+    mut read: impl FnMut(u64, &mut [u8]) -> i64,
+) -> Result<bool, &'static str> {
     if head.get(..4) != Some(b"\x7fELF".as_slice())
         || head.get(4) != Some(&2)
         || head.get(5) != Some(&1)
@@ -69,15 +83,14 @@ pub fn static_x86_64(
         return Err("program headers of a size this loader does not take");
     }
     let mut ph = [0u8; 56];
+    let mut dynamic = false;
     for i in 0..num {
         if read(off + i * ent, &mut ph) != 56 {
             return Err("a program header cannot be read");
         }
-        if u32_at(&ph, 0) == PT_INTERP {
-            return Err("a dynamic program (it names an interpreter)");
-        }
+        dynamic |= u32_at(&ph, 0) == PT_INTERP;
     }
-    Ok(())
+    Ok(dynamic)
 }
 
 /// The headers of a file, read with `read`.
@@ -85,7 +98,7 @@ pub fn headers(
     head: &[u8],
     mut read: impl FnMut(u64, &mut [u8]) -> i64,
 ) -> Result<Vec<Ph>, &'static str> {
-    static_x86_64(head, &mut read)?;
+    x86_64(head, &mut read)?;
     let (off, num) = (u64_at(head, 32), u16_at(head, 56) as u64);
     let mut out = Vec::new();
     let mut b = [0u8; 56];
@@ -106,11 +119,17 @@ pub fn headers(
 /// A program in memory.
 #[derive(Debug)]
 pub struct Image {
+    /// The program's own entry (`AT_ENTRY`).
     pub entry: u64,
     pub phdr: u64,
     pub phnum: u64,
     /// The end of its highest segment, page-aligned: the break starts here.
     pub end: u64,
+    /// The load address of the interpreter (`AT_BASE`), 0 for a static
+    /// program.
+    pub base: u64,
+    /// Where the payload starts: the interpreter's entry, else `entry`.
+    pub start: u64,
 }
 
 fn prot(flags: u32) -> i64 {
@@ -139,8 +158,70 @@ fn mmap(addr: u64, len: u64, prot: i64, flags: i64, fd: i64, off: u64) -> Result
     }
 }
 
-/// Map the program of `fd` (whose first 64 bytes are `head`).
-pub fn load(fd: i64, head: &[u8]) -> Result<Image, String> {
+/// The reader of `fd` at an offset.
+fn pread_of(fd: i64) -> impl FnMut(u64, &mut [u8]) -> i64 {
+    move |off: u64, out: &mut [u8]| {
+        // SAFETY: out lives for the call.
+        unsafe {
+            sc6(
+                nr::PREAD64,
+                fd,
+                out.as_mut_ptr() as i64,
+                out.len() as i64,
+                off as i64,
+                0,
+                0,
+            )
+        }
+    }
+}
+
+/// Map the program of `fd` (whose first 64 bytes are `head`). A dynamic
+/// program's interpreter is opened with `open_interp` (its path as the
+/// program names it, in the root) and mapped beside it.
+pub fn load(
+    fd: i64,
+    head: &[u8],
+    open_interp: impl FnOnce(&[u8]) -> Result<i64, String>,
+) -> Result<Image, String> {
+    let mut img = map(fd, head)?;
+    let mut read = pread_of(fd);
+    let phs = headers(head, &mut read).map_err(str::to_string)?;
+    let Some(ip) = phs.iter().find(|p| p.kind == PT_INTERP) else {
+        return Ok(img);
+    };
+    if ip.filesz == 0 || ip.filesz > 4096 {
+        return Err("the interpreter's path has no length this loader takes".into());
+    }
+    let mut path = vec![0u8; ip.filesz as usize];
+    if read(ip.offset, &mut path) != ip.filesz as i64 {
+        return Err("the interpreter's path cannot be read".into());
+    }
+    let path: Vec<u8> = path.into_iter().take_while(|c| *c != 0).collect();
+    let ifd = open_interp(&path)?;
+    let mut ihead = [0u8; 64];
+    let got = pread_of(ifd)(0, &mut ihead);
+    let named = String::from_utf8_lossy(&path).to_string();
+    let interp = if got != 64 {
+        Err(format!("{named}: no ELF header"))
+    } else if u16_at(&ihead, 16) != ET_DYN {
+        Err(format!("{named}: the interpreter is not a shared object"))
+    } else {
+        match x86_64(&ihead, pread_of(ifd)) {
+            Ok(false) => map(ifd, &ihead).map_err(|e| format!("{named}: {e}")),
+            Ok(true) => Err(format!("{named}: the interpreter names an interpreter")),
+            Err(e) => Err(format!("{named}: {e}")),
+        }
+    };
+    sys::close(ifd);
+    let interp = interp?;
+    img.base = interp.base;
+    img.start = interp.entry;
+    Ok(img)
+}
+
+/// Map the segments of the ELF of `fd` (whose first 64 bytes are `head`).
+fn map(fd: i64, head: &[u8]) -> Result<Image, String> {
     let pread = |off: u64, out: &mut [u8]| {
         // SAFETY: out lives for the call.
         unsafe {
@@ -250,12 +331,15 @@ pub fn load(fd: i64, head: &[u8]) -> Result<Image, String> {
                 .map(|p| p.vaddr + (phoff - p.offset) + bias)
         })
         .ok_or("the program headers are in no segment")?;
-    let _ = sys::EINVAL;
+    let entry = u64_at(head, 24) + bias;
     Ok(Image {
-        entry: u64_at(head, 24) + bias,
+        entry,
         phdr,
         phnum: phs.len() as u64,
         end: hi + bias,
+        // As the interpreter's own image: the address of its vaddr 0.
+        base: bias,
+        start: entry,
     })
 }
 

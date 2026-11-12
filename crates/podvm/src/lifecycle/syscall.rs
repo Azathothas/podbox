@@ -1,5 +1,6 @@
 //! TODO/enter.md T-1657. The syscall tier: `run --podvm-tier=syscall` runs
-//! a static payload on the native-static rung (T-1652), and the handler
+//! a payload on the native-static rung (T-1652; a dynamic one with the
+//! image's interpreter, T-1731), and the handler
 //! answers more than the paths: `uname` gives a fixed release that names
 //! the tier, `/tmp` is a directory of the run with a size cap, and the
 //! links of `/proc/self` name guest paths. A `-v HOST:GUEST` volume writes
@@ -44,10 +45,12 @@ pub fn decide(
             return Err(code);
         }
     };
-    if let Err(why) = podvm_dispatch::static_host_program(std::path::Path::new(&f.resolved)) {
+    // TODO/enter.md T-1731: a dynamic program brings its interpreter from
+    // the image, which the loader maps beside it.
+    if let Err(why) = podvm_dispatch::host_program(std::path::Path::new(&f.resolved)) {
         return refuse(format!(
-            "the tier runs a statically linked x86_64 program, and {}: {why}. \
-             --podvm-tier=emulate runs a dynamic one",
+            "the tier runs an x86_64 program of the image, and {}: {why}. \
+             --podvm-tier=emulate runs a program of another machine",
             f.resolved
         ));
     }
@@ -57,8 +60,8 @@ pub fn decide(
     })?;
     u.syscall = true;
     u.banner = format!(
-        "entering on the syscall tier: the static payload runs in a podvm process of \
-         its own, and Syscall User Dispatch gives each of its system calls to podvm's \
+        "entering on the syscall tier: the payload (and the image's interpreter of a \
+         dynamic one) runs in a podvm process of its own, and Syscall User Dispatch gives each of its system calls to podvm's \
          handler, which resolves each path in the image with \
          openat2(RESOLVE_IN_ROOT), answers uname with {}, gives /tmp as a directory \
          of the run capped at {} MiB, and names guest paths in /proc/self. The handler \

@@ -15,7 +15,8 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   image with `openat2(RESOLVE_IN_ROOT)`. `/proc`, `/sys` and `/dev` are
   the host's, and `/proc/self/exe` names the guest program. Threads,
   `fork`, `vfork` and `execve` keep the rung; an `execve` of a dynamic
-  program fails with `ENOEXEC`. A static child of a dynamic program on the
+  program maps the image's interpreter beside it (T-1731), and podvm
+  drops its own interposer from `LD_PRELOAD` there. A static child of a dynamic program on the
   loader family enters the same rung through podvm (T-1724). A volume
   (`-v HOST:GUEST`) is a host directory descriptor of the handler: a path
   under GUEST resolves in HOST with `RESOLVE_IN_ROOT` there, so `..` stays
@@ -65,8 +66,9 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   broker's, and on the machine tier the guest network is restricted to a
   forward to the broker. Each other rung refuses it. A payload that
   ignores the proxy variables is refused, not served through the broker.
-- `--podvm-tier=syscall` (T-1657) runs a static x86_64 program on the
-  native-static rung, and the handler also answers `uname` with the
+- `--podvm-tier=syscall` (T-1657) runs an x86_64 program of the image
+  on the native-static rung (a dynamic one with the image's interpreter,
+  T-1731), and the handler also answers `uname` with the
   release `6.1.0-podvm-syscall`, gives `/tmp` as a directory of the run
   with a cap (`--tmpfs /tmp:size=`, 256 MiB by default; a write over it
   fails with `ENOSPC`), and names guest paths in the links of

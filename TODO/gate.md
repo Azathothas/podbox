@@ -3120,7 +3120,7 @@ still unsupported.
 
 **Source:** Two read-only audits run 2026-10-02, both reading the live
   tree; `docs/code-map.md` `:5` and `:23`;
-  `docs/agent-tooling.md` `:31`; `docs/limits.md` `:33`;
+  `docs/agent-tooling.md` `:31`; `docs/limits.md` `:34`;
   `README.md` `:109`; `scripts/README.md` `:21`
 **Category:** gate
 **Milestone:** none
@@ -3143,7 +3143,7 @@ as the owners of behaviour that moved to
 each file is an exec shim and says so in its own header.
 `README.md:109` and `scripts/README.md:21` still name
 `verify-release.sh` as the verifier where the logic is now
-`podvm-verify`. `docs/limits.md:43` points T-1405 at
+`podvm-verify`. `docs/limits.md:44` points T-1405 at
 release packaging for helpers that beta.10 already ships.
 
 ## Premise
@@ -3225,7 +3225,7 @@ downloaded to re-check it in this session.
 **Source:** Plan-completeness audit 2026-10-02, four read-only passes
   over `TODO/`, `docs/limits.md`, and `.github/workflows/`;
   `TODO/image.md` `:311` and `:320`; `TODO/podssh.md` `:203`;
-  `docs/limits.md` `:29`; `TODO/gate.md` T-1610
+  `docs/limits.md` `:30`; `TODO/gate.md` T-1610
 **Category:** gate
 **Milestone:** none
 **Priority:** P1
@@ -3385,7 +3385,7 @@ removed. That is recorded on T-0204 itself, where the work now lives.
    record knows the hazard. No task owns it and no tool can repair it;
    `base ensure --repair` says so itself. This is a permanent limit on
    this host unless the toolkit changes. Record it as a limit, not work.
-4. `docs/limits.md:39` assigns the live-entry prover and the
+4. `docs/limits.md:40` assigns the live-entry prover and the
    binary-appended footer to T-1003, which is `done`. A closed entry
    cannot own future work. Decide where it goes or drop it.
 

@@ -237,7 +237,7 @@ pub fn classify_strict(
             Some(why) => format!(
                 "{}. This command hits it: {why}. The chroot rung runs this \
                  command on a host that permits chroot(2); this host has no \
-                 rung that runs it yet (TODO/enter.md T-1731)",
+                 rung that runs it yet (TODO/enter.md T-1740)",
                 g.text
             ),
         };

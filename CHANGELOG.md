@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a dynamic program on the native-static rung, 2026-11-12
+
+Record: T-1731.
+Deployed: not released.
+
+- The native-static rung and `--podvm-tier=syscall` run a dynamic
+  program of the image: podvm's loader maps the image's interpreter
+  beside it, and each library resolves in the image. A raw system call
+  of the program (Go with cgo, liburing) also reads the image's files.
+
 ### Changed: podcrates v0.27.0, 2026-11-12
 
 Record: T-1658, PodUtils/podcrates#85.

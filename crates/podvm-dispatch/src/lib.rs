@@ -98,6 +98,27 @@ pub fn available() -> Result<(), String> {
     }
 }
 
+/// Ok where the file at `path` is an executable ELF of x86_64, static or
+/// dynamic: the loader maps a dynamic program's interpreter from the root
+/// (TODO/enter.md T-1731). Ok(true) for a dynamic one.
+pub fn host_program(path: &std::path::Path) -> Result<bool, String> {
+    #[cfg(target_arch = "x86_64")]
+    {
+        let b = std::fs::read(path).map_err(|e| e.to_string())?;
+        let read = |off: u64, out: &mut [u8]| {
+            let s = b.get(off as usize..off as usize + out.len()).unwrap_or(&[]);
+            out[..s.len()].copy_from_slice(s);
+            s.len() as i64
+        };
+        elf::x86_64(b.get(..64).unwrap_or(&[]), read).map_err(str::to_string)
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        let _ = path;
+        available().map(|()| false)
+    }
+}
+
 /// Whether `path` is a static program of this machine that the rung can
 /// load (TODO/enter.md T-1651: the emulator of the emulate tier).
 pub fn static_host_program(path: &std::path::Path) -> Result<(), String> {

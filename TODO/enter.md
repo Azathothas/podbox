@@ -3183,7 +3183,7 @@ exits 1.
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3224,6 +3224,31 @@ each call, raw or not.
 
 **Filed 2026-11-11.** Split from T-1657, so that the `--strict` gap of the
 loader family names an entry that is not done.
+
+## Done
+
+**Done 2026-11-12.** `elf::load` of `crates/podvm-dispatch/src/elf.rs`
+maps a dynamic program, then reads its `PT_INTERP`, opens that path in
+the root, and maps the interpreter (a shared object with no interpreter of
+its own) as a second image; `enter.rs` gives `AT_BASE` the interpreter's
+load address, keeps `AT_ENTRY` at the program's entry, and starts at the
+interpreter's entry. The check of an `execve` takes a dynamic program, and
+`--podvm-tier=syscall` takes one (`podvm_dispatch::host_program`). Found
+on the way: the payload of this rung inherited podvm's interposer in
+`LD_PRELOAD`, which turned each guest path into its host path before the
+handler saw it, so each `execve` of a dynamic shell failed with `ENOENT`;
+the entry now drops that object from `LD_PRELOAD` (each other object
+stays).
+
+`cargo test -p podvm-dispatch` exits 0 with
+`a_dynamic_program_of_the_root_runs_with_its_own_interpreter` (the
+host's dynamic `cat`, its interpreter and its libraries in a root read
+the root's marker) and
+`the_interposer_leaves_ld_preload_and_each_other_object_stays`.
+`PODVM_413_MIRROR=1 sh experiments/413-syscall-tier.sh` exits 0 with
+clause 7: alpine's dynamic busybox prints `3.20.10`, and `rawcat`, a
+dynamic glibc program of the image, reads the image's `/etc/os-release`
+through a raw `openat` system call (`ID=podvm413`).
 
 # T-1730: A detached thread of a static payload ends with SIGSEGV on the native-static rung
 
@@ -3277,3 +3302,49 @@ its only valid next call is the exit; musl makes it.
 `tests/dispatch.rs`. The plant: with the arm of `MUNMAP` taken out
 (`if false &&`), `a_detached_thread_ends_and_the_process_goes_on` failed;
 with it back, it passed.
+
+# T-1740: Raw system calls of a dynamic program on the loader family: measure the syscall tier, then choose the default
+
+**Source:** T-1731 (a dynamic program on the native-static rung); the `--strict` gap of the loader family (T-1650)
+**Category:** enter
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A dynamic program on the loader family can issue the `syscall`
+instruction itself (Go with cgo, liburing). That call passes the
+interposer, so its absolute path resolves on the host, and a write lands
+on the host tree. The loader family is the default for a dynamic program
+on a host that denies chroot.
+
+## Premise
+
+Since T-1731, the native-static rung and `--podvm-tier=syscall` run a
+dynamic program with each of its system calls given to podvm's handler,
+raw or not, where Syscall User Dispatch arms. Each call then costs a
+signal (SIGSYS) and a return through the handler. Not measured: the cost
+against the loader family for a build or a test run.
+
+## Approach
+
+Measure the wall time of one workload (a `go build`, an `npm test`) on
+the loader family and on the syscall tier on one host. Make the syscall
+tier the default for a dynamic program where the cost is small, or keep
+the loader family and let `--strict` name `--podvm-tier=syscall` as the
+rung that runs a payload that hits the gap.
+
+## Decision
+
+Until the measurement, the loader family stays the default, and the gap
+names `--podvm-tier=syscall` as its remedy.
+
+## Prove
+
+`sh experiments/NNN-raw-syscall-cost.sh` exits 0 with the two wall times of one workload, and `cargo test -p podvm` exits 0 with the default that the measurement chose
+
+## Correction
+
+None.

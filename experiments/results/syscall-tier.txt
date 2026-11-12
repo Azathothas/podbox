@@ -1,7 +1,7 @@
 == conditions
-date              2026-11-11T12:08:38Z
+date              2026-11-12T04:56:26Z
 host kernel       Linux 6.18.44-fc-v378
-podvm             podvm 0.2.0-beta.3
+podvm             podvm 0.2.0-beta.5
 fixture           unshare -Urm, /dev/pts hidden, chroot(2) denied
 busybox           mirror.gcr.io/library/busybox:musl sha256:cf45b89a82faa51019b265765895a5d6c064b568a90c9a7ddd33ce704458da24
 image             podvm413:1 (busybox:musl and an /etc/os-release of its own)
@@ -29,8 +29,9 @@ image             podvm413:1 (busybox:musl and an /etc/os-release of its own)
     1048576
   directories of /tmp left in the store: none
 
-== clause 7  refusals by name
-  dynamic: exit 125: podvm run: --podvm-tier=syscall: the tier runs a statically linked x86_64 program, and WORK/store/trees/ceb3931ff62fec3dddd381fb8cf24a46/rootfs/bin/busybox: a dynamic program (it names an interpreter). --podvm-tier=emulate runs a dynamic one (TODO/enter.md T-1657)
+== clause 7  dynamic programs; run -d refuses by name
+  alpine: exit 0: 3.20.10
+  rawcat: exit 0: ID=podvm413
   run -d:  exit 125: podvm run: --podvm-tier=syscall serves a foreground run: its /tmp is a directory of the run, removed when the run ends (TODO/enter.md T-1657)
 
 verdict: THE SYSCALL TIER GIVES THE VIEW AND SAYS IT IS NOT A BOUNDARY

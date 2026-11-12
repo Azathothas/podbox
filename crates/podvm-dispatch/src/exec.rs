@@ -41,7 +41,8 @@ fn program(dirfd: i64, p: i64, flags: i64, buf: &mut [u8; PATH_MAX]) -> Result<u
 }
 
 /// Check the program as the kernel would: it exists, it is executable, and
-/// it is a static ELF of x86_64 or a script.
+/// it is an ELF of x86_64 (static, or dynamic with its interpreter in the
+/// root, T-1731) or a script.
 fn check(buf: &[u8; PATH_MAX], n: usize) -> i64 {
     let t = Target::Root(n);
     let fd = path::open_path(AT_FDCWD, &[], t, &buf[..], true, false);
@@ -74,7 +75,7 @@ fn check(buf: &[u8; PATH_MAX], n: usize) -> i64 {
         // T-1651: the emulator runs an ELF that it serves.
         verdict = 0;
     } else if got >= 64 {
-        verdict = match crate::elf::static_x86_64(&head, |off, out| {
+        verdict = match crate::elf::x86_64(&head, |off, out| {
             // SAFETY: out lives for the call.
             unsafe {
                 sc6(
@@ -88,7 +89,7 @@ fn check(buf: &[u8; PATH_MAX], n: usize) -> i64 {
                 )
             }
         }) {
-            Ok(()) => 0,
+            Ok(_) => 0,
             Err(_) => -sys::ENOEXEC,
         };
     }

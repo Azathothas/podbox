@@ -35,6 +35,30 @@ fn open_in_root(guest: &[u8]) -> Result<i64, String> {
     Ok(fd)
 }
 
+/// The guest path of podvm's interposer (`crates/podvm/src/interpose.rs`,
+/// `GUEST_PATH`).
+const INTERPOSER: &[u8] = b"/.podvm/interpose.so";
+
+/// `LD_PRELOAD` less podvm's interposer: on this rung the handler sees
+/// each call, and the interposer would hand it host paths (TODO/enter.md
+/// T-1731). None where nothing stays of the variable; each other variable
+/// as it is.
+fn without_interposer(e: Vec<u8>) -> Option<Vec<u8>> {
+    let Some(v) = e.strip_prefix(b"LD_PRELOAD=") else {
+        return Some(e);
+    };
+    let kept: Vec<&[u8]> = v
+        .split(|c| *c == b':' || *c == b' ')
+        .filter(|p| !p.is_empty() && *p != INTERPOSER)
+        .collect();
+    if kept.is_empty() {
+        return None;
+    }
+    let mut out = b"LD_PRELOAD=".to_vec();
+    out.extend(kept.join(&b':'));
+    Some(out)
+}
+
 /// The volumes of `PODVM_MAPS` in `envp` (`guest:host` pairs joined by
 /// commas; the root pair `/:ROOTFS` is the root): each host directory
 /// opened above the payload's usual range (TODO/enter.md T-1724).
@@ -231,7 +255,7 @@ fn stack(img: &Image, argv: &[Vec<u8>], envp: &[Vec<u8>], execfn: &[u8]) -> Resu
         (AT_PHDR, img.phdr),
         (AT_PHENT, 56),
         (AT_PHNUM, img.phnum),
-        (AT_BASE, 0),
+        (AT_BASE, img.base),
         (AT_ENTRY, img.entry),
         (AT_SECURE, 0),
         (AT_RANDOM, random_p),
@@ -344,8 +368,13 @@ fn try_enter(
     let (prog, pfd, head, argv) = resolve(exe.to_vec(), argv)?;
     EXE.set(&prog);
     let (pfd, head, argv) = emulated(&prog, pfd, head, argv)?;
-    let img =
-        elf::load(pfd, &head).map_err(|e| format!("{}: {e}", String::from_utf8_lossy(&prog)))?;
+    // TODO/enter.md T-1731: a dynamic program's interpreter, from the root.
+    let mut img = elf::load(pfd, &head, open_in_root)
+        .map_err(|e| format!("{}: {e}", String::from_utf8_lossy(&prog)))?;
+    if img.start == img.entry {
+        // A static program: no interpreter, so AT_BASE is 0.
+        img.base = 0;
+    }
     sys::close(pfd);
     // The break: a reserved range after the program, opened as it grows.
     // SAFETY: an anonymous map with no access.
@@ -365,7 +394,11 @@ fn try_enter(
         state::BRK_CUR.store(brk as usize, Ordering::Relaxed);
         state::BRK_END.store((brk as u64 + BRK_RESERVE) as usize, Ordering::Relaxed);
     }
-    let envp: Vec<Vec<u8>> = envp.into_iter().map(OsStringExt::into_vec).collect();
+    let envp: Vec<Vec<u8>> = envp
+        .into_iter()
+        .map(OsStringExt::into_vec)
+        .filter_map(without_interposer)
+        .collect();
     let execfn = exe.to_vec();
     let sp = stack(&img, &argv, &envp, &execfn)?;
     if !crate::pool::init() {
@@ -392,8 +425,26 @@ fn try_enter(
             "xor ebp, ebp",
             "jmp rsi",
             in("rdi") sp,
-            in("rsi") img.entry,
+            in("rsi") img.start,
             options(noreturn)
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::without_interposer;
+
+    #[test]
+    fn the_interposer_leaves_ld_preload_and_each_other_object_stays() {
+        let f = |s: &str| {
+            without_interposer(s.as_bytes().to_vec()).map(|v| String::from_utf8(v).unwrap())
+        };
+        assert_eq!(f("LD_PRELOAD=/.podvm/interpose.so"), None);
+        assert_eq!(
+            f("LD_PRELOAD=/.podvm/interpose.so:/usr/lib/libjemalloc.so"),
+            Some("LD_PRELOAD=/usr/lib/libjemalloc.so".into())
+        );
+        assert_eq!(f("HOME=/root"), Some("HOME=/root".into()));
     }
 }

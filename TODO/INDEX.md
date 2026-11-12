@@ -405,7 +405,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1728](machine.md) | P2 | S | none | machine | done | Without `-t`, a command of the machine tier writes to a terminal |
 | [T-1729](enter.md) | P3 | M | none | enter | open | An optional `runsc` backend where a host grants user namespaces |
 | [T-1730](enter.md) | P1 | S | none | enter | done | A detached thread of a static payload ends with SIGSEGV on the native-static rung |
-| [T-1731](enter.md) | P2 | L | none | enter | open | A dynamic program on the native-static rung: its loader under the handler |
+| [T-1731](enter.md) | P2 | L | none | enter | done | A dynamic program on the native-static rung: its loader under the handler |
 | [T-1732](enter.md) | P1 | S | none | enter | done | Take podcrates v0.22.0: a detached payload ends with its launcher |
 | [T-1733](podssh.md) | P3 | S | none | podssh | done | Retire the experiment 388-interactive-shell.sh for the tests of `session_interactive.rs` |
 | [T-1734](extract.md) | P3 | S | none | extract | done | Retire the experiment 220-extract-path-safety.sh, and point its eight citations at the tests |
@@ -414,10 +414,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1737](packaging.md) | P3 | M | none | packaging | done | Decide where the SSH packaging scripts go, and port scripts/package-ssh.sh into `podvm-release` |
 | [T-1738](interpose.md) | P1 | S | none | interpose | done | A buffer of the interposer reaches the free of a program that has its own allocator |
 | [T-1739](interpose.md) | P2 | M | none | interpose | done | Chromium's child processes do not start on the loader family |
+| [T-1740](enter.md) | P3 | M | none | enter | open | Raw system calls of a dynamic program on the loader family: measure the syscall tier, then choose the default |
 
 ## Counts
 
-348 entries: 5 open, 5 partial, 5 blocked, 333 done.
+349 entries: 5 open, 5 partial, 5 blocked, 334 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -428,9 +429,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 64 | 65 |
 | P1 | 0 | 3 | 0 | 148 | 151 |
-| P2 | 2 | 1 | 5 | 108 | 116 |
-| P3 | 3 | 0 | 0 | 13 | 16 |
-| **All** | 5 | 5 | 5 | 333 | 348 |
+| P2 | 1 | 1 | 5 | 109 | 116 |
+| P3 | 4 | 0 | 0 | 13 | 17 |
+| **All** | 5 | 5 | 5 | 334 | 349 |
 
 ## Work order
 

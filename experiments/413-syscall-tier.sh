@@ -1,5 +1,5 @@
 #!/bin/sh
-# Question: does `run --podvm-tier=syscall` give a static payload the view
+# Question: does `run --podvm-tier=syscall` give a payload the view
 # of a syscall-interpreting tier (the image's files, a fixed kernel
 # identity, a sized /tmp, a /workspace that writes through) with no
 # ptrace, no qemu and no user namespace of podvm's own, and does it say
@@ -24,7 +24,11 @@
 #   5. the banner (`--verbose`) says that the layer is not a boundary.
 #   6. `--tmpfs /tmp:size=1m`: a write of 2 MiB under /tmp stops at the
 #      cap with ENOSPC, and /tmp is gone after the run.
-#   7. a dynamic program refuses by name (exit 125), and so does `run -d`.
+#   7. a dynamic program runs with the image's interpreter (T-1731):
+#      alpine's busybox prints /etc/alpine-release, and `rawcat`, a dynamic
+#      glibc program of the image, reads /etc/os-release with a raw
+#      openat(2) system call and prints the image's file. `run -d` refuses
+#      by name (exit 125).
 #
 # Exit: 0 each clause matched, 1 a clause disagreed, 2 the lane could not
 # run.
@@ -76,6 +80,27 @@ mkdir -p "$WORK/img"
 cp -a "$SRC/." "$WORK/img/"
 mkdir -p "$WORK/img/etc"
 printf 'ID=podvm413\nPRETTY_NAME="the image of experiment 413"\n' >"$WORK/img/etc/os-release"
+# T-1731: a dynamic glibc program that opens with a raw system call, and
+# its interpreter and libraries (as ldd names them) in the image.
+cat >"$WORK/rawcat.c" <<'EOF'
+#define _GNU_SOURCE
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+	char b[4096];
+	long fd = syscall(SYS_openat, AT_FDCWD, argc > 1 ? argv[1] : "/etc/os-release", O_RDONLY);
+	if (fd < 0) { perror("openat"); return 1; }
+	long n;
+	while ((n = read((int)fd, b, sizeof b)) > 0) fwrite(b, 1, (size_t)n, stdout);
+	return 0;
+}
+EOF
+cc -O2 -Wall -Werror -o "$WORK/img/bin/rawcat" "$WORK/rawcat.c" || { note "rawcat COMPILE FAILED: COULD NOT RUN"; exit 2; }
+for lib in $(ldd "$WORK/img/bin/rawcat" | grep -o '/[^ ]*'); do
+	mkdir -p "$WORK/img$(dirname "$lib")" && cp -L "$lib" "$WORK/img$lib" || exit 2
+done
 tar -C "$WORK/img" -cf "$WORK/img.tar" . || exit 2
 "$PB" import "$WORK/img.tar" "$IMG" >/dev/null 2>&1 || { note "import FAILED: COULD NOT RUN"; exit 2; }
 note "image             $IMG (busybox:musl and an /etc/os-release of its own)"
@@ -131,13 +156,18 @@ note "  directories of /tmp left in the store: ${left:-none}"
 [ -z "$left" ] || bad "the /tmp of the run stayed"
 note ""
 
-note "== clause 7  refusals by name"
+note "== clause 7  dynamic programs; run -d refuses by name"
 timeout 600 "$PB" pull -q "$ALPINE" >/dev/null 2>&1
-fx run --rm --podvm-tier=syscall "$ALPINE" true >"$WORK/dyn.out" 2>&1
+fx run --rm --podvm-tier=syscall "$ALPINE" cat /etc/alpine-release >"$WORK/dyn.out" 2>"$WORK/dyn.err"
 rc=$?
-note "  dynamic: exit $rc: $(grep -m1 'syscall' "$WORK/dyn.out")"
-[ "$rc" -eq 125 ] || bad "a dynamic program exited $rc"
-grep -q "statically linked" "$WORK/dyn.out" || bad "the refusal does not name the static program"
+note "  alpine: exit $rc: $(head -1 "$WORK/dyn.out")"
+[ "$rc" -eq 0 ] || { bad "the dynamic busybox exited $rc"; tail -3 "$WORK/dyn.err" | sed 's/^/      /' | tee -a "$OUT"; }
+grep -qE '^3\.20' "$WORK/dyn.out" || bad "alpine's /etc/alpine-release was not printed"
+fx run --rm --podvm-tier=syscall "$IMG" /bin/rawcat /etc/os-release >"$WORK/raw.out" 2>"$WORK/raw.err"
+rc=$?
+note "  rawcat: exit $rc: $(head -1 "$WORK/raw.out")"
+[ "$rc" -eq 0 ] || { bad "rawcat exited $rc"; tail -3 "$WORK/raw.err" | sed 's/^/      /' | tee -a "$OUT"; }
+grep -qx 'ID=podvm413' "$WORK/raw.out" || bad "the raw openat did not read the image's /etc/os-release"
 fx run -d --podvm-tier=syscall "$IMG" true >"$WORK/det.out" 2>&1
 rc=$?
 note "  run -d:  exit $rc: $(head -1 "$WORK/det.out")"
