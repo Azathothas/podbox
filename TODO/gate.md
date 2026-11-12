@@ -4463,6 +4463,18 @@ a *separate* standalone file.
 
 ## Done
 
+**Measured 2026-11-12 (a hosted runner).** `kvm.yml` has a job that
+runs the Linux half of experiment 392 on `ubuntu-latest` with `/dev/kvm`:
+the binary of the commit, and the VHDX cut out of the ISO with one range
+request. Run 43148947380 at `c6bac36f` (QEMU 10.2.1): the image check and
+`podvm windows doctor` pass (`accelerator: kvm (cpu host)`); `podvm
+windows setup` boots the guest and provisions it for about 10 minutes,
+then exits 125: `commit_argv` of `pod-guest` gives `qemu-img commit -f
+qcow2 OVERLAY OUT`, and `qemu-img commit` takes one image name ("Expecting
+one image file name"). The fix (`qemu-img convert -O qcow2 OVERLAY OUT`,
+a new standalone image) goes to podcrates as COORD-056 (issue 277). The
+runner left no emulator and no scratch directory.
+
 **Partial 2026-10-02.** All three fixes are implemented and the record
 gate, `cargo fmt`, `cargo clippy -p podvm-windows --all-targets`,
 `cargo check -p podvm-windows --all-targets` and the four prose
