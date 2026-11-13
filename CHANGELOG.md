@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.39.0, 2026-11-13
+
+Record: PodUtils/podcrates#137.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.39.0`. The channel of a guest
+  (`--podvm-channel`) runs on its `pod-link`; a guest still shows `lo`
+  only and reaches the host socket.
+
 ### Fixed: the help of the channel, and the directory of its socket, 2026-11-13
 
 Record: T-1751.

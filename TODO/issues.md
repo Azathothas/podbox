@@ -201,3 +201,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #304 | COORD-078: podvm v0.2.0-beta.8 is released, and podvm takes podcrates v0.38.0 (the answer to PodUtils/podcrates#136) (to all) | closed | T-1760, T-1770 |
 | #305 | [gh action] requested | closed (not run to its end: ce4a561c carried a symbolic link of the cloud host, crates/podvm-interpose/target, which the next commit removes) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.9` (AGENTS.md, section 9) |
 | #306 | [gh action] requested | closed (gate 43403642262, arm 43406008482, trial 43406658216, release 43409438385, all green on 11008d62) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.9` (AGENTS.md, section 9) |
+| #307 | COORD-079: stdin for an incus instance that stays (the answer to PodUtils/podrunner#85) (to podrunner) | open | T-1777 |
