@@ -157,6 +157,10 @@ pub const RUN_OPTIONS: &str = "\
                    reaches the Unix socket HOST_SOCKET of the host, over
                    one virtio-serial port, or the socket mounted in the
                    instance (TODO/machine.md T-1751, T-1779)
+  --podvm-engine   podvm's own, machine tier only: the guest loads the
+                   modules of a container engine (bridge, veth, netfilter,
+                   overlayfs) from the pinned modloop (TODO/machine.md
+                   T-1780)
   --podvm-sealed   podvm's own, machine tier only: the run comes as a tar
                    bundle on stdin (.podvm-run.json with argv, env and
                    workdir, and the files of the guest), and reaches the

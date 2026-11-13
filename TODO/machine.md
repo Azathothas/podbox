@@ -2699,3 +2699,62 @@ run and a `run -d -i` reach the host socket (it logs `/run` and
 `proxy` device of beta.12 also worked on that kernel, so the failure of
 PodUtils/podrunner#90 is of podrunner's host; the relay needs no
 `forkproxy`.
+
+# T-1780: A guest of the machine tier runs a container engine
+
+**Source:** PodUtils/podrunner#92 (COORD-032 of podrunner, for PodUtils/podrunner@T-103)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** done
+
+## Problem
+
+podrunner runs `services:`, `docker build` and Docker-in-Docker on a
+container engine inside a guest of the machine tier. The guest loads no
+module of a bridge, `veth`, netfilter or overlayfs, and the init mounts
+no cgroup2: Docker 27.5.1 runs only with the driver `vfs` and with no
+network of its own.
+
+## Premise
+
+The pinned kernel (Alpine `linux-virt` 6.12.110) has each part as a
+module of its modloop, which podvm pins by its SHA-256; none is built
+in. The modules are plain `.ko` files that `finit_module(2)` loads, as
+the 9p modules of T-1723.
+
+## Approach
+
+`--podvm-engine` (machine tier): podvm takes the modules of a list and
+each module that `modules.dep` of the modloop names for them, in the
+order of their symbols, into the store once, and the run archive carries
+them with a list; the init loads the list with `podvm guest-net --load`.
+The init mounts cgroup2 at `/sys/fs/cgroup` in each guest.
+
+## Decision
+
+The modules load only with the flag: some 30 modules cost each boot.
+podvm adds no `iptables` to the guest: the image of the engine brings it,
+as podrunner's image does.
+
+## Prove
+
+`sh experiments/447-guest-engine.sh` exits 0: with `--podvm-engine` and no NIC, the static Docker 27.5.1 runs with overlay2 on cgroup2, a container on a bridge network resolves and pings another by its name, and a mapped port reaches its container; without the flag the guest has no bridge module and cgroup2 is mounted
+
+## Done
+
+**Done 2026-11-13.** `crates/podvm/src/machine/guest/engine.rs` names
+the modules and resolves their order from `modules.dep`; `ensure` takes
+them out of the pinned modloop into `machine/` of the store with a list
+(`fetch_modloop` and `modloop_kver` of `kernel.rs`). `crc32c_generic`
+comes first: `libcrc32c` has a soft dependency on the algorithm that
+`modules.dep` does not name, and its load failed with ENOENT before it.
+The init mounts cgroup2 and runs `podvm guest-net --load`, which also
+brings `lo` up in each guest that carries podvm: before, a guest with no
+NIC and no channel had `lo` down, and a mapped port at 127.0.0.1 was
+unreachable. Experiment 447 on the cloud host (TCG) passes its 5
+clauses: `info overlay2 2`, a bridge network, `nslookup srv` and `ping
+srv` from a second container, `nc 127.0.0.1 8080` gives `mapped`, and no
+emulator stays. Experiments 444 and 445 still pass. The test
+`the_closure_puts_each_dependency_first_once` holds the order.

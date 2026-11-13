@@ -226,6 +226,7 @@ pub(super) fn machine_tier(
         net_none: o.net_none || o.sealed,
         channel: o.channel.clone(),
         sealed,
+        engine: o.engine,
     });
     if let Some(d) = probe {
         let _ = std::fs::remove_dir_all(d);
@@ -248,10 +249,16 @@ pub(super) fn incus_tier(
         );
         return EXIT_FLAG_ERROR;
     }
-    if o.mem.is_some() || o.cpus.is_some() || !o.qemu_args.is_empty() || o.broker || o.sealed {
+    if o.mem.is_some()
+        || o.cpus.is_some()
+        || !o.qemu_args.is_empty()
+        || o.broker
+        || o.sealed
+        || o.engine
+    {
         eprintln!(
             "podvm {verb}: --podvm-tier=incus takes no --podvm-mem, --podvm-cpus, \
-             --podvm-qemu-arg, --podvm-sealed or --network broker yet \
+             --podvm-qemu-arg, --podvm-sealed, --podvm-engine or --network broker yet \
              (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;

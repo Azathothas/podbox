@@ -179,7 +179,30 @@ pub fn lo_up() -> Result<(), String> {
     r
 }
 
-pub fn main() -> i32 {
+/// `podvm guest-net --load [NAME...]` brings `lo` up, loads the named
+/// modules of [`DIR`] in their order and exits (TODO/machine.md T-1780,
+/// the modules of `--podvm-engine`); a step that fails is one line of
+/// stderr. A guest with no NIC had `lo` down, and 127.0.0.1 was
+/// unreachable in it.
+fn load_named(names: &[String]) -> i32 {
+    let mut rc = 0;
+    if let Err(e) = lo_up() {
+        eprintln!("podvm guest-net: lo: {e}");
+        rc = 1;
+    }
+    for n in names {
+        if let Err(e) = load(n) {
+            eprintln!("podvm guest-net: {e}");
+            rc = 1;
+        }
+    }
+    rc
+}
+
+pub fn main(args: &[String]) -> i32 {
+    if args.first().is_some_and(|a| a == "--load") {
+        return load_named(&args[1..]);
+    }
     let mut failed = Vec::new();
     for m in MODULES {
         if let Err(e) = load(m) {

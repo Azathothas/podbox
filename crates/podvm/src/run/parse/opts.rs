@@ -43,6 +43,9 @@ pub(crate) struct Opts {
     /// `--podvm-sealed`: the run comes as a bundle on stdin and reaches
     /// the guest through the channel only (T-1751, ask V-7 of podswarm).
     pub(crate) sealed: bool,
+    /// `--podvm-engine`: the guest loads the modules of a container
+    /// engine (T-1780, PodUtils/podrunner#92).
+    pub(crate) engine: bool,
     /// `--profile` and `-s`: the profile of the run and its overrides.
     /// TODO/cli.md T-1654.
     pub(crate) profile: Option<String>,
@@ -128,6 +131,7 @@ impl Opts {
             cpus: None,
             net_none: false,
             sealed: false,
+            engine: false,
             interactive: false,
             channel: None,
             profile: None,

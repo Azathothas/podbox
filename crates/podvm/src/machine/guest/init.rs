@@ -48,6 +48,14 @@ pub fn script(
     s.push_str("mount -t proc proc /proc 2>/dev/null\n");
     s.push_str("mount -t sysfs sysfs /sys 2>/dev/null\n");
     s.push_str("mount -t devtmpfs devtmpfs /dev 2>/dev/null\n");
+    // TODO/machine.md T-1780: cgroup2 where an engine or a payload looks
+    // for it; `lo` up in each guest that carries podvm, and the modules of
+    // `--podvm-engine` where the archive names them.
+    s.push_str("mount -t cgroup2 cgroup2 /sys/fs/cgroup 2>/dev/null\n");
+    s.push_str(&format!(
+        "[ -x /podvm/podvm ] && /podvm/podvm guest-net --load $([ -f {l} ] && cat {l})\n",
+        l = super::archive::ENGINE_LIST
+    ));
     if !vols.is_empty() {
         let args: Vec<String> = vols.iter().map(|v| sh_quote(&super::vol::arg(v))).collect();
         s.push_str(&format!(

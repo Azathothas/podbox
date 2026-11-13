@@ -189,10 +189,10 @@ fn main() -> std::process::ExitCode {
         Some("ssh") => ssh_refusal(),
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
         Some("machine") => exit(machine::machine(rest)),
-        Some("guest-net") => exit(machine::guest::net::main()), // in a guest, T-1656
+        Some("guest-net") => exit(machine::guest::net::main(rest)), // in a guest, T-1656
         Some("guest-channel") => exit(machine::guest::channel::guest_main(rest)), // T-1751
-        Some("guest-hold") => exit(incus::hold(rest)),          // an incus init, T-1718
-        Some("guest-9p") => exit(machine::guest::vol::main(rest)), // in a guest, T-1723
+        Some("guest-hold") => exit(incus::hold(rest)),              // an incus init, T-1718
+        Some("guest-9p") => exit(machine::guest::vol::main(rest)),  // in a guest, T-1723
         Some("guest-tty") => exit(machine::guest::tty::guest_main(rest)), // in a guest, T-1723
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),

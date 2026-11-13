@@ -97,10 +97,10 @@ pub(crate) fn prepare(
         eprintln!("podvm {verb}: --podvm-mem needs --podvm-tier=machine");
         return Err(EXIT_FLAG_ERROR);
     }
-    if o.cpus.is_some() || o.net_none || o.channel.is_some() || o.sealed {
+    if o.cpus.is_some() || o.net_none || o.channel.is_some() || o.sealed || o.engine {
         // ⛔ The same rule: a rootfs tier has no vCPU, NIC or channel (T-1654, T-1751).
         eprintln!(
-            "podvm {verb}: --podvm-cpus and --podvm-sealed need --podvm-tier=machine; \
+            "podvm {verb}: --podvm-cpus, --podvm-sealed and --podvm-engine need --podvm-tier=machine; \
              --podvm-net and --podvm-channel need --podvm-tier=machine or incus"
         );
         return Err(EXIT_FLAG_ERROR);

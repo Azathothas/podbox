@@ -19,6 +19,7 @@ pub(crate) mod archive;
 pub(crate) mod channel;
 pub(crate) mod cpio;
 mod drive;
+pub(crate) mod engine;
 pub(crate) mod init;
 pub(crate) mod kernel;
 pub(crate) mod net;
@@ -86,6 +87,9 @@ pub struct Request<'a> {
     /// `--podvm-sealed`: the bundle of the run, which reaches the guest
     /// through the channel only ([`sealed`], T-1751).
     pub sealed: Option<Vec<u8>>,
+    /// `--podvm-engine`: the guest loads the modules of a container
+    /// engine ([`engine`], T-1780).
+    pub engine: bool,
 }
 
 /// The most bytes of stdin that a guest takes.
@@ -254,11 +258,31 @@ pub fn boot(r: &Request) -> i32 {
         copies.extend(r.volumes.iter().map(|(h, g, _)| (h.clone(), g.clone())));
         Vec::new()
     };
-    let mut modules = assets.modules.clone();
+    let mut modules: Vec<(String, PathBuf)> = assets
+        .modules
+        .iter()
+        .map(|(n, p)| (n.to_string(), p.clone()))
+        .collect();
     if nine {
-        modules.extend(assets.volume_modules.iter().cloned());
+        modules.extend(
+            assets
+                .volume_modules
+                .iter()
+                .map(|(n, p)| (n.to_string(), p.clone())),
+        );
     }
-    let tools = match tools(&modules) {
+    // TODO/machine.md T-1780: the modules of a container engine.
+    let mut engine_names = Vec::new();
+    if r.engine {
+        match engine::ensure(r.store_root) {
+            Ok(m) => {
+                engine_names = m.iter().map(|(n, _)| n.clone()).collect();
+                modules.extend(m);
+            }
+            Err(e) => return fail(e),
+        }
+    }
+    let tools = match tools(&modules, engine_names) {
         Ok(t) => t,
         Err(e) => return fail(e),
     };

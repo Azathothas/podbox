@@ -172,22 +172,45 @@ pub fn ensure(store_root: &Path) -> Result<Assets, String> {
     cached(&dir).ok_or_else(|| format!("{}: the assets did not stay", dir.display()))
 }
 
-/// The 9p modules out of the modloop: one directory of `modules/` has a
-/// `modules.dep` (`firmware` has none), the version of the pinned kernel.
-pub fn volume_modules(modloop: &[u8]) -> Result<Vec<(&'static str, Vec<u8>)>, String> {
-    let img = super::squashfs::Image::new(modloop).map_err(|e| format!("{MODLOOP}: {e}"))?;
+/// The pinned modloop, fetched from the archive and checked against its
+/// SHA-256 (TODO/machine.md T-1780: the modules of `--podvm-engine`).
+pub fn fetch_modloop(dir: &Path) -> Result<Vec<u8>, String> {
+    crate::assets::space_floor(dir, "the modules of the guest kernel", 64 << 20)?;
+    let (config, _roots) = podvm_image::tls::client_config();
+    let mut net = Net::from_environment(config)?;
+    let url = url();
+    let body = net
+        .send("GET", &url, &[], true, LIMITS)
+        .map_err(|e| format!("{url}: {e}"))?;
+    let gz = flate2::read::GzDecoder::new(body.take(MAX_ARCHIVE));
+    let mut got = tar_members(gz, &[MODLOOP]).map_err(|e| format!("{url}: {e}"))?;
+    let modloop = got.pop().flatten().ok_or(format!("{url}: no {MODLOOP}"))?;
+    check(&modloop, modloop_sha256(), MODLOOP)?;
+    Ok(modloop)
+}
+
+/// The one directory of `modules/` of the modloop that has a
+/// `modules.dep` (`firmware` has none): the version of the pinned kernel.
+pub fn modloop_kver(img: &super::squashfs::Image) -> Result<String, String> {
     let kvers: Vec<String> = img
         .names("modules")
         .map_err(|e| format!("{MODLOOP}: {e}"))?
         .into_iter()
         .filter(|n| img.read(&format!("modules/{n}/modules.dep")).is_ok())
         .collect();
-    let [kver] = kvers.as_slice() else {
-        return Err(format!(
+    match kvers.as_slice() {
+        [kver] => Ok(kver.clone()),
+        _ => Err(format!(
             "{MODLOOP}: modules/ holds {} kernel versions, not one",
             kvers.len()
-        ));
-    };
+        )),
+    }
+}
+
+/// The 9p modules out of the modloop.
+pub fn volume_modules(modloop: &[u8]) -> Result<Vec<(&'static str, Vec<u8>)>, String> {
+    let img = super::squashfs::Image::new(modloop).map_err(|e| format!("{MODLOOP}: {e}"))?;
+    let kver = modloop_kver(&img)?;
     super::vol::MODLOOP_PATHS
         .iter()
         .map(|(n, path)| {

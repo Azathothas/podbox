@@ -10,8 +10,14 @@ use super::cpio;
 /// ([`net`]).
 pub struct Tools {
     pub podvm: Vec<u8>,
-    pub modules: Vec<(&'static str, Vec<u8>)>,
+    pub modules: Vec<(String, Vec<u8>)>,
+    /// The modules of `--podvm-engine`, in their order (T-1780): the init
+    /// loads the names of [`ENGINE_LIST`].
+    pub engine: Vec<String>,
 }
+
+/// The names of the modules of `--podvm-engine`, one on a line.
+pub const ENGINE_LIST: &str = "/podvm/engine.list";
 
 /// The archive of one run: `/podvm-init`, the console nodes, and, where
 /// `tools` gives them, podvm itself and the modules of the network.
@@ -44,13 +50,25 @@ pub fn run_archive(
                 (0, 0),
             )?;
         }
+        if !t.engine.is_empty() {
+            let list = t.engine.join("\n") + "\n";
+            w.entry(
+                ENGINE_LIST.trim_start_matches('/'),
+                cpio::REG | 0o644,
+                list.as_bytes(),
+                (0, 0),
+            )?;
+        }
     }
     w.entry("podvm-init", cpio::REG | 0o755, script.as_bytes(), (0, 0))?;
     w.finish()
 }
 
 /// podvm's own bytes and the module files, for the run archive.
-pub(super) fn tools(modules: &[(&'static str, PathBuf)]) -> Result<Option<Tools>, String> {
+pub(super) fn tools(
+    modules: &[(String, PathBuf)],
+    engine: Vec<String>,
+) -> Result<Option<Tools>, String> {
     if modules.is_empty() {
         return Ok(None);
     }
@@ -58,9 +76,13 @@ pub(super) fn tools(modules: &[(&'static str, PathBuf)]) -> Result<Option<Tools>
     let mut m = Vec::new();
     for (n, p) in modules {
         m.push((
-            *n,
+            n.clone(),
             std::fs::read(p).map_err(|e| format!("{}: {e}", p.display()))?,
         ));
     }
-    Ok(Some(Tools { podvm, modules: m }))
+    Ok(Some(Tools {
+        podvm,
+        modules: m,
+        engine,
+    }))
 }

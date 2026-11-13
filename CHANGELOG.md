@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a container engine in a guest of the machine tier, 2026-11-13
+
+Record: T-1780, PodUtils/podrunner#92.
+Deployed: not deployed; the next release carries it.
+
+- `run --podvm-tier=machine --podvm-engine` loads the modules of a
+  container engine in the guest: the bridge, `veth`, nf_tables and the
+  modules of `iptables`, and overlayfs, out of the pinned modloop. Docker
+  27.5.1 runs there with overlay2, its bridge networks with their DNS,
+  and its port mappings, with no NIC in the guest.
+- Each guest mounts cgroup2 at `/sys/fs/cgroup`, and a guest with no NIC
+  has `lo` up.
+
 ## 0.2.0-beta.13 (2026-11-13)
 
 ### Fixed: the channel of the incus tier needs no proxy device, 2026-11-13
