@@ -432,8 +432,8 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1755](interpose.md) | P1 | S | none | interpose | open | `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails |
 | [T-1756](interpose.md) | P2 | S | none | interpose | open | A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored |
 | [T-1757](cli.md) | P1 | S | none | cli | open | `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root |
-| [T-1758](enter.md) | P1 | M | none | enter | open | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
-| [T-1759](enter.md) | P1 | M | none | enter | open | No /dev/shm on either rung: python multiprocessing fails |
+| [T-1758](enter.md) | P1 | M | none | enter | blocked | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
+| [T-1759](enter.md) | P1 | M | none | enter | done | No /dev/shm on either rung: python multiprocessing fails |
 | [T-1760](cli.md) | P2 | M | none | cli | open | `-t` gives no terminal on the namespace rung, and says nothing |
 | [T-1761](cli.md) | P1 | M | none | cli | done | `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung |
 | [T-1762](image.md) | P1 | M | none | image | open | The source fixup probes four HTTPS hosts on each run: about 2 s of each ubuntu run, uncached |
@@ -449,7 +449,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-380 entries: 20 open, 5 partial, 4 blocked, 351 done.
+380 entries: 18 open, 5 partial, 5 blocked, 352 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -459,10 +459,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 7 | 1 | 0 | 154 | 162 |
+| P1 | 5 | 1 | 1 | 155 | 162 |
 | P2 | 8 | 2 | 4 | 114 | 128 |
 | P3 | 5 | 2 | 0 | 18 | 25 |
-| **All** | 20 | 5 | 4 | 351 | 380 |
+| **All** | 18 | 5 | 5 | 352 | 380 |
 
 ## Work order
 

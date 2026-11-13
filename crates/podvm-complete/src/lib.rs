@@ -24,6 +24,7 @@
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 pub mod reach;
+pub mod shm;
 
 use std::fmt;
 use std::path::Path;
@@ -112,6 +113,7 @@ pub fn entry(id: &str) -> &'static str {
         "source-scheme" | "source-reach" => "T-0411",
         "ca-hash-dir" => "T-0412",
         "dev-fd-link" => "T-0413",
+        shm::ID => "T-1759",
         _ => "-",
     }
 }
@@ -308,9 +310,11 @@ pub fn settings(rootfs: &str, opts: &Options) -> pod_rootfs::Settings {
 /// caller turns it into a refusal.
 pub fn complete(rootfs: &str, opts: &Options) -> Result<Report> {
     let mut probe = reach::probe;
-    pod_rootfs::complete(Path::new(rootfs), &settings(rootfs, opts), &mut probe)
+    let mut r = pod_rootfs::complete(Path::new(rootfs), &settings(rootfs, opts), &mut probe)
         .map(Report::from)
-        .map_err(|e| Error::Complete(e.to_string()))
+        .map_err(|e| Error::Complete(e.to_string()))?;
+    r.fixups.push(shm::dev_shm(Path::new(rootfs)));
+    Ok(r)
 }
 
 #[cfg(test)]

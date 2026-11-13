@@ -3517,7 +3517,7 @@ Prove. The overlay mount belongs to `pod-enter`'s namespace rung: COORD-071
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -3539,6 +3539,17 @@ The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `imgs.go-version.ns`, `tools.go-mod.ns`, `run.proc.ns`, and a test of the entry holds the fix
 
+## Blocker
+
+**Blocked 2026-11-13 on podcrates.** The namespace rung mounts in the
+child of `pod-enter` (`launch.rs`: steps 7, 8 and 9), and podvm has no
+step between the tmpfs on /tmp and the chroot. COORD-073 (issue 296) asks
+podcrates for a step that mounts a fresh proc on the /proc of the image,
+with no PID namespace, where a failure does not stop the rung. On the
+cloud host, as root, a mount namespace may mount proc (measured with
+`unshare(1)`, in the issue). podvm takes the tag that brings the step,
+then runs the Prove.
+
 # T-1759: No /dev/shm on either rung: python multiprocessing fails
 
 **Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
@@ -3546,7 +3557,7 @@ The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3567,6 +3578,19 @@ The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `imgs.python-mp.ns`, `run.shm.ns`, `run.shm.ul`, and a test of the entry holds the fix
+
+## Done
+
+**Done 2026-11-13.** `podvm-complete` makes `dev/shm` in the rootfs after
+the completion of `pod-rootfs`, with mode 1777 (`crates/podvm-complete/src/shm.rs`,
+the row `dev-shm`). It does not write through a `dev` or `dev/shm` of the
+image that is a link or not a directory. The namespace rung runs on its
+private copy of the rootfs, and the path table of the userland rung maps
+/dev/shm into it. On both rungs, `echo x > /dev/shm/F` works and
+`multiprocessing.Pool(2).map` gives `[1, 2]` in `python:3.12-slim`; the
+rows of the Prove pass in the rerun of experiment 443 before the release.
+The test `dev_shm_is_made_once_and_never_through_a_link` holds the step.
+It is a directory, not a tmpfs: `--shm-size` stays unserved.
 
 # T-1764: `--podvm-confine` without /etc in the read list breaks the loader on the namespace rung
 
