@@ -356,6 +356,28 @@ fn copy_tree_round_trips_a_clean_tree() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
+/// TODO/image.md T-1768. A file of several names is copied once; each
+/// other name is a hard link to the copy.
+#[test]
+fn copy_tree_keeps_hard_links() {
+    use std::os::unix::fs::MetadataExt;
+    let base = std::env::temp_dir().join(format!("podvm-cp-hl-{}", std::process::id()));
+    let (src, dst) = (base.join("src"), base.join("dst"));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(src.join("bin")).unwrap();
+    std::fs::write(src.join("bin/busybox"), b"elf").unwrap();
+    for n in ["ls", "sh"] {
+        std::fs::hard_link(src.join("bin/busybox"), src.join("bin").join(n)).unwrap();
+    }
+    assert_eq!(copy_tree(&src, &dst, &src, true), 0);
+    let ino = |n: &str| std::fs::metadata(dst.join("bin").join(n)).unwrap().ino();
+    assert_eq!(ino("ls"), ino("busybox"));
+    assert_eq!(ino("sh"), ino("busybox"));
+    assert_eq!(std::fs::metadata(dst.join("bin/sh")).unwrap().nlink(), 3);
+    assert_eq!(std::fs::read(dst.join("bin/ls")).unwrap(), b"elf");
+    let _ = std::fs::remove_dir_all(&base);
+}
+
 /// TODO/cli.md T-1323. A symlink replicates as a symlink, verbatim
 /// and unresolved: the target bytes are copied, so an absolute target
 /// escapes nothing and no shadow bytes land. T-0305's rule, applied

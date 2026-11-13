@@ -211,12 +211,32 @@ pub(super) fn copy_tree(
         }
     }
     let mut bytes = 0u64;
+    // TODO/image.md T-1768: a file of several names is copied once, and
+    // each other name is a hard link to that copy, as `cp -a` and docker
+    // do. busybox's /bin has 406 names of one file; each was a copy.
+    let mut first: std::collections::HashMap<(u64, u64), &std::path::Path> =
+        std::collections::HashMap::new();
+    let mut hard = 0usize;
     for (from, to) in &files {
         if let Some(parent) = to.parent()
             && let Err(e) = std::fs::create_dir_all(parent)
         {
             eprintln!("podvm cp: {}: {e}", parent.display());
             return EXIT_RUNTIME_ERROR;
+        }
+        let id = std::fs::symlink_metadata(from).ok().and_then(|m| {
+            use std::os::unix::fs::MetadataExt;
+            (m.nlink() > 1).then_some((m.dev(), m.ino()))
+        });
+        if let Some(earlier) = id.and_then(|k| first.get(&k)) {
+            let _ = std::fs::remove_file(to);
+            if std::fs::hard_link(earlier, to).is_ok() {
+                hard += 1;
+                continue;
+            }
+        }
+        if let Some(k) = id {
+            first.insert(k, to.as_path());
         }
         match std::fs::copy(from, to) {
             Ok(n) => bytes += n,
@@ -232,8 +252,8 @@ pub(super) fn copy_tree(
         }
     }
     eprintln!(
-        "podvm cp: {} files ({bytes} bytes), {} symlinks {} -> {}",
-        files.len(),
+        "podvm cp: {} files ({bytes} bytes), {hard} hard links, {} symlinks {} -> {}",
+        files.len() - hard,
         links.len(),
         src.display(),
         dst.display()

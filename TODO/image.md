@@ -3552,7 +3552,7 @@ release.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3573,6 +3573,17 @@ The fix in the image layer is podvm's; a cause in a crate of podcrates goes ther
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `img.cp-r-hardlinks`, and a test of the image layer holds the fix
+
+## Done
+
+**Done 2026-11-13.** `copy_tree` in `crates/podvm/src/lifecycle/copy_tree.rs`
+copies a file of several names once, keyed by its device and inode, and
+makes each other name a hard link to that copy; a link that fails falls
+back to a copy. Its line now counts the hard links. On the cloud host,
+`cp -r` of `/bin` of a busybox:musl container writes 1.5 MiB (480 MiB
+before): 2 files and 404 hard links, and `ls` and `sh` share one inode
+with 405 names. The test `copy_tree_keeps_hard_links` holds it. Experiment
+443 runs `img.cp-r-hardlinks` again before the release.
 
 # T-1771: node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy
 
