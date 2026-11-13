@@ -513,7 +513,7 @@ not served.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -534,3 +534,12 @@ The fix in the lab is podvm's; a cause in a crate of podcrates goes there as a C
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `lab.knobs.corp-proxy`, `lab.mtu-big`, `lab.nat-bad`, and a test of the lab holds the fix
+
+## Blocker
+
+**Blocked 2026-11-13 on podcrates.** Each of the three defects is in
+`crates/pod-netlab/src/knobs/flags.rs` of podcrates (`v0.36.0`):
+`Knobs::flags` writes an empty `--udp`, `number()` gives one text for each
+parse error, and `word()` names no word. COORD-075 (issue 298) asks for
+the three fixes. podvm takes the tag that brings them, then runs the
+Prove.

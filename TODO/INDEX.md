@@ -444,12 +444,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1767](image.md) | P2 | S | none | image | done | Quiet runs print notes: a false chown EINVAL on extraction, the probe line of `pull -q`, the base archive of the machine tier |
 | [T-1768](image.md) | P2 | S | none | image | done | `cp -r` of a container path copies each hard link as a file |
 | [T-1769](cli.md) | P3 | S | none | cli | done | An unknown verb or flag prints the whole usage |
-| [T-1770](net.md) | P3 | S | none | net | open | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
+| [T-1770](net.md) | P3 | S | none | net | blocked | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
 | [T-1771](image.md) | P2 | S | none | image | done | node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy |
 
 ## Counts
 
-380 entries: 7 open, 7 partial, 5 blocked, 361 done.
+380 entries: 6 open, 7 partial, 6 blocked, 361 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -461,8 +461,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 3 | 2 | 1 | 156 | 162 |
 | P2 | 0 | 3 | 4 | 121 | 128 |
-| P3 | 4 | 2 | 0 | 19 | 25 |
-| **All** | 7 | 7 | 5 | 361 | 380 |
+| P3 | 3 | 2 | 1 | 19 | 25 |
+| **All** | 6 | 7 | 6 | 361 | 380 |
 
 ## Work order
 
