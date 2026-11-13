@@ -1,9 +1,9 @@
 # Handoff
 
-The state on 2026-11-13, after the release `0.2.0-beta.11` (issue 312).
+The state on 2026-11-13, after the release `0.2.0-beta.12` (issue 315).
 `0.2.0-beta.8` (issue 302) is the complete release for the beta testers
-(`docs/decisions.md`, "Complete release first"); beta.9, beta.10 and beta.11
-serve podrunner's kinds. A fresh
+(`docs/decisions.md`, "Complete release first"); beta.9 to beta.12 serve
+podrunner's kinds and podswarm's V-7. A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.
@@ -52,13 +52,12 @@ COORD-001 (#194), COORD-076 (#299) and COORD-080 (#309) are closed.
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
-2. podrunner takes `0.2.0-beta.11` for its `microvm` and `incus` kinds:
-   close COORD-079 (#307) and COORD-081 (#311) when it says so.
-3. The next release (`0.2.0-beta.12`) carries T-1751 (the sealed run of
-   the machine tier, ask V-7 of podswarm) and T-1779 (no NIC and the
-   channel on the incus tier, PodUtils/podrunner#88). After it, answer
-   podrunner#88 with a COORD issue, and tell podswarm of V-7 in COORD-068
-   (#290).
+2. podrunner takes `0.2.0-beta.12` for its `microvm` and `incus` kinds:
+   close COORD-079 (#307), COORD-081 (#311) and COORD-082 (#316) when it
+   says so. Close COORD-068 (#290) when podswarm or podcrates reads it
+   (V-7 is done in beta.12).
+3. podcrates `v0.40.0` is taken on `main` (PodUtils/podcrates#140): answer
+   there with the commit of the take; the next release carries it.
 4. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no
