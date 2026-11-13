@@ -260,7 +260,9 @@ pub(crate) fn prepare(
             a,
         )?)
     } else {
-        crate::lifecycle::decide_entry(
+        // TODO/cli.md T-1761: a volume or a read-only root takes the loader family.
+        crate::lifecycle::decide_entry_prefer(
+            !o.volumes.is_empty() || o.read_only,
             verb,
             &maps,
             &argv,
@@ -275,10 +277,8 @@ pub(crate) fn prepare(
     crate::lifecycle::refuse_detached_userland(verb, userland.as_ref(), o.detach)?;
     // ⭐ TODO/enter.md T-1653: only the loader family serves a volume.
     crate::lifecycle::volume::refuse_unserved(verb, &o.volumes, userland.as_ref(), ladder)?;
-    // ⭐ T-0702 and T-0706: classify the payload and place the object BEFORE
-    // the banner is built, so the banner names the write before anything of
-    // the payload's runs. The note joins the banner below. T-1649: a `#!`
-    // payload on the userland rung runs, and so classifies, its interpreter.
+    // ⭐ T-0702, T-0706: classify and place the object BEFORE the banner, which
+    // names the write. T-1649: a `#!` payload classifies its interpreter.
     let gargv = userland.as_ref().map_or(&argv, |u| &u.guest_argv);
     let mut interpose_note = String::new();
     let first = podvm_enter::program_in(gargv.first().map_or("", String::as_str), &working_dir);

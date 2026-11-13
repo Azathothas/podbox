@@ -413,6 +413,9 @@ mod copy_tree;
 pub use copy_tree::*;
 
 mod entry;
+mod prepared;
+use prepared::container_json;
+pub use prepared::Prepared;
 // TODO/cli.md T-1660: the loader's --argv0 on the first exec.
 mod argv0;
 pub use entry::*;

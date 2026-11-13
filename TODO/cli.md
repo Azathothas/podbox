@@ -4201,7 +4201,7 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4222,6 +4222,23 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.vol.ns`, `run.vol-ro-read.ns`, `run.vol-ro-write.ns`, `run.vol-file.ns`, `run.vol-ls.ns`, `run.vol-wd.ns`, `run.vol-deb.ns`, `run.vol-ro-write-deb.ns`, `run.tmpfs.ns`, `run.tmpfs-tmp.ns`, `run.readonly.ns`, `run.readonly-tmpfs.ns`, `run.readonly-deb.ns`, `run.confine-vol.ns`, and a test of the CLI holds the fix
+
+## Done
+
+**Done 2026-11-13.** A run with `-v`, `--tmpfs` or `--read-only` asks
+for the userland loader family also where chroot(2) works
+(`decide_entry_prefer` in `crates/podvm/src/lifecycle/entry.rs`, called
+from `crates/podvm/src/run/prepare.rs`): its path table serves each
+volume and the read-only layer with no mount(2). A payload that the loader
+family cannot take enters the chroot rung as before; podvm then prints the
+reason of the loader family and the refusal of the volume, which no longer
+says that chroot is denied. `PODVM_443_ONLY=run sh
+experiments/443-qa-surface.sh` gives PASS for each of the 14 rows of the
+Prove on the namespace rung; the full capture comes with the rerun of
+experiment 443 before the release. `cargo test --release -p podvm --test
+volumes_default_rung` passes: the test imports an image of the host's
+`cat`, `tee` and glibc, and runs `-v`, `:ro`, `--tmpfs` and `--read-only`
+on the default rung, with no network.
 
 # T-1765: `-e NAME` with no value does not pass the host's variable, and `exec` does not take the environment of `run`
 

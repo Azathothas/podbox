@@ -7,7 +7,7 @@ start.
 
 ## State
 
-380 entries: 22 open, 5 partial, 4 blocked, 349 done.
+380 entries: 21 open, 5 partial, 4 blocked, 350 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -46,8 +46,7 @@ status with `podvm-count` in the same commit as the work.
 1. The defects of the QA pass (experiment 443, 2026-11-13: 518 rows pass,
    64 fail), then a release for the beta testers. P1 first:
    [T-1757](cli.md) (`-u` with an ENTRYPOINT runs as root),
-   [T-1761](cli.md) (`-v`, `--tmpfs`, `--read-only` on the namespace
-   rung), [T-1753](interpose.md) (NSS reads the host's /etc),
+   [T-1753](interpose.md) (NSS reads the host's /etc),
    [T-1754](interpose.md) (`scandir64`), [T-1755](interpose.md)
    (`lutimes`), [T-1758](enter.md) (/proc on the namespace rung),
    [T-1759](enter.md) (/dev/shm), [T-1765](cli.md) (`-e NAME`, the

@@ -1,72 +1,5 @@
 use super::*;
 
-pub(super) fn container_json(s: &podvm_image::Store, c: &Container) -> String {
-    let fields = container_fields(s, c);
-    let mut o = serde_json::Map::new();
-    for (k, v) in &fields {
-        // ⚠ The nested pair is nested here too, so a caller reading the
-        // document and one reading `--format` do not find two shapes.
-        if let Some((group, rest)) = k
-            .strip_prefix("Exec.")
-            .map(|r| ("Exec", r))
-            .or_else(|| k.strip_prefix("End.").map(|r| ("End", r)))
-        {
-            let e = o
-                .entry(group.to_string())
-                .or_insert_with(|| serde_json::Value::Object(serde_json::Map::new()));
-            if let Some(m) = e.as_object_mut() {
-                m.insert(rest.to_string(), serde_json::Value::String(v.clone()));
-            }
-            continue;
-        }
-        o.insert(k.to_string(), serde_json::Value::String(v.clone()));
-    }
-    serde_json::Value::Array(vec![serde_json::Value::Object(o)]).to_string()
-}
-
-/// The image `run -d` and `create` need, and everything derived from it.
-pub struct Prepared {
-    pub record: podvm_image::Record,
-    pub image: String,
-    pub rootfs: String,
-    pub argv: Vec<String>,
-    pub env: Vec<String>,
-    pub working_dir: String,
-    pub name: Option<String>,
-    pub rung: String,
-    pub detach: bool,
-    pub rm: bool,
-    /// `--timeout` in milliseconds: the wall bound of the run, or `None`.
-    /// TODO/cli.md T-1655.
-    pub wall_ms: Option<u64>,
-    /// `--ulimit` and `--security-opt no-new-privileges`, for the child.
-    pub hardening: podvm_supervise::table::Hardening,
-    /// ⭐ T-0710: the host memo file this entry hands the payload, beside the
-    /// container record once the container exists. For `prepare` itself this is
-    /// an ephemeral file under staging; `create` and `run -d` move it to
-    /// `containers/<id>/ownership.memo`, foreground `run` deletes it on exit.
-    /// The environment already carries `PODVM_MEMO_FD` for it.
-    pub memo_host_path: std::path::PathBuf,
-    /// ⭐ TODO/packaging.md T-1003. The forced launch rung `prepare` admitted,
-    /// driven by foreground `run` and by nothing else. None is the default
-    /// chroot-by-path entry.
-    pub ladder: Option<podvm_enter::ladder::Mode>,
-    /// The probe rows the entry was decided under. `run` feeds them to the
-    /// ladder; `create` and `run -d` carry them unused, because neither
-    /// drives a rung.
-    pub findings: podvm_probe::Findings,
-    /// ⭐ T-0804 rule 3: `inspect` reports the TRUE mode per container, and a
-    /// shimmed `/dev/null` is part of that mode. One line per fixup that
-    /// changed a byte or failed, carried into the container record.
-    pub completion: Vec<String>,
-    pub completion_degraded: usize,
-    /// ⭐ TODO/enter.md T-1317. The no-chroot entry foreground `run` takes
-    /// where chroot is denied. None is the chroot sequence, as before.
-    pub userland: Option<Userland>,
-    /// `--podvm-confine`, guest paths (TODO/enter.md T-1658).
-    pub confine: Option<podvm_enter::confine::Spec>,
-}
-
 /// Resolve a container reference to the rootfs `exec` re-enters.
 ///
 /// ⚠ A container name first, then an image reference, because `podvm exec` on a
@@ -322,11 +255,53 @@ pub fn decide_entry(
     unsafe_host_paths: bool,
     retry: Option<&str>,
 ) -> Result<Option<Userland>, i32> {
-    if podvm_probe::probes::chroot_usable(findings) {
+    decide_entry_prefer(
+        false,
+        verb,
+        maps,
+        argv,
+        working_dir,
+        env,
+        support_native,
+        findings,
+        unsafe_host_paths,
+        retry,
+    )
+}
+
+/// [`decide_entry`], where `prefer` asks for a userland family also on a
+/// host that permits chroot: a run of `-v`, `--tmpfs` or `--read-only`,
+/// which only the path table serves (TODO/cli.md T-1761). Before, such a
+/// run was refused on the default rung of a root user.
+#[allow(clippy::too_many_arguments)]
+pub fn decide_entry_prefer(
+    prefer: bool,
+    verb: &str,
+    maps: &podvm_enter::userland::Maps,
+    argv: &[String],
+    working_dir: &str,
+    env: &[String],
+    support_native: bool,
+    findings: &podvm_probe::Findings,
+    unsafe_host_paths: bool,
+    retry: Option<&str>,
+) -> Result<Option<Userland>, i32> {
+    let chroot_ok = podvm_probe::probes::chroot_usable(findings);
+    if chroot_ok && !prefer {
         return Ok(None);
     }
     let path_dirs = podvm_enter::Plan::path_from(env);
     let no_chroot = |code: i32, family_note: String, routed: bool| {
+        // Where chroot works, a payload that no userland family takes runs
+        // on the chroot rung, which then refuses the volume by name.
+        if chroot_ok {
+            eprintln!(
+                "podvm {verb}: the userland loader family, which serves -v, --tmpfs and \
+                 --read-only, cannot take this payload: {family_note}"
+            );
+            let _ = (code, routed);
+            return Ok(None);
+        }
         eprintln!(
             "{}",
             script::no_chroot_message(verb, &family_note, routed, retry)
@@ -380,6 +355,13 @@ pub fn decide_entry(
         }
         // ⛔ T-1688: the probe executes a memfd, so a sysctl that seals it
         // refuses here, before staging, and not at the launch's step 5.
+        if chroot_ok {
+            eprintln!(
+                "podvm {verb}: the userland loader family, which serves -v, --tmpfs and \
+                 --read-only, cannot take a static payload under --unsafe-host-paths"
+            );
+            return Ok(None);
+        }
         let memfd = podvm_enter::memfd::memfd_exec();
         if !memfd.runs() {
             return no_chroot(

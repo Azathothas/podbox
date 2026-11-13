@@ -121,9 +121,10 @@ pub fn refuse_unserved(
              loader family serves a volume",
             mode.name()
         ),
-        (None, None) => "this host permits chroot(2), so podvm enters the chroot rung, \
-             where a host path is out of reach and podvm cannot mount(2) one in. Only \
-             the userland loader family serves a volume, where chroot is denied"
+        (None, None) => "only the userland loader family serves a volume, through its path \
+             table, and it cannot take this payload (the line above says why), so podvm \
+             enters the chroot rung, where a host path is out of reach and podvm cannot \
+             mount(2) one in"
             .to_string(),
         (None, Some(Family::Memfd)) => "the memfd family runs a static payload with no \
              interposer, so no path rewrite reaches it; the native-static rung \

@@ -435,7 +435,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1758](enter.md) | P1 | M | none | enter | open | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
 | [T-1759](enter.md) | P1 | M | none | enter | open | No /dev/shm on either rung: python multiprocessing fails |
 | [T-1760](cli.md) | P2 | M | none | cli | open | `-t` gives no terminal on the namespace rung, and says nothing |
-| [T-1761](cli.md) | P1 | M | none | cli | open | `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung |
+| [T-1761](cli.md) | P1 | M | none | cli | done | `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung |
 | [T-1762](image.md) | P1 | M | none | image | open | The source fixup probes four HTTPS hosts on each run: about 2 s of each ubuntu run, uncached |
 | [T-1763](image.md) | P2 | S | none | image | open | The `openssl rehash` step prints 108 lines on each python run and costs about 0.5 s |
 | [T-1764](enter.md) | P2 | S | none | enter | open | `--podvm-confine` without /etc in the read list breaks the loader on the namespace rung |
@@ -449,7 +449,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-380 entries: 22 open, 5 partial, 4 blocked, 349 done.
+380 entries: 21 open, 5 partial, 4 blocked, 350 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -459,10 +459,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 9 | 1 | 0 | 152 | 162 |
+| P1 | 8 | 1 | 0 | 153 | 162 |
 | P2 | 8 | 2 | 4 | 114 | 128 |
 | P3 | 5 | 2 | 0 | 18 | 25 |
-| **All** | 22 | 5 | 4 | 349 | 380 |
+| **All** | 21 | 5 | 4 | 350 | 380 |
 
 ## Work order
 
