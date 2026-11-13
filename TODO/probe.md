@@ -1618,8 +1618,8 @@ driver of podrunner reads `probe --json`.
 **Category:** probe
 **Milestone:** none
 **Priority:** P2
-**Effort:** S
-**Status:** open
+**Effort:** M
+**Status:** blocked
 
 ## Problem
 
@@ -1651,3 +1651,22 @@ second rule.
 of 10 runs of `podvm run --rm IMAGE true` with a warm cache is lower than
 the median with no cache by at least 80 percent of the median of 10 runs
 of `podvm probe --json`
+
+## Blocker
+
+**Blocked 2026-11-13 on podcrates.** `run` needs the structured
+`pod_hostprobe::Findings` (`ptmx_usable`, `chroot_usable`, the banner,
+the selection), and the cache holds only the JSON document of
+`report::document`. `Findings` has no reader: its rows carry the
+`&'static str` names of `probes::PROBES`, and no type derives a
+deserializer. A second serializer in podvm would break the rule of
+T-0111 (one writer, the key inside the document). COORD-069 asks podcrates
+for a reader beside the writer in `pod-hostprobe`. The condition that
+clears the block: a tag of podcrates with that reader.
+
+## Correction
+
+**Amended 2026-11-13.** The effort is M, not S: the cache needs a reader of
+its document, measured in `crates/podvm-image/src/probe_cache.rs` and
+`pod-hostprobe` `v0.35.0`.
+

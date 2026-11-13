@@ -7,7 +7,7 @@ start.
 
 ## State
 
-361 entries: 7 open, 7 partial, 3 blocked, 344 done.
+361 entries: 6 open, 7 partial, 4 blocked, 344 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -64,8 +64,9 @@ that is not done. Read its Prove before you start. Set its status with
    2026-11-09): the podrunner part (issues 229 to 240) and the clauses
    of PodUtils/podcrates#39; then the asks of podswarm
    (PodUtils/podcrates#124), [T-1745](cli.md) to [T-1752](cli.md), P2
-   first ([T-1746](probe.md); V-4 is done). Each ask has a fallback in
-   podswarm.
+   first; V-4 is done, and [T-1746](probe.md) (V-2) is blocked on a reader
+   of the probe report in `pod-hostprobe` (COORD-069, issue 291). Each ask has a
+   fallback in podswarm.
 
 The entries done since the resume of 2026-11-11 are in the record; the
 handoff (`docs/HANDOFF.md`) names them.
