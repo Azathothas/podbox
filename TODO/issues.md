@@ -189,7 +189,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #292 | [gh action] requested | closed (gate 43351811176, secrets 43351815639, arm 43351820031, all green on 845faba1) | none: a request of the gate, secrets and `arm.yml` on the head of `main` of 2026-11-13 (the commit that adds this row), for T-1662, T-1744, T-1748 and podcrates v0.35.0 (AGENTS.md, section 9) |
 | #293 | COORD-070: podvm takes podcrates v0.35.0 (the answer to PodUtils/podcrates#127) (to podcrates) | closed | T-1662, T-1746 |
 | #294 | COORD-071: ask for an overlay root in pod-enter's namespace rung: the image read-only under a tmpfs upper layer (podvm T-1749, V-5 of podswarm) (to podcrates) | open | T-1749 |
-| #295 | COORD-072: podvm takes podcrates v0.36.0 (the answer to PodUtils/podcrates#129) (to podcrates) | open | T-1746 |
+| #295 | COORD-072: podvm takes podcrates v0.36.0 (the answer to PodUtils/podcrates#129) (to podcrates) | closed | T-1746 |
 | #296 | COORD-073: ask for a proc mount on the /proc of the image in pod-enter's namespace rung (podvm T-1758) (to podcrates) | open | T-1758 |
 | #297 | COORD-074: ask for an entry of pod-enter that joins the mount namespace of a running payload, for exec (podvm T-1765) (to podcrates) | open | T-1765 |
 | #298 | COORD-075: ask for three fixes of the knob flags of pod-netlab: an empty --udp, the range of a number, the words of a flag (podvm T-1770) (to podcrates) | open | T-1770 |
