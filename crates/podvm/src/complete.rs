@@ -109,6 +109,9 @@ pub fn banner_quiet(store: &podvm_image::Store) -> bool {
         .is_some_and(|v| matches!(v.as_str(), "quiet" | "off" | "false" | "0"))
 }
 
+/// The file of the store with the verdicts of the HTTPS probe (T-1762).
+pub const REACH_CACHE: &str = "reach-cache";
+
 /// Run the completion layer over `rootfs`, fold its report into `banner`, and
 /// apply `--strict`.
 ///
@@ -128,6 +131,11 @@ pub fn prepare(
         source_fixup: !ask.no_source_fixup,
         host_cas: !ask.no_host_cas,
         steps: !ask.no_steps,
+        // TODO/image.md T-1762: the verdicts of the HTTPS probe, across runs.
+        reach_cache: podvm_image::Store::default_root(|| None)
+            .ok()
+            .filter(|r| r.is_dir())
+            .map(|r| r.join(REACH_CACHE)),
         ..podvm_complete::Options::default()
     };
     let report = match podvm_complete::complete(rootfs, &opts) {

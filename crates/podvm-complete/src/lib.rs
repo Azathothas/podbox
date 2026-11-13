@@ -69,6 +69,9 @@ pub struct Options {
     pub host_resolv_conf: String,
     /// T-0412. `--no-steps` clears it.
     pub steps: bool,
+    /// T-1762. The file of the store that caches the verdicts of the HTTPS
+    /// probe across runs; `None` probes each host.
+    pub reach_cache: Option<std::path::PathBuf>,
 }
 
 impl Default for Options {
@@ -80,6 +83,7 @@ impl Default for Options {
             host_cas: true,
             host_resolv_conf: "/etc/resolv.conf".to_string(),
             steps: true,
+            reach_cache: None,
         }
     }
 }
@@ -309,7 +313,7 @@ pub fn settings(rootfs: &str, opts: &Options) -> pod_rootfs::Settings {
 /// failure is a `Failed` row, the banner names it, and `--strict` is how a
 /// caller turns it into a refusal.
 pub fn complete(rootfs: &str, opts: &Options) -> Result<Report> {
-    let mut probe = reach::probe;
+    let mut probe = reach::cached(opts.reach_cache.clone());
     let mut r = pod_rootfs::complete(Path::new(rootfs), &settings(rootfs, opts), &mut probe)
         .map(Report::from)
         .map_err(|e| Error::Complete(e.to_string()))?;

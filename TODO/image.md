@@ -3409,7 +3409,7 @@ reproduction of issue 281 by hand extracts with exit 0.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3429,7 +3429,29 @@ The fix in the image layer is podvm's; a cause in a crate of podcrates goes ther
 
 ## Prove
 
-`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.true-py.ns`, and a test of the image layer holds the fix
+`sh experiments/443-qa-surface.sh` gives medians of the rows `perf.ubuntu:24.04` with and without `--no-source-fixup` within 300 ms of each other, and `cargo test -p podvm-complete a_verdict_is_cached_with_its_age_bound` passes
+
+## Correction
+
+**2026-11-13.** The first Prove named the row `run.true-py.ns`, which
+fails on the 108 lines of `openssl rehash`: that is T-1763. The cost of
+this entry shows in the medians of `perf.ubuntu:24.04` (3703 ms against
+1427 ms with `--no-source-fixup` in the QA pass), and the Prove reads them.
+
+## Done
+
+**Done 2026-11-13.** `reach::cached` in `crates/podvm-complete/src/reach.rs`
+keeps each verdict of the HTTPS probe in `$store/reach-cache`, one line for
+each host: a yes holds a day, a no holds ten minutes. A fresh verdict
+answers with no request; a new one replaces the line of its host, written
+beside and renamed. `podvm` passes the file of the default store
+(`REACH_CACHE` in `crates/podvm/src/complete.rs`). On the cloud host, an
+ubuntu:24.04 `run --rm true` takes 3602 ms with no cache, 1397 ms and
+1377 ms with it, and 1414 ms with `--no-source-fixup`. The read of the
+hosts from comment lines and the order of the probes are of `pod-rootfs`;
+with the cache they cost one probe for each host a day, so podvm asks
+podcrates for no change. The rows of the Prove come with the rerun of
+experiment 443 before the release.
 
 # T-1763: The `openssl rehash` step prints 108 lines on each python run and costs about 0.5 s
 
