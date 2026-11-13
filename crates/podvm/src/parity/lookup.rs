@@ -58,6 +58,16 @@ pub fn flag(verb: &str, name: &str) -> Option<&'static Row> {
 ///
 /// ⚠ A `Stub` row passes: it is accepted and does nothing, which is a
 /// difference the table states rather than a refusal.
+/// TODO/cli.md T-1769: the synopsis of `usage` and where the rest is, in
+/// place of the whole usage (150 lines for `run`), as docker prints
+/// "See 'docker run --help'".
+pub fn short_usage(verb: &str, usage: &str) {
+    if let Some(first) = usage.lines().find(|l| !l.trim().is_empty()) {
+        eprintln!("{first}");
+    }
+    eprintln!("podvm {verb} --help prints each option");
+}
+
 pub fn admit(verb: &str, arg: &str, usage: &str) -> Result<(), i32> {
     match flag(verb, arg) {
         Option::None => {
@@ -75,7 +85,7 @@ pub fn admit(verb: &str, arg: &str, usage: &str) -> Result<(), i32> {
                 "podvm {verb}: unknown option {arg:?}. It has no row in the parity \
                  table; `podvm system info` {where_}"
             );
-            eprint!("{usage}");
+            short_usage(verb, usage);
             Err(podvm_image::error::EXIT_FLAG_ERROR)
         }
         Some(r) if r.status == Status::None => {

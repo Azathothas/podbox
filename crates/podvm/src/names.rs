@@ -294,6 +294,21 @@ pub fn install(verb: &str, args: &[String]) -> i32 {
     code
 }
 
+/// The start of each process of podvm: the entry of the native-static
+/// rung (T-1652), then SIGPIPE back to its default. Rust ignores SIGPIPE,
+/// so `podvm profile list | head` panicked on a closed pipe (TODO/cli.md
+/// T-1769); with the default, podvm ends quietly, as each Unix tool does.
+pub fn start() {
+    podvm_dispatch::main_if_entered("podvm");
+    unsafe extern "C" {
+        fn signal(sig: i32, handler: usize) -> usize;
+    }
+    const SIGPIPE: i32 = 13;
+    const SIG_DFL: usize = 0;
+    // SAFETY: SIG_DFL installs no handler of this process.
+    unsafe { signal(SIGPIPE, SIG_DFL) };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -126,7 +126,7 @@ usage: podvm probe [--json | --rows] [--strict] [--cached]
 ";
 
 fn main() -> std::process::ExitCode {
-    podvm_dispatch::main_if_entered("podvm"); // T-1652, the native-static rung
+    names::start(); // T-1652 (the native-static rung) and SIGPIPE (T-1769)
     let argv: Vec<String> = std::env::args().collect();
 
     // TODO/net.md T-1665: one connection of a guest, relayed to the broker.
@@ -286,12 +286,14 @@ fn main() -> std::process::ExitCode {
                     let _ = writeln!(
                         err,
                         "podvm: {name}: podvm has no such command, and neither does \
-                         the parity table (TOOL.md section 6.8)"
+                         the parity table (TOOL.md section 6.8); `podvm --help` lists the commands"
                     );
-                    let _ = write!(err, "{USAGE}");
                 }
             }
-            let _ = writeln!(err, "podvm: invoked as {argv0}");
+            // T-1769: the name matters where podvm runs under another one.
+            if !argv0.ends_with("podvm") {
+                let _ = writeln!(err, "podvm: invoked as {argv0}");
+            }
             // ⭐ T-0802, and the two halves are different codes because
             // docker's are. A verb DOCKER HAS and podvm refuses is podvm
             // failing to run the caller's command: 125. A verb neither has is

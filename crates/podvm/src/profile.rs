@@ -167,7 +167,9 @@ fn list() -> i32 {
         extra.sort();
         names.extend(extra);
     }
-    println!("{:<12} {:<10} DESCRIPTION", "NAME", "SOURCE");
+    // T-1769: the column is as wide as the longest name.
+    let w = names.iter().map(String::len).max().unwrap_or(0).max(4);
+    println!("{:<w$} {:<10} DESCRIPTION", "NAME", "SOURCE");
     let mut code = 0;
     for n in &names {
         match effective(n, &[]) {
@@ -176,10 +178,10 @@ fn list() -> i32 {
                     model::Source::BuiltIn => "built-in".to_string(),
                     model::Source::File(_) => "user".to_string(),
                 };
-                println!("{n:<12} {src:<10} {}", c.description);
+                println!("{n:<w$} {src:<10} {}", c.description);
             }
             Err(e) => {
-                println!("{n:<12} {:<10} ERROR: {e}", "user");
+                println!("{n:<w$} {:<10} ERROR: {e}", "user");
                 code = EXIT_FLAG_ERROR;
             }
         }

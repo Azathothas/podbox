@@ -4370,7 +4370,7 @@ change. Experiment 443 runs the five rows again before the release.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4391,3 +4391,22 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `sys.unknown-verb-out`, `sys.unknown-flag-short`, `sys.profile-cols`, and a test of the CLI holds the fix
+
+## Done
+
+**Done 2026-11-13.** Three parts:
+
+- An unknown verb prints one line that names `podvm --help` (48 lines
+  before), and an unknown flag prints its refusal, the synopsis of the
+  verb and `podvm VERB --help` (163 lines for `run` before):
+  `short_usage` in `crates/podvm/src/parity/lookup.rs`, used by `admit`
+  and `refuse_member`. The line "podvm: invoked as ..." prints only where
+  argv0 does not end in `podvm`, its use under another name (T-0803).
+- `profile list` sizes its name column to the longest name.
+- `names::start` (`crates/podvm/src/names.rs`) puts SIGPIPE back to its
+  default at the start: `podvm profile list | head` panicked on the closed
+  pipe, and now ends quietly with the status of SIGPIPE, as each Unix tool
+  does.
+
+The test `tests/short_refusals.rs` holds the short refusals. Experiment 443
+runs the three rows again before the release.

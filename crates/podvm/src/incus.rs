@@ -89,7 +89,7 @@ fn code_of(status: i32) -> i32 {
 /// container does.
 pub fn hold(args: &[String]) -> i32 {
     unsafe extern "C" {
-        fn signal(sig: i32, handler: extern "C" fn(i32)) -> usize;
+        fn signal(sig: i32, handler: usize) -> usize;
         fn waitpid(pid: i32, status: *mut i32, options: i32) -> i32;
         fn pause() -> i32;
         fn kill(pid: i32, sig: i32) -> i32;
@@ -119,7 +119,7 @@ pub fn hold(args: &[String]) -> i32 {
     // SAFETY: plain system calls; the handler only signals or exits.
     unsafe {
         for sig in [2, 15, 30] {
-            signal(sig, end);
+            signal(sig, end as extern "C" fn(i32) as usize);
         }
         loop {
             let mut status = 0;

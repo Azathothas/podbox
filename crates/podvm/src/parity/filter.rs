@@ -10,7 +10,7 @@ pub fn refuse_member(verb: &str, member: &str, usage: &str) -> i32 {
         "podvm {verb}: unknown option {member:?}. It has no row in the parity \
          table; `podvm system info` lists every flag this verb takes"
     );
-    eprint!("{usage}");
+    short_usage(verb, usage);
     podvm_image::error::EXIT_FLAG_ERROR
 }
 
