@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: a sealed run of the machine tier, 2026-11-13
+
+Record: T-1751, PodUtils/podcrates#124 (ask V-7 of podswarm).
+Deployed: not deployed; the next release carries it.
+
+- `run --podvm-tier=machine --podvm-sealed IMAGE < bundle.tar` takes the
+  command, the environment, the working directory and the files of the
+  run from a tar bundle on stdin (`.podvm-run.json` names the run). The
+  bundle reaches the guest through the channel only: no host file, no
+  argv and no environment of a host process holds a value of the run.
+  The guest has no NIC. The guest's memory is locked where
+  `RLIMIT_MEMLOCK` allows it.
+
 ## 0.2.0-beta.11 (2026-11-13)
 
 ### Fixed: a loopback proxy of a guest with no NIC, 2026-11-13

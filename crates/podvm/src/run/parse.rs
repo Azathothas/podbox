@@ -260,6 +260,7 @@ fn parse_flags_with(
             "--pull" => expecting = Some("--pull"),
             "--insecure-registry" => expecting = Some("--insecure-registry"),
             "--tls-verify" => o.tls_verify = Some(true),
+            "--podvm-sealed" => o.sealed = true,
             "--add-host" => expecting = Some("--add-host"),
             "--podvm-tier" => expecting = Some("--podvm-tier"),
             "--podvm-qemu-arg" => expecting = Some("--podvm-qemu-arg"),

@@ -37,7 +37,6 @@ clauses in its own record:
 | [T-1740](enter.md) | a cheaper mechanism for the syscall tier |
 | [T-1749](enter.md) | the root with no copy (COORD-071 for the namespace rung; the loader family is podvm's) |
 | [T-1350](gate.md) | the wrapper of the parked Windows lane |
-| [T-1751](machine.md) | podswarm's shield `guest`: no host file in the guest |
 
 ## Facts that save time
 

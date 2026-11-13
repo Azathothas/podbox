@@ -54,8 +54,10 @@ COORD-001 (#194), COORD-076 (#299) and COORD-080 (#309) are closed.
 1. Start the session (`AGENTS.md`, section 8).
 2. podrunner takes `0.2.0-beta.11` for its `microvm` and `incus` kinds:
    close COORD-079 (#307) and COORD-081 (#311) when it says so.
-3. The rest of T-1751 (podswarm's shield `guest`: no host file in the
-   guest).
+3. podrunner's COORD-028 (PodUtils/podrunner#88): `--podvm-net none` and
+   `--podvm-channel` on the incus tier. T-1751 (the sealed run of the
+   machine tier, ask V-7 of podswarm) is done; tell podswarm with the
+   next release.
 4. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no

@@ -44,8 +44,13 @@ pub(super) fn drive(
     let gone = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let errs = stderr::pump(sock.to_path_buf(), deadline, gone.clone());
     // TODO/machine.md T-1751: the host side of the channel.
-    let _channel = r.channel.as_ref().map(|(host, _)| {
-        super::channel::serve(super::channel::socket_path(sock), host.clone(), deadline)
+    let _channel = (r.channel.is_some() || r.sealed.is_some()).then(|| {
+        super::channel::serve(
+            super::channel::socket_path(sock),
+            r.channel.as_ref().map(|c| c.0.clone()),
+            r.sealed.clone(),
+            deadline,
+        )
     });
     // TODO/machine.md T-1723: the terminal of -t, raw on the host until the
     // end of the run.

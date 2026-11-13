@@ -40,6 +40,9 @@ pub(crate) struct Opts {
     /// `--podvm-channel HOST_SOCKET:127.0.0.1:PORT`: one channel from a
     /// TCP port of the guest to a Unix socket of the host (T-1751).
     pub(crate) channel: Option<(std::path::PathBuf, u16)>,
+    /// `--podvm-sealed`: the run comes as a bundle on stdin and reaches
+    /// the guest through the channel only (T-1751, ask V-7 of podswarm).
+    pub(crate) sealed: bool,
     /// `--profile` and `-s`: the profile of the run and its overrides.
     /// TODO/cli.md T-1654.
     pub(crate) profile: Option<String>,
@@ -124,6 +127,7 @@ impl Opts {
             mem: None,
             cpus: None,
             net_none: false,
+            sealed: false,
             interactive: false,
             channel: None,
             profile: None,

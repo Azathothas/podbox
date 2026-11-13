@@ -10,6 +10,13 @@
 //! anything, so a marker without a nonce is a collision waiting to happen.
 //! stdout and stderr share the serial line.
 
+/// The channel of the init: the guest's port of `--podvm-channel`, and
+/// whether the run is sealed (T-1751).
+pub struct Chan {
+    pub port: Option<u16>,
+    pub sealed: bool,
+}
+
 /// Quote one word for `/bin/sh`.
 pub fn sh_quote(w: &str) -> String {
     format!("'{}'", w.replace('\'', "'\\''"))
@@ -23,8 +30,9 @@ pub fn sh_quote(w: &str) -> String {
 /// with 125 and the reason, and the command does not run. `tty` (`-t`, the
 /// size `ROWSxCOLS` or empty) runs the command through `podvm guest-tty` on
 /// the virtio console (TODO/machine.md T-1723) in place of the FIFOs.
-/// `channel` (a port) starts `podvm guest-channel` and waits until it
-/// listens (TODO/machine.md T-1751).
+/// `channel` starts `podvm guest-channel` and waits until it listens
+/// (TODO/machine.md T-1751); a sealed run ([`super::sealed`]) fetches the
+/// bundle first and sources its fragment after the image's command.
 #[allow(clippy::too_many_arguments)]
 pub fn script(
     nonce: &str,
@@ -34,7 +42,7 @@ pub fn script(
     net: bool,
     vols: &[super::vol::Vol],
     tty: Option<&str>,
-    channel: Option<u16>,
+    channel: Option<Chan>,
 ) -> String {
     let mut s = String::from("#!/bin/sh\n");
     s.push_str("mount -t proc proc /proc 2>/dev/null\n");
@@ -63,16 +71,34 @@ pub fn script(
         s.push_str("/podvm/podvm guest-net\n");
     }
     // TODO/machine.md T-1751: the channel listens before the command runs.
-    if let Some(port) = channel {
+    if let Some(c) = &channel {
+        let args = match (c.sealed, c.port) {
+            (true, Some(p)) => format!("--sealed {p}"),
+            (true, None) => "--sealed".to_string(),
+            (false, Some(p)) => p.to_string(),
+            (false, None) => String::new(),
+        };
+        // A bundle of 64 MiB takes longer than 10 s under TCG.
+        let tries = if c.sealed { 1200 } else { 100 };
         s.push_str(&format!(
-            "/podvm/podvm guest-channel {port} & i=0\nwhile [ ! -e {r} ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i+1)); done\n",
+            "/podvm/podvm guest-channel {args} & i=0\nwhile [ ! -e {r} ] && [ $i -lt {tries} ]; do sleep 0.1; i=$((i+1)); done\n",
             r = super::channel::READY
         ));
+        if c.sealed {
+            s.push_str(&format!(
+                "[ -e {r} ] || {{ echo 'podvm: the run bundle did not reach the guest'; echo; \
+                 echo PODVM-EXIT-{nonce} 125; sync; reboot -f; echo b > /proc/sysrq-trigger; }}\n",
+                r = super::channel::READY
+            ));
+        }
     }
     // stdin: the bytes of podvm's stdin where there were some, else none.
     s.push_str("if [ -f /podvm/stdin ]; then exec 0</podvm/stdin; else exec 0</dev/null; fi\n");
     let words: Vec<String> = argv.iter().map(|a| sh_quote(a)).collect();
     s.push_str(&format!("set -- {}\n", words.join(" ")));
+    if channel.as_ref().is_some_and(|c| c.sealed) {
+        s.push_str(&format!(". {} || exit 125\n", super::sealed::FRAGMENT));
+    }
     if let Some(size) = tty {
         let size = if size.is_empty() {
             String::new()

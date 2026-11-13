@@ -111,9 +111,42 @@ pub(super) fn machine_tier(
         );
         return podvm_image::error::EXIT_RUNTIME_ERROR;
     }
-    let p = match prepare_image(verb, store, o, platform, policy, "machine") {
+    // TODO/machine.md T-1751: a sealed run takes each value of the run
+    // from the bundle; a flag would put it in the argv of podvm.
+    if o.sealed
+        && (!o.command.is_empty()
+            || !o.env.is_empty()
+            || o.workdir.is_some()
+            || !o.volumes.is_empty()
+            || o.tty
+            || o.broker)
+    {
+        eprintln!(
+            "podvm {verb}: --podvm-sealed takes the command, the environment, the working \
+             directory and the files from the bundle on stdin: it refuses a command, -e, -w, \
+             -v, -t and --network broker (TODO/machine.md T-1751)"
+        );
+        return EXIT_FLAG_ERROR;
+    }
+    let mut p = match prepare_image(verb, store, o, platform, policy, "machine") {
         Ok(p) => p,
         Err(c) => return c,
+    };
+    let sealed = if o.sealed {
+        let Some(b) = p.stdin.take() else {
+            eprintln!(
+                "podvm {verb}: --podvm-sealed reads the bundle of the run from stdin, a pipe \
+                 or a file (TODO/machine.md T-1751)"
+            );
+            return EXIT_FLAG_ERROR;
+        };
+        if let Err(why) = crate::machine::guest::sealed::check(&b) {
+            eprintln!("podvm {verb}: --podvm-sealed: {why} (TODO/machine.md T-1751)");
+            return EXIT_FLAG_ERROR;
+        }
+        Some(b)
+    } else {
+        None
     };
     // `-v HOST:GUEST[:ro]`: a 9p mount of the host directory
     // (TODO/machine.md T-1723).
@@ -136,7 +169,7 @@ pub(super) fn machine_tier(
     // TODO/machine.md T-1778: with no NIC there is no gateway, and the
     // guest's loopback is where --podvm-channel listens, so the variable
     // stays as it is.
-    let rewritten = if o.net_none {
+    let rewritten = if o.net_none || o.sealed {
         Ok(p.env.clone())
     } else {
         crate::machine::proxy::rewrite_env(&p.env)
@@ -190,8 +223,9 @@ pub(super) fn machine_tier(
         volumes,
         tty: o.tty,
         stdin: p.stdin,
-        net_none: o.net_none,
+        net_none: o.net_none || o.sealed,
         channel: o.channel.clone(),
+        sealed,
     });
     if let Some(d) = probe {
         let _ = std::fs::remove_dir_all(d);
@@ -220,10 +254,12 @@ pub(super) fn incus_tier(
         || o.broker
         || o.net_none
         || o.channel.is_some()
+        || o.sealed
     {
         eprintln!(
             "podvm {verb}: --podvm-tier=incus takes no --podvm-mem, --podvm-cpus, \
-             --podvm-qemu-arg, --podvm-net, --podvm-channel or --network broker yet \
+             --podvm-qemu-arg, --podvm-net, --podvm-channel, --podvm-sealed or --network \
+             broker yet \
              (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;

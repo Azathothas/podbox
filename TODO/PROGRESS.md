@@ -7,7 +7,7 @@ start.
 
 ## State
 
-387 entries: 3 open, 6 partial, 3 blocked, 375 done.
+387 entries: 3 open, 5 partial, 3 blocked, 376 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -52,9 +52,8 @@ status with `podvm-count` in the same commit as the work.
 
 1. podrunner takes `0.2.0-beta.11` (COORD-079, issue 307; COORD-081,
    issue 311). The QA pass of
-   experiment 443 is worked, and each of its entries is done. The rest of
-   [T-1751](machine.md) (partial) is podswarm's: no host file in the
-   guest. The copy of the rootfs on each run (11 s for golang) is T-1749.
+   experiment 443 is worked, and each of its entries is done. The copy
+   of the rootfs on each run (11 s for golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)
@@ -69,8 +68,8 @@ status with `podvm-count` in the same commit as the work.
    behind its feature `report`; the probe costs about 50 ms on the cloud
    host), [T-1749](enter.md)
    (partial; COORD-071: the overlay root is podcrates@T-486, open),
-   [T-1747](cli.md), [T-1750](machine.md) and
-   [T-1751](machine.md). V-1, V-4 and V-8 are done.
+   [T-1747](cli.md) and [T-1750](machine.md). V-1, V-4, V-7
+   (`--podvm-sealed`) and V-8 are done.
 
 The entries done since the resume of 2026-11-11 are in the record; the
 handoff (`docs/HANDOFF.md`) names them.

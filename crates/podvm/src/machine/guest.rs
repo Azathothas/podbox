@@ -22,6 +22,7 @@ mod drive;
 pub(crate) mod init;
 pub(crate) mod kernel;
 pub(crate) mod net;
+pub(crate) mod sealed;
 pub(crate) mod squashfs;
 pub(crate) mod stderr;
 pub(crate) mod tty;
@@ -82,6 +83,9 @@ pub struct Request<'a> {
     /// `--podvm-channel`: the host socket and the guest's TCP port of the
     /// one channel ([`channel`], T-1751).
     pub channel: Option<(PathBuf, u16)>,
+    /// `--podvm-sealed`: the bundle of the run, which reaches the guest
+    /// through the channel only ([`sealed`], T-1751).
+    pub sealed: Option<Vec<u8>>,
 }
 
 /// The most bytes of stdin that a guest takes.
@@ -263,6 +267,13 @@ pub fn boot(r: &Request) -> i32 {
         Ok(b) => b,
         Err(e) => return fail(e),
     };
+    if r.sealed.is_some() && tools.is_none() {
+        return fail(
+            "--podvm-sealed needs podvm in the guest, and the kernel of PODVM_MACHINE_KERNEL \
+             brings no module set for it (TODO/machine.md T-1751)"
+                .to_string(),
+        );
+    }
     if r.tty && tools.is_none() {
         return fail(
             "-t needs podvm in the guest, and the kernel of PODVM_MACHINE_KERNEL brings no \
@@ -293,7 +304,10 @@ pub fn boot(r: &Request) -> i32 {
                 tools.is_some() && !r.net_none,
                 &vols,
                 r.tty.then_some(size.as_str()),
-                r.channel.as_ref().map(|c| c.1),
+                (r.channel.is_some() || r.sealed.is_some()).then(|| init::Chan {
+                    port: r.channel.as_ref().map(|c| c.1),
+                    sealed: r.sealed.is_some(),
+                }),
             );
             run_archive(&script, tools.as_ref(), &copies, r.stdin.as_deref())
         })
@@ -355,8 +369,19 @@ pub fn boot(r: &Request) -> i32 {
         let _ = std::fs::remove_file(tty::socket_path(&sock));
         extra.extend(tty::argv(&tty::socket_path(&sock)));
     }
-    // TODO/machine.md T-1751: the one channel to a host socket.
-    if r.channel.is_some() {
+    // TODO/machine.md T-1751: the one channel to a host socket, and the
+    // guest's memory locked where the limit allows it.
+    if r.sealed.is_some() {
+        match sealed::mem_lock(r.mem.unwrap_or(DEFAULT_MEM)) {
+            Ok(a) => extra.extend(a),
+            Err(why) => eprintln!(
+                "podvm {}: machine tier: the guest's memory is not locked: {why} \
+                 (TODO/machine.md T-1751)",
+                r.verb
+            ),
+        }
+    }
+    if r.channel.is_some() || r.sealed.is_some() {
         let ch = channel::socket_path(&sock);
         if let Err(e) = channel::make_dir(&ch) {
             return fail(format!("the directory of the channel socket: {e}"));

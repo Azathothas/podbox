@@ -2385,7 +2385,7 @@ guest gives the exit code of its command (under TCG on the cloud host)
 **Milestone:** none
 **Priority:** P1
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2412,17 +2412,50 @@ limit allows it.
 podvm runs the canary tests itself. podswarm's tests E-19 to E-21 are its
 adoption trial, not conditions of this entry.
 
+**2026-11-13.** The run comes as a tar bundle on podvm's stdin
+(`--podvm-sealed`): podvm's argv then holds no value of the run. The
+guest gets the bundle as the first stream of `pod-link` over the one
+port `podvm.ch`. The guest's root is RAM. podvm adds no raw scratch disk:
+a disk that the guest writes is a host file that holds values of the
+run, and the shield forbids that.
+
 ## Prove
 
-`cargo test -p podvm` exits 0, with a test that a run with a canary in a
-file name, a file body, an argv element and a variable leaves no canary
-in the argv or the environment of a host process, in the per-run
-directory or in the state of podvm, and that `ip link` in the guest shows
-`lo` only
+`sh experiments/445-sealed-guest.sh` exits 0 as root: a run with a canary in a file name, a file body, an argv element and a variable leaves no canary in the argv or the environment of a host process, in the per-run directory or in the state of podvm, and `/sys/class/net` in the guest holds `lo` only; `cargo test -p podvm` exits 0
+
+## Correction
+
+**2026-11-13.** The Prove named a test of `cargo test -p podvm`. The
+canary test needs QEMU and root (it reads `/proc/PID/environ` of each
+process), so it is experiment 445. `cargo test -p podvm` holds the
+bundle, the fragment of the run and the refusals that name no value.
 
 ## Done
 
-**Partial 2026-11-13.** The part that PodUtils/podrunner#83 asks for, so
+**Done 2026-11-13.** podswarm's half (ask V-7). `run
+--podvm-tier=machine --podvm-sealed IMAGE` reads the bundle from stdin
+(`.podvm-run.json` with `argv`, `env` and `workdir`, and the files of the
+guest; `crates/podvm/src/machine/guest/sealed.rs`) and keeps it in
+memory. The initrd on the host holds the image and a generic init; the
+guest has no NIC, no 9p volume and no stdin file. `podvm guest-channel
+--sealed` fetches the bundle as the first stream, unpacks it into the
+guest's root and writes the fragment of the run, which the init sources
+after the image's command. A command, `-e`, `-w`, `-v`, `-t` and
+`--network broker` are refused with no value of the bundle in the words.
+`-overcommit mem-lock=on` is set where `RLIMIT_MEMLOCK` holds the guest's
+memory and 64 MiB; elsewhere podvm names the limit (8 MiB on the cloud
+host). Experiment 445 passes its 6 clauses on the cloud host (TCG), as
+root: the guest reads the file by its canary name, the variable, the argv
+and the working directory, and exits 7; during the run (with a control
+that reads the emulator's environment) and after it, no canary is in the
+argv or the environment of a host process or in a file name or body
+under the store and TMPDIR; `/sys/class/net` holds `lo` only; no
+emulator stays. A first run of clause 6 matched a process with
+`qemu-system` in its argv that a second look did not find; the clause now
+names each match. The tests `the_bundle_names_the_run_and_its_files` and
+`a_bad_bundle_refuses_and_names_no_value` hold the bundle.
+
+**The first part, 2026-11-13.** The part that PodUtils/podrunner#83 asks for, so
 that podrunner's `microvm` kind can run an untrusted job: `--podvm-net
 none` boots the guest with `-nic none` and no NIC module, and
 `--podvm-channel HOST_SOCKET:127.0.0.1:PORT` gives the guest one
@@ -2439,9 +2472,6 @@ host, `ip -o link` shows `lo` only, and two connections to
 the bound; no emulator stays after the run. The test
 `the_flag_names_a_host_socket_and_a_port_of_the_loopback` holds the parse
 and the arguments of the emulator.
-
-Open: podswarm's half (ask V-7), no host file in the guest: the 9p
-volumes, the run archive on the host and the canary test of the Prove.
 
 
 # T-1776: Each file of a guest of the machine tier belongs to root

@@ -90,8 +90,15 @@ fn runtime() -> std::io::Result<tokio::runtime::Runtime> {
 }
 
 /// The host side: connect to the chardev socket, then dial `host` for each
-/// stream that the guest opens, until the emulator ends.
-pub fn serve(sock: PathBuf, host: PathBuf, deadline: Instant) -> std::thread::JoinHandle<()> {
+/// stream that the guest opens, until the emulator ends. With `bundle`
+/// (`--podvm-sealed`), the first stream gets the bundle, and no host file
+/// holds it ([`super::sealed`]).
+pub fn serve(
+    sock: PathBuf,
+    host: Option<PathBuf>,
+    bundle: Option<Vec<u8>>,
+    deadline: Instant,
+) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let Ok(rt) = runtime() else { return };
         rt.block_on(async move {
@@ -109,8 +116,19 @@ pub fn serve(sock: PathBuf, host: PathBuf, deadline: Instant) -> std::thread::Jo
             else {
                 return;
             };
+            let mut bundle = bundle;
             while let Ok(mut stream) = link.accept().await {
-                let host = host.clone();
+                if let Some(b) = bundle.take() {
+                    tokio::spawn(async move {
+                        use tokio::io::AsyncWriteExt;
+                        let _ = stream.write_all(&b).await;
+                        let _ = stream.shutdown().await;
+                        // The guest closes the stream once it read all.
+                        let _ = tokio::io::copy(&mut stream, &mut tokio::io::sink()).await;
+                    });
+                    continue;
+                }
+                let Some(host) = host.clone() else { continue };
                 tokio::spawn(async move {
                     match tokio::net::UnixStream::connect(&host).await {
                         Ok(mut h) => {
@@ -142,9 +160,15 @@ fn port_device() -> Option<PathBuf> {
 /// carry each connection over the port. It writes [`READY`] once it
 /// listens, and runs until the guest ends.
 pub fn guest_main(args: &[String]) -> i32 {
-    let Some(port) = args.first().and_then(|p| p.parse::<u16>().ok()) else {
-        eprintln!("podvm guest-channel: name the port");
-        return EXIT_FLAG_ERROR;
+    let sealed = args.first().is_some_and(|a| a == "--sealed");
+    let rest = &args[usize::from(sealed)..];
+    let port = match rest.first().map(|p| p.parse::<u16>()) {
+        Some(Ok(p)) => Some(p),
+        None if sealed => None,
+        _ => {
+            eprintln!("podvm guest-channel: name the port");
+            return EXIT_FLAG_ERROR;
+        }
     };
     if let Err(e) = super::net::lo_up() {
         eprintln!("podvm guest-channel: {e}");
@@ -183,6 +207,15 @@ pub fn guest_main(args: &[String]) -> i32 {
                 return 1;
             }
         };
+        // TODO/machine.md T-1751: the bundle is the first stream.
+        if sealed && let Err(e) = fetch(&link).await {
+            eprintln!("podvm guest-channel: the run bundle: {e}");
+            return 1;
+        }
+        let Some(port) = port else {
+            let _ = std::fs::write(READY, b"");
+            return 0;
+        };
         let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {
             Ok(l) => l,
             Err(e) => {
@@ -206,6 +239,26 @@ pub fn guest_main(args: &[String]) -> i32 {
         }
         0
     })
+}
+
+/// Read the bundle from the first stream, unpack it into `/` and write
+/// the fragment of the run.
+async fn fetch(link: &pod_link::Link) -> Result<(), String> {
+    use tokio::io::AsyncReadExt;
+    let mut s = link.open().map_err(|e| e.to_string())?;
+    let mut b = Vec::new();
+    (&mut s)
+        .take(super::MAX_STDIN + 1)
+        .read_to_end(&mut b)
+        .await
+        .map_err(|e| e.to_string())?;
+    drop(s);
+    if b.len() as u64 > super::MAX_STDIN {
+        return Err(format!("more than {} bytes", super::MAX_STDIN));
+    }
+    let run = super::sealed::unpack(&b, Path::new("/"))?;
+    std::fs::write(super::sealed::FRAGMENT, super::sealed::fragment(&run))
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

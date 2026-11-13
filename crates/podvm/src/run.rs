@@ -155,6 +155,11 @@ pub const RUN_OPTIONS: &str = "\
                    only: each TCP connection to PORT in the guest reaches
                    the Unix socket HOST_SOCKET of the host, over one
                    virtio-serial port (TODO/machine.md T-1751)
+  --podvm-sealed   podvm's own, machine tier only: the run comes as a tar
+                   bundle on stdin (.podvm-run.json with argv, env and
+                   workdir, and the files of the guest), and reaches the
+                   guest through the channel only: no NIC, no host file of
+                   the run (TODO/machine.md T-1751)
   --report PATH    podvm's own: one JSON document of the run at PATH,
                    written with a rename at its end, also when podvm refuses
                    before the start: the image and its digest, the rung,
