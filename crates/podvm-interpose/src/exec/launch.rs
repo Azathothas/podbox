@@ -155,6 +155,51 @@ pub unsafe fn env_value(envp: *const *const c_char, name: &[u8]) -> Option<(usiz
     None
 }
 
+/// The most variables of podvm that an exec adds to an `envp`.
+pub const CARRY: usize = 24;
+
+/// TODO/interpose.md T-1756: the entries of this process's environment
+/// that podvm set and that `envp` lacks by name: each `PODVM_*` but
+/// `PODVM_GUEST_EXE` (which names one program), and `LD_PRELOAD`. A program
+/// that runs a child with an environment of its own (the triggers of apk,
+/// `env -i`) dropped them, and its child ran with no table: `/bin/busybox`
+/// of a trigger resolved on the host.
+///
+/// # Safety
+/// `envp` as [`env_value`].
+pub unsafe fn missing(envp: *const *const c_char, out: &mut [*const c_char; CARRY]) -> usize {
+    let mut n = 0;
+    // `environ` first, then the copy of the start: a process that cleared
+    // its environment (`env -i`) still carries the table (T-1756).
+    for own in [crate::map::environ_ptr(), crate::snapshot::env()] {
+        let mut i = 0;
+        while !own.is_null() && i < MAX_ENTRIES && n < CARRY {
+            let e = unsafe { *own.add(i) };
+            if e.is_null() {
+                break;
+            }
+            i += 1;
+            let len = crate::map::strnlen(e, OUT);
+            let entry = unsafe { core::slice::from_raw_parts(e as *const u8, len) };
+            let Some(eq) = entry.iter().position(|&b| b == b'=') else {
+                continue;
+            };
+            let name = &entry[..eq];
+            let named =
+                |v: &[*const c_char]| v.iter().any(|p| crate::map::match_var(*p, name).is_some());
+            if crate::snapshot::ours(name)
+                && name != crate::procfs::GUEST_EXE_VAR
+                && unsafe { env_value(envp, name) }.is_none()
+                && !named(&out[..n])
+            {
+                out[n] = e;
+                n += 1;
+            }
+        }
+    }
+    n
+}
+
 /// Append `src` to `out[..*n]`, with a `:` before it where `out` is not
 /// empty. `ENAMETOOLONG` where it does not fit with the NUL.
 fn push_dir(out: &mut [u8; OUT], n: &mut usize, src: &[u8]) -> Result<(), c_int> {
@@ -305,16 +350,26 @@ pub unsafe fn assemble(
         0
     };
     let exe_at = unsafe { env_value(envp, crate::procfs::GUEST_EXE_VAR) }.map(|(i, _)| i);
-    let envc = if exe_at.is_some() {
-        unsafe { count(envp) }?
-    } else {
-        0
-    };
-    if exe_at.is_some() {
+    // T-1756: podvm's variables that the caller's `envp` dropped, and a
+    // fresh `PODVM_GUEST_EXE` where this process has one and `envp` not.
+    let mut carry = [core::ptr::null(); CARRY];
+    let n_carry = unsafe { missing(envp, &mut carry) };
+    let exe_new = exe_at.is_none()
+        && [crate::map::environ_ptr(), crate::snapshot::env()]
+            .into_iter()
+            .any(|e| unsafe { env_value(e, crate::procfs::GUEST_EXE_VAR) }.is_some());
+    let rebuild = exe_at.is_some() || exe_new || n_carry > 0;
+    let envc = if rebuild { unsafe { count(envp) }? } else { 0 };
+    if exe_at.is_some() || exe_new {
         guest_exe_entry(&s.resolved[..rn], &mut s.exe)?;
     }
     let argv_n = opts + full_n + 1;
-    let need = argv_n + if exe_at.is_some() { envc + 1 } else { 0 };
+    let need = argv_n
+        + if rebuild {
+            envc + n_carry + exe_new as usize + 1
+        } else {
+            0
+        };
     let mut v = unsafe { Slots::new(&mut s.stack, need) }?;
     let host = s.host.as_ptr() as *const c_char;
     if dispatch {
@@ -367,20 +422,25 @@ pub unsafe fn assemble(
     }
     v.push(core::ptr::null());
     let argv_out = v.at(0);
-    let envp_out = match exe_at {
-        Some(at) => {
-            let start = v.n;
-            for i in 0..envc {
-                v.push(if i == at {
-                    s.exe.as_ptr() as *const c_char
-                } else {
-                    unsafe { *envp.add(i) }
-                });
-            }
-            v.push(core::ptr::null());
-            v.at(start)
+    let envp_out = if rebuild {
+        let start = v.n;
+        for i in 0..envc {
+            v.push(if Some(i) == exe_at {
+                s.exe.as_ptr() as *const c_char
+            } else {
+                unsafe { *envp.add(i) }
+            });
         }
-        None => envp,
+        for c in &carry[..n_carry] {
+            v.push(*c);
+        }
+        if exe_new {
+            v.push(s.exe.as_ptr() as *const c_char);
+        }
+        v.push(core::ptr::null());
+        v.at(start)
+    } else {
+        envp
     };
     Ok(Launch {
         path: if loader || dispatch {

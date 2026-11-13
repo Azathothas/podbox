@@ -79,6 +79,7 @@ pub mod oflags;
 pub mod procfs;
 pub mod real;
 pub mod say;
+pub mod snapshot;
 
 use core::ffi::{c_char, c_int, c_uint, c_ulong, c_void};
 

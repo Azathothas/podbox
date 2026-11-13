@@ -101,7 +101,10 @@ fn a_descriptor_enters_through_the_guest_loader() {
             "a1"
         ]
     );
-    assert_eq!(envp, ["A=1", "PODVM_GUEST_EXE=/bin/prog"]);
+    // T-1756: the table that the caller's envp lacks comes with the exec.
+    let maps = format!("PODVM_MAPS=/:{root}");
+    let lib_var = format!("PODVM_LIB_PATH={lib}");
+    assert_eq!(envp, ["A=1", "PODVM_GUEST_EXE=/bin/prog", &maps, &lib_var]);
 
     let name = CString::new("t1703").unwrap();
     let m = unsafe { memfd_create(name.as_ptr(), 1) }; // MFD_CLOEXEC

@@ -3978,7 +3978,7 @@ The fix in the interposer is podvm's; a cause in a crate of podcrates goes there
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3999,3 +3999,34 @@ The fix in the interposer is podvm's; a cause in a crate of podcrates goes there
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `tools.apk.ul`, and a test of the interposer holds the fix
+
+## Correction
+
+**2026-11-13.** The premise was wrong: apk runs each trigger with an
+environment of its own, which drops `PODVM_MAPS` and `LD_PRELOAD`. The
+trigger's shell then had no table, and its exec of `/bin/busybox` resolved
+on the host. `env -i`, `clearenv` and `unsetenv` drop them the same way.
+
+## Done
+
+**Done 2026-11-13.** Two parts, in the interposer:
+
+- An exec carries podvm's variables (each `PODVM_*` but `PODVM_GUEST_EXE`,
+  and `LD_PRELOAD`) into an `envp` that lacks them by name; the caller's
+  own value of a name wins (`missing` in
+  `crates/podvm-interpose/src/exec/launch.rs`). `PODVM_GUEST_EXE` is made
+  fresh for the new program.
+- A constructor (`.init_array`) copies these variables when the object
+  loads (`crates/podvm-interpose/src/snapshot.rs`, a static buffer). The
+  table, `lookup_env` and the carry read the copy where `environ` no
+  longer has the name, so a process that cleared its environment keeps
+  its table.
+
+On the chroot-denied fixture: `apk add curl` in alpine exits 0 with no
+trigger error, `env -i /bin/sh -c 'ls /etc/alpine-release'` runs the
+image's shell with the table, and debian's `env -i /bin/bash -c 'cat
+/etc/debian_version'` prints `12.15`. The tests
+`an_exec_with_its_own_environment_keeps_the_variables_of_podvm` and
+`the_copy_of_the_start_is_taken_before_main` hold both parts; three tests
+of the exec route now expect the carried table. Experiment 443 runs
+`tools.apk.ul` again before the release.

@@ -269,7 +269,10 @@ fn the_route_enters_each_arm_through_the_rootfs() {
         "a1",
     ];
     assert_eq!(argv, want);
-    assert_eq!(envp, ["A=1", "PODVM_GUEST_EXE=/bin/prog"]);
+    // T-1756: the table that the caller's envp lacks comes with the exec.
+    let maps = format!("PODVM_MAPS=/:{root}");
+    let lib_var = format!("PODVM_LIB_PATH={lib}");
+    assert_eq!(envp, ["A=1", "PODVM_GUEST_EXE=/bin/prog", &maps, &lib_var]);
 
     let (path, argv, _) = launch("/bin/scr", &["scr", "s1"], &env).unwrap();
     assert_eq!(path, host("/lib/ld-test.so"));
@@ -294,7 +297,10 @@ fn the_route_enters_each_arm_through_the_rootfs() {
             vec!["static".to_string(), "z".to_string()]
         )
     );
-    assert_eq!(envp, ["A=1", "PODVM_GUEST_EXE=/bin/static"]);
+    assert_eq!(
+        envp,
+        ["A=1", "PODVM_GUEST_EXE=/bin/static", &maps, &lib_var]
+    );
 
     assert_eq!(launch("/bin/lost", &["lost"], &env), Err(ENOENT));
     assert_eq!(launch("/bin/none", &["none"], &env), Err(ENOENT));

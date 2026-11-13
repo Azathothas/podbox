@@ -25,6 +25,11 @@ unsafe extern "C" {
     static environ: *const *const c_char;
 }
 
+/// The process's own environment (TODO/interpose.md T-1756).
+pub(crate) fn environ_ptr() -> *const *const c_char {
+    unsafe { environ }
+}
+
 /// The variable that carries the table.
 pub const MAPS_VAR: &[u8] = b"PODVM_MAPS";
 
@@ -55,7 +60,13 @@ crate::real!(pub(crate) fn next_readlink = "readlink"(*const c_char, *mut c_char
 /// Reads the process's environ, which the kernel keeps valid for the
 /// process's life.
 pub unsafe fn table() -> Table {
-    unsafe { parse(environ) }
+    let t = unsafe { parse(environ) };
+    if t.n > 0 {
+        return t;
+    }
+    // T-1756: a process that dropped the table from its environment
+    // (`env -i`, `clearenv`) keeps the one it started with.
+    unsafe { parse(crate::snapshot::env()) }
 }
 
 /// One pair, borrowing environ memory. `Copy` so the table is a plain array.
@@ -126,7 +137,15 @@ pub(crate) fn match_var(e: *const c_char, name: &[u8]) -> Option<*const u8> {
 /// # Safety
 /// Reads the process's environ, which the kernel keeps valid.
 pub unsafe fn lookup_env(name: &[u8]) -> Option<(*const u8, usize)> {
-    let env = unsafe { environ };
+    unsafe { lookup_in(environ, name) }
+        .or_else(|| unsafe { lookup_in(crate::snapshot::env(), name) })
+}
+
+/// [`lookup_env`] in one `environ` image.
+///
+/// # Safety
+/// `env` as [`parse`].
+unsafe fn lookup_in(env: *const *const c_char, name: &[u8]) -> Option<(*const u8, usize)> {
     if env.is_null() {
         return None;
     }

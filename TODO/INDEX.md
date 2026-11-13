@@ -430,7 +430,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1753](interpose.md) | P1 | M | none | interpose | done | The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens |
 | [T-1754](interpose.md) | P1 | S | none | interpose | open | `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails |
 | [T-1755](interpose.md) | P1 | S | none | interpose | open | `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails |
-| [T-1756](interpose.md) | P2 | S | none | interpose | open | A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored |
+| [T-1756](interpose.md) | P2 | S | none | interpose | done | A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored |
 | [T-1757](cli.md) | P1 | S | none | cli | open | `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root |
 | [T-1758](enter.md) | P1 | M | none | enter | blocked | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
 | [T-1759](enter.md) | P1 | M | none | enter | done | No /dev/shm on either rung: python multiprocessing fails |
@@ -449,7 +449,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-380 entries: 12 open, 7 partial, 5 blocked, 356 done.
+380 entries: 11 open, 7 partial, 5 blocked, 357 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -460,9 +460,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 3 | 2 | 1 | 156 | 162 |
-| P2 | 4 | 3 | 4 | 117 | 128 |
+| P2 | 3 | 3 | 4 | 118 | 128 |
 | P3 | 5 | 2 | 0 | 18 | 25 |
-| **All** | 12 | 7 | 5 | 356 | 380 |
+| **All** | 11 | 7 | 5 | 357 | 380 |
 
 ## Work order
 

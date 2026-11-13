@@ -33,7 +33,7 @@ use crate::map::{Table, AT_FDCWD, OUT};
 mod descriptor;
 pub(crate) use descriptor::fd_path;
 pub mod head;
-mod launch;
+pub(crate) mod launch;
 pub(crate) mod lookup;
 mod shell;
 pub(crate) mod walk;
