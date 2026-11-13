@@ -1,9 +1,10 @@
 # Handoff
 
-The state on 2026-11-13, in the session that took podcrates `v0.34.0` and
-fixed T-1743. A fresh session with no memory reads this file first, then
-`AGENTS.md`, `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`.
-Remove this file when each step below is done.
+The state on 2026-11-13, at the end of the session that released
+`v0.2.0-beta.7` (T-1743) and took podcrates `v0.35.0`. A fresh session
+with no memory reads this file first, then `AGENTS.md`,
+`TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
+file when each step below is done.
 
 ## Where things are
 
@@ -13,14 +14,14 @@ Remove this file when each step below is done.
 * **A cloud session cannot start a workflow run** (`TODO/PROGRESS.md`,
   State). Each run is an issue titled `[gh action] requested` in the form
   of `AGENTS.md`, section 9, item 5. While a request that checks the head
-  of `main` is open, push nothing to `main`.
-* The newest release is `v0.2.0-beta.6`. The request for
-  `v0.2.0-beta.7` (the gate, `arm.yml`, the nightly trial and the release,
-  in one block, on `2edace91`) is issue 287; read its answer first. beta.7
-  carries T-1743 for PodUtils/podrunner@T-096. The commits after
-  `2edace91` (the map of issues 287 to 290, and `podvm lab`) wait on the
-  local `main` until issue 287 has run.
-* podvm takes the crates of PodUtils/podcrates at `v0.34.0`.
+  of `main` is open, push nothing to `main`. The owner's local agent ran
+  issue 287 in about 50 minutes, and it reported the run ids.
+* Issue 292 asks for the gate, `secrets.yml` and `arm.yml` on the head of
+  `main` (the commit that maps issue 292). No run of CI has checked the
+  commits after `2edace91` yet: `podvm lab` (T-1662), the open flags on
+  aarch64 (T-1744), the foreground payload (T-1748) and podcrates
+  `v0.35.0`. Each passed `cargo test --workspace`, clippy, fmt and the gate
+  on the cloud host.
 * The record is in the format of `pod-todo` (T-1672, call C17).
   `podvm-count --set T-NNNN STATUS` writes the status line and the row;
   a done entry needs `## Done` with a date. A foreign entry id carries its
@@ -33,12 +34,16 @@ Remove this file when each step below is done.
 
 Each waits for a peer; podvm closes it when the peer answers.
 
-* COORD-067 (#289, to podcrates and podrunner): T-1743. Write the release
-  of beta.7 into it; close it when podrunner pins beta.7.
+* COORD-067 (#289, to podcrates and podrunner): T-1743, released in
+  beta.7. Close it when podrunner pins beta.7.
 * COORD-068 (#290, to podcrates): the asks of podswarm are T-1745 to
   T-1752. Close it when podswarm or podcrates reads it.
-* COORD-041 (#260): `pod-netlab` for T-1662. The offline part is in
-  `v0.33.0`; T-1662 is open for the host side. Close it when podcrates
+* COORD-069 (#291, to podcrates): the reader of the probe report for
+  T-1746. podcrates answered (PodUtils/podcrates#128): podcrates@T-485 in
+  the next tag. Close it when podvm takes that tag.
+* The answer to PodUtils/podcrates#127 (the take of `v0.35.0`): the COORD
+  issue of 2026-11-13 after issue 292.
+* COORD-041 (#260): `pod-netlab` for T-1662. Close it when podcrates
   releases the guest parts (podcrates@T-345 to podcrates@T-347).
 * COORD-001 (#194, to podcrates): the crates that podvm hands over and
   takes.
@@ -49,20 +54,17 @@ Each waits for a peer; podvm closes it when the peer answers.
 
 ## Next steps, in order
 
-1. Start the session (`AGENTS.md`, section 8). Read the answer on
-   issue 287: on success, record the release (the run ids in
-   `TODO/PROGRESS.md`), push the local commit, amend COORD-067 (#289) with
-   the release, and close issue 287. On a failure, fix it, close issue 287
-   and open a new request.
+1. Start the session (`AGENTS.md`, section 8). Read the answer on issue
+   292. On success, set T-1744 done with the run of `arm.yml` (its
+   interposer tests on arm64), record the run ids, and close issue 292. On
+   a failure, fix it, close issue 292 and open a new request.
 2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662
-   (partial: `podvm lab scenarios` and `plan` are on the local `main`; the
-   guest parts wait for podcrates@T-345 to podcrates@T-347), then T-1722,
-   T-1744 (partial: its last proof is a run of `arm.yml` on a
-   commit that carries it), T-1406.
+   (partial: the guest parts wait for podcrates@T-345 to podcrates@T-347),
+   then T-1722 (needs incus, which the cloud host lacks), T-1406.
 3. Blocked: T-1663 and T-1664 (they run in T-1662's lab guest), T-1714
-   (podcrates@T-107).
-4. After podvm's own order: the podrunner part, then the asks of podswarm
-   (T-1748 is done; T-1746 waits for the reader that COORD-069 asks).
+   (podcrates@T-107), T-1746 (podcrates@T-485).
+4. After podvm's own order: the asks of podswarm, T-1745, T-1747 and
+   T-1749 to T-1752 (P3; T-1748 is done).
 5. Before an entry is set done, run `cargo test -p podvm`: the test
    `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
    The record tests of `podvm-todo` read the files on disk, so do not edit
@@ -70,3 +72,4 @@ Each waits for a peer; podvm closes it when the peer answers.
 6. The interposer: a new entry point needs its name in `interpose.map`
    (`podvm-interpose-build` compares the exports). Its `build.rs` names the
    map, so cargo links the objects again when the map changes (T-1743).
+   Each open flag comes from `oflags.rs` (T-1744).

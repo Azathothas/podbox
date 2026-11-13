@@ -11,10 +11,11 @@ start.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.6` (2026-11-12, release run
-  43241608767 on `860d6294`): the aarch64 interposer (T-1721), the runsc
-  tier (T-1729), the 9p volumes and `-t` of the machine tier (T-1723),
-  the incus verbs (T-1722, partial), the relay over `pod-relay` (T-1678).
+* The newest release is `v0.2.0-beta.7` (2026-11-13, release run
+  43348676353 on `2edace91`; 42 assets; the gate 43345851281, `arm.yml`
+  43347185943 and the nightly trial 43347752049 passed first, through
+  issue 287): T-1743 for PodUtils/podrunner@T-096, and podcrates
+  `v0.34.0`. Experiment 441 exits 0 with its `podvm-x86_64`.
   `release.yml` needs a successful gate run on its commit; dispatch
   `nightly.yml` with `trial=true` on `main` first.
 * GitHub Actions is disabled for the account that a cloud session pushes
@@ -22,16 +23,13 @@ The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
   `actions_run_trigger` answers "Actions has been disabled for this user".
   Each run of a cloud session is an issue `[gh action] requested`
   (`docs/decisions.md`, 2026-11-13, "Workflow fallback").
-* podvm takes the crates of PodUtils/podcrates at `v0.34.0` (`ee514e7`).
+* podvm takes the crates of PodUtils/podcrates at `v0.35.0` (`311c6bb`).
   A change of moved code goes to podcrates as a COORD issue.
-* T-1743 is done on `main`, not released: the fortified opens of glibc
-  take the path table, so GNU tar with an absolute `-C` works where chroot
-  is denied (PodUtils/podcrates#102, PodUtils/podrunner#70).
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a
   hosted arm64 runner (T-1721).
-* PodUtils/podrunner pins `v0.2.0-beta.6`; PodUtils/podrunner@T-096 waits for a beta
-  with T-1743.
+* PodUtils/podrunner pins `v0.2.0-beta.6`; PodUtils/podrunner@T-096 takes
+  beta.7 (COORD-067, issue 289).
 
 Each partial entry names its remaining clauses. Each blocked entry names
 its blocker and the condition that clears it.
