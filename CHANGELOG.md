@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.11 (2026-11-13)
+
 ### Fixed: a loopback proxy of a guest with no NIC, 2026-11-13
 
 Record: T-1778.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.11.
 
 - With `--podvm-net none`, the machine tier keeps a proxy variable on
   `127.0.0.1` as it is, so the payload reaches `--podvm-channel` through
@@ -21,7 +23,7 @@ Deployed: not deployed; the next release carries it.
 ### Fixed: the devices of the userland rung, 2026-11-13
 
 Record: T-1774.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.11.
 
 - On the userland rung under a user namespace, `/dev/urandom`,
   `/dev/random`, `/dev/zero` and `/dev/null` are the host's devices, not
