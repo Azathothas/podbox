@@ -4080,6 +4080,13 @@ needs a host with a delegated cgroup2 subtree with `memory`, `cpu` and
 `pids`, for example a hosted runner of GitHub (cgroup2 with each
 controller) in a workflow of this repository.
 
+**Amended 2026-11-13, later.** A second lane: since T-1780 each guest of
+the machine tier mounts cgroup2 at `/sys/fs/cgroup` with `cpuset`, `cpu`,
+`io`, `memory`, `hugetlb` and `pids` (experiment 447, clause 1), so a
+podvm in a guest on the cloud host can hold the Prove as root. The
+report of a delegated subtree belongs to the probe of `pod-hostprobe`
+(PodUtils/podcrates); ask it there first.
+
 
 # T-1752: A versioned JSON Schema for the record of `run --report`, published in each release
 
