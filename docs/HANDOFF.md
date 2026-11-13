@@ -1,7 +1,9 @@
 # Handoff
 
-The state on 2026-11-13, after the release `0.2.0-beta.8` (issue 302) for
-the beta testers (`docs/decisions.md`, "Complete release first"). A fresh
+The state on 2026-11-13, after the release `0.2.0-beta.10` (issue 308).
+`0.2.0-beta.8` (issue 302) is the complete release for the beta testers
+(`docs/decisions.md`, "Complete release first"); beta.9 and beta.10 serve
+podrunner's kinds. A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.
@@ -48,19 +50,16 @@ userland rung.
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
-2. Announce `0.2.0-beta.8` by COORD issues to podrunner and podcrates; the
-   beta testers get the README's Install and "Report a problem".
-3. The release `0.2.0-beta.9`, for podrunner's `microvm` kind: it holds
-   podcrates `v0.38.0`, the owners in a guest of the machine tier (T-1776)
-   and the guest with no NIC and one channel (T-1751, partial). Bump the
-   version in a commit "release: version 0.2.0-beta.9", then one
-   `[gh action] requested` issue in the form of issue 302 (one dispatch of
-   the gate). Name the release in COORD-077 (#303) with a `state:` line.
-4. Tell podcrates of the take of `v0.38.0` (PodUtils/podcrates#136), and
-   close COORD-076 (#299): podcrates recorded the take of `v0.37.0`.
+2. podrunner takes `0.2.0-beta.10` for its `microvm` and `incus` kinds:
+   close COORD-077 (#303) and COORD-079 (#307) when it says so.
+3. Close COORD-080 (#309) when podcrates records the take of `v0.39.0`.
+4. The rest of T-1751 (podswarm's shield `guest`: no host file in the
+   guest) and the reruns of experiment 443 for the rows that `v0.38.0`
+   closed.
 5. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
-   `target/`, or it reads and writes the main checkout.
+   `target/`, or it reads and writes the main checkout. Commit no
+   symbolic link: issue 305 stopped on one.
 6. Before an entry is set done, run `cargo test -p podvm`. Do not edit
    `TODO/` while `cargo test --workspace` runs, and do not edit
    `experiments/443-qa-surface.sh` while it runs.

@@ -11,15 +11,16 @@ start.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.9` (2026-11-13, release run
-  43409438385 on `11008d62`; the gate 43403642262, `arm.yml` 43406008482
-  and the nightly trial 43406658216 passed first, through issue 306): the
-  owners in a guest of the machine tier, the guest with no NIC and one
-  channel, and podcrates `v0.38.0`. `v0.2.0-beta.8` (release run
-  43399714037, issue 302) is the complete beta of the QA pass.
-  `release.yml` needs a successful gate run on its commit; dispatch
-  `nightly.yml` with `trial=true` on `main` first. A request asks for one
-  dispatch of the gate: two runs of it cancel each other (issue 301).
+* The newest release is `v0.2.0-beta.10` (2026-11-13, release run
+  43423493082 on `ce56cc26`; the gate 43420276209, `arm.yml` 43421607391
+  and the nightly trial 43422400615 passed first, through issue 308):
+  stdin for an incus instance that stays (T-1777), the socket of the
+  channel of a guest in a directory of mode 0700, and podcrates `v0.39.0`.
+  `v0.2.0-beta.8` (release run 43399714037, issue 302) is the complete
+  beta of the QA pass. `release.yml` needs a successful gate run on its
+  commit; dispatch `nightly.yml` with `trial=true` on `main` first. A
+  request asks for one dispatch of the gate: two runs of it cancel each
+  other (issue 301).
 * GitHub Actions is disabled for the account that a cloud session pushes
   and dispatches with (2026-11-13): a push starts no run, and
   `actions_run_trigger` answers "Actions has been disabled for this user".
@@ -46,7 +47,8 @@ first entry that is not done. Read its Prove before you start. Check
 each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
-1. podrunner takes `0.2.0-beta.9` (COORD-077, issue 303). The QA pass of
+1. podrunner takes `0.2.0-beta.10` (COORD-077, issue 303; COORD-079,
+   issue 307). The QA pass of
    experiment 443 is worked, and each of its entries is done. The rest of
    [T-1751](machine.md) (partial) is podswarm's: no host file in the
    guest. The copy of the rootfs on each run (11 s for golang) is T-1749.
