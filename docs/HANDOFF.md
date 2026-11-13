@@ -57,9 +57,10 @@ Each waits for a peer; podvm closes it when the peer answers.
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8). Read the answer on issue
-   292. On success, set T-1744 done with the run of `arm.yml` (its
-   interposer tests on arm64), record the run ids, and close issue 292. On
-   a failure, fix it, close issue 292 and open a new request.
+   292. Its `arm.yml` run 43351820031 passed (T-1744 is done with it), and
+   secrets passed; the gate run 43351811176 was queued at the end of the
+   session. On its success, close issue 292 with the run ids. On a
+   failure, fix it, close issue 292 and open a new request.
 2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662
    (partial: the guest parts wait for podcrates@T-345 to podcrates@T-347),
    then T-1722 (needs incus, which the cloud host lacks), T-1406.

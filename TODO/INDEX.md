@@ -418,7 +418,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1741](image.md) | P1 | S | none | image | done | A plain tar layer whose end padding is past the last read is refused as a digest mismatch |
 | [T-1742](enter.md) | P2 | S | none | enter | done | The loader family does not find the glibc of a Debian image on arm64 |
 | [T-1743](interpose.md) | P1 | S | none | interpose | done | GNU tar with an absolute `-C` opens the directory on the host: the fortified opens skip the table |
-| [T-1744](interpose.md) | P2 | S | none | interpose | partial | The open flags of the interposer have their x86_64 values on aarch64 |
+| [T-1744](interpose.md) | P2 | S | none | interpose | done | The open flags of the interposer have their x86_64 values on aarch64 |
 | [T-1745](cli.md) | P3 | L | none | cli | open | A Rust call for `run` with a typed request that returns the record of `--report` |
 | [T-1746](probe.md) | P2 | M | none | probe | blocked | `run` reads the cached probe, and probes again only when its key changes |
 | [T-1747](cli.md) | P3 | M | none | cli | open | `--memory`, `--cpus` and `--pids-limit` by cgroup2 where a subtree is delegated |
@@ -430,7 +430,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-361 entries: 4 open, 8 partial, 4 blocked, 345 done.
+361 entries: 4 open, 7 partial, 4 blocked, 346 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -441,9 +441,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 0 | 151 | 153 |
-| P2 | 0 | 3 | 4 | 113 | 120 |
+| P2 | 0 | 2 | 4 | 114 | 120 |
 | P3 | 4 | 3 | 0 | 16 | 23 |
-| **All** | 4 | 8 | 4 | 345 | 361 |
+| **All** | 4 | 7 | 4 | 346 | 361 |
 
 ## Work order
 

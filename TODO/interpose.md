@@ -3805,7 +3805,7 @@ with no rewrite.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3852,6 +3852,12 @@ on a 64-bit target.
 
 ## Done
 
+**Done 2026-11-13.** `arm.yml` run 43351820031 on `845faba1` (a hosted
+`ubuntu-24.04-arm` runner) runs the interposer tests natively on arm64: 91
+pass, with `the_open_flags_agree_with_the_c_headers`,
+`an_open_with_o_nofollow_does_not_follow_a_link_of_the_rootfs` and the two
+tests of T-1743; experiment 356 exits 0 in the same run.
+
 **Partial 2026-11-13.** `crates/podvm-interpose/src/oflags.rs` gives the
 open flags with a `cfg` for aarch64; `create_calls.rs`, `procfs/exe.rs`,
 `device.rs`, `sock_calls.rs` and `chk_calls.rs` take them from it. The
@@ -3859,5 +3865,4 @@ interposer tests pass on x86_64 (91), with
 `the_open_flags_agree_with_the_c_headers` and
 `an_open_with_o_nofollow_does_not_follow_a_link_of_the_rootfs`; with the
 value `0o100000` planted for `O_NOFOLLOW` on x86_64, both fail. Clippy of
-the interposer for `aarch64-unknown-linux-gnu` exits 0. Remaining: the
-run of the interposer tests on arm64 in `arm.yml`.
+the interposer for `aarch64-unknown-linux-gnu` exits 0.
