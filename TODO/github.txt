@@ -192,7 +192,7 @@
 300 issue closed
 301 issue closed
 302 issue closed
-303 issue open
+303 issue closed
 304 issue closed
 305 issue closed
 306 issue closed
@@ -201,3 +201,4 @@
 309 issue open
 310 issue closed
 311 issue open
+312 issue closed

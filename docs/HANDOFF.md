@@ -1,9 +1,9 @@
 # Handoff
 
-The state on 2026-11-13, after the release `0.2.0-beta.10` (issue 308).
+The state on 2026-11-13, after the release `0.2.0-beta.11` (issue 312).
 `0.2.0-beta.8` (issue 302) is the complete release for the beta testers
-(`docs/decisions.md`, "Complete release first"); beta.9 and beta.10 serve
-podrunner's kinds. A fresh
+(`docs/decisions.md`, "Complete release first"); beta.9, beta.10 and beta.11
+serve podrunner's kinds. A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.
@@ -48,8 +48,8 @@ host's devices on the userland rung under a user namespace).
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
-2. podrunner takes `0.2.0-beta.10` for its `microvm` and `incus` kinds:
-   close COORD-077 (#303) and COORD-079 (#307) when it says so.
+2. podrunner takes `0.2.0-beta.11` for its `microvm` and `incus` kinds:
+   close COORD-079 (#307) and COORD-081 (#311) when it says so.
 3. Close COORD-080 (#309) when podcrates records the take of `v0.39.0`.
 4. The rest of T-1751 (podswarm's shield `guest`: no host file in the
    guest).

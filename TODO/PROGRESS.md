@@ -11,11 +11,14 @@ start.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.10` (2026-11-13, release run
-  43423493082 on `ce56cc26`; the gate 43420276209, `arm.yml` 43421607391
-  and the nightly trial 43422400615 passed first, through issue 308):
-  stdin for an incus instance that stays (T-1777), the socket of the
-  channel of a guest in a directory of mode 0700, and podcrates `v0.39.0`.
+* The newest release is `v0.2.0-beta.11` (2026-11-13, release run
+  43443421795 on `3db2126f`; the gate 43440607600, `arm.yml` 43442039218
+  and the nightly trial 43442633044 passed first, through issue 312): a
+  loopback proxy variable of a guest with no NIC stays on the guest's
+  loopback, where the channel listens (T-1778, PodUtils/podrunner#87),
+  and the host's devices on the userland rung under a user namespace
+  (T-1774). Issue 310 stopped at the gate on `11c0d410`: the
+  native-static rung refused a device pair of T-1774.
   `v0.2.0-beta.8` (release run 43399714037, issue 302) is the complete
   beta of the QA pass. `release.yml` needs a successful gate run on its
   commit; dispatch `nightly.yml` with `trial=true` on `main` first. A
