@@ -135,6 +135,35 @@ pub fn refuse_unserved(
     refuse(verb, volumes, &why)
 }
 
+/// TODO/cli.md T-1772: make the working directory in the rootfs where it
+/// is absent, as docker does, before `check_workdir`. Each component is
+/// made in turn and none is followed: a link or a file of the image on the
+/// way stops the walk, and the check then refuses as before. A directory
+/// in a volume is left to the volume.
+pub fn make_workdir(rootfs: &str, workdir: &str, volumes: &[Volume]) {
+    let in_volume = volumes.iter().any(|v| {
+        let g = v.guest.trim_end_matches('/');
+        workdir == g || workdir.starts_with(&format!("{g}/"))
+    });
+    let parts: Vec<&str> = workdir.split('/').filter(|p| !p.is_empty()).collect();
+    if in_volume || !workdir.starts_with('/') || parts.iter().any(|p| *p == "." || *p == "..") {
+        return;
+    }
+    let mut at = std::path::PathBuf::from(rootfs);
+    for part in parts {
+        at.push(part);
+        match std::fs::symlink_metadata(&at) {
+            Ok(m) if m.file_type().is_dir() => continue,
+            Ok(_) => return,
+            Err(_) => {
+                if std::fs::create_dir(&at).is_err() {
+                    return;
+                }
+            }
+        }
+    }
+}
+
 /// One refusal line at 125, naming the first volume.
 fn refuse(verb: &str, volumes: &[Volume], why: &str) -> Result<(), i32> {
     if let Some(v) = volumes.first() {

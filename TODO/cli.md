@@ -4267,7 +4267,7 @@ on the default rung, with no network.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4291,7 +4291,16 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 
 ## Done
 
-**Partial 2026-11-13; the rest waits for podcrates.** Done: `-e NAME`
+**Done 2026-11-13.** The last clause came with podcrates `v0.37.0`
+(PodUtils/podcrates#134, its podcrates@T-492): `exec` of a running container of the
+namespace rung opens a pidfd of the payload and enters through
+`spawn_joined`, which joins the payload's mount namespace
+(`crates/podvm/src/exec/enter.rs`). A refused join is named by `pod-enter`,
+which enters a namespace of its own. On the cloud host, `exec` in a
+container of `run -d ... sh -c 'echo fromrun > /tmp/r; sleep 60'` prints
+`fromrun`, and /proc is there.
+
+**Partial 2026-11-13.** Done: `-e NAME`
 and `--env=NAME` of `run` and `exec` take the caller's value, and an unset
 NAME names nothing (`from_host` in `crates/podvm/src/run/parse/values.rs`;
 the test `e_name_takes_the_value_of_the_caller`). `exec` of a container
@@ -4302,10 +4311,9 @@ takes the environment of its record without podvm's own variables
 RV=v` sees `RV=v XV=x`. `--env-file` keeps its rule of T-0801: a line
 without `=` is refused.
 
-Open: `life.exec-sees-run-fs.ns`. The run's /tmp is a tmpfs in the run's
-own mount namespace, and `exec` enters a new one through `pod-enter`.
-COORD-074 (issue 297) asks podcrates for an entry that joins the mount
-namespace of the payload (`setns` with its pidfd) before the chroot.
+Then open: `life.exec-sees-run-fs.ns`. The run's /tmp is a tmpfs in the
+run's own mount namespace; COORD-074 (issue 297) asked podcrates for the
+joined entry.
 
 # T-1766: `--strict` and `probe` disagree with the rung that a run enters on the userland fixture
 
@@ -4418,7 +4426,7 @@ runs the three rows again before the release.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4445,3 +4453,15 @@ The refusal of T-1412 stays for a path that escapes, loops, or is a file.
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.workdir-new.ns` and `run.workdir-new.ul`, and a test of the CLI holds the fix
+
+## Done
+
+**Done 2026-11-13.** `make_workdir` in `crates/podvm/src/lifecycle/volume.rs`
+runs before `check_workdir` in `crates/podvm/src/run/prepare.rs`: it makes
+each missing component of an absolute working directory in the rootfs,
+follows no link, refuses a `.` or `..` component before it makes anything,
+and leaves a path in a volume to the volume. `run --rm -w /newdir alpine
+pwd` prints `/newdir` on the namespace rung and on the chroot-denied
+fixture. The test `a_missing_workdir_is_made_and_never_through_a_link`
+holds it; its first form found that `/a/../b` made `a`, and the walk now
+reads each component first.

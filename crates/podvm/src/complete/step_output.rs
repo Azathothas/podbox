@@ -47,6 +47,43 @@ pub(super) fn tail(out: &std::fs::File, n: usize) -> Vec<String> {
         .collect()
 }
 
+/// TODO/image.md T-1773: a step enters the rootfs by chroot, so where
+/// chroot is denied (the userland rung) each step is a skipped row that
+/// names why, not a failure of each run. True where it skipped them.
+pub(super) fn skipped(
+    verb: &str,
+    steps: &[podvm_complete::Step],
+    report: &mut podvm_complete::Report,
+    quiet: bool,
+    err: &mut dyn std::io::Write,
+) -> bool {
+    if podvm_probe::probes::chroot_usable(&podvm_probe::run()) {
+        return false;
+    }
+    for s in steps {
+        report.fixups.push(podvm_complete::Fixup {
+            entry: s.entry,
+            id: s.id,
+            path: String::new(),
+            action: podvm_complete::Action::Skipped,
+            detail: format!(
+                "`{}` runs inside the rootfs by chroot(2), which this machine denies",
+                s.argv.join(" ")
+            ),
+            degraded: true,
+        });
+    }
+    if !quiet {
+        let _ = writeln!(
+            err,
+            "podvm {verb}: complete: {} step(s) skipped: a step enters the rootfs by \
+             chroot(2), which this machine denies (TODO/image.md T-1773)",
+            steps.len()
+        );
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

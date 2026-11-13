@@ -298,6 +298,10 @@ pub fn run_steps_with_memo(
         return;
     }
     let steps = report.steps.clone();
+    // TODO/image.md T-1773: where chroot is denied, each step is skipped.
+    if super::step_output::skipped(verb, &steps, report, quiet, err) {
+        return;
+    }
     let root = match podvm_enter::RootDir::open(rootfs) {
         Ok(r) => r,
         Err(e) => {

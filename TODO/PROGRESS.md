@@ -7,7 +7,7 @@ start.
 
 ## State
 
-382 entries: 8 open, 7 partial, 6 blocked, 361 done.
+383 entries: 7 open, 6 partial, 5 blocked, 365 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -44,14 +44,14 @@ each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
 1. The defects of the QA pass (experiment 443, 2026-11-13: 518 rows pass,
-   64 fail), then a release for the beta testers. P1 first:
-   [T-1757](cli.md) (`-u` with an ENTRYPOINT runs as root),
-   [T-1754](interpose.md) (`scandir64`), [T-1755](interpose.md)
-   (`lutimes`), [T-1758](enter.md) (/proc on the namespace rung,
-   blocked on COORD-073), [T-1765](cli.md) (partial: /tmp of
-   `exec` waits for COORD-074). Then P2: [T-1760](cli.md)
-   (partial: `tty` on the namespace rung waits for COORD-073); then P3: [T-1770](net.md) (blocked on COORD-075). The copy of the rootfs on each run (11 s for golang)
-   is T-1749.
+   64 fail; the rerun: 566 pass, 17 fail), then the release
+   `0.2.0-beta.8` for the beta testers (`docs/HANDOFF.md`). Open:
+   [T-1757](cli.md), [T-1754](interpose.md) and [T-1755](interpose.md)
+   (fixed; their rows wait for the next rerun), [T-1760](cli.md)
+   (partial: `tty` on the namespace rung waits for the /dev/pts half of
+   COORD-073), [T-1770](net.md) (blocked on COORD-075) and
+   [T-1774](image.md) (P3). The copy of the rootfs on each run (11 s for
+   golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)

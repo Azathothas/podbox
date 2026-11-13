@@ -349,12 +349,9 @@ pub(crate) fn prepare(
         strict_unsafe = ue.unsafe_paths;
     }
     ro_env(verb, &o, userland.as_ref(), &mut env)?; // TODO/cli.md T-1655
-                                                    // ⭐ TODO/enter.md T-1412. The workdir is checked here, before the fork
-                                                    // and before any fixup mutates the rootfs, on both rungs: a missing
-                                                    // directory refuses naming the path and the image at 125, rather than
-                                                    // starting the payload in the wrong directory with exit 0. docker
-                                                    // creates the directory; podvm refuses and says so, and `-w /tmp`
-                                                    // prints `/tmp` as the passing control.
+                                                    // T-1412, T-1772: a missing workdir is made as docker does; one that is
+                                                    // a file, a link out or a `..` past the root refuses at 125.
+    crate::lifecycle::volume::make_workdir(&rootfs, &working_dir, &o.volumes);
     if let Err(e) = podvm_enter::check_workdir(&maps, &working_dir, &image) {
         eprintln!("podvm {verb}: {e}");
         return Err(e.exit_code());

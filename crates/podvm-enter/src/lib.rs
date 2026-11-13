@@ -14,8 +14,8 @@
 pub use pod_enter::{
     abi, binfmt, check_workdir, chroot_landed, entered_rung, entered_word, exit_status, fuse,
     ns_setup_step, ns_tmp_target, plan, run, run_ladder, run_namespace, run_selected, run_userland,
-    spawn, spawn_ladder, spawn_namespace, spawn_selected, spawn_userland, status, Bounded, Child,
-    Error, Fds, Names, NsMount, Plan, Program, Result, RootDir, ENTERED_RUNG,
+    spawn, spawn_joined, spawn_ladder, spawn_namespace, spawn_selected, spawn_userland, status,
+    Bounded, Child, Error, Fds, Names, NsMount, Plan, Program, Result, RootDir, ENTERED_RUNG,
 };
 
 // docker's codes, from the one file that holds them (TODO/cli.md T-0802).

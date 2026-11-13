@@ -398,12 +398,50 @@ pub(super) fn enter(
             drop(memo);
             outcome.code
         }
-        None => match podvm_enter::run(&root, &plan, &mut err) {
-            Ok(c) => c,
-            Err(e) => {
-                let _ = writeln!(err, "podvm exec: {e}");
-                e.exit_code()
+        None => {
+            // TODO/cli.md T-1765: in a running container of the namespace
+            // rung, `exec` joins the payload's mount namespace and sees
+            // its `/tmp` and `/proc`; `pod-enter` names a refused join and
+            // enters a namespace of its own.
+            let joined = (state == State::Running && container.rung == "namespace")
+                .then_some(container.pid)
+                .flatten()
+                .and_then(pidfd_open);
+            let r = match joined {
+                Some(fd) => {
+                    let r =
+                        podvm_enter::spawn_joined(&root, &plan, fd.as_raw_fd() as i64, &mut err)
+                            .and_then(|c| c.wait_forwarding(&mut err));
+                    drop(fd);
+                    r
+                }
+                None => podvm_enter::run(&root, &plan, &mut err),
+            };
+            match r {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(err, "podvm exec: {e}");
+                    e.exit_code()
+                }
             }
-        },
+        }
     }
+}
+
+/// A pidfd of `pid` (Linux 5.3), or `None`.
+fn pidfd_open(pid: i64) -> Option<std::os::fd::OwnedFd> {
+    use std::os::fd::FromRawFd;
+    unsafe extern "C" {
+        fn syscall(n: std::ffi::c_long, ...) -> std::ffi::c_long;
+    }
+    const SYS_PIDFD_OPEN: std::ffi::c_long = 434;
+    // SAFETY: pidfd_open takes a pid and flags and returns a descriptor.
+    let fd = unsafe {
+        syscall(
+            SYS_PIDFD_OPEN,
+            pid as std::ffi::c_long,
+            0 as std::ffi::c_long,
+        )
+    };
+    (fd >= 0).then(|| unsafe { std::os::fd::OwnedFd::from_raw_fd(fd as i32) })
 }

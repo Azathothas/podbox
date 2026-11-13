@@ -231,7 +231,13 @@ for r in ns ul; do
 	t run.label.$r $r "ps --filter label= finds it; inspect shows the label" 'has "$out" "qa-$RG-l1" && has "$out" team' "\$PB rm -f qa-\$RG-l1 >/dev/null 2>&1; \$X \$PB run --name qa-\$RG-l1 --label team=qa \$A true && \$PB ps -a --filter label=team=qa --format '{{.Names}}' && \$PB inspect -f '{{.Labels}}' qa-\$RG-l1; \$PB rm qa-\$RG-l1 >/dev/null"
 	t run.user.$r $r "1000 1000" '[ "$out" = "1000 1000" ]' "\$X \$PB run --rm -u 1000:1000 \$A sh -c 'echo \$(id -u) \$(id -g)'"
 	t run.user-name.$r $r "nobody" '[ "$out" = nobody ]' '$X $PB run --rm -u nobody $A id -un'
-	t run.user-deny.$r $r "a write to /root as uid 1000 fails" '[ $rc -ne 0 ]' "\$X \$PB run --rm -u 1000 \$A sh -c 'echo x > /root/qa'"
+	if [ $r = ul ]; then
+		# The userland rung fakes the identity (TODO/interpose.md T-0711):
+		# the kernel still writes as the caller, and podvm says so.
+		t run.user-deny.$r $r "documented: -u is faked here, and stderr says so" '[ $rc -eq 0 ] && has "$err" "faking the identity"' "\$X \$PB run --rm -u 1000 \$A sh -c 'echo x > /root/qa'"
+	else
+		t run.user-deny.$r $r "a write to /root as uid 1000 fails" '[ $rc -ne 0 ]' "\$X \$PB run --rm -u 1000 \$A sh -c 'echo x > /root/qa'"
+	fi
 	t run.user-node.$r $r "user node writes its home" '[ $rc -eq 0 ] && [ "$out" = node ]' "\$X \$PB run --rm -u node \$N sh -c 'touch /home/node/x && id -un'"
 	t run.user-entrypoint.$r $r "-u 1000 with an image ENTRYPOINT: 1000" '[ "$out" = 1000 ]' '$X $PB run --rm -u 1000 $N id -u'
 	t run.nss-hosts.$r $r "--add-host resolves through getent (glibc)" 'has "$out" "10.1.2.3"' '$X $PB run --rm --add-host qafoo:10.1.2.3 $D getent hosts qafoo'
@@ -310,7 +316,10 @@ y" ]' "\$X \$PB run --rm --tmpfs /scratch \$A sh -c 'ls -A /scratch | wc -l; ech
 	TO=60 t run.confine-errand.$r $r "profile errand runs echo" '[ "$out" = ok ]' '$X $PB run --rm --profile errand $A echo ok'
 	TO=60 t run.confine-errand-py.$r $r "profile errand runs python" '[ "$out" = 1 ]' "\$X \$PB run --rm --profile errand \$PY python3 -c 'print(1)'"
 	TO=60 t run.confine-exec-only.$r $r "exec=/bin only: ls runs" INFO "\$X \$PB run --rm --podvm-confine 'exec=/bin' \$A ls /bin/ls"
-	TO=60 t run.confine-connect.$r $r "connect=443 and the proxy port: wget https works" '[ $rc -eq 0 ]' "\$X \$PB run --rm \$PX --podvm-confine \"read=/;write=/tmp;connect=443,\$PPORT\" \$A wget -q -O /dev/null https://pypi.org/simple/six/"
+	# python's urllib, not busybox wget: wget sends an absolute GET for an
+	# https URL to a proxy, and the proxy of the cloud host answers 405
+	# with or without --podvm-confine.
+	TO=60 t run.confine-connect.$r $r "connect=443 and the proxy port: https works" '[ "$out" = 200 ]' "\$X \$PB run --rm \$PX --podvm-confine \"read=/;write=/tmp;connect=443,\$PPORT\" \$PY python3 -c 'import urllib.request; print(urllib.request.urlopen(\"https://pypi.org/simple/six/\").status)'"
 	TO=60 t run.confine-connect-deny.$r $r "connect=1 only: the proxy port is denied, fast" '[ $rc -ne 0 ] && [ $rc -ne 124 ]' "\$X \$PB run --rm \$PX --podvm-confine 'read=/;write=/tmp;connect=1' \$A wget -q -T 5 -O /dev/null https://pypi.org/simple/six/"
 	TO=60 t run.confine-bad.$r $r "rc 125, names the key" '[ $rc -eq 125 ] && has "$err" foo' "\$X \$PB run --rm --podvm-confine 'foo=/' \$A true"
 	TO=60 t run.confine-detached.$r $r "-d with confine: logs show the denial, wait gives 1" 'has "$out" -i denied' "\$PB rm -f qa-\$RG-cf >/dev/null 2>&1; \$X \$PB run -d --name qa-\$RG-cf --podvm-confine 'read=/usr;write=/tmp' \$A sh -c 'cat /etc/alpine-release; echo end' >/dev/null && \$PB wait qa-\$RG-cf; \$PB logs qa-\$RG-cf; \$PB rm -f qa-\$RG-cf >/dev/null"

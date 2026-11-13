@@ -36,17 +36,17 @@ podvm-enter = { path = "../podvm-enter" }
 podvm-dispatch = { path = "../podvm-dispatch" }
 # TODO/machine.md T-1727: the client of the incus REST API (T-1718), shared
 # through PodUtils/podcrates; a runtime of one thread drives it.
-pod-incus = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
+pod-incus = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
 # TODO/deps.md T-1679: the hosts of other parties (the guest kernel's
 # archive, the default server of login), one list in podcrates.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
 # The offline part of a network lab: knobs, plan, verdicts (TODO/net.md T-1662).
-pod-netlab = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
+pod-netlab = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
 # TODO/net.md T-1665: the egress broker of `--net broker`, chained to the
 # host's proxy through `pod-proxy`.
-pod-broker = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
-pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0", default-features = false, features = ["async"] }
+pod-broker = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0", default-features = false, features = ["async"] }
 tokio = { version = "1", default-features = false, features = ["rt", "fs", "net"] }
 podvm-supervise = { path = "../podvm-supervise" }
 # ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate

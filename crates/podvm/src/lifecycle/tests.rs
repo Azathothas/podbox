@@ -258,6 +258,8 @@ fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
 
 mod emulate;
 mod fields_and_copy;
+// TODO/image.md T-1768, TODO/cli.md T-1772.
+mod copy_more;
 mod native;
 mod residual;
 mod script;

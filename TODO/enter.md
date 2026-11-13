@@ -3517,7 +3517,7 @@ Prove. The overlay mount belongs to `pod-enter`'s namespace rung: COORD-071
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -3539,16 +3539,16 @@ The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `imgs.go-version.ns`, `tools.go-mod.ns`, `run.proc.ns`, and a test of the entry holds the fix
 
-## Blocker
+## Done
 
-**Blocked 2026-11-13 on podcrates.** The namespace rung mounts in the
-child of `pod-enter` (`launch.rs`: steps 7, 8 and 9), and podvm has no
-step between the tmpfs on /tmp and the chroot. COORD-073 (issue 296) asks
-podcrates for a step that mounts a fresh proc on the /proc of the image,
-with no PID namespace, where a failure does not stop the rung. On the
-cloud host, as root, a mount namespace may mount proc (measured with
-`unshare(1)`, in the issue). podvm takes the tag that brings the step,
-then runs the Prove.
+**Done 2026-11-13.** podcrates `v0.37.0` (PodUtils/podcrates#134, its
+podcrates@T-491) mounts a fresh proc on the /proc of the image in the namespace rung
+of `pod-enter`, after the tmpfs on /tmp; a refused mount names itself and
+the rung goes on. podvm takes the tag. On the namespace rung of the cloud
+host, `run --rm alpine head -2 /proc/self/status` prints `Name: head`, and
+`run --rm golang:1.24-bookworm go version` prints `go version go1.24.13
+linux/amd64`. `cargo test --workspace` passes (798 tests). The rows of the
+Prove come with the next rerun of experiment 443.
 
 # T-1759: No /dev/shm on either rung: python multiprocessing fails
 

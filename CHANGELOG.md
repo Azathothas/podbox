@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: /proc on the namespace rung, `exec` in the run's mounts, `-w`, 2026-11-13
+
+Record: T-1758, T-1765, T-1772, T-1773, PodUtils/podcrates#134.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.37.0`. The namespace rung
+  mounts /proc: `go version` and `/proc/self/status` work there.
+- `exec` in a running container of the namespace rung joins the payload's
+  mount namespace: it sees the run's `/tmp` and `/proc`.
+- `run -w DIR` makes a directory that the image lacks, as docker does.
+- On the userland rung, a step of the completion (`openssl rehash`) is
+  skipped with a note, not failed on each run.
+
 ### Fixed: volumes, the image's users and hosts, and environments of programs, 2026-11-13
 
 Record: T-1761, T-1753, T-1756, T-1765.

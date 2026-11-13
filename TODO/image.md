@@ -3648,7 +3648,7 @@ fixture, behind the proxy of the cloud host. Experiment 443 runs
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3674,3 +3674,43 @@ A skipped step is a degradation, so `--strict` still sees it.
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the row `run.true-py.ul`, and a test of the completion holds the fix
+
+## Done
+
+**Done 2026-11-13.** `skipped` in `crates/podvm/src/complete/step_output.rs`
+asks the probe whether chroot works before the steps run (only where there
+are steps): where it does not, each step is a skipped row, degraded, that
+names chroot(2), and one line prints without `-q`. On the chroot-denied
+fixture, `run --rm python:3.12-slim true` exits 0 with nothing on stderr.
+
+# T-1774: busybox `head -c` of `/dev/urandom` stops at 1 MiB on the userland rung
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the rerun of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** image
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On the chroot-denied fixture, `run --rm alpine sh -c 'head -c 2000000
+/dev/urandom | wc -c'` prints 1048576. `head -c` of /dev/zero, `dd` of
+/dev/urandom, `cat /dev/urandom | head -c`, and the `head` of debian give
+the full size, as does the namespace rung.
+
+## Premise
+
+-
+
+## Approach
+
+Trace the reads of busybox `head` under the interposer and the loader.
+
+## Decision
+
+podvm fixes it where the cause is the interposer; a cause in a crate of podcrates goes to podcrates as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the row `run.urandom.ul`, and a test of the interposer holds the fix
