@@ -8,15 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.8 (2026-11-13)
+
 ### Fixed: /proc on the namespace rung, `exec` in the run's mounts, `-w`, 2026-11-13
 
-Record: T-1758, T-1765, T-1772, T-1773, PodUtils/podcrates#134.
-Deployed: not released.
+Record: T-1758, T-1765, T-1772, T-1773, T-1775, PodUtils/podcrates#134.
+Deployed: version 0.2.0-beta.8.
 
 - podvm takes the crates of podcrates at `v0.37.0`. The namespace rung
   mounts /proc: `go version` and `/proc/self/status` work there.
 - `exec` in a running container of the namespace rung joins the payload's
-  mount namespace: it sees the run's `/tmp` and `/proc`.
+  mount namespace: it sees the run's `/tmp` and `/proc`, and `cp` to or
+  from such a container goes through the same mounts.
 - `run -w DIR` makes a directory that the image lacks, as docker does.
 - On the userland rung, a step of the completion (`openssl rehash`) is
   skipped with a note, not failed on each run.
@@ -24,7 +27,7 @@ Deployed: not released.
 ### Fixed: volumes, the image's users and hosts, and environments of programs, 2026-11-13
 
 Record: T-1761, T-1753, T-1756, T-1765.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - `run -v HOST:GUEST`, `:ro`, `--tmpfs` and `--read-only` work on the
   default rung of a root user. Before, each exited 125 with a message that
@@ -42,7 +45,7 @@ Deployed: not released.
 ### Fixed: terminals, /dev/shm, the loader under confine, and the rung of probe, 2026-11-13
 
 Record: T-1760, T-1759, T-1764, T-1766.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - `run -t` gives the payload a pty, also where podvm has no terminal, and
   makes the caller's terminal raw for the run.
@@ -55,7 +58,7 @@ Deployed: not released.
 ### Fixed: speed and noise, 2026-11-13
 
 Record: T-1762, T-1763, T-1767, T-1768, T-1769.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - The verdicts of the HTTPS probe of the source fixup are cached in the
   store. A run of ubuntu takes about 1.4 s, not 3.6 s.
@@ -70,7 +73,7 @@ Deployed: not released.
 ### Fixed: `-u` with an ENTRYPOINT script, and the path calls of common tools on the userland rung, 2026-11-13
 
 Record: T-1757, T-1754, T-1755.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - `run -u USER` reaches a payload whose first program is a `#!` script
   (the ENTRYPOINT of the node image). Where `-u` cannot reach the payload
@@ -85,7 +88,7 @@ Deployed: not released.
 ### Changed: podcrates v0.36.0, 2026-11-13
 
 Record: PodUtils/podcrates#129.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - podvm takes the crates of podcrates at `v0.36.0`. No behaviour of podvm
   changes.
@@ -93,7 +96,7 @@ Deployed: not released.
 ### Added: the incus tier by configuration, `logs -f` and `inspect`, 2026-11-13
 
 Record: T-1722.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - A line `tier = incus` in `$store/config` makes `run` and `create` take
   the incus tier with no flag where an incusd answers, and `system info`
@@ -105,7 +108,7 @@ Deployed: not released.
 ### Added: the crate podvm-api, a typed call for `run`, 2026-11-13
 
 Record: T-1745, PodUtils/podcrates#124 (V-1).
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - A program that runs podvm can link `podvm-api` (by the git tag of this
   repository): a typed `Run` request starts the podvm binary of the same
@@ -115,7 +118,7 @@ Deployed: not released.
 ### Added: the JSON Schema of `run --report`, 2026-11-13
 
 Record: T-1752, PodUtils/podcrates#124 (V-8).
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - Each release publishes `podvm-run-report.v1.schema.json`, the JSON
   Schema of the record of `run --report` at layout version 1. The field
@@ -125,7 +128,7 @@ Deployed: not released.
 ### Changed: podcrates v0.35.0, 2026-11-13
 
 Record: PodUtils/podcrates#127.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - podvm takes the crates of podcrates at `v0.35.0`. `pod-oci` sends no
   login to a registry over plain HTTP. No other behaviour of podvm
@@ -134,7 +137,7 @@ Deployed: not released.
 ### Fixed: a foreground payload ends when its podvm is killed, 2026-11-13
 
 Record: T-1748, PodUtils/podcrates#124 (V-4).
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - When the `podvm` of a foreground `run` dies by SIGKILL, its payload now
   gets SIGKILL too, as the payload of `run -d` does with its launcher.
@@ -143,7 +146,7 @@ Deployed: not released.
 ### Fixed: the open flags of the interposer on aarch64, 2026-11-13
 
 Record: T-1744.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - On aarch64 the interposer read the x86_64 values of `O_NOFOLLOW`,
   `O_DIRECTORY`, `O_DIRECT` and `O_LARGEFILE`. An `O_NOFOLLOW` open of a
@@ -153,7 +156,7 @@ Deployed: not released.
 ### Added: `podvm lab scenarios` and `podvm lab plan`, 2026-11-13
 
 Record: T-1662 (partial), PodUtils/podcrates#103.
-Deployed: not released.
+Deployed: version 0.2.0-beta.8.
 
 - `podvm lab scenarios` lists the 27 offline network labs of sand-net,
   and `podvm lab plan SCENARIO` (or the knob flags `--stack`, `--nat`,
