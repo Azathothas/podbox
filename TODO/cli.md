@@ -4410,3 +4410,38 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 
 The test `tests/short_refusals.rs` holds the short refusals. Experiment 443
 runs the three rows again before the release.
+
+# T-1772: `-w` with a directory that the image lacks is refused; docker creates it
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the rerun of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --rm -w /newdir alpine pwd` exits 125: "the working directory
+"/newdir" ... is not a directory in the image: docker creates it, and the
+entry refuses it instead". docker prints `/newdir`.
+
+## Premise
+
+T-1412 chose to refuse a missing working directory, so that a payload
+never starts in the wrong directory. Each run has a private rootfs, so
+podvm can make the directory there before the check, as docker does.
+
+## Approach
+
+Before `check_workdir`, make each missing component of an absolute working
+directory in the rootfs, following no link; leave a path in a volume to
+the volume. A file or a link of the image on the way still refuses.
+
+## Decision
+
+The refusal of T-1412 stays for a path that escapes, loops, or is a file.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.workdir-new.ns` and `run.workdir-new.ul`, and a test of the CLI holds the fix

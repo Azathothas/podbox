@@ -3640,3 +3640,37 @@ has no subject.
 -e ...'` prints `true` on the namespace rung and on the chroot-denied
 fixture, behind the proxy of the cloud host. Experiment 443 runs
 `tools.npm.ul` again before the release.
+
+# T-1773: A step of the completion fails on each run of the userland rung
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the rerun of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On the chroot-denied fixture, each run of python prints "podvm: complete:
+step 1 of 1: `/usr/bin/openssl rehash /etc/ssl/certs` could not be
+started: ... chroot into the rootfs failed with EPERM", also with `-q`.
+
+## Premise
+
+A step of the completion (T-0412) enters the rootfs by chroot. Where
+chroot is denied, it always fails. Before T-1763, the line of a failed step
+printed only without `-q`, so the failure was quiet.
+
+## Approach
+
+Where chroot is denied, skip each step with a row that names why, and
+print one line only without `-q`.
+
+## Decision
+
+A skipped step is a degradation, so `--strict` still sees it.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the row `run.true-py.ul`, and a test of the completion holds the fix

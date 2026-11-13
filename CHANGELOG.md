@@ -8,6 +8,52 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: volumes, the image's users and hosts, and environments of programs, 2026-11-13
+
+Record: T-1761, T-1753, T-1756, T-1765.
+Deployed: not released.
+
+- `run -v HOST:GUEST`, `:ro`, `--tmpfs` and `--read-only` work on the
+  default rung of a root user. Before, each exited 125 with a message that
+  named the chroot rung.
+- On the userland rung, `getpwnam`, `getpwuid`, `getgr*`, `getgrouplist`,
+  `gethostbyname*` and `getaddrinfo` read the image's `/etc/passwd`,
+  `/etc/group` and `/etc/hosts`. Before, `id` named the host's users, and
+  `--add-host` did not resolve.
+- A program that runs a child with an environment of its own (the
+  triggers of apk, `env -i`) keeps the path table of the userland rung.
+  `apk add` works there.
+- `-e NAME` takes the caller's value of NAME, as docker. `exec` takes the
+  environment that the container started with, then its own `-e`.
+
+### Fixed: terminals, /dev/shm, the loader under confine, and the rung of probe, 2026-11-13
+
+Record: T-1760, T-1759, T-1764, T-1766.
+Deployed: not released.
+
+- `run -t` gives the payload a pty, also where podvm has no terminal, and
+  makes the caller's terminal raw for the run.
+- Each rootfs has a `/dev/shm` (mode 1777): python's `multiprocessing`
+  works on both rungs.
+- `--podvm-confine` lets the dynamic loader read `/etc/ld.so.cache`.
+- `probe` names the rung that `run` enters: `userland` where chroot is
+  denied. `probe --strict` gates on it.
+
+### Fixed: speed and noise, 2026-11-13
+
+Record: T-1762, T-1763, T-1767, T-1768, T-1769.
+Deployed: not released.
+
+- The verdicts of the HTTPS probe of the source fixup are cached in the
+  store. A run of ubuntu takes about 1.4 s, not 3.6 s.
+- A step of the completion prints its output only where it fails. A quiet
+  python run printed 108 lines of `openssl rehash`.
+- `extract` no longer claims a chown EINVAL that did not happen; `pull -q`
+  prints nothing on stderr; `restart` prints the name once.
+- `cp -r` keeps hard links (busybox's `/bin` was 480 MiB, now 1.5 MiB).
+- An unknown verb or flag prints a short refusal and the help command;
+  `profile list` aligns its columns; a closed pipe ends podvm quietly.
+
 ### Fixed: `-u` with an ENTRYPOINT script, and the path calls of common tools on the userland rung, 2026-11-13
 
 Record: T-1757, T-1754, T-1755.

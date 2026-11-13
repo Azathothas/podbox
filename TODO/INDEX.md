@@ -446,10 +446,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1769](cli.md) | P3 | S | none | cli | done | An unknown verb or flag prints the whole usage |
 | [T-1770](net.md) | P3 | S | none | net | blocked | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
 | [T-1771](image.md) | P2 | S | none | image | done | node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy |
+| [T-1772](cli.md) | P2 | S | none | cli | open | `-w` with a directory that the image lacks is refused; docker creates it |
+| [T-1773](image.md) | P2 | S | none | image | open | A step of the completion fails on each run of the userland rung |
 
 ## Counts
 
-380 entries: 6 open, 7 partial, 6 blocked, 361 done.
+382 entries: 8 open, 7 partial, 6 blocked, 361 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -460,9 +462,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 3 | 2 | 1 | 156 | 162 |
-| P2 | 0 | 3 | 4 | 121 | 128 |
+| P2 | 2 | 3 | 4 | 121 | 130 |
 | P3 | 3 | 2 | 1 | 19 | 25 |
-| **All** | 6 | 7 | 6 | 361 | 380 |
+| **All** | 8 | 7 | 6 | 361 | 382 |
 
 ## Work order
 

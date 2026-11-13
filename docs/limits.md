@@ -41,12 +41,14 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   the table cannot map, and `io_uring_setup`, answer `ENOSYS`. A program
   that issues the `syscall` instruction itself (a static program, Go,
   liburing) passes the interposer (T-1652).
-- A volume (`-v HOST:GUEST`) on a host that denies chroot is a path
-  rewrite of the userland loader family, not a mount (T-1653). A write
+- A volume (`-v HOST:GUEST`), `--tmpfs` and `--read-only` are a path
+  rewrite of the userland loader family, not a mount (T-1653). A run with
+  one of them takes that family also where chroot works (T-1761). A write
   lands in HOST. A static program or a raw `syscall` instruction sees
-  the image path, and `/proc/mounts` does not list the volume. podvm
-  refuses a volume on the chroot rung, the memfd family and the machine
-  tier. A working directory or a first program in a volume resolves
+  the image path, and `/proc/mounts` does not list the volume. Where the
+  loader family cannot take the payload (a static program, a foreign
+  image), podvm prints why and refuses the volume on the chroot rung; it
+  refuses one on the memfd family too. A working directory or a first program in a volume resolves
   through the same table, to the file of the volume.
 - `:ro` and `--read-only` are a read-only layer of the same interposer
   (T-1655): a write through libc under a read-only guest path fails with
@@ -126,9 +128,8 @@ Each release target since beta.10 carries the helper archive
 The relay legs carry a 10 s bound on each connection, pings on each
 socket, and a 10 s write bound on the server of each session; a stalled
 peer ends its session or its socket loud instead of wedging the node. Node redial pairing is
-proven on the loopback fake relay; pairing against the live relay is the
-one remaining clause of T-1406, which is `partial` and owns both the
-bounds and the reconnect evidence. The earlier T-1403 acceptance proves
+proven on the loopback fake relay (T-1406). Pairing against a live relay
+is `pod-relay`'s, in PodUtils/podcrates. The earlier T-1403 acceptance proves
 concurrent sessions under its tested conditions.
 
 The passwd shim compiles from retained source on a glibc-dynamic lane
