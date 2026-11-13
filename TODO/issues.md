@@ -188,3 +188,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #291 | COORD-069: ask for a reader of the probe report in pod-hostprobe, so that run can use the probe cache (podvm T-1746, V-2 of podswarm) (to podcrates) | open | T-1746 |
 | #292 | [gh action] requested | open | none: a request of the gate, secrets and `arm.yml` on the head of `main` of 2026-11-13 (the commit that adds this row), for T-1662, T-1744, T-1748 and podcrates v0.35.0 (AGENTS.md, section 9) |
 | #293 | COORD-070: podvm takes podcrates v0.35.0 (the answer to PodUtils/podcrates#127) (to podcrates) | open | T-1662, T-1746 |
+| #294 | COORD-071: ask for an overlay root in pod-enter's namespace rung: the image read-only under a tmpfs upper layer (podvm T-1749, V-5 of podswarm) (to podcrates) | open | T-1749 |

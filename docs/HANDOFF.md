@@ -43,6 +43,8 @@ Each waits for a peer; podvm closes it when the peer answers.
   the next tag. Close it when podvm takes that tag.
 * COORD-070 (#293, to podcrates): the take of `v0.35.0`, the answer to
   PodUtils/podcrates#127. Close it when podcrates records the take.
+* COORD-071 (#294, to podcrates): an overlay root in `pod-enter`'s
+  namespace rung for T-1749. Close it when a tag holds it.
 * COORD-041 (#260): `pod-netlab` for T-1662. Close it when podcrates
   releases the guest parts (podcrates@T-345 to podcrates@T-347).
 * COORD-001 (#194, to podcrates): the crates that podvm hands over and

@@ -3506,5 +3506,6 @@ for golang:1.24.7-bookworm (810.3 MiB, fill 8377 ms, 66 %). The copy is
 the cost of a large image, so the entry goes on. Remaining: the root with
 no copy for each rung (an overlay mount in the user namespace where it
 mounts; else a copy-up of the path table on the loader family), and the
-Prove.
+Prove. The overlay mount belongs to `pod-enter`'s namespace rung: COORD-071
+(issue 294) asks podcrates for it. The loader family is podvm's part.
 
