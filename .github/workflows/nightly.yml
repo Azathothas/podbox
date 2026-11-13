@@ -162,6 +162,11 @@ jobs:
           # unchanged and the signing loop skips it.
           if [ "${{ matrix.arch }}" = "x86_64" ]; then
             cp target/${{ matrix.triple }}/release/release-notes dist/release-notes-x86_64
+            # TODO/cli.md T-1752. The schema of `run --report` is one file
+            # for each layout version, published once (the x86_64 leg), and
+            # signed with the binaries by the dist/podvm-* glob.
+            cp crates/podvm/schemas/run-report.v1.schema.json dist/podvm-run-report.v1.schema.json
+            (cd dist && sha256sum podvm-run-report.v1.schema.json > podvm-run-report.v1.schema.json.sha256)
           fi
 
       # TODO/packaging.md T-1737. The packager and the licence inventory are

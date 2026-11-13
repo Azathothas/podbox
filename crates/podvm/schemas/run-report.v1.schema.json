@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "podvm-run-report.v1.schema.json",
+  "title": "The record of podvm run --report, version 1",
+  "description": "One JSON object for each run of podvm run --report PATH (TODO/cli.md T-1695, T-1752). A reader refuses a record whose schema is not a version that it knows.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "podvm",
+    "image",
+    "image_digest",
+    "rung",
+    "measured_by",
+    "argv",
+    "container",
+    "detached",
+    "exit_code",
+    "signal",
+    "refused",
+    "started",
+    "ended",
+    "wall_ms",
+    "user_ms",
+    "system_ms",
+    "max_rss_kib",
+    "timed_out",
+    "timeout_s",
+    "limits",
+    "no_new_privs",
+    "confine",
+    "labels",
+    "degradations"
+  ],
+  "properties": {
+    "schema": {
+      "const": 1,
+      "type": "integer",
+      "description": "The version of this layout; this file describes version 1."
+    },
+    "podvm": {
+      "type": "string",
+      "description": "The version of podvm that wrote the record."
+    },
+    "image": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The image of the run; null where the run refused before it read one."
+    },
+    "image_digest": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The manifest digest of the image."
+    },
+    "rung": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The rung or tier that the run entered."
+    },
+    "measured_by": {
+      "type": "string",
+      "description": "How podvm knows the rung."
+    },
+    "argv": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The command of the payload."
+    },
+    "container": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The container of a detached run."
+    },
+    "detached": {
+      "type": "boolean",
+      "description": "The run was started with -d."
+    },
+    "exit_code": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "The exit code of the payload; null where the run refused or is detached."
+    },
+    "signal": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "The signal that ended the payload (exit code 128 + N)."
+    },
+    "refused": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "The exit code of a refusal of podvm; null where the payload ran."
+    },
+    "started": {
+      "type": "string",
+      "description": "The start, RFC 3339 in UTC."
+    },
+    "ended": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The end, RFC 3339 in UTC."
+    },
+    "wall_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "The wall time of the run in milliseconds."
+    },
+    "user_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "The user CPU time of the reaped children."
+    },
+    "system_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "The system CPU time of the reaped children."
+    },
+    "max_rss_kib": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "The peak resident set of the reaped children."
+    },
+    "timed_out": {
+      "type": "boolean",
+      "description": "--timeout ended the run."
+    },
+    "timeout_s": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "The bound of --timeout in seconds."
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Each --ulimit of the run."
+    },
+    "no_new_privs": {
+      "type": "boolean",
+      "description": "The payload ran with no_new_privs."
+    },
+    "confine": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The spec of the confine layer."
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Each --label, KEY=VALUE."
+    },
+    "degradations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Each fixup of the completion layer that changed a byte or failed."
+    }
+  }
+}

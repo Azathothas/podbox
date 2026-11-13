@@ -4052,7 +4052,7 @@ flag is refused by name where none is
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4081,3 +4081,20 @@ The half of `probe --json` stays T-1714.
 `cargo test -p podvm` exits 0, with a test that each record of `run
 --report` names its schema version and validates against the schema file
 of the tree
+
+## Done
+
+**Done 2026-11-13.** The record of `run --report` named its layout
+version already (`schema`, `SCHEMA` = 1, T-1695).
+`crates/podvm/schemas/run-report.v1.schema.json` is the JSON Schema
+(draft 2020-12) of version 1: each key required, no other key, the type
+of each value, and `schema` the constant 1. `cargo test -p podvm` exits 0
+with
+`each_record_validates_against_the_schema_of_its_version`: the records of
+a run, a refusal and a detached run have the keys of the schema and the
+type of each property; with a key removed from the schema the test fails.
+The x86_64 leg of `nightly.yml` stages the file as the asset
+`podvm-run-report.v1.schema.json` with its `.sha256`, and the publish job
+signs it with the binaries; the first release after this commit carries
+it. The half of `probe --json` stays T-1714.
+

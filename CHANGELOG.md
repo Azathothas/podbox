@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the JSON Schema of `run --report`, 2026-11-13
+
+Record: T-1752, PodUtils/podcrates#124 (V-8).
+Deployed: not released.
+
+- Each release publishes `podvm-run-report.v1.schema.json`, the JSON
+  Schema of the record of `run --report` at layout version 1. The field
+  `schema` of each record names its version; a reader refuses a version
+  that it does not know.
+
 ### Changed: podcrates v0.35.0, 2026-11-13
 
 Record: PodUtils/podcrates#127.

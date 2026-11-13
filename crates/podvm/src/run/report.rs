@@ -192,6 +192,11 @@ pub fn path_in(args: &[String]) -> Option<PathBuf> {
 mod tests {
     use super::*;
 
+    /// The JSON Schema of layout [`SCHEMA`] (TODO/cli.md T-1752). Each release
+    /// publishes it as the asset `podvm-run-report.v1.schema.json`; a change
+    /// of the layout is a new version and a new file.
+    const SCHEMA_DOC: &str = include_str!("../../schemas/run-report.v1.schema.json");
+
     fn v(a: &[&str]) -> Vec<String> {
         a.iter().map(|s| s.to_string()).collect()
     }
@@ -260,6 +265,71 @@ mod tests {
         let left: Vec<_> = std::fs::read_dir(&dir).unwrap().flatten().collect();
         assert_eq!(left.len(), 1, "one file, no temporary left: {left:?}");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// Whether `value` has a type that the property `prop` of the schema
+    /// allows: the subset of JSON Schema that the file uses.
+    fn allows(prop: &serde_json::Value, value: &serde_json::Value) -> bool {
+        if let Some(c) = prop.get("const") {
+            return c == value;
+        }
+        let types: Vec<&str> = match &prop["type"] {
+            serde_json::Value::String(t) => vec![t.as_str()],
+            serde_json::Value::Array(a) => a.iter().filter_map(|t| t.as_str()).collect(),
+            _ => return false,
+        };
+        types.iter().any(|t| match *t {
+            "null" => value.is_null(),
+            "string" => value.is_string(),
+            "boolean" => value.is_boolean(),
+            "integer" => value.is_i64() || value.is_u64(),
+            "array" => value
+                .as_array()
+                .is_some_and(|a| a.iter().all(|e| allows(&prop["items"], e))),
+            _ => false,
+        })
+    }
+
+    /// T-1752 (V-8 of PodUtils/podcrates#124): the schema file describes
+    /// each record that `json` writes, key for key and type for type.
+    #[test]
+    fn each_record_validates_against_the_schema_of_its_version() {
+        let schema: serde_json::Value = serde_json::from_str(SCHEMA_DOC).unwrap();
+        assert_eq!(schema["properties"]["schema"]["const"], SCHEMA);
+        assert_eq!(schema["additionalProperties"], false);
+        let props = schema["properties"].as_object().unwrap();
+        let required: Vec<&str> = schema["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r.as_str().unwrap())
+            .collect();
+        let mut ran = Report::begin(&v(&["img", "true"]));
+        ran.rung = Some("namespace".into());
+        ran.labels = v(&["job=7"]);
+        ran.limits = v(&["nofile=64"]);
+        ran.ran = true;
+        ran.end(0);
+        let mut refused = Report::begin(&v(&["nope"]));
+        refused.end(125);
+        let mut detached = Report::begin(&v(&["-d", "img", "sleep", "9"]));
+        detached.detached = true;
+        detached.container = Some("abc".into());
+        detached.ran = true;
+        detached.end(0);
+        for r in [ran, refused, detached] {
+            let j = r.json();
+            let obj = j.as_object().unwrap();
+            let mut keys: Vec<&str> = obj.keys().map(String::as_str).collect();
+            let mut want = required.clone();
+            keys.sort_unstable();
+            want.sort_unstable();
+            assert_eq!(keys, want, "the record and the required keys differ");
+            for (k, value) in obj {
+                let prop = props.get(k).unwrap_or_else(|| panic!("no property {k}"));
+                assert!(allows(prop, value), "{k} = {value} is not of {prop}");
+            }
+        }
     }
 
     #[test]
