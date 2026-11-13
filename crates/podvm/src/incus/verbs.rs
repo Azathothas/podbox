@@ -19,7 +19,7 @@ use std::io::Write;
 use pod_incus::{Client, Exec, FileContent, FileWrite, NewInstance, Payload, Settings, Source};
 use podvm_image::error::EXIT_RUNTIME_ERROR;
 
-use super::run::{disk_devices, socket_path, Job};
+use super::run::{job_devices, socket_path, Job};
 
 /// The label of an instance of podvm.
 pub const LABEL: &str = "user.podvm";
@@ -120,12 +120,12 @@ pub(super) async fn detached(c: &Client, job: &Job<'_>, image: &str, d: &Detach)
         }
     };
     let mut new = NewInstance::container(&name, Source::Alias(image.to_string()));
-    new.devices = disk_devices(&job.volumes);
+    new.devices = job_devices(job);
     new.config.insert("raw.lxc".into(), INIT.into());
     new.config.insert(LABEL.into(), "1".into());
     new.config.insert(IMAGE_KEY.into(), d.image.clone());
-    if let Err(e) = c.create_instance(&new).await {
-        return fail(e.to_string());
+    if let Err(e) = super::net::create(c, &new, job.net_none, job.channel.as_ref()).await {
+        return fail(e);
     }
     let cmd = super::Cmd {
         argv: job.argv.clone(),

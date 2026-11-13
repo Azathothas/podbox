@@ -1,5 +1,5 @@
 == conditions
-date              2026-11-13T11:26:49Z
+date              2026-11-13T16:41:19Z
 host kernel       Linux 6.18.44-fc-v445
 cgroup            tmpfs
 incus package     6.0.0-1ubuntu0.3
@@ -9,16 +9,16 @@ runs              5
 == 1. a run
   stdout  hello
   exit    0
-  ms      1701 (with the import)
+  ms      1611 (with the import)
   stderr  25f1d6b1951a: Extracted (517 entries, 0 whiteouts)
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-1ef7dbf95f1eacfb-v3 imported now (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-01c0509c43e60f7e-v3 imported now (TODO/machine.md T-1718)
 
 == 2. the exit code
   exit    7
 
 == 3. stdout and stderr
   stdout  out
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-1ef7dbf95f1eacfb-v3 from incus (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-01c0509c43e60f7e-v3 from incus (TODO/machine.md T-1718)
   stderr  err
 
 == 4. stdin
@@ -31,11 +31,11 @@ runs              5
   PID 1                 /.podvm/podvm guest-hold 
   owner of /etc/passwd  0:0
   owner of /etc/shadow  0:42
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-1ef7dbf95f1eacfb-v3 from incus (TODO/machine.md T-1718)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-01c0509c43e60f7e-v3 from incus (TODO/machine.md T-1718)
 
 == 7. the cached image
-  run true ms  1053 (median of 5)
-  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-1ef7dbf95f1eacfb-v3 from incus (TODO/machine.md T-1718)
+  run true ms  1266 (median of 5)
+  stderr  podvm run: incus tier: incusd 6.0.0 at /srv/podvm434/state/lib/unix.socket, image podvm-c64c687cbea93001-01c0509c43e60f7e-v3 from incus (TODO/machine.md T-1718)
 
 == 8. a name that is no instance
   exec exit    125
@@ -84,6 +84,16 @@ runs              5
   logs     sekret434 gone 
   cmd      sh -c cat; ls /.podvm/stdin 2>/dev/null || echo gone
   rm       in434
+
+== 15. --podvm-net none and --podvm-channel
+  profile  no NIC: the incusd made no bridge
+  net      lo 
+  none     lo 
+  channel  lo host434 
+  run -d   ch434
+  logs     host434 
+  rm       ch434
+  socket   request /run434 request /detach434 
 
 == 9. nothing stays
   instances in incus              0

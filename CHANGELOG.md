@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: no NIC and a host channel on the incus tier, 2026-11-13
+
+Record: T-1779, PodUtils/podrunner#88.
+Deployed: not deployed; the next release carries it.
+
+- `--podvm-net none` and `--podvm-channel HOST_SOCKET:127.0.0.1:PORT`
+  serve the incus tier (`run`, `run -d`, `create`): the instance has no
+  NIC, and each connection to the port in the instance reaches the host
+  socket through a proxy device. podvm's init of the instance brings
+  `lo` up.
+
 ### Added: a sealed run of the machine tier, 2026-11-13
 
 Record: T-1751, PodUtils/podcrates#124 (ask V-7 of podswarm).

@@ -248,18 +248,10 @@ pub(super) fn incus_tier(
         );
         return EXIT_FLAG_ERROR;
     }
-    if o.mem.is_some()
-        || o.cpus.is_some()
-        || !o.qemu_args.is_empty()
-        || o.broker
-        || o.net_none
-        || o.channel.is_some()
-        || o.sealed
-    {
+    if o.mem.is_some() || o.cpus.is_some() || !o.qemu_args.is_empty() || o.broker || o.sealed {
         eprintln!(
             "podvm {verb}: --podvm-tier=incus takes no --podvm-mem, --podvm-cpus, \
-             --podvm-qemu-arg, --podvm-net, --podvm-channel, --podvm-sealed or --network \
-             broker yet \
+             --podvm-qemu-arg, --podvm-sealed or --network broker yet \
              (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;
@@ -284,6 +276,9 @@ pub(super) fn incus_tier(
             image: o.image.clone().unwrap_or_default(),
             stdin: o.interactive,
         }),
+        // TODO/machine.md T-1779: no NIC, and the channel as a proxy device.
+        net_none: o.net_none,
+        channel: o.channel.clone(),
         // TODO/machine.md T-1722: each -v is a disk device of the instance.
         volumes: o
             .volumes

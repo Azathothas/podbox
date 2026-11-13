@@ -453,10 +453,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1776](machine.md) | P1 | S | none | machine | done | Each file of a guest of the machine tier belongs to root |
 | [T-1777](machine.md) | P1 | S | none | machine | done | The incus tier takes no stdin for an instance that stays |
 | [T-1778](machine.md) | P1 | S | none | machine | done | The channel of a guest gets no request through a loopback proxy variable |
+| [T-1779](machine.md) | P1 | S | none | machine | done | The incus tier takes `--podvm-net none` and `--podvm-channel` |
 
 ## Counts
 
-387 entries: 3 open, 5 partial, 3 blocked, 376 done.
+388 entries: 3 open, 5 partial, 3 blocked, 377 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -466,10 +467,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 0 | 166 | 167 |
+| P1 | 0 | 1 | 0 | 167 | 168 |
 | P2 | 1 | 2 | 3 | 124 | 130 |
 | P3 | 2 | 2 | 0 | 21 | 25 |
-| **All** | 3 | 5 | 3 | 376 | 387 |
+| **All** | 3 | 5 | 3 | 377 | 388 |
 
 ## Work order
 

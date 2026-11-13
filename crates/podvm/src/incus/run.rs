@@ -43,6 +43,21 @@ pub struct Job<'a> {
     pub volumes: Vec<(String, String, bool)>,
     /// `run -d` and `create`: an instance that stays (T-1722).
     pub detach: Option<super::verbs::Detach>,
+    /// `--podvm-net none` and `--podvm-channel` ([`super::net`], T-1779).
+    pub net_none: bool,
+    pub channel: Option<(PathBuf, u16)>,
+}
+
+/// The devices of an instance of `job`: the volumes, the mask of the NIC
+/// and the channel.
+pub fn job_devices(job: &Job<'_>) -> pod_incus::Devices {
+    let mut d = disk_devices(&job.volumes);
+    d.extend(super::net::devices(
+        job.net_none,
+        &["eth0".to_string()],
+        job.channel.as_ref(),
+    ));
+    d
 }
 
 /// One `disk` device for each volume, named `podvm-volN`.
@@ -200,13 +215,13 @@ async fn run_in(c: &Client, job: &Job<'_>, image: &str, inst: &str) -> i32 {
         EXIT_RUNTIME_ERROR
     };
     let mut new = NewInstance::container(inst, Source::Alias(image.to_string()));
-    new.devices = disk_devices(&job.volumes);
+    new.devices = job_devices(job);
     new.config.insert(
         "raw.lxc".into(),
         "lxc.init.cmd = /.podvm/podvm guest-hold".into(),
     );
-    if let Err(e) = c.create_instance(&new).await {
-        return fail(e.to_string());
+    if let Err(e) = super::net::create(c, &new, job.net_none, job.channel.as_ref()).await {
+        return fail(e);
     }
     // podvm is in the image (T-1722): a run pushes only its stdin.
     let mut pushes = Vec::new();

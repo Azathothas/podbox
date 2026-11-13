@@ -53,6 +53,13 @@
 #      as a file of root, mode 0600, before the start; the command reads
 #      it, the file is gone once the command holds it, and the recorded
 #      command does not carry it.
+#  15. `--podvm-net none` and `--podvm-channel` (T-1779,
+#      PodUtils/podrunner#88): the default profile gets a NIC on a bridge
+#      of the incusd where it can make one (recorded); a run with no flag
+#      shows it, and a run with `--podvm-net none` shows `lo` only. A run
+#      and a `run -d -i` with `--podvm-channel SOCK:127.0.0.1:3128` reach
+#      the unix socket SOCK of the host from the instance (wget of
+#      127.0.0.1:3128), and the socket logs each request.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (not root, no user namespaces, no package).
@@ -296,6 +303,53 @@ c14() { grep -q "$1" "$WORK/c14.txt" || { note "14: $2"; fail=1; }; }
 c14 "^  run -d   in434$" "run -d -i did not print the name"
 c14 "^  logs     sekret434 gone $" "the command did not read the stdin, or the file stayed"
 grep -q "^  cmd .*sekret434" "$WORK/c14.txt" && { note "14: the stdin is in the recorded command"; fail=1; }
+
+# ---- clause 15 ----------------------------------------------------------
+cat >"$B/srv434.py" <<'EOF'
+import socketserver, http.server, sys
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        b = b"host434\n"
+        self.send_response(200); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+    def log_message(self, *a):
+        sys.stderr.write("request %s\n" % self.path); sys.stderr.flush()
+class S(socketserver.ThreadingMixIn, socketserver.UnixStreamServer): pass
+S(sys.argv[1], H).serve_forever()
+EOF
+chown "$U" "$B/srv434.py"
+runuser -u "$U" -- python3 "$B/srv434.py" "$B/ch434.sock" 2>"$B/ch434.log" &
+SRV=$!
+i=0; while [ "$i" -lt 50 ] && [ ! -S "$B/ch434.sock" ]; do sleep 0.1; i=$((i + 1)); done
+{
+echo ""; echo "== 15. --podvm-net none and --podvm-channel"
+if RI network create br434 ipv4.address=10.234.0.1/24 ipv4.nat=false ipv6.address=none >/dev/null 2>&1 &&
+	RI profile device add default eth0 nic network=br434 >/dev/null 2>&1; then
+	echo "  profile  a NIC eth0 on br434"
+else
+	echo "  profile  no NIC: the incusd made no bridge"
+fi
+echo "  net      $(T "$OCI" ls /sys/class/net </dev/null 2>/dev/null | tr '\n' ' ')"
+echo "  none     $(T --podvm-net none "$OCI" ls /sys/class/net </dev/null 2>/dev/null | tr '\n' ' ')"
+echo "  channel  $(T --podvm-net none --podvm-channel "$B/ch434.sock:127.0.0.1:3128" "$OCI" sh -c 'ls /sys/class/net; wget -qO- http://127.0.0.1:3128/run434' </dev/null 2>/dev/null | tr '\n' ' ')"
+echo "  run -d   $(printf 'x\n' | P run -d -i --name ch434 --podvm-tier=incus --podvm-net none --podvm-channel "$B/ch434.sock:127.0.0.1:3128" "$OCI" sh -c 'cat >/dev/null; sleep 2; wget -qO- http://127.0.0.1:3128/detach434' 2>/dev/null)"
+sleep 10
+echo "  logs     $(I logs ch434 2>&1 | tr '\n' ' ')"
+echo "  rm       $(I rm -f ch434 2>&1)"
+echo "  socket   $(tr '\n' ' ' <"$B/ch434.log")"
+RI profile device remove default eth0 >/dev/null 2>&1
+RI network delete br434 >/dev/null 2>&1
+} >"$WORK/c15.txt" 2>&1
+kill "$SRV" 2>/dev/null
+cat "$WORK/c15.txt" >>"$REPORT"
+c15() { grep -q "$1" "$WORK/c15.txt" || { note "15: $2"; fail=1; }; }
+c15 "^  none     lo $" "--podvm-net none did not leave lo only"
+c15 "^  channel  lo host434 $" "the run did not reach the host socket through the channel"
+c15 "^  run -d   ch434$" "run -d -i with the flags did not print the name"
+c15 "^  logs     host434 $" "the instance that stays did not reach the host socket"
+c15 "request /run434.*request /detach434" "the host socket did not log both requests"
+if grep -q "^  profile  a NIC" "$WORK/c15.txt"; then
+	c15 "^  net      eth0 lo $" "a run with no flag did not show the NIC of the profile"
+fi
 
 # ---- clause 9 -----------------------------------------------------------
 left_i=$(RI list --format csv -c n 2>&1 | grep -c .)

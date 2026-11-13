@@ -292,6 +292,8 @@ fn a_run_imports_creates_pushes_starts_execs_and_deletes() {
             ("/h/cfg".into(), "/cfg".into(), true),
         ],
         detach: None,
+        net_none: false,
+        channel: None,
     });
     unsafe { std::env::remove_var("PODVM_INCUS_SOCKET") };
     assert_eq!(code, 7, "the exit code of the command");

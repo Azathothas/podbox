@@ -2617,3 +2617,58 @@ calls `rewrite_env` only where the guest has a NIC. Experiment 444 on
 the cloud host (TCG) passes its 4 clauses: in clause 2, the user `runner`
 fetches `http://broker.podrunner.test/two` through `http_proxy`, the host
 socket logs the full URL, and the `:ro` volume reads.
+
+# T-1779: The incus tier takes `--podvm-net none` and `--podvm-channel`
+
+**Source:** PodUtils/podrunner#88 (COORD-028 of podrunner, for PodUtils/podrunner@T-109)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+podrunner's `incus` kind runs one instance for each job. A `trusted` job
+needs its egress held: each connection must pass podrunner's egress
+module. An instance has the NIC of the default profile, and the incus
+tier refused `--podvm-net none` and `--podvm-channel`.
+
+## Premise
+
+A device of the instance masks a device of the profile with the same
+name; a device of type `none` gives no device. An incus `proxy` device
+with `listen=tcp:127.0.0.1:PORT`, `connect=unix:HOST_SOCKET` and
+`bind=instance` carries each connection in the instance to a socket of
+the host. pod-incus has no update of an instance.
+
+## Approach
+
+`--podvm-net none` masks `eth0` with a device of type `none`; after the
+create, podvm reads the expanded devices and, where a NIC of another
+name stays, makes the instance again with that name masked too.
+`--podvm-channel` adds the proxy device `podvm-channel`. podvm's init of
+the instance (`guest-hold`) brings `lo` up.
+
+## Decision
+
+The flags serve `run`, `run -d` and `create`, as podrunner asks.
+
+## Prove
+
+`sh experiments/434-incus-tier.sh` exits 0 as root, with its clause 15: with `--podvm-net none` the instance shows `lo` only, and a run and a `run -d -i` with `--podvm-channel` reach the host socket, which logs each request; `cargo test -p podvm` exits 0
+
+## Done
+
+**Done 2026-11-13.** `crates/podvm/src/incus/net.rs` makes the mask and
+the proxy device, and `create` checks the expanded devices; both paths of
+the tier (`run_in`, `detached`) use it. `guest-hold` brings `lo` up: the
+first run of clause 15 gave "Network unreachable" for 127.0.0.1, as no
+init of the instance brought `lo` up. On the cloud host, with the
+incusd of route A, clause 15 gives `lo` only with `--podvm-net none`,
+`host434` from the host socket for the run and for `run -d -i`, and the
+socket logs `/run434` and `/detach434`. The incusd of route A makes no
+bridge (its user namespace), so its default profile has no NIC: the mask
+of a real NIC of the profile is not measured on the cloud host; the test
+`no_nic_masks_the_profile_and_the_channel_is_a_proxy` holds the device
+forms.
