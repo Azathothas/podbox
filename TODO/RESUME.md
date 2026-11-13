@@ -1,6 +1,6 @@
 **Resume**
 
-The cold start of a session, on 2026-11-11. This page gives no work order:
+The cold start of a session, on 2026-11-13. This page gives no work order:
 [PROGRESS](PROGRESS.md) has the only one.
 
 ## Start
@@ -32,13 +32,11 @@ clauses in its own record:
 
 | Entry | Remaining clause |
 | --- | --- |
-| [T-1604](enter.md) | the plant, a second lane run, the saved lane log |
-| [T-0211](image.md) | experiment 157: each mutation turns one test red |
-| [T-0204](image.md) | the Prove reads the lock skip with podvm as the holder |
-| [T-1641](gate.md) | one bounded KVM run with the binary of the current tree |
-| [T-1350](gate.md) | one successful run of `experiments/392-kvm-guest.sh` |
-| [T-1112](milestones.md) | the KVM leg, on the same run |
-| [T-1406](podssh.md) | node redial pairing against the live relay |
+| [T-1662](net.md) | the lab guest, its probes and the judge (podcrates@T-345 to podcrates@T-347) |
+| [T-1667](cli.md) | the doctor's check of labs in a guest, with T-1662 |
+| [T-1740](enter.md) | a cheaper mechanism for the syscall tier |
+| [T-1749](enter.md) | the root with no copy (COORD-071 for the namespace rung; the loader family is podvm's) |
+| [T-1350](gate.md) | the wrapper of the parked Windows lane |
 
 ## Facts that save time
 

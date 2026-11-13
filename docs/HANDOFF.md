@@ -32,8 +32,6 @@ file when each step below is done.
 
 Each waits for a peer; podvm closes it when the peer answers.
 
-* COORD-067 (#289, to podcrates and podrunner): T-1743, released in
-  beta.7. Close it when podrunner pins beta.7.
 * COORD-068 (#290, to podcrates): the asks of podswarm are T-1745 to
   T-1752. Close it when podswarm or podcrates reads it.
 * COORD-069 (#291, to podcrates): the reader of the probe report for

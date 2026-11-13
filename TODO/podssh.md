@@ -277,7 +277,7 @@ the proof. The release matrix and published signatures remain acceptance.
 **Milestone:** none
 **Priority:** P1
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -319,9 +319,25 @@ having run once with zero residue for pair, connect-token, node-token, and stop.
 source before implementation. The simultaneous-session result does not
 prove these clauses.
 
+**Superseded 2026-11-13.** The clause of live-relay node redial pairing is
+no longer podvm's. Since T-1678 the node and the operator of podvm-ssh run
+over `pod-relay`'s blocking facade, and the redial and the pairing are the
+crate's code. podcrates proves them live: `live.yml` runs `pair_live`,
+`reverse_live`, `reverse_idle_live` and `blocking_live` of `pod-relay`
+(run 43221537246, 2026-11-12, green), and `failover.rs` covers more than
+one relay of `pod-services`. podvm keeps no relay deployment of its own.
+The earlier claim that this entry waited for podcrates@T-330 was wrong:
+podcrates@T-330 (pair commands in podvm) waits for podvm, and it is an
+aid of podvm's drives, not a clause here.
+
 ## Done
 
-**Done 2026-09-30.** DNS resolves on a worker with `recv_timeout`
+**Done 2026-11-13.** Each clause that stays podvm's is proven (the
+paragraph of 2026-09-30 below): the DNS and write bounds and the reconnect
+on the loopback relay. The live pairing is `pod-relay`'s (the Correction
+of 2026-11-13).
+
+**Partial 2026-09-30.** DNS resolves on a worker with `recv_timeout`
 (`DNS_DEADLINE` 10 s); every relay-leg send carries a write deadline
 (`WRITE_DEADLINE` 10 s, kernel `SO_SNDTIMEO` with stall normalization),
 and a stalled server stdin ends its session loud instead of requeueing.

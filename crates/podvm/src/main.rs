@@ -153,11 +153,16 @@ fn main() -> std::process::ExitCode {
 
     let argv0 = argv.first().cloned().unwrap_or_else(|| "podvm".into());
     let rest = if argv.len() > 2 { &argv[2..] } else { &[] };
-    // TODO/machine.md T-1722: the verbs of an incus instance that stays.
-    if let (Some(v @ ("ps" | "start" | "stop" | "rm" | "logs")), Some(a)) =
-        (argv.get(1).map(String::as_str), incus::verbs::wants(rest))
-    {
-        return exit(incus::verbs::dispatch(v, &a));
+    // TODO/machine.md T-1722: `tier = incus` of the configuration, and the
+    // verbs of an incus instance that stays.
+    let verb = argv.get(1).map(String::as_str);
+    let routed = match incus::config::routed(verb, rest) {
+        Ok(r) => r,
+        Err(code) => return exit(code),
+    };
+    let rest: &[String] = &routed;
+    if let Some(code) = incus::intercept(verb, rest) {
+        return exit(code);
     }
     match argv.get(1).map(String::as_str) {
         Some("run") => exit(run::run(rest)),

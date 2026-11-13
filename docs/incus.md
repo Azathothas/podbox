@@ -130,7 +130,24 @@ ends. `ps`, `start`, `stop`, `rm`, `logs` and `exec` with the tier call the
 API on the instance of that name. incusd keeps the state: a record of
 podvm's container table belongs to a launcher, and its reconcile calls a
 running record with no launcher dead. Clause 12 of experiment 434 runs each
-verb against the incusd of route A.
+verb against the incusd of route A. `logs -f` follows `/.podvm/log` until
+the instance stops, and `inspect` gives the state of an instance as JSON
+or through `--format` (`.Name`, `.Status`, `.ExitCode`, `.EnteredRung`).
+
+## The tier by configuration (T-1722)
+
+A line `tier = incus` in `$store/config` (the file of the key `banner`)
+selects the incus tier with no flag:
+
+* `run` and `create` take it where the socket of the incusd is there; where
+  it is not, they say so and the ladder selects the rung;
+* `system info --format '{{.EnteredRung}}'` names `incus`;
+* `exec`, `start`, `stop`, `rm`, `logs` and `inspect` take it for a name
+  that is an instance of podvm in incus;
+* an explicit `--podvm-tier` wins, and another value of `tier` is refused by
+  name.
+
+Clause 13 of experiment 434 runs each of them.
 
 ## What stays open
 
@@ -138,8 +155,5 @@ verb against the incusd of route A.
   of `kvm.yml` (T-1682) has it.
 * The network of an instance under route A.
 * A static `incusd`.
-* T-1722: the verbs of an instance that stays (`create`, `start`, `exec`,
-  `ps`, `stop`, `rm`), `-v` as a `disk` device, the ladder's selection of
-  incus, and `.EnteredRung`.
 * A push of podvm that each instance does not repeat (a shared file, or a
   smaller release binary).

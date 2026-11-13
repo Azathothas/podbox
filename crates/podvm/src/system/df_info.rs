@@ -324,7 +324,11 @@ pub(super) fn fields_from(
         ("Rung", selection.word().to_string()),
         (
             "EnteredRung",
-            entered_rung(selection, chroot_usable).word().to_string(),
+            // TODO/machine.md T-1722: `tier = incus` in the configuration,
+            // with its socket there, is what `run` enters.
+            crate::incus::config::entered_word()
+                .map(str::to_string)
+                .unwrap_or_else(|| entered_rung(selection, chroot_usable).word().to_string()),
         ),
         ("StrictOk", strict_ok.to_string()),
         ("Store", store),

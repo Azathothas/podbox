@@ -178,9 +178,10 @@ instance of an incusd that answers on its socket (`PODVM_INCUS_SOCKET`, or
 owners that the image intended, and is the init of the instance. The
 command is not PID 1. `run -d` and `create` keep the instance, and `ps`,
 `start`, `stop`, `rm`, `logs` and `exec` with the tier act on it; incusd
-keeps its state, and podvm keeps no record of it (T-1722). `logs -f`,
-`inspect` and the ladder do not take the tier yet; `-v` is a disk device of the
-instance (T-1722), and `--podvm-mem` and `--podvm-qemu-arg` are refused by
+keeps its state, and podvm keeps no record of it (T-1722). `logs -f`
+follows the log, `inspect` gives the state, and `tier = incus` in
+`$store/config` selects the tier with no flag where an incusd answers;
+`-v` is a disk device of the instance (T-1722), and `--podvm-mem` and `--podvm-qemu-arg` are refused by
 name, and the instance has no network
 under route A. A run where no incusd answers exits 125 and names the
 socket. The image carries podvm as the init of the instance (T-1722).

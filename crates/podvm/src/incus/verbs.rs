@@ -65,7 +65,7 @@ pub fn valid_name(n: &str) -> bool {
 }
 
 /// A client of the incusd of [`socket_path`], checked.
-pub(super) async fn connect() -> Result<(Client, String), String> {
+pub(crate) async fn connect() -> Result<(Client, String), String> {
     let sock = socket_path();
     if !sock.exists() {
         return Err(format!(
@@ -82,7 +82,7 @@ pub(super) async fn connect() -> Result<(Client, String), String> {
     Ok((c, server.environment.server_version.clone()))
 }
 
-fn block_on<F: std::future::Future<Output = i32>>(verb: &str, f: F) -> i32 {
+pub(crate) fn block_on<F: std::future::Future<Output = i32>>(verb: &str, f: F) -> i32 {
     match tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -162,6 +162,7 @@ pub fn dispatch(verb: &str, args: &[String]) -> i32 {
     let known: &[&str] = match verb {
         "ps" => &["-a", "--all"],
         "rm" => &["-f", "--force"],
+        "logs" => &["-f", "--follow"],
         _ => &[],
     };
     if let Some(f) = flags.iter().find(|f| !known.contains(f)) {
@@ -176,6 +177,8 @@ pub fn dispatch(verb: &str, args: &[String]) -> i32 {
     }
     let all = flags.iter().any(|f| *f == "-a" || *f == "--all");
     let force = flags.iter().any(|f| *f == "-f" || *f == "--force");
+    // `-f` of `logs` is `--follow`; `-f` of `rm` is `--force`.
+    let follow = verb == "logs" && flags.iter().any(|f| *f == "-f" || *f == "--follow");
     block_on(verb, async move {
         let c = match connect().await {
             Ok((c, _)) => c,
@@ -189,7 +192,12 @@ pub fn dispatch(verb: &str, args: &[String]) -> i32 {
         }
         let mut code = 0;
         for n in &names {
-            if let Err(e) = one(&c, verb, n, force).await {
+            let r = if follow {
+                follow_log(&c, n).await
+            } else {
+                one(&c, verb, n, force).await
+            };
+            if let Err(e) = r {
                 eprintln!("podvm {verb}: {n}: {e}");
                 code = 1;
             }
@@ -198,8 +206,19 @@ pub fn dispatch(verb: &str, args: &[String]) -> i32 {
     })
 }
 
+/// Whether `name` is an instance of podvm in the incusd of
+/// [`socket_path`] (the routing of `tier = incus`, [`super::config`]).
+pub fn is_instance(name: &str) -> bool {
+    block_on("incus", async {
+        match connect().await {
+            Ok((c, _)) => i32::from(matches!(c.instance(name).await, Ok(i) if ours(&i))),
+            Err(_) => 0,
+        }
+    }) == 1
+}
+
 /// Whether `inst` is an instance of podvm.
-fn ours(i: &pod_incus::Instance) -> bool {
+pub(crate) fn ours(i: &pod_incus::Instance) -> bool {
     i.config.get(LABEL).is_some_and(|v| v == "1")
 }
 
@@ -265,6 +284,38 @@ async fn one(c: &Client, verb: &str, name: &str, force: bool) -> Result<(), Stri
         println!("{name}");
     }
     Ok(())
+}
+
+/// `logs -f`: the log of the instance as it grows, until the instance
+/// stops; then the rest of it.
+async fn follow_log(c: &Client, name: &str) -> Result<(), String> {
+    let i = c.instance(name).await.map_err(|e| e.to_string())?;
+    if !ours(&i) {
+        return Err("not an instance of podvm (no user.podvm label)".into());
+    }
+    let mut seen = 0usize;
+    loop {
+        let running = c
+            .instance(name)
+            .await
+            .map(|i| i.status == "Running")
+            .map_err(|e| e.to_string())?;
+        // The file can be missing before the command writes its first line.
+        if let Ok(f) = c.get_file(name, super::LOG).await
+            && let FileContent::Bytes(b) = f.content
+            && b.len() > seen
+        {
+            let mut out = std::io::stdout().lock();
+            let _ = out.write_all(&b[seen..]);
+            let _ = out.flush();
+            seen = b.len();
+        }
+        if !running {
+            return Ok(());
+        }
+        // The follow is the only task of this current-thread runtime.
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
 }
 
 /// `exec --podvm-tier=incus NAME CMD...`: the command in the instance, its

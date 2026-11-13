@@ -2,12 +2,25 @@
 //! `docs/incus.md`: podvm drives an incusd over its REST API on a unix
 //! socket. `--podvm-tier=incus` selects it for `run`.
 
+pub(crate) mod config;
 pub(crate) mod image;
+pub(crate) mod inspect;
 pub(crate) mod run;
 pub(crate) mod verbs;
 
 #[cfg(test)]
 mod tests;
+
+/// The verbs that `--podvm-tier=incus` serves on an instance that stays
+/// (TODO/machine.md T-1722): their exit, or `None` for another verb.
+pub fn intercept(verb: Option<&str>, rest: &[String]) -> Option<i32> {
+    let a = verbs::wants(rest)?;
+    match verb? {
+        v @ ("ps" | "start" | "stop" | "rm" | "logs") => Some(verbs::dispatch(v, &a)),
+        "inspect" => Some(inspect::inspect(&a)),
+        _ => None,
+    }
+}
 
 /// The command of an instance that stays (TODO/machine.md T-1722), as
 /// `run -d` and `create` push it to [`CMD`].

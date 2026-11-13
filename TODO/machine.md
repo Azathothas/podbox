@@ -1977,7 +1977,7 @@ selection, `.EnteredRung`) is T-1722. podcrates takes the client as
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2021,6 +2021,21 @@ incusd of route A with exit 0.
 **Filed 2026-11-11.** From the rest of T-1718.
 
 ## Done
+
+**Done 2026-11-13.** The last clauses. `tier = incus` in `$store/config`
+selects the incus tier with no flag (`crates/podvm/src/incus/config.rs`):
+`run` and `create` take it where the incusd socket is there and say so
+where it is not; `system info` names `incus` as `.EnteredRung`; `exec`,
+`start`, `stop`, `rm`, `logs` and `inspect` take it for a name that is an
+instance of podvm in incus; an explicit `--podvm-tier` wins, and another
+value of `tier` is refused by name. `logs -f` follows the log until the
+instance stops, and `inspect` gives the state as JSON or through
+`--format` (`crates/podvm/src/incus/inspect.rs`). incus 6.0.0 of the
+Ubuntu archive is installed on the cloud host (the ruling "Missing
+tools"). `PODVM_434_MIRROR=1 sh experiments/434-incus-tier.sh` exits 0
+([the run](../experiments/results/incus-tier.txt)) with the new clause 13
+and each earlier clause. `cargo test -p podvm` passes with the tests of
+`incus::config`.
 
 **Partial 2026-11-12, the volumes.** `run --podvm-tier=incus -v
 HOST:GUEST[:ro]` adds one `disk` device for each volume to the new

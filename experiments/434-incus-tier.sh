@@ -43,6 +43,12 @@
 #      `start` runs it again; `rm` of a running one refuses and `rm -f`
 #      removes it; `create` makes a Stopped one; a command that ends stops
 #      its instance.
+#  13. `tier = incus` in the store's configuration (T-1722): `system info`
+#      names incus as .EnteredRung; `run` and `run -d` with no flag enter
+#      incus; `exec`, `inspect` and `rm` of the name route to the
+#      instance; `logs -f` follows the log until the instance stops;
+#      `inspect --format` gives the name, the status, the tier and the exit
+#      code; with the key removed the ladder no longer names incus.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (not root, no user namespaces, no package).
@@ -241,6 +247,36 @@ c12 "^  ps -a    made434 Stopped" "create did not make a Stopped instance"
 c12 "^  ps -a    brief434 Stopped" "a command that ended did not stop its instance"
 c12 "^  logs     brief$" "logs of the ended command"
 c12 "^  ps -a    0 of 434$" "an instance of clause 12 stayed"
+
+# ---- clause 13 ----------------------------------------------------------
+# T-1722: `tier = incus` in the store's configuration selects the tier with
+# no flag; the lifecycle verbs route a name of an instance of podvm.
+{
+echo ""; echo "== 13. tier = incus in the configuration"
+runuser -u "$U" -- sh -c "printf 'tier = incus\n' >> '$B/store/config'"
+echo "  entered  $(P system info --format '{{.EnteredRung}}' 2>&1)"
+echo "  run      $(P run --rm "$OCI" sh -c 'tr "\000" " " < /proc/1/cmdline' </dev/null 2>/dev/null)"
+echo "  run -d   $(P run -d --name cfg434 "$OCI" sh -c 'echo one; sleep 3; echo two; sleep 1' </dev/null 2>/dev/null)"
+x=$(P exec cfg434 sh -c 'exit 6' 2>&1); rc=$?
+echo "  exec     exit=$rc"
+echo "  inspect  $(P inspect --format '{{.Name}} {{.Status}} {{.EnteredRung}}' cfg434 2>&1)"
+echo "  follow   $(timeout 60 runuser -u "$U" -- env PODVM_STORE="$B/store" HOME="$B" INCUS_DIR="$B/state/lib" "$B/podvm" logs -f cfg434 2>&1 | tr '\n' ' ')"
+echo "  exitcode $(P inspect --format '{{.ExitCode}}' cfg434 2>&1)"
+echo "  rm       $(P rm cfg434 2>&1)"
+runuser -u "$U" -- sed -i '/^tier = incus$/d' "$B/store/config"
+echo "  ladder   $(P system info --format '{{.EnteredRung}}' 2>&1)"
+} >"$WORK/c13.txt" 2>&1
+cat "$WORK/c13.txt" >>"$REPORT"
+c13() { grep -q "$1" "$WORK/c13.txt" || { note "13: $2"; fail=1; }; }
+c13 "^  entered  incus$" "system info did not name incus as the entered rung"
+c13 "^  run      .*guest-hold" "a run with no flag did not enter incus"
+c13 "^  run -d   cfg434$" "run -d with no flag did not make an instance"
+c13 "^  exec     exit=6$" "exec of the name did not route to incus"
+c13 "^  inspect  cfg434 Running incus$" "inspect --format of the instance"
+c13 "^  follow   one two $" "logs -f did not follow the log to the end"
+c13 "^  exitcode 0$" "inspect did not give the exit code of the ended command"
+c13 "^  rm       cfg434$" "rm of the name did not route to incus"
+grep -q "^  ladder   incus$" "$WORK/c13.txt" && { note "13: the ladder still named incus with no configuration"; fail=1; }
 
 # ---- clause 9 -----------------------------------------------------------
 left_i=$(RI list --format csv -c n 2>&1 | grep -c .)

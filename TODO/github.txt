@@ -178,7 +178,7 @@
 286 issue closed
 287 issue closed
 288 issue closed
-289 issue open
+289 issue closed
 290 issue open
 291 issue open
 292 issue closed

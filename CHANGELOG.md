@@ -8,6 +8,26 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.36.0, 2026-11-13
+
+Record: PodUtils/podcrates#129.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.36.0`. No behaviour of podvm
+  changes.
+
+### Added: the incus tier by configuration, `logs -f` and `inspect`, 2026-11-13
+
+Record: T-1722.
+Deployed: not released.
+
+- A line `tier = incus` in `$store/config` makes `run` and `create` take
+  the incus tier with no flag where an incusd answers, and `system info`
+  names it as `.EnteredRung`. `exec`, `start`, `stop`, `rm`, `logs` and
+  `inspect` act on an instance of podvm in incus by its name.
+- `logs -f` follows the log of an incus instance, and `inspect` gives its
+  state as JSON or through `--format`.
+
 ### Added: the crate podvm-api, a typed call for `run`, 2026-11-13
 
 Record: T-1745, PodUtils/podcrates#124 (V-1).

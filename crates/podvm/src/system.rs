@@ -55,7 +55,8 @@ usage: podvm system info [--format T]
     actually performs: the namespace rung where the probe selects it, else a
     chroot, and `userland` wherever chroot(2) is denied, whatever the
     selection, as `run` enters a no-chroot family there or refuses
-    (TODO/enter.md T-1317, TODO/cli.md T-1713). Reporting the first
+    (TODO/enter.md T-1317, TODO/cli.md T-1713); `incus` where `tier = incus`
+    in $store/config and its socket is there (TODO/machine.md T-1722). Reporting the first
     as if it were the second is the defect TODO/cli.md T-0804 was opened for.
 
   note: .ExitCodes is docker's exit-code contract as data: one object per case,

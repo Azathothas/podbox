@@ -7,7 +7,7 @@ start.
 
 ## State
 
-361 entries: 3 open, 7 partial, 4 blocked, 347 done.
+361 entries: 3 open, 5 partial, 4 blocked, 349 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -36,35 +36,31 @@ its blocker and the condition that clears it.
 
 ## Work order
 
-The owner resumed podvm's own work on 2026-11-11
-([decisions](../docs/decisions.md), "podvm resumes"), and put the needs of
-podrunner first ("podrunner first", the same day). Take the first entry
-that is not done. Read its Prove before you start. Set its status with
-`podvm-count` in the same commit as the work.
+The goal is a complete release for the beta testers (the owner's ruling
+"Complete release first", 2026-11-13). A tool that the cloud host lacks
+is installed, not a blocker ("Missing tools", the same day). Take the
+first entry that is not done. Read its Prove before you start. Check
+each claim that an entry waits against the code and the crates. Set its
+status with `podvm-count` in the same commit as the work.
 
-1. The KVM legs passed on the hosted runner of `kvm.yml` on 2026-11-12;
-   [T-1350](gate.md) keeps only the wrapper of the parked Windows lane.
-   [T-1722](machine.md) (partial: the other verbs of incus, the ladder)
-   comes after the scope entries of step 2.
-2. The scope entries (issues 166 to 189, index issue 193), in this order:
-   [T-1667](cli.md) (partial:
-   the check of labs in a guest waits for the network entries); the network entries
-   [T-1662](net.md) (partial: `podvm lab scenarios` and `plan` run; the
-   guest, the probes and the judge wait for podcrates@T-345 to
-   podcrates@T-347), [T-1663](net.md) and [T-1664](net.md) (blocked: they
-   run in the lab guest of T-1662).
-3. The record and the tree: no entry is open.
-4. [T-1406](podssh.md), partial: live-relay pairing over `pod-relay`.
-   Blocked on podcrates: [T-1714](probe.md) waits for
-   the schema of podcrates@T-107.
-5. After podvm's own order (the owner's ruling "Priority",
-   2026-11-09): the podrunner part (issues 229 to 240) and the clauses
-   of PodUtils/podcrates#39; then the asks of podswarm
-   (PodUtils/podcrates#124): [T-1747](cli.md), [T-1749](enter.md) to
-   [T-1751](machine.md); V-1, V-4 and V-8 are done, and
-   [T-1746](probe.md) (V-2) is blocked on a reader
-   of the probe report in `pod-hostprobe` (COORD-069, issue 291). Each ask has a
-   fallback in podswarm.
+1. A QA pass of the whole surface (the verbs of docker and podman on each
+   rung, the machine tier, the incus tier, the SSH transport) on the cloud
+   host and the hosted runners; each defect becomes an entry and is fixed;
+   then a release for the beta testers.
+2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
+   `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
+   judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)
+   (partial: its check of labs comes with T-1662), [T-1663](net.md) and
+   [T-1664](net.md) (blocked: they run in the lab guest of T-1662).
+   [T-1714](probe.md) waits for the published schema of podcrates@T-107;
+   podcrates `v0.36.0` holds its first part, the report with its reader.
+3. [T-1740](enter.md) (partial: a cheaper syscall tier) and
+   [T-1350](gate.md) (partial: the wrapper of the parked Windows lane).
+4. Low priority, the asks of podswarm (PodUtils/podcrates#124):
+   [T-1746](probe.md) (`pod-hostprobe`'s reader is in `v0.36.0`; the
+   probe costs about 50 ms on the cloud host), [T-1749](enter.md)
+   (partial; COORD-071), [T-1747](cli.md), [T-1750](machine.md) and
+   [T-1751](machine.md). V-1, V-4 and V-8 are done.
 
 The entries done since the resume of 2026-11-11 are in the record; the
 handoff (`docs/HANDOFF.md`) names them.

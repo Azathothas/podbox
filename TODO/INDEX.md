@@ -250,7 +250,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1403](podssh.md) | P1 | L | none | podssh | done | Prove concurrent sessions on one relay connection |
 | [T-1404](podssh.md) | P2 | L | none | podssh | done | Add the remote and machine SSH verbs after the transport holds |
 | [T-1405](podssh.md) | P1 | M | none | podssh | done | Ship and smoke the SSH helper archive |
-| [T-1406](podssh.md) | P1 | L | none | podssh | partial | Bound SSH DNS and writes and prove node reconnect |
+| [T-1406](podssh.md) | P1 | L | none | podssh | done | Bound SSH DNS and writes and prove node reconnect |
 | [T-1407](enter.md) | P0 | L | none | enter | done | Anchor userland paths inside the rootfs or refuse |
 | [T-1408](enter.md) | P1 | S | none | enter | done | Resolve the loader symlink inside the rootfs |
 | [T-1409](enter.md) | P1 | M | none | enter | done | Answer the payload-visible exe on the loader family |
@@ -396,7 +396,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1719](enter.md) | P2 | S | none | enter | done | The loader's library directories leave out `/usr/local/lib` and the image's `ld.so.conf` |
 | [T-1720](supervise.md) | P1 | S | none | supervise | done | `wait` gives no exit code for a payload that ends at once |
 | [T-1721](interpose.md) | P2 | L | none | interpose | done | An interposer for aarch64: the userland rung runs no arm64 payload |
-| [T-1722](machine.md) | P3 | L | none | machine | partial | The incus back end: the verbs of an instance that stays, volumes and the ladder |
+| [T-1722](machine.md) | P3 | L | none | machine | done | The incus back end: the verbs of an instance that stays, volumes and the ladder |
 | [T-1723](machine.md) | P3 | L | none | machine | done | The microVM of run: the microvm machine, a shared /workspace and an interactive stdin |
 | [T-1724](enter.md) | P2 | M | none | enter | done | A static child of the loader family, and a volume, on the native-static rung |
 | [T-1725](interpose.md) | P1 | M | none | interpose | done | An absolute symlink in the rootfs resolves on the host for each path call |
@@ -430,7 +430,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-361 entries: 3 open, 7 partial, 4 blocked, 347 done.
+361 entries: 3 open, 5 partial, 4 blocked, 349 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -440,10 +440,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 2 | 0 | 151 | 153 |
+| P1 | 0 | 1 | 0 | 152 | 153 |
 | P2 | 0 | 2 | 4 | 114 | 120 |
-| P3 | 3 | 3 | 0 | 17 | 23 |
-| **All** | 3 | 7 | 4 | 347 | 361 |
+| P3 | 3 | 2 | 0 | 18 | 23 |
+| **All** | 3 | 5 | 4 | 349 | 361 |
 
 ## Work order
 

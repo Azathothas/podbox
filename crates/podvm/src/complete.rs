@@ -81,24 +81,32 @@ pub fn banner_loud(store: &podvm_image::Store, ask: &Ask) -> bool {
     ask.verbose
 }
 
+/// The tier that `run` and `create` take with no `--podvm-tier`, where it
+/// is served (TODO/machine.md T-1722): `tier = incus`.
+pub const TIER_KEY: &str = "tier";
+
+/// The value of `key` in `$store/config` (`key = value` lines, `#`
+/// comments), or `None`.
+pub fn config_value(store: &podvm_image::Store, key: &str) -> Option<String> {
+    config_value_at(store.root(), key)
+}
+
+/// [`config_value`] for the store at `root`, which this reads and never
+/// makes.
+pub fn config_value_at(root: &std::path::Path, key: &str) -> Option<String> {
+    let text = std::fs::read_to_string(root.join(CONFIG_FILE)).ok()?;
+    text.lines()
+        .map(str::trim)
+        .filter(|l| !l.starts_with('#'))
+        .filter_map(|l| l.split_once('='))
+        .find(|(k, _)| k.trim() == key)
+        .map(|(_, v)| v.trim().to_string())
+}
+
 /// Is the banner suppressed on this machine? ⛔ Default no, always.
 pub fn banner_quiet(store: &podvm_image::Store) -> bool {
-    let p = store.root().join(CONFIG_FILE);
-    let Ok(text) = std::fs::read_to_string(&p) else {
-        return false;
-    };
-    for line in text.lines() {
-        let line = line.trim();
-        if line.starts_with('#') {
-            continue;
-        }
-        if let Some((k, v)) = line.split_once('=')
-            && k.trim() == BANNER_KEY
-        {
-            return matches!(v.trim(), "quiet" | "off" | "false" | "0");
-        }
-    }
-    false
+    config_value(store, BANNER_KEY)
+        .is_some_and(|v| matches!(v.as_str(), "quiet" | "off" | "false" | "0"))
 }
 
 /// Run the completion layer over `rootfs`, fold its report into `banner`, and
