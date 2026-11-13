@@ -1,0 +1,26 @@
+== conditions
+date              2026-11-13T01:38:17Z
+host kernel       Linux 6.18.44-fc-v445
+podvm             podvm 0.2.0-beta.6
+image             mirror.gcr.io/library/busybox:musl
+
+== clause 1  the payload is a child of the launcher
+  payload 31967, its parent 31895: $REPO/.work/beta6/podvm-x86_64 run -d mirror.gcr.io/library/
+
+== clause 2  SIGKILL to the launcher
+  the state of the payload after the kill: Z
+
+== clause 3  ps names the container Dead
+  f96288e31a3c   mirror.gcr.io/library/busybox:musl   sleep 1320   2026-11-13T01:38:20Z   Dead (exited while the launcher was not watching)   
+
+== clause 4  SIGKILL to the podvm of a foreground run
+  the payload runs by a direct exec
+  the payload 32087 after SIGKILL to podvm 32008: S
+  DISAGREES: the payload is alive (state S) after its podvm died
+
+== clause 5  the same on the userland rung (the fixture of 356)
+  the payload runs through the loader family (--argv0)
+  the payload 32258 after SIGKILL to podvm 32156: S
+  DISAGREES: the payload is alive (state S) after its podvm died
+
+verdict: A CLAUSE DISAGREED

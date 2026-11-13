@@ -12,9 +12,15 @@
 #   2. SIGKILL to the launcher: within 5 s the payload is gone or a zombie
 #      (state Z); a live payload (state S or R) disagrees.
 #   3. `ps -a` names the container Dead, not Up.
+#   4. T-1748 (PodUtils/podcrates#124, V-4): SIGKILL to the `podvm` of a
+#      foreground `run IMAGE sleep N` on the rung that the host selects:
+#      within 5 s the payload is gone or a zombie.
+#   5. The same on the loader family of the userland rung: a dynamic image
+#      (DYNAMIC) on the chroot-denied fixture of experiment 356 (user and
+#      mount namespaces, deny-chroot.c).
 #
 # Pinned input: IMAGE, PODVM_437_IMAGE (busybox:musl of public.ecr.aws by
-# default). Exit: 0 each clause matched, 1 a clause disagreed, 2 the lane
+# default), and DYNAMIC, PODVM_437_DYNAMIC (debian bookworm-slim). Exit: 0 each clause matched, 1 a clause disagreed, 2 the lane
 # could not run.
 set -u
 
@@ -24,6 +30,9 @@ rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 OUT="$REPO/experiments/results/payload-dies-with-launcher.txt"
 PB="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 IMAGE="${PODVM_437_IMAGE:-public.ecr.aws/docker/library/busybox:musl}"
+# Clause 5: a dynamic glibc image, so the loader family runs it (the pin of
+# experiment 356).
+DYNAMIC="${PODVM_437_DYNAMIC:-public.ecr.aws/debian/debian:bookworm-slim@sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a}"
 export PODVM_STORE="$WORK/store"
 : >"$OUT"
 note() { echo "$*" | tee -a "$OUT"; }
@@ -88,6 +97,70 @@ case "$st" in
 *) bad "ps -a does not name the container Dead" ;;
 esac
 "$PB" rm -f "$id" >/dev/null 2>&1
+note ""
+
+# Clauses 4 and 5: a foreground run, killed. The pid of the background job
+# is podvm itself: the fixture's unshare, sh and deny-chroot each exec.
+foreground() {
+	clause="$1"; shift
+	m=$((2000 + $$ % 1000 + clause))
+	"$@" "$PB" run --rm "${FG_IMAGE:-$IMAGE}" sleep "$m" >"$WORK/fg$clause.out" 2>&1 &
+	pv=$!
+	fp=""
+	for _ in $(seq 1 60); do
+		# The loader family runs `ld.so --argv0 sleep PATH N`: match the
+		# last argument, and never podvm itself.
+		fp=""
+		for q in $(pgrep -f " $m\$"); do
+			case "$q:$(ps -o args= -p "$q")" in
+			"$pv":* | *"podvm run"* | *unshare*) ;;
+			*) fp=$q; break ;;
+			esac
+		done
+		[ -n "$fp" ] && break
+		sleep 0.5
+	done
+	if [ -z "$fp" ]; then
+		note "  COULD NOT RUN: no payload process"; sed 's/^/  /' "$WORK/fg$clause.out" | tail -3 | tee -a "$OUT"
+		kill -9 "$pv" 2>/dev/null; return 2
+	fi
+	case "$(ps -o args= -p "$fp")" in
+	*--argv0*) note "  the payload runs through the loader family (--argv0)" ;;
+	*) note "  the payload runs by a direct exec" ;;
+	esac
+	case "$(ps -o args= -p "$pv")" in
+	*podvm*) kill -9 "$pv" ;;
+	*) note "  COULD NOT RUN: $pv is not podvm"; kill -9 "$fp" 2>/dev/null; return 2 ;;
+	esac
+	state=""
+	for _ in 1 2 3 4 5 6 7 8 9 10; do
+		state=$(ps -o stat= -p "$fp" 2>/dev/null | cut -c1)
+		case "$state" in "" | Z) break ;; esac
+		sleep 0.5
+	done
+	note "  the payload $fp after SIGKILL to podvm $pv: ${state:-gone}"
+	case "$state" in
+	"" | Z) ;;
+	*) bad "the payload is alive (state $state) after its podvm died"; kill -9 "$fp" 2>/dev/null ;;
+	esac
+	wait "$pv" 2>/dev/null
+	return 0
+}
+
+note "== clause 4  SIGKILL to the podvm of a foreground run"
+foreground 4 || fail=1
+note ""
+
+note "== clause 5  the same on the userland rung (the fixture of 356)"
+if cc -O2 -Wall -Werror -static -o "$WORK/deny-chroot" "$REPO/experiments/deny-chroot.c" 2>/dev/null &&
+	unshare -Urm true 2>/dev/null; then
+	printf '#!/bin/sh\nMNT="$1"; shift\nexec "$MNT/deny-chroot" "$@"\n' >"$WORK/wrap.sh"
+	timeout 300 "$PB" pull "$DYNAMIC" >/dev/null 2>&1 || { note "  COULD NOT RUN: the pull of $DYNAMIC"; fail=1; }
+	FG_IMAGE="$DYNAMIC" foreground 5 unshare -Urm sh "$WORK/wrap.sh" "$WORK" || fail=1
+	grep -q "loader family" "$OUT" || bad "clause 5 did not run through the loader family"
+else
+	note "  COULD NOT RUN: no static cc or no user namespaces"; fail=1
+fi
 note ""
 
 if [ "$fail" -eq 0 ]; then

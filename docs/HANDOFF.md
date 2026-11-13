@@ -62,7 +62,7 @@ Each waits for a peer; podvm closes it when the peer answers.
 3. Blocked: T-1663 and T-1664 (they run in T-1662's lab guest), T-1714
    (podcrates@T-107).
 4. After podvm's own order: the podrunner part, then the asks of podswarm
-   (T-1746 and T-1748 first, P2).
+   (T-1746 first, P2; T-1748 is done on the local `main`).
 5. Before an entry is set done, run `cargo test -p podvm`: the test
    `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
    The record tests of `podvm-todo` read the files on disk, so do not edit

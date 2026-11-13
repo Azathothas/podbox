@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a foreground payload ends when its podvm is killed, 2026-11-13
+
+Record: T-1748, PodUtils/podcrates#124 (V-4).
+Deployed: not released.
+
+- When the `podvm` of a foreground `run` dies by SIGKILL, its payload now
+  gets SIGKILL too, as the payload of `run -d` does with its launcher.
+  Before, the payload ran on with no supervisor.
+
 ### Fixed: the open flags of the interposer on aarch64, 2026-11-13
 
 Record: T-1744.

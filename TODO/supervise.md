@@ -1383,7 +1383,7 @@ that the Premise infers. `cargo test -p podvm` exits 0 with
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1413,3 +1413,22 @@ Same mechanism as T-1732, with no second one.
 `sh experiments/437-payload-dies-with-launcher.sh` exits 0, with a clause
 that SIGKILL of a foreground `podvm run IMAGE sleep 60` leaves no live
 process of the payload within 5 s
+
+## Done
+
+**Done 2026-11-13.** `crates/podvm/src/run/foreground.rs` sets
+`Plan.die_with_parent` for the payload of a foreground `run`, as the
+launcher of `run -d` does (T-1732). The fork runs on the thread that waits
+for the payload, so `PR_SET_PDEATHSIG` stays armed while the payload runs
+(T-0603). `PODVM_437_IMAGE=mirror.gcr.io/library/busybox:musl
+PODVM_437_DYNAMIC=mirror.gcr.io/library/debian:bookworm-slim sh
+experiments/437-payload-dies-with-launcher.sh` exits 0
+([the run](../experiments/results/payload-dies-with-launcher.txt)): clause 4
+(the rung that the cloud host selects, a direct exec) and clause 5 (the
+loader family of the userland rung on the chroot-denied fixture) give a
+zombie payload within 5 s of SIGKILL to `podvm`. The release
+`0.2.0-beta.6` exits 1 on the same script
+([the run](../experiments/results/payload-dies-with-launcher-beta6.txt)):
+the payload sleeps on in both clauses. The machine tier is not on this
+path: its emulator ends with its own bound (T-1656).
+

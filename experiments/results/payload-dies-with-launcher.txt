@@ -1,16 +1,24 @@
 == conditions
-date              2026-11-11T13:40:44Z
-host kernel       Linux 6.18.44-fc-v378
-podvm             podvm 0.2.0-beta.3
+date              2026-11-13T01:37:59Z
+host kernel       Linux 6.18.44-fc-v445
+podvm             podvm 0.2.0-beta.7
 image             mirror.gcr.io/library/busybox:musl
 
 == clause 1  the payload is a child of the launcher
-  payload 14850, its parent 14776: $REPO/target/x86_64-unknown-linux-musl/release/podvm run -d 
+  payload 31406, its parent 31334: $REPO/target/x86_64-unknown-linux-musl/release/podvm run -d 
 
 == clause 2  SIGKILL to the launcher
   the state of the payload after the kill: Z
 
 == clause 3  ps names the container Dead
-  f4a6ab23af1b   mirror.gcr.io/library/busybox:musl   sleep 1185   2026-11-11T13:40:47Z   Dead (exited while the launcher was not watching)   
+  ffd24a838bfe   mirror.gcr.io/library/busybox:musl   sleep 750   2026-11-13T01:38:03Z   Dead (exited while the launcher was not watching)   p
+
+== clause 4  SIGKILL to the podvm of a foreground run
+  the payload runs by a direct exec
+  the payload 31526 after SIGKILL to podvm 31447: Z
+
+== clause 5  the same on the userland rung (the fixture of 356)
+  the payload runs through the loader family (--argv0)
+  the payload 31672 after SIGKILL to podvm 31567: Z
 
 verdict: THE PAYLOAD ENDS WITH ITS LAUNCHER

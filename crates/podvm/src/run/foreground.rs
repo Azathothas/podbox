@@ -271,7 +271,12 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
         names: podvm_enter::NAMES,
         limits: p.hardening.limits(),
         no_new_privs: p.hardening.no_new_privs,
-        die_with_parent: false,
+        // TODO/supervise.md T-1748: the payload gets SIGKILL when this
+        // podvm dies (a caller's SIGKILL on a timeout), as the payload of
+        // `run -d` does with its launcher (T-1732). The fork below is on
+        // this thread, which waits for the payload: PR_SET_PDEATHSIG
+        // follows the creating thread (T-0603).
+        die_with_parent: true,
         confine: p.confine.clone(),
     };
     // ⭐ T-0204 and T-0211. The lock is handed to the payload immediately
