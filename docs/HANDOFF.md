@@ -1,41 +1,29 @@
 # Handoff
 
-The state on 2026-11-12, at the end of the session that resumed podvm. A fresh
-session with no memory reads this file first, then `AGENTS.md`,
-`TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
-file when each step below is done.
+The state on 2026-11-13, in the session that took podcrates `v0.34.0` and
+fixed T-1743. A fresh session with no memory reads this file first, then
+`AGENTS.md`, `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`.
+Remove this file when each step below is done.
 
 ## Where things are
 
 * The repository is PodUtils/podvm on `main`. No work lives in a local
   worktree or a branch. The branch `archive/podbox-worktree` is an
   archive; never merge or delete it.
-* The owner resumed podvm on 2026-11-11 and answered Q1 to Q7
-  (`docs/decisions.md`, rows of 2026-11-11). No question is open. The
-  owner closed the session of 2026-11-12 for a restart in a fresh one.
-* The newest release is `v0.2.0-beta.6` (2026-11-12, release run
-  43241608767 on 860d6294; 42 assets with sums and sigstore bundles; its
-  `podvm-aarch64` embeds the two aarch64 interposer objects). A release
-  starts from `release.yml`, which needs a successful gate run on its
-  commit; dispatch `nightly.yml` with `trial=true` on `main` first.
-* Commit signing is off for this repository (`.claude/session-start.sh`,
-  `docs/decisions.md`, "Commit signing"), so the stop hook of a cloud
-  session asks for no rewrite of the author.
-* podvm takes the crates of PodUtils/podcrates at `v0.32.0`:
-  `pod-confine` and `Plan.confine` (T-1658), and the hosts and module sums
-  of `pod-services` (T-1679, at `v0.24.0`).
-* **The record is in the format of `pod-todo` since 2026-11-11** (T-1672,
-  call C17). An entry is `# T-NNNN: Title`, the header fields
-  `**Name:** value` (with `**Milestone:** none`), and the sections
-  `## Problem` to `## Prove`, then `## Blocker`, `## Correction` and
-  `## Done`. A row of `TODO/INDEX.md` has seven cells. `podvm-count --set
-  T-NNNN STATUS` writes the `**Status:**` line and the row; a done entry
-  needs `## Done` with a date. `podvm-gate` checks the record through a
-  view of the old layout (`crates/podvm-gate/src/gate/legacy.rs`), and
-  check 35 runs `podvm-todo check` (pod-todo's reader), which holds the
-  record checks of form since T-1680.
-* PodUtils/podrunner has a lead session since 2026-11-11. It writes to
-  podvm by a COORD issue titled `(to podvm)`; the watcher reads it.
+* **A cloud session cannot start a workflow run** (`TODO/PROGRESS.md`,
+  State). Each run is an issue titled `[gh action] requested` in the form
+  of `AGENTS.md`, section 9, item 5. While a request that checks the head
+  of `main` is open, push nothing to `main`.
+* The newest release is `v0.2.0-beta.6`. The request for
+  `v0.2.0-beta.7` (the gate, `arm.yml`, the nightly trial and the release,
+  in one block) is the open issue `[gh action] requested`; read its
+  answer first. beta.7 carries T-1743 for PodUtils/podrunner@T-096.
+* podvm takes the crates of PodUtils/podcrates at `v0.34.0`.
+* The record is in the format of `pod-todo` (T-1672, call C17).
+  `podvm-count --set T-NNNN STATUS` writes the status line and the row;
+  a done entry needs `## Done` with a date. A foreign entry id carries its
+  repository (`PodUtils/podrunner@T-096`, `podcrates@T-207`), or check 35
+  refuses it.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   the machine tier runs TCG there.
 
@@ -43,51 +31,39 @@ file when each step below is done.
 
 Each waits for a peer; podvm closes it when the peer answers.
 
-* COORD-065 (#286, to podrunner): `v0.2.0-beta.6` carries the aarch64
-  interposer for PodUtils/podrunner#52. Close it when podrunner pins the
-  beta (PodUtils/podrunner#52 then closes), or act on what fails.
-* COORD-064 (#285, to podcrates): podvm's take of `v0.32.0` and the trial
-  of `pod-relay` (`15485d1b`). Close it when PodUtils/podcrates#93 closes.
-* COORD-057 (#278), COORD-047 (#266), COORD-045 (#264): takes of
-  `v0.28.0`, `v0.25.0` and `v0.24.0`; each answers a podcrates issue that
-  is closed. Check them and close them.
-* COORD-052 (#273, beta.5) and the trackers #271 (cfb's asks) and #272
-  (the CI plan items): read them against the record before you close.
-* COORD-041 (#260): `pod-netlab` for T-1662 (T-1663 and T-1664 wait with
-  it). PodUtils/podcrates#93 says podcrates@T-207 (`pod-netlab`) is in
-  work; its offline part is on podcrates `main` for the next tag.
-* COORD-040 (#259): `pod-confine` for T-1658; T-1658 is done. Check and
-  close.
+* The answer to PodUtils/podcrates#103 and #104 (the take of `v0.34.0`),
+  to PodUtils/podcrates#102 and PodUtils/podrunner#70 (T-1743), and to
+  PodUtils/podcrates#124 (the asks of podswarm, T-1745 to T-1752): the
+  COORD issues of 2026-11-13 (`TODO/issues.md` maps them).
+* COORD-041 (#260): `pod-netlab` for T-1662. The offline part is in
+  `v0.33.0`; T-1662 is open for the host side. Close it when podcrates
+  releases the guest parts (podcrates@T-345 to podcrates@T-347).
 * COORD-001 (#194, to podcrates): the crates that podvm hands over and
-  takes. T-1678 (`pod-relay`) is done now.
+  takes.
 * #239: `podvm probe --json` against the schema of pod-hostprobe (T-1714,
   blocked on podcrates@T-107).
+* The trackers #271 (cfb's asks: 6 of 9 done) and #272 (the CI plan
+  items: 2 of 3 done) stay open for their blocked items.
 
 ## Next steps, in order
 
-1. Start the session (`AGENTS.md`, section 8): the watcher of the
-   organization, the last CI runs, `podvm-gate`. Read new messages first:
-   podrunner may answer #286, podcrates may tag `v0.33.0` (`pod-netlab`).
-2. No entry is open. The partial entries, with their remaining clauses in
-   `TODO/`: T-1722 (incus: the ladder selects incus by configuration,
-   `.EnteredRung` names it, `logs -f` and `inspect`), T-1667 (the doctor's
-   check of labs in a guest waits for the network entries), T-1406
-   (live-relay pairing; podcrates@T-330 plans podvm commands that make,
-   check and stop a pair), T-1740 (a cheaper syscall tier), T-1350 (the
-   wrapper of the parked Windows lane).
-3. Blocked on podcrates: T-1662, T-1663, T-1664 (`pod-netlab`), T-1714
-   (the schema of podcrates@T-107).
-4. Done on 2026-11-12: T-1721 (aarch64 interposer; `arm.yml`), T-1741 and
-   T-1742 (podcrates `v0.31.0` fixes found on arm64), T-1729 (runsc tier,
-   experiment 436), T-1723 (9p volumes, `-t`, microvm measured: the guest
-   keeps `-M pc`; experiments 412 and 440 in `kvm.yml`), T-1678
-   (`pod-relay`), and the release `v0.2.0-beta.6`.
+1. Start the session (`AGENTS.md`, section 8). Read the answer of the
+   open `[gh action] requested` issue: on success, record the release
+   (CHANGELOG, `TODO/PROGRESS.md`) and write COORD issues to podrunner and
+   podcrates that beta.7 carries T-1743. On a failure, fix it and open a
+   new request.
+2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662 (open:
+   `podvm lab` on the host with `pod-netlab`'s offline part; the first
+   clause of its Prove), then T-1722, T-1744 (its proof needs `arm.yml`),
+   T-1406.
+3. Blocked: T-1663 and T-1664 (they run in T-1662's lab guest), T-1714
+   (podcrates@T-107).
+4. After podvm's own order: the podrunner part, then the asks of podswarm
+   (T-1746 and T-1748 first, P2).
 5. Before an entry is set done, run `cargo test -p podvm`: the test
    `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
-   pod-todo's reader reads the files on disk: an untracked directory can
-   hide a citation that a clone of CI refuses (CI run 400).
-6. CI: each push cancels the run before it. `release.yml` needs a
-   successful gate run on its commit: do not push between the gate and
-   the release. A crate of podvm that runs in a guest must build for
-   aarch64 too (`c_char` is `u8` there): `cargo check --target
-   aarch64-unknown-linux-musl -p podvm` before a push that touches one.
+   The record tests of `podvm-todo` read the files on disk, so do not edit
+   `TODO/` while `cargo test --workspace` runs.
+6. The interposer: a new entry point needs its name in `interpose.map`
+   (`podvm-interpose-build` compares the exports). Its `build.rs` names the
+   map, so cargo links the objects again when the map changes (T-1743).
