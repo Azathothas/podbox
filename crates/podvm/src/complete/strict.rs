@@ -1,3 +1,4 @@
+use super::step_output::{step_output, tail};
 use super::*;
 
 /// T-0804's refusal, over all three inputs.
@@ -311,7 +312,18 @@ pub fn run_steps_with_memo(
     };
     for (i, s) in steps.iter().enumerate() {
         let started = std::time::Instant::now();
-        let outcome = one_step(&root, rootfs, s, env, memo_host);
+        let out = match step_output() {
+            Ok(f) => f,
+            Err(e) => {
+                report.fixups.push(failed_step(
+                    s.entry,
+                    s.id,
+                    format!("no file for its output: {e}"),
+                ));
+                continue;
+            }
+        };
+        let outcome = one_step(&root, rootfs, s, env, memo_host, &out);
         let took = started.elapsed().as_secs_f64();
         let (line, failure) = match outcome {
             Ok(podvm_enter::Bounded::Exited(0)) => (
@@ -359,8 +371,13 @@ pub fn run_steps_with_memo(
                 Some(format!("`{}` could not be started: {e}", s.argv.join(" "))),
             ),
         };
-        if !quiet {
+        if !quiet || failure.is_some() {
             let _ = writeln!(err, "{line}");
+        }
+        if failure.is_some() {
+            for l in tail(&out, 10) {
+                let _ = writeln!(err, "podvm: complete: step {}: {l}", i + 1);
+            }
         }
         report.fixups.push(match failure {
             None => podvm_complete::Fixup {
@@ -399,13 +416,21 @@ fn one_step(
     s: &podvm_complete::Step,
     env: &[String],
     memo_host: Option<i64>,
+    out: &std::fs::File,
 ) -> Result<podvm_enter::Bounded, podvm_enter::Error> {
-    // ⛔ The step's stdout becomes podvm's stderr, and it is DUPLICATED first:
-    // handing `(1, 2)` to the child's `dup2`-then-close loop would close the
-    // child's own stderr with it.
-    let mirror = podvm_probe::sys::dup_cloexec(2)
-        .map_err(|e| podvm_enter::runtime(format!("dup of stderr: {}", e.name())))?;
-    let mut pass = vec![(1, mirror)];
+    // TODO/image.md T-1763: the step's stdout and stderr go to `out`, never
+    // to the payload's stdout (T-1104) and not to podvm's stderr: a step
+    // that succeeds prints nothing (`openssl rehash` printed 108 warnings on
+    // each python run). Each stream gets its own duplicate: the child's
+    // `dup2`-then-close loop closes each host descriptor after its `dup2`.
+    use std::os::fd::AsRawFd;
+    let dup = |what| {
+        podvm_probe::sys::dup_cloexec(i64::from(out.as_raw_fd())).map_err(|e| {
+            podvm_enter::runtime(format!("dup of the {what} of the step: {}", e.name()))
+        })
+    };
+    let (o1, o2) = (dup("stdout")?, dup("stderr")?);
+    let mut pass = vec![(1, o1), (2, o2)];
     // ⭐ T-0710: steps share the entry's memo, where one was handed. Without
     // it a fixup's `chown` would fail real where the payload's succeeds
     // virtualized, and the two would disagree about who owns the file.
@@ -439,8 +464,9 @@ fn one_step(
     };
     let mut sink = std::io::sink();
     let spawned = podvm_enter::spawn(root, &plan, &mut sink);
-    // ⚠ The parent's copy goes here whatever happened: the child got its own.
-    let _ = podvm_probe::sys::close(mirror);
+    // ⚠ The parent's copies go here whatever happened: the child got its own.
+    let _ = podvm_probe::sys::close(o1);
+    let _ = podvm_probe::sys::close(o2);
     spawned?.wait_bounded(STEP_TIMEOUT_MS)
 }
 

@@ -3460,7 +3460,7 @@ experiment 443 before the release.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3481,6 +3481,19 @@ The fix in the image layer is podvm's; a cause in a crate of podcrates goes ther
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.true-py.ns`, `imgs.python.ns`, and a test of the image layer holds the fix
+
+## Done
+
+**Done 2026-11-13.** Each step of the completion writes its stdout and
+stderr to an unlinked file (`crates/podvm/src/complete/step_output.rs`),
+not to podvm's stderr. A step that succeeds prints nothing of its own; a
+step that fails prints its line and its last 10 lines, also in quiet mode.
+A quiet `run --rm python:3.12-slim true` now prints 0 lines on stderr
+(108 before), and the step takes 0.0 s on the cloud host. The bundle with
+duplicate roots is of `pod-rootfs`; with the output captured it costs
+nothing visible, so podvm asks podcrates for no change. The test
+`the_tail_of_a_step_is_its_last_printable_lines` holds the tail. The rows
+of the Prove come with the rerun of experiment 443 before the release.
 
 # T-1767: Quiet runs print notes: a false chown EINVAL on extraction, the probe line of `pull -q`, the base archive of the machine tier
 
