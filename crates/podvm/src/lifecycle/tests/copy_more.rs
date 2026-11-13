@@ -53,3 +53,33 @@ fn a_missing_workdir_is_made_and_never_through_a_link() {
     assert!(!root.join("data").exists(), "a volume serves its own paths");
     let _ = std::fs::remove_dir_all(&base);
 }
+
+/// TODO/image.md T-1774. A shim file in place of a device of the rootfs,
+/// or no node at all, maps to the host's device; a volume of the caller at
+/// the path keeps the path.
+#[test]
+fn a_shimmed_device_maps_to_the_hosts() {
+    use std::os::unix::fs::FileTypeExt;
+    if !std::fs::metadata("/dev/urandom").is_ok_and(|m| m.file_type().is_char_device()) {
+        return;
+    }
+    let base = std::env::temp_dir().join(format!("podvm-dev-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("dev")).unwrap();
+    std::fs::write(base.join("dev/urandom"), vec![0u8; 16]).unwrap();
+    let r = base.to_str().unwrap();
+    let pairs = crate::lifecycle::volume::device_pairs(r, &[]);
+    assert!(pairs
+        .iter()
+        .any(|v| v.guest == "/dev/urandom" && v.host == "/dev/urandom"));
+    let mine = podvm_enter::userland::Volume {
+        guest: "/dev/urandom".into(),
+        host: "/tmp".into(),
+    };
+    let pairs = crate::lifecycle::volume::device_pairs(r, &[mine]);
+    assert!(
+        !pairs.iter().any(|v| v.guest == "/dev/urandom"),
+        "the caller's volume wins"
+    );
+    let _ = std::fs::remove_dir_all(&base);
+}

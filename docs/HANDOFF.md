@@ -32,11 +32,9 @@ file when each step below is done.
 Experiment 443 (`experiments/443-qa-surface.sh`) drives the CLI on the
 namespace rung and on the chroot-denied fixture (`ul`). The first pass
 gave 518 PASS and 64 FAIL, and T-1753 to T-1771; the reruns found T-1772
-to T-1775. The merged capture gives 578 PASS and 5 FAIL. Since then,
-podcrates `v0.38.0` closed `tty` on the namespace rung (T-1760) and the
-three rows of `lab` (T-1770); they wait for the next rerun. The one row
-left is T-1774 (open, P3): busybox `head -c` of `/dev/urandom` on the
-userland rung.
+to T-1775. The merged capture gives 583 PASS and 0 FAIL: the reruns
+took the fixes of podcrates `v0.38.0` (T-1760, T-1770) and of T-1774 (the
+host's devices on the userland rung under a user namespace).
 
 ## Other open COORD issues
 
@@ -54,8 +52,7 @@ userland rung.
    close COORD-077 (#303) and COORD-079 (#307) when it says so.
 3. Close COORD-080 (#309) when podcrates records the take of `v0.39.0`.
 4. The rest of T-1751 (podswarm's shield `guest`: no host file in the
-   guest) and the reruns of experiment 443 for the rows that `v0.38.0`
-   closed.
+   guest).
 5. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no

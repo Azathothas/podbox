@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the devices of the userland rung, 2026-11-13
+
+Record: T-1774.
+Deployed: not deployed; the next release carries it.
+
+- On the userland rung under a user namespace, `/dev/urandom`,
+  `/dev/random`, `/dev/zero` and `/dev/null` are the host's devices, not
+  the regular files of 1 MiB that the completion writes where mknod(2)
+  is refused. busybox `head -c 2000000 /dev/urandom` gives 2000000 bytes.
+
 ## 0.2.0-beta.10 (2026-11-13)
 
 ### Changed: podcrates v0.39.0, 2026-11-13

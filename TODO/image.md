@@ -3717,18 +3717,20 @@ podvm fixes it where the cause is the interposer; a cause in a crate of podcrate
 
 ## Correction
 
-**2026-11-13.** The Premise was a dash. `strace` of the row on a fresh tree
-of the QA store shows busybox `head` reading the device node of the run's
-tree (`.../trees/ID/rootfs/dev/urandom`), and the row prints 2000000. The
-1 MiB end is the size of the regular file that the completion writes in
-place of `/dev/urandom` where mknod(2) is refused (T-0401, the dev shim,
-which `--strict` names), as in experiment 356 under a user namespace. The
-failing rows of the QA pass read a tree that held such a file.
+**2026-11-13.** The Premise was a dash. The cause is the dev shim of the
+completion (T-0401): where mknod(2) is refused, as under the user
+namespace of the fixture, the completion writes a regular file of 1 MiB
+in place of `/dev/urandom`, and busybox `head` reads that file. A first
+close of this entry said "no change": its probe ran with no user
+namespace, where the tree held the real node. That close was wrong.
 
 ## Done
 
-**Done 2026-11-13, with no change.** On the chroot-denied fixture, `run
---rm alpine sh -c 'head -c 2000000 /dev/urandom | wc -c'` prints 2000000
-on a fresh tree. The shim that ends at 1 MiB is the documented
-substitution of T-0401, not a defect of the interposer.
+**Done 2026-11-13.** The path table of the userland rung maps
+`/dev/null`, `/dev/zero`, `/dev/random` and `/dev/urandom` to the host's
+character devices when the node of the run's tree is not a character
+device and no volume of the caller holds the path
+(`device_pairs` in `crates/podvm/src/lifecycle/volume.rs`). In the
+fixture of experiment 443, `head -c 2000000 /dev/urandom | wc -c` prints
+2000000. The test `a_shimmed_device_maps_to_the_hosts` holds the fix.
 

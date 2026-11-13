@@ -183,10 +183,37 @@ pub fn maps(
     rootfs: &str,
     volumes: &[Volume],
 ) -> Result<podvm_enter::userland::Maps, i32> {
-    podvm_enter::userland::Maps::new(&podvm_enter::NAMES, rootfs, volumes).map_err(|why| {
+    let mut all = volumes.to_vec();
+    all.extend(device_pairs(rootfs, volumes));
+    podvm_enter::userland::Maps::new(&podvm_enter::NAMES, rootfs, &all).map_err(|why| {
         eprintln!("podvm {verb}: -v: {why} (TODO/enter.md T-1653)");
         podvm_image::error::EXIT_RUNTIME_ERROR
     })
+}
+
+/// TODO/image.md T-1774: where the rootfs holds a regular file in place of a
+/// device (the shim of T-0401, where mknod(2) is refused), the table maps
+/// the path to the host's device, so a read of `/dev/urandom` does not end
+/// at 1 MiB. Only where the host's node is a character device, and not
+/// where a volume of the caller covers the path.
+pub fn device_pairs(rootfs: &str, volumes: &[Volume]) -> Vec<Volume> {
+    use std::os::unix::fs::FileTypeExt;
+    let chr =
+        |p: &std::path::Path| std::fs::metadata(p).is_ok_and(|m| m.file_type().is_char_device());
+    ["/dev/null", "/dev/zero", "/dev/random", "/dev/urandom"]
+        .into_iter()
+        .filter(|d| !volumes.iter().any(|v| v.guest.trim_end_matches('/') == *d))
+        .filter(|d| {
+            let inner = std::path::Path::new(rootfs).join(d.trim_start_matches('/'));
+            // The table is made before the completion writes its shim, so
+            // a node that is not there yet takes the host's device too.
+            chr(std::path::Path::new(d)) && !chr(&inner)
+        })
+        .map(|d| Volume {
+            guest: d.to_string(),
+            host: d.to_string(),
+        })
+        .collect()
 }
 
 /// The banner lines of the volumes: one for each volume, and one for each
