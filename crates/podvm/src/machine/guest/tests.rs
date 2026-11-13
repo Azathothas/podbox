@@ -94,6 +94,7 @@ fn the_init_script_quotes_each_word() {
         true,
         &[],
         None,
+        None,
     );
     assert!(s.contains("/podvm/podvm guest-net"));
     assert!(
@@ -188,7 +189,7 @@ fn stderr_has_its_own_port() {
     let a = stderr::argv(&sock).join(" ");
     assert!(a.contains("server=on,wait=on") && a.ends_with("-serial chardev:podvmerr"));
     assert_eq!(stderr::strip_cr(b"e1\r\ne2\r\n"), b"e1\ne2\n");
-    let s = init::script("n", &["true".into()], &[], "/", false, &[], None);
+    let s = init::script("n", &["true".into()], &[], "/", false, &[], None, None);
     assert!(s.contains("cat /podvm-err >/dev/ttyS1"));
 }
 
@@ -197,7 +198,7 @@ fn stderr_has_its_own_port() {
 /// writes the exit marker.
 #[test]
 fn the_command_writes_to_fifos_not_to_a_terminal() {
-    let s = init::script("n", &["true".into()], &[], "/", false, &[], None);
+    let s = init::script("n", &["true".into()], &[], "/", false, &[], None, None);
     assert!(s.contains("mkfifo /podvm-out /podvm-err"), "{s}");
     assert!(s.contains("\"$@\" >/podvm-out 2>/podvm-err"), "{s}");
     let wait = s
@@ -212,7 +213,7 @@ fn the_command_writes_to_fifos_not_to_a_terminal() {
 fn stdin_rides_in_the_run_archive() {
     let a = run_archive("#!/bin/sh\n", None, &[], Some(b"in-bytes")).unwrap();
     assert_eq!(cpio::member(&a, "podvm/stdin"), Some(&b"in-bytes"[..]));
-    let s = init::script("n", &["cat".into()], &[], "/", false, &[], None);
+    let s = init::script("n", &["cat".into()], &[], "/", false, &[], None, None);
     assert!(s.contains("exec 0</podvm/stdin") && s.contains("exec 0</dev/null"));
 }
 
@@ -270,7 +271,7 @@ fn each_volume_is_a_9p_tag_mounted_before_the_working_directory() {
         super::vol::virtfs(std::path::Path::new("/h/c"), &vols[1]),
         "local,path=/h/c,mount_tag=podvm1,security_model=none,readonly=on"
     );
-    let s = init::script("n", &["true".into()], &[], "/data", true, &vols, None);
+    let s = init::script("n", &["true".into()], &[], "/data", true, &vols, None, None);
     let mount = s
         .find("/podvm/podvm guest-9p 'podvm0=/data' 'podvm1=/cfg dir:ro'")
         .expect(&s);
@@ -287,7 +288,16 @@ fn each_volume_is_a_9p_tag_mounted_before_the_working_directory() {
 /// `podvm guest-tty` with the size of the host terminal, and no FIFO.
 #[test]
 fn a_terminal_runs_the_command_through_guest_tty() {
-    let s = init::script("n", &["sh".into()], &[], "/", true, &[], Some("40x120"));
+    let s = init::script(
+        "n",
+        &["sh".into()],
+        &[],
+        "/",
+        true,
+        &[],
+        Some("40x120"),
+        None,
+    );
     assert!(
         s.contains("/podvm/podvm guest-tty '40x120' -- \"$@\""),
         "{s}"

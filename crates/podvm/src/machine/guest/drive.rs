@@ -43,6 +43,10 @@ pub(super) fn drive(
     let deadline = Instant::now() + r.timeout.unwrap_or(DEFAULT_TIMEOUT);
     let gone = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let errs = stderr::pump(sock.to_path_buf(), deadline, gone.clone());
+    // TODO/machine.md T-1751: the host side of the channel.
+    let _channel = r.channel.as_ref().map(|(host, _)| {
+        super::channel::serve(super::channel::socket_path(sock), host.clone(), deadline)
+    });
     // TODO/machine.md T-1723: the terminal of -t, raw on the host until the
     // end of the run.
     let (_raw, term) = if r.tty {

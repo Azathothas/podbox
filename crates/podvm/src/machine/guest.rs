@@ -16,6 +16,7 @@
 //! runs the command on a terminal of a virtio console ([`tty`]).
 
 pub(crate) mod archive;
+pub(crate) mod channel;
 pub(crate) mod cpio;
 mod drive;
 pub(crate) mod init;
@@ -75,6 +76,12 @@ pub struct Request<'a> {
     /// `-t`: the command runs on a terminal of a virtio console, and stdin
     /// goes there live ([`tty`], TODO/machine.md T-1723).
     pub tty: bool,
+    /// `--podvm-net none`: no NIC, and the init loads no NIC module
+    /// (TODO/machine.md T-1751).
+    pub net_none: bool,
+    /// `--podvm-channel`: the host socket and the guest's TCP port of the
+    /// one channel ([`channel`], T-1751).
+    pub channel: Option<(PathBuf, u16)>,
 }
 
 /// The most bytes of stdin that a guest takes.
@@ -283,9 +290,10 @@ pub fn boot(r: &Request) -> i32 {
                 &r.argv,
                 &r.env,
                 &r.workdir,
-                tools.is_some(),
+                tools.is_some() && !r.net_none,
                 &vols,
                 r.tty.then_some(size.as_str()),
+                r.channel.as_ref().map(|c| c.1),
             );
             run_archive(&script, tools.as_ref(), &copies, r.stdin.as_deref())
         })
@@ -347,6 +355,11 @@ pub fn boot(r: &Request) -> i32 {
         let _ = std::fs::remove_file(tty::socket_path(&sock));
         extra.extend(tty::argv(&tty::socket_path(&sock)));
     }
+    // TODO/machine.md T-1751: the one channel to a host socket.
+    if r.channel.is_some() {
+        let _ = std::fs::remove_file(channel::socket_path(&sock));
+        extra.extend(channel::argv(&channel::socket_path(&sock)));
+    }
     for (v, (host, _, _)) in vols.iter().zip(&r.volumes) {
         extra.push("-virtfs".to_string());
         extra.push(vol::virtfs(host, v));
@@ -359,6 +372,13 @@ pub fn boot(r: &Request) -> i32 {
         &initrd,
         &extra,
     );
+    if r.net_none
+        && let Some(nic) = argv
+            .iter_mut()
+            .find(|a| a.starts_with("user,model=virtio-net-pci"))
+    {
+        *nic = "none".to_string();
+    }
     if let Some(port) = r.broker {
         let (h, p) = crate::broker::GUEST_FORWARD;
         if let Some(nic) = argv
@@ -389,6 +409,7 @@ pub fn boot(r: &Request) -> i32 {
     let code = drive(r, &qemu, &argv, &nonce, &dir, &sock);
     let _ = std::fs::remove_file(&sock);
     let _ = std::fs::remove_file(tty::socket_path(&sock));
+    let _ = std::fs::remove_file(channel::socket_path(&sock));
     let _ = std::fs::remove_dir_all(&dir);
     code
 }

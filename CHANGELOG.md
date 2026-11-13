@@ -22,6 +22,17 @@ Deployed: not released.
   the group that the image gives it, not root's: a non-root user of the
   image can run its programs.
 
+### Added: a guest with no NIC and one channel to a host socket, 2026-11-13
+
+Record: T-1751, PodUtils/podrunner#83.
+Deployed: not released.
+
+- `run --podvm-tier=machine --podvm-net none` boots a guest with no
+  network card: `ip link` shows `lo` only.
+- `--podvm-channel HOST_SOCKET:127.0.0.1:PORT` carries each TCP
+  connection to the port in the guest to the Unix socket of the host, over
+  one `virtio-serial` port.
+
 ## 0.2.0-beta.8 (2026-11-13)
 
 ### Fixed: /proc on the namespace rung, `exec` in the run's mounts, `-w`, 2026-11-13

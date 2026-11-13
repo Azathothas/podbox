@@ -23,6 +23,9 @@ pub fn sh_quote(w: &str) -> String {
 /// with 125 and the reason, and the command does not run. `tty` (`-t`, the
 /// size `ROWSxCOLS` or empty) runs the command through `podvm guest-tty` on
 /// the virtio console (TODO/machine.md T-1723) in place of the FIFOs.
+/// `channel` (a port) starts `podvm guest-channel` and waits until it
+/// listens (TODO/machine.md T-1751).
+#[allow(clippy::too_many_arguments)]
 pub fn script(
     nonce: &str,
     argv: &[String],
@@ -31,6 +34,7 @@ pub fn script(
     net: bool,
     vols: &[super::vol::Vol],
     tty: Option<&str>,
+    channel: Option<u16>,
 ) -> String {
     let mut s = String::from("#!/bin/sh\n");
     s.push_str("mount -t proc proc /proc 2>/dev/null\n");
@@ -57,6 +61,13 @@ pub fn script(
     s.push_str(&format!("echo PODVM-READY-{nonce}\n"));
     if net {
         s.push_str("/podvm/podvm guest-net\n");
+    }
+    // TODO/machine.md T-1751: the channel listens before the command runs.
+    if let Some(port) = channel {
+        s.push_str(&format!(
+            "/podvm/podvm guest-channel {port} & i=0\nwhile [ ! -e {r} ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i+1)); done\n",
+            r = super::channel::READY
+        ));
     }
     // stdin: the bytes of podvm's stdin where there were some, else none.
     s.push_str("if [ -f /podvm/stdin ]; then exec 0</podvm/stdin; else exec 0</dev/null; fi\n");

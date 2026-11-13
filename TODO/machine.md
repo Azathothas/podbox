@@ -2383,9 +2383,9 @@ guest gives the exit code of its command (under TCG on the cloud host)
   peer session; PodUtils/podcrates#107 is its tracker), ask V-7
 **Category:** machine
 **Milestone:** none
-**Priority:** P3
+**Priority:** P1
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2419,6 +2419,28 @@ file name, a file body, an argv element and a variable leaves no canary
 in the argv or the environment of a host process, in the per-run
 directory or in the state of podvm, and that `ip link` in the guest shows
 `lo` only
+
+## Done
+
+**Partial 2026-11-13.** The part that PodUtils/podrunner#83 asks for, so
+that podrunner's `microvm` kind can run an untrusted job: `--podvm-net
+none` boots the guest with `-nic none` and no NIC module, and
+`--podvm-channel HOST_SOCKET:127.0.0.1:PORT` gives the guest one
+`virtio-serial` port, `podvm.ch`, on a chardev socket of the run
+(`crates/podvm/src/machine/guest/channel.rs`). In the guest, `podvm
+guest-channel PORT` listens on the loopback port and opens one stream of
+`pod-link` for each connection; on the host, podvm dials `HOST_SOCKET` for
+each stream. Both flags are refused on each other tier, and `--podvm-net
+none` with `--network broker` is refused. In a TCG guest on the cloud
+host, `ip -o link` shows `lo` only, and two connections to
+`127.0.0.1:8080` reach a Unix socket of the host and its answers, within
+the bound; no emulator stays after the run. The test
+`the_flag_names_a_host_socket_and_a_port_of_the_loopback` holds the parse
+and the arguments of the emulator.
+
+Open: podswarm's half (ask V-7), no host file in the guest: the 9p
+volumes, the run archive on the host and the canary test of the Prove.
+
 
 # T-1776: Each file of a guest of the machine tier belongs to root
 

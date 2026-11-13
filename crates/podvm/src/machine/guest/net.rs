@@ -166,6 +166,19 @@ fn route(fd: i32) -> Result<(), String> {
 }
 
 /// The subcommand. Exit 0 where the network is up, 1 where a step failed.
+/// Bring `lo` up, for a guest with no NIC (`--podvm-net none`, T-1751).
+pub fn lo_up() -> Result<(), String> {
+    // SAFETY: a datagram socket of the inet family, for the ioctls.
+    let fd = unsafe { socket(2, 2, 0) };
+    if fd < 0 {
+        return Err(format!("socket: {}", err()));
+    }
+    let r = up(fd, "lo", None);
+    // SAFETY: the socket of this function.
+    unsafe { close(fd) };
+    r
+}
+
 pub fn main() -> i32 {
     let mut failed = Vec::new();
     for m in MODULES {

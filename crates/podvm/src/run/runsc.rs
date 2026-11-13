@@ -31,10 +31,12 @@ pub(super) fn runsc_tier(
         || o.confine.is_some()
         || o.timeout.is_some()
         || !o.tmpfs.is_empty()
+        || o.net_none
+        || o.channel.is_some()
     {
         return refuse(
-            "takes no --podvm-mem, --podvm-cpus, --podvm-qemu-arg, --network broker, \
-             --podvm-confine, --timeout or --tmpfs yet",
+            "takes no --podvm-mem, --podvm-cpus, --podvm-qemu-arg, --podvm-net, \
+             --podvm-channel, --network broker, --podvm-confine, --timeout or --tmpfs yet",
         );
     }
     let user = match crate::runsc::numeric_user(o.user.as_deref()) {

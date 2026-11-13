@@ -960,6 +960,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-link"
+version = "0.38.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.38.0#370ab45a235d59c524af5d247d51dd29f6bb814c"
+dependencies = [
+ "libc",
+ "pod-core",
+ "pod-identity",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "pod-netlab"
 version = "0.38.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.38.0#370ab45a235d59c524af5d247d51dd29f6bb814c"
@@ -1143,6 +1155,7 @@ dependencies = [
  "pod-broker",
  "pod-core",
  "pod-incus",
+ "pod-link",
  "pod-netlab",
  "pod-proxy",
  "pod-services",

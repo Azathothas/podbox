@@ -137,6 +137,16 @@ fn parse_flags_with(
                     }
                 },
                 "--podvm-qemu-arg" => o.qemu_args.push(a.clone()),
+                "--podvm-net" if a == "none" => o.net_none = true,
+                "--podvm-net" => {
+                    eprintln!(
+                        "podvm {verb}: --podvm-net takes none, not {a:?} (TODO/machine.md T-1751)"
+                    );
+                    return Err(EXIT_FLAG_ERROR);
+                }
+                "--podvm-channel" => {
+                    o.channel = Some(crate::machine::guest::channel::parse(verb, a)?)
+                }
                 "--podvm-mem" => match crate::tier::parse_mem(a) {
                     Some(m) => o.mem = Some(m),
                     None => {
@@ -255,6 +265,8 @@ fn parse_flags_with(
             "--podvm-tier" => expecting = Some("--podvm-tier"),
             "--podvm-qemu-arg" => expecting = Some("--podvm-qemu-arg"),
             "--podvm-mem" => expecting = Some("--podvm-mem"),
+            "--podvm-net" => expecting = Some("--podvm-net"),
+            "--podvm-channel" => expecting = Some("--podvm-channel"),
             "--podvm-cpus" => expecting = Some("--podvm-cpus"),
             "--podvm-confine" => expecting = Some("--podvm-confine"),
             "--report" => expecting = Some("--report"),

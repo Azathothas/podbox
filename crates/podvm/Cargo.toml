@@ -37,6 +37,7 @@ podvm-dispatch = { path = "../podvm-dispatch" }
 # TODO/machine.md T-1727: the client of the incus REST API (T-1718), shared
 # through PodUtils/podcrates; a runtime of one thread drives it.
 pod-incus = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0" }
+pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0" }
 # TODO/deps.md T-1679: the hosts of other parties (the guest kernel's
 # archive, the default server of login), one list in podcrates.
 pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0" }
@@ -47,7 +48,7 @@ pod-netlab = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0" }
 pod-broker = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0" }
 pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0" }
 pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.38.0", default-features = false, features = ["async"] }
-tokio = { version = "1", default-features = false, features = ["rt", "fs", "net"] }
+tokio = { version = "1", default-features = false, features = ["rt", "fs", "net", "io-util", "time"] }
 podvm-supervise = { path = "../podvm-supervise" }
 # ⭐ TODO/milestones.md T-1112. The disposable Windows guest. Its own crate
 # because the whole guest side is `cmd.exe` and a FAT mailbox and none of it

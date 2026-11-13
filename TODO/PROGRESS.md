@@ -7,7 +7,7 @@ start.
 
 ## State
 
-385 entries: 4 open, 5 partial, 4 blocked, 372 done.
+385 entries: 3 open, 6 partial, 4 blocked, 372 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -47,7 +47,9 @@ status with `podvm-count` in the same commit as the work.
    64 fail; the merged reruns: 578 pass, 5 fail) and the release
    `0.2.0-beta.8` for the beta testers (`docs/HANDOFF.md`). The fixes that
    came with podcrates `v0.38.0` and the owners in a guest of the machine
-   tier (PodUtils/podrunner#81) go out in the next beta. Open:
+   tier (PodUtils/podrunner#81) go out in the next beta, with
+   [T-1751](machine.md) (partial: the guest with no NIC and one channel of
+   PodUtils/podrunner#83; podswarm's half stays open). Open:
    [T-1774](image.md) (P3). The copy of the rootfs on each
    run (11 s for golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:

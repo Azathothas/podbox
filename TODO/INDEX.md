@@ -425,7 +425,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1748](supervise.md) | P2 | S | none | supervise | done | A foreground payload dies when its `podvm run` is killed with SIGKILL |
 | [T-1749](enter.md) | P3 | L | none | enter | partial | A read-only image as the lower layer of the root, with a tmpfs upper layer, and no copy |
 | [T-1750](machine.md) | P3 | L | none | machine | open | `exec` into a running guest of the machine tier |
-| [T-1751](machine.md) | P3 | L | none | machine | open | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
+| [T-1751](machine.md) | P1 | L | none | machine | partial | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
 | [T-1752](cli.md) | P3 | M | none | cli | done | A versioned JSON Schema for the record of `run --report`, published in each release |
 | [T-1753](interpose.md) | P1 | M | none | interpose | done | The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens |
 | [T-1754](interpose.md) | P1 | S | none | interpose | done | `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails |
@@ -454,7 +454,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-385 entries: 4 open, 5 partial, 4 blocked, 372 done.
+385 entries: 3 open, 6 partial, 4 blocked, 372 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -464,10 +464,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 0 | 163 | 164 |
+| P1 | 0 | 2 | 0 | 163 | 165 |
 | P2 | 0 | 2 | 4 | 124 | 130 |
-| P3 | 4 | 2 | 0 | 20 | 26 |
-| **All** | 4 | 5 | 4 | 372 | 385 |
+| P3 | 3 | 2 | 0 | 20 | 25 |
+| **All** | 3 | 6 | 4 | 372 | 385 |
 
 ## Work order
 

@@ -97,9 +97,11 @@ pub(crate) fn prepare(
         eprintln!("podvm {verb}: --podvm-mem needs --podvm-tier=machine");
         return Err(EXIT_FLAG_ERROR);
     }
-    if o.cpus.is_some() {
-        // ⛔ The same rule: a rootfs tier has no vCPU to give (T-1654).
-        eprintln!("podvm {verb}: --podvm-cpus needs --podvm-tier=machine");
+    if o.cpus.is_some() || o.net_none || o.channel.is_some() {
+        // ⛔ The same rule: a rootfs tier has no vCPU, NIC or channel (T-1654, T-1751).
+        eprintln!(
+            "podvm {verb}: --podvm-cpus, --podvm-net and --podvm-channel need --podvm-tier=machine"
+        );
         return Err(EXIT_FLAG_ERROR);
     }
     let image = o.image.clone().expect("checked in parse");

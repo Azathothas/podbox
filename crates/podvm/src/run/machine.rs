@@ -141,6 +141,13 @@ pub(super) fn machine_tier(
         }
     };
     env.extend(crate::sandprobe::host_env(store.root()));
+    if o.net_none && o.broker {
+        eprintln!(
+            "podvm {verb}: --podvm-net none leaves no NIC for --network broker: the broker \
+             is a forward of the guest's network (TODO/machine.md T-1751)"
+        );
+        return EXIT_FLAG_ERROR;
+    }
     // TODO/net.md T-1665: the guest reaches the broker alone, at a forward
     // of its restricted network.
     let broker = if o.broker {
@@ -175,6 +182,8 @@ pub(super) fn machine_tier(
         volumes,
         tty: o.tty,
         stdin: p.stdin,
+        net_none: o.net_none,
+        channel: o.channel.clone(),
     });
     if let Some(d) = probe {
         let _ = std::fs::remove_dir_all(d);
@@ -197,10 +206,17 @@ pub(super) fn incus_tier(
         );
         return EXIT_FLAG_ERROR;
     }
-    if o.mem.is_some() || o.cpus.is_some() || !o.qemu_args.is_empty() || o.broker {
+    if o.mem.is_some()
+        || o.cpus.is_some()
+        || !o.qemu_args.is_empty()
+        || o.broker
+        || o.net_none
+        || o.channel.is_some()
+    {
         eprintln!(
             "podvm {verb}: --podvm-tier=incus takes no --podvm-mem, --podvm-cpus, \
-             --podvm-qemu-arg or --network broker yet (TODO/machine.md T-1718)"
+             --podvm-qemu-arg, --podvm-net, --podvm-channel or --network broker yet \
+             (TODO/machine.md T-1718)"
         );
         return EXIT_FLAG_ERROR;
     }

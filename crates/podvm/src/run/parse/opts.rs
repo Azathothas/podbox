@@ -32,6 +32,12 @@ pub(crate) struct Opts {
     /// `--podvm-cpus`. The guest's vCPUs, machine tier only and refused on
     /// every other tier. TODO/cli.md T-1654 (`limits.cpus` of a profile).
     pub(crate) cpus: Option<u32>,
+    /// `--podvm-net none`: the guest of the machine tier has no NIC
+    /// (TODO/machine.md T-1751, PodUtils/podrunner#83).
+    pub(crate) net_none: bool,
+    /// `--podvm-channel HOST_SOCKET:127.0.0.1:PORT`: one channel from a
+    /// TCP port of the guest to a Unix socket of the host (T-1751).
+    pub(crate) channel: Option<(std::path::PathBuf, u16)>,
     /// `--profile` and `-s`: the profile of the run and its overrides.
     /// TODO/cli.md T-1654.
     pub(crate) profile: Option<String>,
@@ -115,6 +121,8 @@ impl Opts {
             qemu_args: Vec::new(),
             mem: None,
             cpus: None,
+            net_none: false,
+            channel: None,
             profile: None,
             sets: Vec::new(),
             wrap: Vec::new(),
