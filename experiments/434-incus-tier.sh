@@ -59,7 +59,9 @@
 #      shows it, and a run with `--podvm-net none` shows `lo` only. A run
 #      and a `run -d -i` with `--podvm-channel SOCK:127.0.0.1:3128` reach
 #      the unix socket SOCK of the host from the instance (wget of
-#      127.0.0.1:3128), and the socket logs each request.
+#      127.0.0.1:3128), and the socket logs each request. The socket is a
+#      `disk` device of the instance, and podvm's init relays the port to
+#      it (PodUtils/podrunner#90: no `proxy` device).
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (not root, no user namespaces, no package).
@@ -320,6 +322,9 @@ chown "$U" "$B/srv434.py"
 runuser -u "$U" -- python3 "$B/srv434.py" "$B/ch434.sock" 2>"$B/ch434.log" &
 SRV=$!
 i=0; while [ "$i" -lt 50 ] && [ ! -S "$B/ch434.sock" ]; do sleep 0.1; i=$((i + 1)); done
+# The root of the instance is an id of the user's range: the socket file
+# allows it, and the directory of the caller is the guard (as podrunner's).
+chmod 0666 "$B/ch434.sock"
 {
 echo ""; echo "== 15. --podvm-net none and --podvm-channel"
 if RI network create br434 ipv4.address=10.234.0.1/24 ipv4.nat=false ipv6.address=none >/dev/null 2>&1 &&

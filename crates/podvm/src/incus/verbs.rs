@@ -153,6 +153,10 @@ pub(super) async fn detached(c: &Client, job: &Job<'_>, image: &str, d: &Detach)
             return fail(e.to_string());
         }
     }
+    if let Err(e) = super::net::push_port(c, &name, job.channel.as_ref()).await {
+        let _ = c.delete_instance(&name).await;
+        return fail(e);
+    }
     if d.start
         && let Err(e) = c.start(&name).await
     {

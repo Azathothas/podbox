@@ -110,9 +110,10 @@ pub fn hold(args: &[String]) -> i32 {
         unsafe { _exit(0) }
     }
     // TODO/machine.md T-1779: an init brings `lo` up. An instance with no
-    // NIC (`--podvm-net none`) has nothing else that does, and the proxy
-    // device of `--podvm-channel` listens on 127.0.0.1.
+    // NIC (`--podvm-net none`) has nothing else that does. The channel
+    // listens on 127.0.0.1 before the command starts.
     let _ = crate::machine::guest::net::lo_up();
+    net::listen();
     if args.first().is_some_and(|a| a == "--run") {
         match start_cmd() {
             Ok(pid) => CHILD.store(pid, std::sync::atomic::Ordering::Relaxed),

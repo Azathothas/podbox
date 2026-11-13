@@ -236,8 +236,14 @@ async fn run_in(c: &Client, job: &Job<'_>, image: &str, inst: &str) -> i32 {
             return fail(e.to_string());
         }
     }
+    if let Err(e) = super::net::push_port(c, inst, job.channel.as_ref()).await {
+        return fail(e);
+    }
     if let Err(e) = c.start(inst).await {
         return fail(e.to_string());
+    }
+    if let Err(e) = super::net::wait_ready(c, inst, job.channel.as_ref()).await {
+        return fail(e);
     }
     let mut exec = Exec::new(command(&job.argv, job.stdin.is_some()));
     exec.environment = env_map(&job.env);

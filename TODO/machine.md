@@ -2620,7 +2620,7 @@ socket logs the full URL, and the `:ro` volume reads.
 
 # T-1779: The incus tier takes `--podvm-net none` and `--podvm-channel`
 
-**Source:** PodUtils/podrunner#88 (COORD-028 of podrunner, for PodUtils/podrunner@T-109)
+**Source:** PodUtils/podrunner#88 (COORD-028 of podrunner, for PodUtils/podrunner@T-109); PodUtils/podrunner#90 (COORD-030)
 **Category:** machine
 **Milestone:** none
 **Priority:** P1
@@ -2647,8 +2647,8 @@ the host. pod-incus has no update of an instance.
 `--podvm-net none` masks `eth0` with a device of type `none`; after the
 create, podvm reads the expanded devices and, where a NIC of another
 name stays, makes the instance again with that name masked too.
-`--podvm-channel` adds the proxy device `podvm-channel`. podvm's init of
-the instance (`guest-hold`) brings `lo` up.
+`--podvm-channel` adds the device `podvm-channel`. podvm's init of the
+instance (`guest-hold`) brings `lo` up.
 
 ## Decision
 
@@ -2657,6 +2657,21 @@ The flags serve `run`, `run -d` and `create`, as podrunner asks.
 ## Prove
 
 `sh experiments/434-incus-tier.sh` exits 0 as root, with its clause 15: with `--podvm-net none` the instance shows `lo` only, and a run and a `run -d -i` with `--podvm-channel` reach the host socket, which logs each request; `cargo test -p podvm` exits 0
+
+## Correction
+
+**2026-11-13.** The channel was an incus `proxy` device. On podrunner's
+hosted runner (Ubuntu 24.04, kernel 7.0, the packaged incus 6.0.0 as
+root), the start of the instance failed: "Error occurred when starting
+proxy device: ... Failed to safely open namespace file descriptor based
+on pidfd" (PodUtils/podrunner#90). The channel is now a `disk` device
+that mounts the host socket at `/.podvm/channel.sock`; podvm pushes the
+port to `/.podvm/channel.port` before the start, and `guest-hold` binds
+`127.0.0.1:PORT` before any command starts, writes
+`/.podvm/channel.ready`, and relays each connection to the socket. A
+foreground run waits for the ready file before its `exec`. The root of
+the instance must be able to connect to the socket file: the caller
+gives the file the mode, inside a directory that guards it.
 
 ## Done
 
@@ -2670,5 +2685,17 @@ incusd of route A, clause 15 gives `lo` only with `--podvm-net none`,
 socket logs `/run434` and `/detach434`. The incusd of route A makes no
 bridge (its user namespace), so its default profile has no NIC: the mask
 of a real NIC of the profile is not measured on the cloud host; the test
-`no_nic_masks_the_profile_and_the_channel_is_a_proxy` holds the device
-forms.
+`no_nic_masks_the_profile_and_the_channel_is_a_socket_device` holds the
+device forms.
+
+**Done again 2026-11-13, after the correction.** Clause 15 of
+experiment 434 passes with the relay (socket mode 0666, in a directory
+of the test user). By hand, with a packaged incusd 6.0.0 started as root
+on the cloud host (kernel 6.18) and `incus admin init --minimal` (a NIC
+`eth0` on `incusbr0` in the default profile): a run with no flag shows
+`eth0 lo`, and with `--podvm-net none` `lo` only; with the channel, a
+run and a `run -d -i` reach the host socket (it logs `/run` and
+`/detach`), and `wget` of 1.1.1.1 gets "Network unreachable". The
+`proxy` device of beta.12 also worked on that kernel, so the failure of
+PodUtils/podrunner#90 is of podrunner's host; the relay needs no
+`forkproxy`.

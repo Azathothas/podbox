@@ -155,7 +155,7 @@ pub const RUN_OPTIONS: &str = "\
   --podvm-channel HOST_SOCKET:127.0.0.1:PORT  podvm's own, machine and
                    incus tiers: each TCP connection to PORT in the guest
                    reaches the Unix socket HOST_SOCKET of the host, over
-                   one virtio-serial port, or a proxy device of the
+                   one virtio-serial port, or the socket mounted in the
                    instance (TODO/machine.md T-1751, T-1779)
   --podvm-sealed   podvm's own, machine tier only: the run comes as a tar
                    bundle on stdin (.podvm-run.json with argv, env and

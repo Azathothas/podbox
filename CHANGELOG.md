@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the channel of the incus tier needs no proxy device, 2026-11-13
+
+Record: T-1779, PodUtils/podrunner#90.
+Deployed: not deployed; the next release carries it.
+
+- `--podvm-channel` on the incus tier mounts the host socket into the
+  instance, and podvm's init relays `127.0.0.1:PORT` to it. The `proxy`
+  device of beta.12 did not start on the packaged incus 6.0.0 of Ubuntu
+  24.04 on kernel 7.0. The caller gives the socket file a mode that the
+  root of the instance can use (T-1779 has the detail).
+
 ### Changed: `run` takes the probe from the cache, 2026-11-13
 
 Record: T-1746, PodUtils/podcrates#124 (ask V-2 of podswarm).
