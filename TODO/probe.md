@@ -1661,8 +1661,13 @@ the selection), and the cache holds only the JSON document of
 `&'static str` names of `probes::PROBES`, and no type derives a
 deserializer. A second serializer in podvm would break the rule of
 T-0111 (one writer, the key inside the document). COORD-069 asks podcrates
-for a reader beside the writer in `pod-hostprobe`. The condition that
-clears the block: a tag of podcrates with that reader.
+for a reader beside the writer in `pod-hostprobe`. podcrates answered
+(PodUtils/podcrates#128, its call C241): podcrates@T-485 gives
+`report::write(&Findings, &Selection)` and `report::read(document)` for
+the crate's own types, in the next tag. podvm's side: `report::document`
+embeds that object under one key beside podvm's own fields, and the cache
+reads the key back with `report::read`. The condition that clears the
+block: a tag of podcrates with podcrates@T-485.
 
 ## Correction
 
