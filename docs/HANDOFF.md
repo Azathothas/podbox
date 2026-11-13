@@ -16,12 +16,10 @@ file when each step below is done.
   of `AGENTS.md`, section 9, item 5. While a request that checks the head
   of `main` is open, push nothing to `main`. The owner's local agent ran
   issue 287 in about 50 minutes, and it reported the run ids.
-* Issue 292 asks for the gate, `secrets.yml` and `arm.yml` on the head of
-  `main` (the commit that maps issue 292). No run of CI has checked the
-  commits after `2edace91` yet: `podvm lab` (T-1662), the open flags on
-  aarch64 (T-1744), the foreground payload (T-1748) and podcrates
-  `v0.35.0`. Each passed `cargo test --workspace`, clippy, fmt and the gate
-  on the cloud host.
+* The gate 43351811176, `secrets.yml` and `arm.yml` 43351820031 passed on
+  `845faba1` (issue 292, closed). The commits after it have no run of CI
+  yet; each passed `cargo test --workspace`, clippy, fmt and the gate on
+  the cloud host.
 * The record is in the format of `pod-todo` (T-1672, call C17).
   `podvm-count --set T-NNNN STATUS` writes the status line and the row;
   a done entry needs `## Done` with a date. A foreign entry id carries its
@@ -41,8 +39,6 @@ Each waits for a peer; podvm closes it when the peer answers.
 * COORD-069 (#291, to podcrates): the reader of the probe report for
   T-1746. podcrates answered (PodUtils/podcrates#128): podcrates@T-485 in
   the next tag. Close it when podvm takes that tag.
-* COORD-070 (#293, to podcrates): the take of `v0.35.0`, the answer to
-  PodUtils/podcrates#127. Close it when podcrates records the take.
 * COORD-071 (#294, to podcrates): an overlay root in `pod-enter`'s
   namespace rung for T-1749. Close it when a tag holds it.
 * COORD-041 (#260): `pod-netlab` for T-1662. Close it when podcrates
@@ -56,11 +52,7 @@ Each waits for a peer; podvm closes it when the peer answers.
 
 ## Next steps, in order
 
-1. Start the session (`AGENTS.md`, section 8). Read the answer on issue
-   292. Its `arm.yml` run 43351820031 passed (T-1744 is done with it), and
-   secrets passed; the gate run 43351811176 was queued at the end of the
-   session. On its success, close issue 292 with the run ids. On a
-   failure, fix it, close issue 292 and open a new request.
+1. Start the session (`AGENTS.md`, section 8).
 2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662
    (partial: the guest parts wait for podcrates@T-345 to podcrates@T-347),
    then T-1722 (needs incus, which the cloud host lacks), T-1406.

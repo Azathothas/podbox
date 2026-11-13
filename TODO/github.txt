@@ -181,6 +181,6 @@
 289 issue open
 290 issue open
 291 issue open
-292 issue open
-293 issue open
+292 issue closed
+293 issue closed
 294 issue open
