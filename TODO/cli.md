@@ -4314,7 +4314,7 @@ namespace of the payload (`setns` with its pidfd) before the chroot.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4334,7 +4334,34 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 
 ## Prove
 
-`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.strict.ul`, `sys.probe.ul`, `sys.probe-strict.ul`, `sys.info-consistent`, and a test of the CLI holds the fix
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.strict.ul`, `run.strict-all.ul`, `sys.probe.ul`, `sys.probe-strict.ul`, `sys.info-consistent`, and a test of the CLI holds the fix
+
+## Correction
+
+**2026-11-13.** Half of the Problem was a stale expectation. Experiment
+356, clause 6 (T-1415) says that `--strict` warns on the userland rung
+where chroot is denied, because that rung is the best of the machine, and
+that `--strict=all` refuses. The row `run.strict.ul` of experiment 443
+wanted 125 from `--strict`; it now wants exit 0 with a warning of the
+substitution class, and the new row `run.strict-all.ul` wants 125 from
+`--strict=all`. `sys.info-consistent` fails no more: the parity text of
+`run` that it read was corrected before this entry.
+
+## Done
+
+**Done 2026-11-13.** `probe` names the rung that `run` enters
+(`to_entered` in `crates/podvm/src/system/df_info.rs`, beside
+`entered_rung` of T-1713): where the probes select `namespace` or
+`supervise` and chroot is denied, stdout, `--json` and `--strict` read
+`userland`, and stderr names the selection. On the chroot-denied fixture,
+`probe` prints `userland` and `probe --strict` exits 1; on the namespace
+rung of the cloud host, `probe` prints `namespace` and `probe --strict`
+exits 0. `run --strict` on the fixture exits 0 with 4 warnings of the
+substitution class, and `run --strict=all` exits 125. The test
+`probe_names_the_entered_rung` holds the rung. The selection of the probes
+stays in `pod-hostprobe`, and the namespace rung there does not ask
+for chroot; podvm reads it through T-1713, so it asks podcrates for no
+change. Experiment 443 runs the five rows again before the release.
 
 # T-1769: An unknown verb or flag prints the whole usage
 

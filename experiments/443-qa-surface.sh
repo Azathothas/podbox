@@ -277,7 +277,11 @@ y" ]' "\$X \$PB run --rm --tmpfs /scratch \$A sh -c 'ls -A /scratch | wc -l; ech
 	t run.secopt-bad.$r $r "rc 125 by name" '[ $rc -eq 125 ]' '$X $PB run --rm --security-opt seccomp=unconfined $A true'
 	t run.pull-never.$r $r "rc 125, names the image" '[ $rc -eq 125 ] && has "$err" nosuchimg' '$X $PB run --rm --pull never mirror.gcr.io/library/nosuchimg:1 true'
 	if [ $r = ul ]; then
-		t run.strict.$r $r "rc 125: --strict refuses the userland rung (experiment 356, clause 6)" '[ $rc -eq 125 ]' '$X $PB run --rm --strict $A true'
+		# Experiment 356, clause 6 (T-1415): where chroot is denied, the
+		# userland rung is the best rung, so --strict warns and runs, and
+		# --strict=all refuses (TODO/cli.md T-1766 corrects this row).
+		t run.strict.$r $r "rc 0 and a substitution warning: the best rung here (experiment 356, clause 6)" '[ $rc -eq 0 ] && has "$err" "warning \[substitution\]"' '$X $PB run --rm --strict $A true'
+		t run.strict-all.$r $r "rc 125: --strict=all refuses the userland rung" '[ $rc -eq 125 ]' '$X $PB run --rm --strict=all $A true'
 	else
 		t run.strict.$r $r "rc 0 on the namespace rung" '[ $rc -eq 0 ]' '$X $PB run --rm --strict $A true'
 	fi

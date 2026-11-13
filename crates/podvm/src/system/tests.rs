@@ -154,3 +154,29 @@ fn abi_reports_unreadable_refused_and_arity() {
         EXIT_CLI_ERROR
     );
 }
+
+/// TODO/cli.md T-1766: `probe` names the rung that `run` enters. Where the
+/// probes select `namespace` and chroot is denied, it reads `userland`,
+/// and `probe --strict` then refuses.
+#[test]
+fn probe_names_the_entered_rung() {
+    use podvm_probe::verdict::Outcome;
+    let ok = |n: &'static str| (n, Outcome::ok());
+    let mut rows = vec![ok("clone(CLONE_NEWNS)"), ok("mount(tmpfs,/mnt)")];
+    let usable = podvm_probe::Findings {
+        rows: [rows.clone(), vec![ok("chroot(/tmp)")]].concat(),
+        ..podvm_probe::Findings::empty()
+    };
+    let mut s = podvm_probe::select::Selection::choose(&usable);
+    to_entered(&usable, &mut s);
+    assert_eq!(s.rung, Rung::Namespace);
+    rows.push(("chroot(/tmp)", Outcome::denied(podvm_probe::sys::EPERM)));
+    let denied = podvm_probe::Findings {
+        rows,
+        ..podvm_probe::Findings::empty()
+    };
+    let mut s = podvm_probe::select::Selection::choose(&denied);
+    assert_eq!(s.rung, Rung::Namespace, "the probes select namespace");
+    to_entered(&denied, &mut s);
+    assert_eq!(s.rung, Rung::Userland);
+}

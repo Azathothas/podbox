@@ -303,6 +303,23 @@ pub(super) fn entered_rung(selection: Rung, chroot_usable: bool) -> Rung {
     }
 }
 
+/// TODO/cli.md T-1766: `probe` names the rung that `run` enters, as
+/// `system info` does, so a machine where chroot is denied reads
+/// `userland` and `probe --strict` gates on it. The selection of the
+/// probes goes to stderr where it differs.
+pub fn to_entered(f: &podvm_probe::Findings, s: &mut podvm_probe::select::Selection) {
+    let entered = entered_rung(s.rung, podvm_probe::probes::chroot_usable(f));
+    if entered != s.rung {
+        eprintln!(
+            "podvm probe: the probes select `{}`, and `run` enters `{}` on this machine \
+             (TODO/cli.md T-1713, T-1766)",
+            s.rung.word(),
+            entered.word()
+        );
+        s.rung = entered;
+    }
+}
+
 pub(super) fn fields_from(
     selection: Rung,
     chroot_usable: bool,

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-380 entries: 11 open, 7 partial, 5 blocked, 357 done.
+380 entries: 10 open, 7 partial, 5 blocked, 358 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -50,8 +50,9 @@ status with `podvm-count` in the same commit as the work.
    (`lutimes`), [T-1758](enter.md) (/proc on the namespace rung,
    blocked on COORD-073), [T-1765](cli.md) (partial: /tmp of
    `exec` waits for COORD-074). Then P2: [T-1760](cli.md)
-   (partial: `tty` on the namespace rung waits for COORD-073), [T-1766](cli.md),
-   [T-1768](image.md); then P3: [T-1769](cli.md),
+   (partial: `tty` on the namespace rung waits for COORD-073),
+   [T-1768](image.md), [T-1771](image.md) (npm behind an intercepting
+   proxy); then P3: [T-1769](cli.md),
    [T-1770](net.md). The copy of the rootfs on each run (11 s for golang)
    is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:

@@ -383,7 +383,8 @@ fn probe(args: &[String]) -> i32 {
     }
 
     let findings = podvm_probe::run();
-    let selection = Selection::choose(&findings);
+    let mut selection = Selection::choose(&findings);
+    crate::system::to_entered(&findings, &mut selection);
 
     // ⛔ The rung goes to stdout, the evidence to stderr. A payload's stdout is
     // data to whatever consumes it.
