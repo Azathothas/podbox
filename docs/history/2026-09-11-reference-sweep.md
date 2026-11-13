@@ -87,7 +87,7 @@ support a claim that needs another.
 | `cubic-vm/cubic` | ⭐ **anti-pattern exhibit** | a shipped argument-splitting defect podbox would repeat. Also one mechanism worth adopting |
 | `hust-open-atom-club/Vex` | **confirms** | a Docker-like verb set over QEMU configurations. Independent evidence for the parity rule |
 | `Obirvalger/vml` | **confirms** | machine-as-a-directory, and hardware acceleration assumed throughout |
-| `gevico/tcg-rs` | **filed elsewhere** | [podvm.md](../../TODO/podvm.md) T-1307. Interesting and not usable yet |
+| `gevico/tcg-rs` | **filed elsewhere** | [machine.md](../../TODO/machine.md) T-1307. Interesting and not usable yet |
 | `qemu-rs/qemu-rs` | ⛔ **refused** | GPL-2.0-or-later, a plugin binding rather than a manager, and an unresolved maintenance question |
 | `carlbomsdata/winquick` | **filed elsewhere** | [milestones.md](../../TODO/milestones.md) T-1112 owns it |
 
@@ -98,7 +98,7 @@ support a claim that needs another.
 ### F1. ⛔ A single TCG multiplier is a claim about one benchmark
 
 ⭐ **This is the most load-bearing correction the sweep produced**, because
-[podvm.md](../../TODO/podvm.md) exists to decide when the machine tier is worth
+[machine.md](../../TODO/machine.md) exists to decide when the machine tier is worth
 its cost.
 
 Four measurements of "the TCG tax" on one host class:
@@ -126,7 +126,7 @@ I/O workloads, and report distributions with same-day controls.
 and `165be307`), so none of these is measuring a different computation. The
 spread is real.
 
--> [podvm.md](../../TODO/podvm.md) T-1308.
+-> [machine.md](../../TODO/machine.md) T-1308.
 
 ### F2. ⛔ The target contract moved three times under observation
 
@@ -197,7 +197,7 @@ This is wall 3 appearing in a real payload, and it is why the file is the fix.
 ### F4. ⛔ None of the five VM tools is a microVM manager for this environment
 
 ⭐ **This answers the question the sweep was given.** None of them replaces
-[podvm.md](../../TODO/podvm.md) T-1301 to T-1306, and none is a dependency.
+[machine.md](../../TODO/machine.md) T-1301 to T-1306, and none is a dependency.
 
 | tool | what it actually is | why it does not transfer |
 | --- | --- | --- |
