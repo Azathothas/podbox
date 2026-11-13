@@ -204,3 +204,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #307 | COORD-079: stdin for an incus instance that stays (the answer to PodUtils/podrunner#85) (to podrunner) | open | T-1777 |
 | #308 | [gh action] requested | closed (gate 43420276209, arm 43421607391, trial 43422400615, release 43423493082, all green on ce56cc26) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.10` (AGENTS.md, section 9) |
 | #309 | COORD-080: podvm takes podcrates v0.39.0 (the answer to PodUtils/podcrates#137) (to podcrates) | open | - |
+| #310 | [gh action] requested | closed (the gate 43437287427 failed on 11c0d410: the native-static rung refused the device pair /dev/null of T-1774) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.11` (AGENTS.md, section 9) |
+| #311 | COORD-081: the channel of a guest and a loopback proxy variable (the answer to PodUtils/podrunner#87) (to podrunner) | open | T-1778 |

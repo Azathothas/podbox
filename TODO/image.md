@@ -3734,3 +3734,12 @@ device and no volume of the caller holds the path
 fixture of experiment 443, `head -c 2000000 /dev/urandom | wc -c` prints
 2000000. The test `a_shimmed_device_maps_to_the_hosts` holds the fix.
 
+**Correction 2026-11-13.** The gate run 43437287427 on `11c0d410` (issue
+310) failed in the test `a_run_through_the_api_gives_its_record`: the
+native-static rung (T-1652) serves directory volumes only, and refused
+the pair `/dev/null` with errno 20. `crates/podvm-dispatch/src/enter.rs`
+now leaves out a pair `/dev/X` to the same host path that is not a
+directory; on that rung the tree's node serves, as before T-1774. Under
+`unshare -Urm` and the deny-chroot fixture of experiment 443, the test
+fails without the change and passes with it.
+

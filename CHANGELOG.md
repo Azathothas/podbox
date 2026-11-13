@@ -29,6 +29,8 @@ Deployed: version 0.2.0-beta.11.
   `/dev/random`, `/dev/zero` and `/dev/null` are the host's devices, not
   the regular files of 1 MiB that the completion writes where mknod(2)
   is refused. busybox `head -c 2000000 /dev/urandom` gives 2000000 bytes.
+- A static program on the native-static rung keeps the files of the tree
+  for these paths: that rung serves directory volumes only.
 
 ## 0.2.0-beta.10 (2026-11-13)
 

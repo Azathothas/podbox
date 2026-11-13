@@ -92,6 +92,12 @@ fn volumes(envp: &[OsString]) -> Result<(), String> {
             0,
             0,
         );
+        // TODO/image.md T-1774: podvm maps a shimmed device of the tree to
+        // the host's device for the loader. This rung serves directory
+        // volumes only, so the pair stays out and the tree's node serves.
+        if fd == -20 && guest == &pair[cut + 1..] && guest.starts_with(b"/dev/") {
+            continue;
+        }
         if fd < 0 {
             return Err(format!("the volume {}: errno {}", host.display(), -fd));
         }
