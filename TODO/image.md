@@ -3502,7 +3502,7 @@ of the Prove come with the rerun of experiment 443 before the release.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3523,6 +3523,27 @@ The fix in the image layer is podvm's; a cause in a crate of podcrates goes ther
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `img.extract-diag`, `img.pull.q-stdout`, `life.restart.ns`, `life.restart.ul`, and a test of the image layer holds the fix
+
+## Done
+
+**Done 2026-11-13.** Three causes, each fixed in podvm:
+
+- `extract`: `pod-extract` never restores ownership, and its sidecar names
+  each id that differs "unmapped". `crates/podvm/src/diagnose.rs` turned
+  that into an EINVAL of chown. The note now reads the maps of the
+  namespace (`in_map`): where they hold the id, `extract` says that podvm
+  restores no ownership, and `run` says nothing, as docker. The EINVAL note
+  stays for an id that is outside the maps. The test
+  `an_id_in_the_map_is_not_called_unmapped` holds the read.
+- `pull -q`: the line of a measured probe prints only without `-q`.
+- `restart`: `stop_one` printed the name, and `start_one` printed it again.
+  The name is now printed by `stop` and `start`, once each.
+
+By hand on the cloud host: `extract --force alpine:3.20` prints no EINVAL,
+`pull -q` prints nothing, `restart NAME` prints the name once, and a first
+`run` of busybox prints the lines of the pull and no note of ownership.
+The rows of the Prove come with the rerun of experiment 443 before the
+release.
 
 # T-1768: `cp -r` of a container path copies each hard link as a file
 

@@ -234,8 +234,11 @@ pub fn stop(args: &[String]) -> i32 {
     };
     let mut code = 0;
     for want in &names {
-        if let Err(c) = stop_one(&s, "stop", want, grace) {
-            code = c;
+        // TODO/image.md T-1767: the caller prints the name, so `restart`,
+        // which also starts, prints it once.
+        match stop_one(&s, "stop", want, grace) {
+            Ok(name) => println!("{name}"),
+            Err(c) => code = c,
         }
     }
     code
@@ -265,7 +268,6 @@ fn stop_one(s: &podvm_image::Store, verb: &str, want: &str, grace: u64) -> Resul
                     grace / 1000
                 );
             }
-            println!("{}", c.name);
             Ok(c.name)
         }
         Err(e) => Err(fail(verb, e)),

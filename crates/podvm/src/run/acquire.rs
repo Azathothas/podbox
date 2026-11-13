@@ -275,7 +275,7 @@ pub(crate) fn extract_now(
             let _ = writeln!(err, "podvm {verb}: {e}");
             podvm_image::error::EXIT_RUNTIME_ERROR
         })?;
-    crate::diagnose::report_dropped(&mut err, &done, &podvm_probe::identity::read());
+    crate::diagnose::report_dropped(&mut err, &done, &podvm_probe::identity::read(), false);
     Ok(())
 }
 

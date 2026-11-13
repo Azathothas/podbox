@@ -193,6 +193,12 @@ pub fn ownership_note(
     id: &podvm_probe::identity::Identity,
 ) -> Option<String> {
     let first = done.first_dropped.as_ref()?;
+    // TODO/image.md T-1767: an id that the map holds was not refused by
+    // the kernel; the extraction keeps the ids of its process by design,
+    // and an EINVAL here would be a claim about a call that never ran.
+    if !unmapped(first, id) {
+        return None;
+    }
     let row = TABLE.iter().find(|r| r.observation == "Invalid argument")?;
     let mut out = format!(
         "{} of {} (uid {}, gid {}): {}",
@@ -223,6 +229,31 @@ pub fn ownership_note(
     Some(out)
 }
 
+/// Whether `id` is in the text of a `/proc/self/{uid,gid}_map`: a line
+/// `INSIDE OUTSIDE COUNT` holds `INSIDE..INSIDE+COUNT`.
+pub(crate) fn in_map(map: &str, id: u64) -> bool {
+    map.lines().any(|l| {
+        let n: Vec<u64> = l
+            .split_whitespace()
+            .filter_map(|w| w.parse().ok())
+            .collect();
+        matches!(n[..], [inside, _, count] if id >= inside && id - inside < count)
+    })
+}
+
+/// Whether an id of the first dropped entry is outside this namespace's
+/// maps. An unread map counts as unmapped: the note then shows why.
+fn unmapped(
+    first: &podvm_extract::sidecar::FirstDropped,
+    id: &podvm_probe::identity::Identity,
+) -> bool {
+    let out = |want: u64, applied: u64, map: Option<&str>| {
+        want != applied && !map.is_some_and(|m| in_map(m, want))
+    };
+    out(first.uid, first.applied_uid, id.uid_map.as_deref())
+        || out(first.gid, first.applied_gid, id.gid_map.as_deref())
+}
+
 /// The map contents, or the reason no reading exists. An absent value never
 /// renders as an empty string that reads like one.
 fn map_contents(id: &podvm_probe::identity::Identity, path: &str, map: Option<&str>) -> String {
@@ -243,16 +274,41 @@ fn map_contents(id: &podvm_probe::identity::Identity, path: &str, map: Option<&s
 ///
 /// One function for both verbs, so the two cannot describe one extraction two
 /// ways.
+///
+/// `note_kept` prints the line of ids that nothing refused (the map holds
+/// them): `extract` prints it, and `run` does not (T-1767), as docker's
+/// pull of a run says nothing of ownership.
 pub(crate) fn report_dropped(
     out: &mut dyn std::io::Write,
     done: &podvm_extract::Extracted,
     id: &podvm_probe::identity::Identity,
+    note_kept: bool,
 ) {
     if done.ownership_dropped == 0 {
         return;
     }
     // Said out loud. A tree whose ownership differs from the image's and says
     // nothing is the dishonesty this project exists to refuse.
+    if done
+        .first_dropped
+        .as_ref()
+        .is_some_and(|f| !unmapped(f, id))
+    {
+        // T-1767: the ids are in the map, so nothing refused them.
+        if !note_kept {
+            return;
+        }
+        let _ = writeln!(
+            out,
+            "podvm: {} of {} entries keep the owner of the extracting process and \
+             not the image's: podvm restores no ownership on extraction; what the \
+             image intended is in {}",
+            done.ownership_dropped,
+            done.sidecar_rows,
+            done.sidecar.display()
+        );
+        return;
+    }
     let _ = writeln!(
         out,
         "podvm: {} of {} entries carry an id this machine cannot apply; \
@@ -269,6 +325,17 @@ pub(crate) fn report_dropped(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_id_in_the_map_is_not_called_unmapped() {
+        assert!(in_map("0 0 4294967295", 42));
+        assert!(in_map(
+            "         0       1000          1\n         1     100000      65536",
+            42
+        ));
+        assert!(!in_map("0 1000 1", 42));
+        assert!(!in_map("", 0));
+    }
 
     fn identity_with_maps(
         uid_map: Option<&str>,

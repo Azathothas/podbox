@@ -387,7 +387,12 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
                 done.layers, done.entries, done.removed
             );
             if done.ownership_dropped > 0 {
-                crate::diagnose::report_dropped(&mut out, &done, &podvm_probe::identity::read());
+                crate::diagnose::report_dropped(
+                    &mut out,
+                    &done,
+                    &podvm_probe::identity::read(),
+                    true,
+                );
             }
             if done.skipped > 0 {
                 let _ = writeln!(

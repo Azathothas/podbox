@@ -304,7 +304,8 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
         Ok(done) => {
             // ⛔ The provenance of the probe answer is on stderr, never implied.
             // A cached rung and a measured one are different sentences.
-            if let podvm_image::probe_cache::Source::Measured(why) = &done.probe_source {
+            // T-1767: `-q` keeps stderr for errors.
+            if !quiet && let podvm_image::probe_cache::Source::Measured(why) = &done.probe_source {
                 eprintln!("podvm: probed this machine rather than using the cache: {why}");
             }
             0
