@@ -186,5 +186,6 @@
 294 issue open
 295 issue closed
 296 issue open
-297 issue open
+297 issue closed
 298 issue open
+299 issue open

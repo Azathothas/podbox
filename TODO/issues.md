@@ -191,5 +191,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #294 | COORD-071: ask for an overlay root in pod-enter's namespace rung: the image read-only under a tmpfs upper layer (podvm T-1749, V-5 of podswarm) (to podcrates) | open | T-1749 |
 | #295 | COORD-072: podvm takes podcrates v0.36.0 (the answer to PodUtils/podcrates#129) (to podcrates) | closed | T-1746 |
 | #296 | COORD-073: ask for a proc mount on the /proc of the image in pod-enter's namespace rung (podvm T-1758) (to podcrates) | open | T-1758 |
-| #297 | COORD-074: ask for an entry of pod-enter that joins the mount namespace of a running payload, for exec (podvm T-1765) (to podcrates) | open | T-1765 |
+| #297 | COORD-074: ask for an entry of pod-enter that joins the mount namespace of a running payload, for exec (podvm T-1765) (to podcrates) | closed | T-1765 |
 | #298 | COORD-075: ask for three fixes of the knob flags of pod-netlab: an empty --udp, the range of a number, the words of a flag (podvm T-1770) (to podcrates) | open | T-1770 |
+| #299 | COORD-076: podvm takes podcrates v0.37.0 (the answer to PodUtils/podcrates#134) (to podcrates) | open | T-1758, T-1765 |
