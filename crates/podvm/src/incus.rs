@@ -68,6 +68,8 @@ impl Cmd {
 pub const CMD: &str = "/.podvm/cmd";
 pub const LOG: &str = "/.podvm/log";
 pub const EXIT: &str = "/.podvm/exit";
+/// The stdin of the command, mode 0600, where the run had one (T-1777).
+pub const STDIN: &str = "/.podvm/stdin";
 
 /// The exit code of a wait status.
 fn code_of(status: i32) -> i32 {
@@ -148,15 +150,23 @@ fn start_cmd() -> Result<i32, String> {
         .open(LOG)
         .map_err(|e| format!("{LOG}: {e}"))?;
     let err = log.try_clone().map_err(|e| e.to_string())?;
+    // TODO/machine.md T-1777: the stdin that `run -d -i` pushed, if any. The
+    // file goes once the command holds it: the credentials of a caller do
+    // not stay in the instance.
+    let stdin = match std::fs::File::open(STDIN) {
+        Ok(f) => std::process::Stdio::from(f),
+        Err(_) => std::process::Stdio::null(),
+    };
     let child = std::process::Command::new(prog)
         .args(rest)
         .env_clear()
         .envs(cmd.env.iter().filter_map(|e| e.split_once('=')))
         .current_dir(if cmd.cwd.is_empty() { "/" } else { &cmd.cwd })
-        .stdin(std::process::Stdio::null())
+        .stdin(stdin)
         .stdout(log)
         .stderr(err)
         .spawn()
         .map_err(|e| format!("{prog}: {e}"))?;
+    let _ = std::fs::remove_file(STDIN);
     Ok(child.id() as i32)
 }

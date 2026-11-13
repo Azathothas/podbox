@@ -35,6 +35,8 @@ pub(crate) struct Opts {
     /// `--podvm-net none`: the guest of the machine tier has no NIC
     /// (TODO/machine.md T-1751, PodUtils/podrunner#83).
     pub(crate) net_none: bool,
+    /// `-i`: the incus tier pushes the piped stdin of `run -d` (T-1777).
+    pub(crate) interactive: bool,
     /// `--podvm-channel HOST_SOCKET:127.0.0.1:PORT`: one channel from a
     /// TCP port of the guest to a Unix socket of the host (T-1751).
     pub(crate) channel: Option<(std::path::PathBuf, u16)>,
@@ -122,6 +124,7 @@ impl Opts {
             mem: None,
             cpus: None,
             net_none: false,
+            interactive: false,
             channel: None,
             profile: None,
             sets: Vec::new(),

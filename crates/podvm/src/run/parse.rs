@@ -234,11 +234,10 @@ fn parse_flags_with(
             "-t" | "--tty" => o.tty = true,
             "-q" | "--quiet" => o.ask.quiet = true,
             "--verbose" => o.ask.verbose = true,
-            "-i" | "--interactive" => {
-                // ⚠ Accepted and a no-op, deliberately: podvm does not detach
-                // stdin, so it is already interactive when the caller's is.
-                // TODO/cli.md T-0801 calls this Stub and the banner lists it.
-            }
+            // podvm does not detach stdin, so a foreground run is already
+            // interactive; `run -d -i` of the incus tier pushes the piped
+            // stdin into the instance (TODO/machine.md T-1777).
+            "-i" | "--interactive" => o.interactive = true,
             "-e" | "--env" => expecting = Some("-e"),
             "--env-file" => expecting = Some("--env-file"),
             "--label" => expecting = Some("--label"),

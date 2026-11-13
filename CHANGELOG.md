@@ -17,6 +17,15 @@ Deployed: not released.
 - The socket of the channel is in a directory of mode 0700, new for each
   run: no other user of the host can connect to it before podvm.
 
+### Added: stdin for an incus instance that stays, 2026-11-13
+
+Record: T-1777, PodUtils/podrunner#85.
+Deployed: not released.
+
+- `run -d -i --name NAME --podvm-tier=incus` gives the piped stdin to the
+  command of the instance: a file of root, mode 0600, that goes once the
+  command holds it. It is never in argv or the environment.
+
 ## 0.2.0-beta.9 (2026-11-13)
 
 ### Fixed: `tty` on the namespace rung, the knob flags of `lab`, the owners in a guest, 2026-11-13

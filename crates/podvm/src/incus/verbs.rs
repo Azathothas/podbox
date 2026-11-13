@@ -34,6 +34,8 @@ pub struct Detach {
     pub name: Option<String>,
     pub start: bool,
     pub image: String,
+    /// `-i`: the piped stdin goes to the command (TODO/machine.md T-1777).
+    pub stdin: bool,
 }
 
 /// The arguments without `--podvm-tier=incus` (or `--podvm-tier incus`),
@@ -137,6 +139,19 @@ pub(super) async fn detached(c: &Client, job: &Job<'_>, image: &str, d: &Detach)
     if let Err(e) = c.put_file(&name, super::CMD, w).await {
         let _ = c.delete_instance(&name).await;
         return fail(e.to_string());
+    }
+    // TODO/machine.md T-1777 (PodUtils/podrunner#85): with `-i`, the piped
+    // stdin goes in as a file of root, mode 0600, before the start; never
+    // in argv or the environment.
+    if d.stdin
+        && let Some(b) = &job.stdin
+    {
+        let mut w = FileWrite::file(Payload::bytes(b.clone()));
+        (w.uid, w.gid, w.mode) = (Some(0), Some(0), Some(0o600));
+        if let Err(e) = c.put_file(&name, super::STDIN, w).await {
+            let _ = c.delete_instance(&name).await;
+            return fail(e.to_string());
+        }
     }
     if d.start
         && let Err(e) = c.start(&name).await

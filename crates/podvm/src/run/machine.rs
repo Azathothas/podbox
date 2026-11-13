@@ -238,6 +238,7 @@ pub(super) fn incus_tier(
             name: o.name.clone(),
             start: verb == "run",
             image: o.image.clone().unwrap_or_default(),
+            stdin: o.interactive,
         }),
         // TODO/machine.md T-1722: each -v is a disk device of the instance.
         volumes: o

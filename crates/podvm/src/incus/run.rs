@@ -212,7 +212,7 @@ async fn run_in(c: &Client, job: &Job<'_>, image: &str, inst: &str) -> i32 {
     let mut pushes = Vec::new();
     if let Some(b) = &job.stdin {
         pushes.push((
-            "/.podvm/stdin",
+            super::STDIN,
             owned(FileWrite::file(Payload::bytes(b.clone())), 0o600),
         ));
     }

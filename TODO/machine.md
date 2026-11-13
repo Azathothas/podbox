@@ -2491,3 +2491,51 @@ of the base archive carries its uid and gid (`BASE_FORMAT` 3 in
 and no emulator stays after the run. The test
 `the_base_archive_keeps_the_owners_of_the_image` holds the header fields.
 
+# T-1777: The incus tier takes no stdin for an instance that stays
+
+**Source:** PodUtils/podrunner#85 (COORD-025 of podrunner, for PodUtils/podrunner@T-105)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+podrunner's `incus` kind runs one job in one instance of a name that it
+chooses, and gives the runner its credential files through stdin, never in
+argv or the environment. `run -d --name` of the incus tier makes the named
+instance, but takes no stdin; the foreground `run` takes stdin, but has a
+random name and no label of podvm.
+
+## Premise
+
+The foreground run pushes stdin to `/.podvm/stdin` (mode 0600, owner 0).
+`detached` pushes only `/.podvm/cmd`, and `guest-hold --run` starts the
+command with its stdin on `/dev/null`.
+
+## Approach
+
+With `-i`, `run -d` pushes the piped stdin to `/.podvm/stdin` before the
+start, and `guest-hold` gives the file to the command as its stdin, then
+removes it.
+
+## Decision
+
+Without `-i`, `run -d` pushes no stdin, as docker's `run -d` reads none.
+
+## Prove
+
+`sh experiments/434-incus-tier.sh` exits 0, with its clause 14: the command reads the piped stdin, the file is gone once the command holds it, and the recorded command does not carry it
+
+## Done
+
+**Done 2026-11-13.** `-i` of `run` sets `Opts::interactive`, which goes to
+`Detach::stdin` (`crates/podvm/src/incus/verbs.rs`): `detached` pushes the
+piped stdin to `/.podvm/stdin` (`STDIN` of `crates/podvm/src/incus.rs`),
+root's, mode 0600, before the start; `start_cmd` of `guest-hold` opens it
+as the command's stdin and removes it once the command holds it. On the
+cloud host, with the incusd of route A, clause 14 of experiment 434 gives
+`logs` = `sekret434 gone`, and `inspect --format '{{.Cmd}}'` does not hold
+the secret. The parity row of `-i` for `run` is Native now.
+

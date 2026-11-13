@@ -40,7 +40,7 @@ fn strict_all_names_every_reason_at_once() {
     let ask = Ask {
         strict: true,
         strict_all: true,
-        seen_flags: vec!["-i".into(), "--rm".into()],
+        seen_flags: vec!["--expose".into(), "--rm".into()],
         ..Ask::default()
     };
     let mut out = Vec::new();
@@ -58,8 +58,8 @@ fn strict_all_names_every_reason_at_once() {
     .unwrap_err();
     assert_eq!(e, EXIT_RUNTIME_ERROR);
     let s = String::from_utf8(out).unwrap();
-    // the Stub flag
-    assert!(s.contains("-i, --interactive"), "{s}");
+    // the Stub flag (`-i` is Native since T-1777)
+    assert!(s.contains("--expose"), "{s}");
     // the rung
     assert!(s.contains("`chroot`"), "{s}");
     // the fixup

@@ -49,6 +49,10 @@
 #      instance; `logs -f` follows the log until the instance stops;
 #      `inspect --format` gives the name, the status, the tier and the exit
 #      code; with the key removed the ladder no longer names incus.
+#  14. `run -d -i` (T-1777, PodUtils/podrunner#85): the piped stdin goes in
+#      as a file of root, mode 0600, before the start; the command reads
+#      it, the file is gone once the command holds it, and the recorded
+#      command does not carry it.
 #
 # Exit: 0 every clause matched, 1 a clause disagreed, 2 the lane could not
 # run (not root, no user namespaces, no package).
@@ -277,6 +281,21 @@ c13 "^  follow   one two $" "logs -f did not follow the log to the end"
 c13 "^  exitcode 0$" "inspect did not give the exit code of the ended command"
 c13 "^  rm       cfg434$" "rm of the name did not route to incus"
 grep -q "^  ladder   incus$" "$WORK/c13.txt" && { note "13: the ladder still named incus with no configuration"; fail=1; }
+
+# ---- clause 14 ----------------------------------------------------------
+{
+echo ""; echo "== 14. run -d -i"
+echo "  run -d   $(printf 'sekret434\n' | P run -d -i --name in434 --podvm-tier=incus "$OCI" sh -c 'cat; ls /.podvm/stdin 2>/dev/null || echo gone' 2>/dev/null)"
+sleep 5
+echo "  logs     $(I logs in434 2>&1 | tr '\n' ' ')"
+echo "  cmd      $(I inspect --format '{{.Cmd}}' in434 2>&1)"
+echo "  rm       $(I rm -f in434 2>&1)"
+} >"$WORK/c14.txt" 2>&1
+cat "$WORK/c14.txt" >>"$REPORT"
+c14() { grep -q "$1" "$WORK/c14.txt" || { note "14: $2"; fail=1; }; }
+c14 "^  run -d   in434$" "run -d -i did not print the name"
+c14 "^  logs     sekret434 gone $" "the command did not read the stdin, or the file stayed"
+grep -q "^  cmd .*sekret434" "$WORK/c14.txt" && { note "14: the stdin is in the recorded command"; fail=1; }
 
 # ---- clause 9 -----------------------------------------------------------
 left_i=$(RI list --format csv -c n 2>&1 | grep -c .)

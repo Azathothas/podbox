@@ -451,10 +451,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1774](image.md) | P3 | S | none | image | done | busybox `head -c` of `/dev/urandom` stops at 1 MiB on the userland rung |
 | [T-1775](cli.md) | P1 | S | none | cli | done | `cp` into a running container of the namespace rung writes under the run's tmpfs |
 | [T-1776](machine.md) | P1 | S | none | machine | done | Each file of a guest of the machine tier belongs to root |
+| [T-1777](machine.md) | P1 | S | none | machine | done | The incus tier takes no stdin for an instance that stays |
 
 ## Counts
 
-385 entries: 2 open, 6 partial, 4 blocked, 373 done.
+386 entries: 2 open, 6 partial, 4 blocked, 374 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -464,10 +465,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 2 | 0 | 163 | 165 |
+| P1 | 0 | 2 | 0 | 164 | 166 |
 | P2 | 0 | 2 | 4 | 124 | 130 |
 | P3 | 2 | 2 | 0 | 21 | 25 |
-| **All** | 2 | 6 | 4 | 373 | 385 |
+| **All** | 2 | 6 | 4 | 374 | 386 |
 
 ## Work order
 
