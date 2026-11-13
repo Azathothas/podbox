@@ -11,7 +11,9 @@ repository.workspace = true
 # shared through PodUtils/podcrates. This crate gives podvm's settings to it
 # and keeps the report. The syscall table and the kernel's struct layouts
 # (TODO/deps.md T-0911, T-0912) come with it.
-pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }
+# TODO/probe.md T-1746: the feature `report` gives the reader of the
+# findings, so `run` takes them from the cache of T-0111.
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0", features = ["report"] }
 # TODO/enter.md T-1652: `measured_by.user_dispatch`, whether the
 # native-static rung can arm on this host.
 podvm-dispatch = { path = "../podvm-dispatch" }

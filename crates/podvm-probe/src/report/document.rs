@@ -13,6 +13,10 @@ pub fn document(f: &Findings, sel: &Selection) -> String {
     o.bool("strict_ok", sel.meets(Selection::STRICT_FLOOR));
     o.bool("controls_answered", sel.controls_answered);
     o.str("self_exe", &f.self_exe);
+    // ⭐ TODO/probe.md T-1746: the findings and the selection as the
+    // crate writes them, so `run` reads them back from the cache with
+    // `report::read`, and podvm keeps one writer of each.
+    o.raw("hostprobe", &pod_hostprobe::report::write(f, sel));
 
     // ⛔ TODO/enter.md T-0506 point 5: WHICH INSTRUMENT ANSWERED, beside the
     // rung rather than at the end, because a harness that reads `rung` and not

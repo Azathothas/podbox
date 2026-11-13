@@ -112,13 +112,13 @@ pub(crate) fn prepare(
     // refuses now, naming what is missing, with the rootfs untouched.
     // The machine tier returned above and never chroots.
     // `findings` is reused for the banner below, so the probe runs once.
-    let findings = podvm_probe::run();
-    // ⭐ TODO/enter.md T-0503. The flag-specific refusal fires where the
-    // flag alone decides, ahead of every gate: `-t` with an unusable ptmx
-    // refuses naming ptmx whatever else holds, because no rung here
-    // allocates a pty without it. Where chroot is denied too the chroot
-    // sentence prints beside it rather than being masked by it. Exit
-    // stays 125, one line per reason.
+    let findings = super::probe_cache::findings(verb, store); // T-1746
+                                                              // ⭐ TODO/enter.md T-0503. The flag-specific refusal fires where the
+                                                              // flag alone decides, ahead of every gate: `-t` with an unusable ptmx
+                                                              // refuses naming ptmx whatever else holds, because no rung here
+                                                              // allocates a pty without it. Where chroot is denied too the chroot
+                                                              // sentence prints beside it rather than being masked by it. Exit
+                                                              // stays 125, one line per reason.
     if o.tty && !podvm_probe::probes::ptmx_usable(&findings) {
         eprintln!(
             "podvm {verb}: -t was asked for and /dev/ptmx is not usable on this \

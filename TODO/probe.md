@@ -1619,7 +1619,7 @@ driver of podrunner reads `probe --json`.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1647,10 +1647,7 @@ second rule.
 
 ## Prove
 
-`sh experiments/170-probe-cache.sh` exits 0, with a clause that the median
-of 10 runs of `podvm run --rm IMAGE true` with a warm cache is lower than
-the median with no cache by at least 80 percent of the median of 10 runs
-of `podvm probe --json`
+`sh experiments/446-run-probe-cache.sh` exits 0: with `PODVM_DEBUG`, a run with no cache says that the probe ran now and the next run says that it came from the cache; a cache of another build is not served; the median of 10 runs of `podvm run --rm IMAGE true` with a warm cache is lower than the median with no cache by at least 80 percent of the median of 10 runs of `podvm probe --json`
 
 ## Correction
 
@@ -1681,4 +1678,27 @@ entry is open, at low priority (the owner's ruling "Complete release
 first", 2026-11-13). The feature is off by default, so the work turns it
 on where podvm writes and reads the document. COORD-069 (issue 291)
 stays open until this entry is done.
+
+**2026-11-13.** The Prove named a clause of experiment 170. Its clause 3
+needs a docker daemon, which the cloud host does not have, so 170 exits 2
+there whatever it adds; the clause is experiment 446. The Approach named
+`--debug`: podvm has no such flag, so the line prints where
+`PODVM_DEBUG` is set. The Decision added no second rule; one is needed:
+the cache serves the rows and `self_exe` of the build that wrote it, so
+`probe_cache::resolve` measures again where the document's `podvm` or
+`self_exe` is not this process's. `probe --cached` and `run` share it.
+
+## Done
+
+**Done 2026-11-13.** `podvm-probe` turns on the feature `report` of
+`pod-hostprobe`; `report::document` holds the object of `report::write`
+under the key `hostprobe`; `Probe::findings` reads it back with
+`report::read`; `prepare` takes the findings from
+`probe_cache::resolve` and probes now only where the cache holds none.
+Experiment 446 on the cloud host (the namespace rung): the medians of 10
+runs are 140 ms with no cache and 57 ms with a warm cache, and `probe
+--json` takes 76 ms: a warm cache saves 83 ms, more than 80 percent of
+the probe (60 ms). The test
+`the_findings_read_back_and_another_build_is_measured_over` holds the
+reader and the rule of the build.
 

@@ -42,8 +42,8 @@ host's devices on the userland rung under a user namespace).
   `0.2.0-beta.11` (T-1777, T-1778).
 * COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
   when podswarm or podcrates reads it.
-* COORD-069 (#291): the reader of the probe report is in podcrates
-  `v0.36.0`; close it when T-1746 (open) is done.
+* COORD-069 (#291): T-1746 is done on `main` (`run` reads the probe
+  cache); close it with the next release.
 * COORD-071 (#294): an overlay root for T-1749 (podcrates@T-486, open).
 * COORD-041 (#260): `pod-netlab` for T-1662.
 

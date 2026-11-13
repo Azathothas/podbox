@@ -927,6 +927,8 @@ source = "git+https://github.com/PodUtils/podcrates?tag=v0.40.0#1335e9af7b179fca
 dependencies = [
  "linux-raw-sys",
  "pod-core",
+ "serde",
+ "serde_json",
  "syscalls",
 ]
 

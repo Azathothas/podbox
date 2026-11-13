@@ -49,6 +49,13 @@ impl<'a> Obj<'a> {
         self.out.push(':');
     }
 
+    /// `v` as it is: a JSON value that another writer made.
+    pub fn raw(&mut self, k: &str, v: &str) -> &mut Self {
+        self.key(k);
+        self.out.push_str(v);
+        self
+    }
+
     pub fn str(&mut self, k: &str, v: &str) -> &mut Self {
         self.key(k);
         push_str(self.out, v);

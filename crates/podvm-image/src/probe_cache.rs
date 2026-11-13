@@ -52,6 +52,14 @@ pub struct Probe {
 }
 
 impl Probe {
+    /// The findings and the selection of the document (TODO/probe.md
+    /// T-1746), `None` where it holds no object of `report::write` or the
+    /// object does not read.
+    pub fn findings(&self) -> Option<(podvm_probe::Findings, Selection)> {
+        let v: serde_json::Value = serde_json::from_str(&self.document).ok()?;
+        pod_hostprobe::report::read(&v.get("hostprobe")?.to_string()).ok()
+    }
+
     /// The selected rung, read back out of the document. `None` where the
     /// document has no `rung`, which a podvm-written one always does.
     pub fn rung(&self) -> Option<String> {
@@ -124,7 +132,11 @@ pub fn resolve(store: &Store) -> Probe {
                 } else {
                     let diff = live.differences(&cached);
                     if diff.is_empty() {
-                        None
+                        // ⛔ TODO/probe.md T-1746: `run` takes the rows and
+                        // `self_exe` from the cache, so an answer of
+                        // another build or another path of podvm is the
+                        // answer of another instrument too.
+                        another_build(&text)
                     } else if diff == ["interpreter"] {
                         // ⛔ TODO/enter.md T-0506 point 5, and it is a DIFFERENT
                         // sentence: nothing about the confinement moved, the
@@ -214,6 +226,33 @@ fn key_of(document: &str) -> Option<ConfinementKey> {
     })
 }
 
+/// Why a document of another podvm build or binary is not served, or
+/// `None` where it is this one's.
+fn another_build(document: &str) -> Option<String> {
+    let me = std::env::current_exe()
+        .ok()
+        .and_then(|p| std::fs::canonicalize(p).ok())
+        .map(|p| p.display().to_string());
+    let theirs = field(document, "self_exe");
+    let canon = theirs
+        .as_deref()
+        .and_then(|p| std::fs::canonicalize(p).ok())
+        .map(|p| p.display().to_string());
+    if field(document, "podvm").as_deref() != Some(report::VERSION) {
+        Some(format!(
+            "another build of podvm took the cached answer ({}), and this one is {}",
+            field(document, "podvm")
+                .as_deref()
+                .unwrap_or("an unrecorded version"),
+            report::VERSION
+        ))
+    } else if me.is_some() && canon != me {
+        Some("another binary of podvm took the cached answer".to_string())
+    } else {
+        None
+    }
+}
+
 fn field(document: &str, name: &str) -> Option<String> {
     let v: serde_json::Value = serde_json::from_str(document).ok()?;
     Some(v.get(name)?.as_str()?.to_string())
@@ -222,6 +261,31 @@ fn field(document: &str, name: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// TODO/probe.md T-1746: `run` reads the findings and the selection
+    /// back from the cache, and an answer of another build is not served.
+    #[test]
+    fn the_findings_read_back_and_another_build_is_measured_over() {
+        let s = scratch("build");
+        let first = resolve(&s);
+        let (f, sel) = first.findings().expect("the document holds the findings");
+        assert_eq!(Some(sel.rung.word().to_string()), first.rung());
+        assert!(!f.rows.is_empty());
+        let path = s.root().join(CACHE_FILE);
+        let text = std::fs::read_to_string(&path).unwrap();
+        let other = text.replacen(
+            &format!("\"podvm\":\"{}\"", report::VERSION),
+            "\"podvm\":\"0.0.0-other\"",
+            1,
+        );
+        assert_ne!(other, text);
+        std::fs::write(&path, other).unwrap();
+        match resolve(&s).source {
+            Source::Measured(why) => assert!(why.contains("another build"), "{why}"),
+            Source::Cache => panic!("an answer of another build was served"),
+        }
+        let _ = std::fs::remove_dir_all(s.root());
+    }
 
     fn scratch(name: &str) -> Store {
         let d = std::env::temp_dir().join(format!("podvm-cache-{}-{name}", std::process::id()));

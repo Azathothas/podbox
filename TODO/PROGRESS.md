@@ -7,7 +7,7 @@ start.
 
 ## State
 
-388 entries: 3 open, 5 partial, 3 blocked, 377 done.
+388 entries: 2 open, 5 partial, 3 blocked, 378 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -62,12 +62,10 @@ status with `podvm-count` in the same commit as the work.
 3. [T-1740](enter.md) (partial: a cheaper syscall tier) and
    [T-1350](gate.md) (partial: the wrapper of the parked Windows lane).
 4. Low priority, the asks of podswarm (PodUtils/podcrates#124):
-   [T-1746](probe.md) (open: `pod-hostprobe`'s reader is in `v0.36.0`,
-   behind its feature `report`; the probe costs about 50 ms on the cloud
-   host), [T-1749](enter.md)
-   (partial; COORD-071: the overlay root is podcrates@T-486, open),
-   [T-1747](cli.md) and [T-1750](machine.md). V-1, V-4, V-7
-   (`--podvm-sealed`) and V-8 are done.
+   [T-1749](enter.md) (partial; COORD-071: the overlay root is
+   podcrates@T-486, open), [T-1747](cli.md) and [T-1750](machine.md).
+   V-1, V-2 (the probe cache of `run`), V-4, V-7 (`--podvm-sealed`) and
+   V-8 are done.
 
 The entries done since the resume of 2026-11-11 are in the record; the
 handoff (`docs/HANDOFF.md`) names them.

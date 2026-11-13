@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: `run` takes the probe from the cache, 2026-11-13
+
+Record: T-1746, PodUtils/podcrates#124 (ask V-2 of podswarm).
+Deployed: not deployed; the next release carries it.
+
+- `run` and `create` take the findings of the probe from
+  `$PODVM_STORE/probe.json` where its key matches the confinement and
+  the same podvm build wrote it, and probe again where it does not. A
+  warm cache saves about 80 ms of each run on the cloud host.
+  `PODVM_DEBUG=1` prints whether the probe came from the cache.
+- `probe --json` holds the key `hostprobe`: the findings and the
+  selection in the versioned object of `pod-hostprobe`.
+
 ### Changed: podcrates v0.40.0, 2026-11-13
 
 Record: PodUtils/podcrates#140.

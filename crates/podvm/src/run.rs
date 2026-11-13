@@ -207,6 +207,8 @@ mod report;
 pub use foreground::*;
 
 mod prepare;
+// TODO/probe.md T-1746: the findings from the cache of T-0111.
+mod probe_cache;
 pub(crate) use prepare::*;
 
 mod tree;
