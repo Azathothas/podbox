@@ -173,7 +173,12 @@ fn a_workdir_in_a_volume_passes_through_the_table() {
         host: d.join("host").to_string_lossy().to_string(),
     }];
     let m = maps("run", &root, &vs).unwrap();
-    assert_eq!(m.volumes(), &vs[..]);
+    // TODO/image.md T-1774: the host's devices follow the caller's volumes
+    // where the tree holds no device node.
+    assert_eq!(&m.volumes()[..1], &vs[..]);
+    assert!(m.volumes()[1..]
+        .iter()
+        .all(|v| v.guest.starts_with("/dev/") && v.guest == v.host));
     assert!(podvm_enter::check_workdir(root.as_str(), "/data/sub", "img").is_err());
     podvm_enter::check_workdir(&m, "/data/sub", "img").unwrap();
     let bad = [Volume {

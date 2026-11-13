@@ -2539,3 +2539,51 @@ cloud host, with the incusd of route A, clause 14 of experiment 434 gives
 `logs` = `sekret434 gone`, and `inspect --format '{{.Cmd}}'` does not hold
 the secret. The parity row of `-i` for `run` is Native now.
 
+
+# T-1778: The channel of a guest gets no request through a loopback proxy variable
+
+**Source:** PodUtils/podrunner#87 (COORD-027 of podrunner, for PodUtils/podrunner@T-037)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+podrunner's `microvm` kind runs `--podvm-net none --podvm-channel
+SOCK:127.0.0.1:3128` with two 9p volumes and `-e
+http_proxy=http://127.0.0.1:3128`. The official runner in the guest
+reaches no proxy, and the host socket logs no connection. The same run
+with `curl -x http://127.0.0.1:8080` and no volume reaches the socket.
+
+## Premise
+
+podrunner names the 9p volumes as a possible cause. On the cloud host,
+the run of form 2 with `wget` gives "can't connect to remote host
+(10.0.2.2): Network unreachable": the rewrite of T-1665 turns the
+loopback host of each proxy variable into the gateway 10.0.2.2 of the
+user-mode network, and a guest with no NIC has no gateway. The 9p
+volumes are not the cause.
+
+## Approach
+
+With `--podvm-net none`, the machine tier keeps the proxy variables as
+the caller gives them: the guest's loopback is where the channel
+listens.
+
+## Decision
+
+With a NIC, the rewrite of T-1665 stays.
+
+## Prove
+
+`sh experiments/444-guest-channel.sh` exits 0: the channel alone, the channel with two 9p volumes and a loopback proxy variable for a user that is not root, the rewrite with the default network, and no emulator that stays
+
+## Done
+
+**Done 2026-11-13.** `machine_tier` (`crates/podvm/src/run/machine.rs`)
+calls `rewrite_env` only where the guest has a NIC. Experiment 444 on
+the cloud host (TCG) passes its 4 clauses: in clause 2, the user `runner`
+fetches `http://broker.podrunner.test/two` through `http_proxy`, the host
+socket logs the full URL, and the `:ro` volume reads.

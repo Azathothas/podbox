@@ -133,7 +133,15 @@ pub(super) fn machine_tier(
     let probe = crate::sandprobe::guest_copy(store.root());
     copies.extend(probe.clone().map(|d| (d, "/.podvm".to_string())));
     // TODO/net.md T-1665: a loopback proxy is the gateway in the guest.
-    let mut env = match crate::machine::proxy::rewrite_env(&p.env) {
+    // TODO/machine.md T-1778: with no NIC there is no gateway, and the
+    // guest's loopback is where --podvm-channel listens, so the variable
+    // stays as it is.
+    let rewritten = if o.net_none {
+        Ok(p.env.clone())
+    } else {
+        crate::machine::proxy::rewrite_env(&p.env)
+    };
+    let mut env = match rewritten {
         Ok(e) => e,
         Err(why) => {
             eprintln!("podvm {verb}: machine tier: {why}");

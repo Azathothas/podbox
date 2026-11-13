@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a loopback proxy of a guest with no NIC, 2026-11-13
+
+Record: T-1778.
+Deployed: not deployed; the next release carries it.
+
+- With `--podvm-net none`, the machine tier keeps a proxy variable on
+  `127.0.0.1` as it is, so the payload reaches `--podvm-channel` through
+  it. Before, podvm wrote the gateway 10.0.2.2, which a guest with no NIC
+  does not have (PodUtils/podrunner#87).
+
 ### Fixed: the devices of the userland rung, 2026-11-13
 
 Record: T-1774.

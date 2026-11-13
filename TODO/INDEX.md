@@ -452,10 +452,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1775](cli.md) | P1 | S | none | cli | done | `cp` into a running container of the namespace rung writes under the run's tmpfs |
 | [T-1776](machine.md) | P1 | S | none | machine | done | Each file of a guest of the machine tier belongs to root |
 | [T-1777](machine.md) | P1 | S | none | machine | done | The incus tier takes no stdin for an instance that stays |
+| [T-1778](machine.md) | P1 | S | none | machine | done | The channel of a guest gets no request through a loopback proxy variable |
 
 ## Counts
 
-386 entries: 2 open, 6 partial, 4 blocked, 374 done.
+387 entries: 2 open, 6 partial, 4 blocked, 375 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -465,10 +466,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 2 | 0 | 164 | 166 |
+| P1 | 0 | 2 | 0 | 165 | 167 |
 | P2 | 0 | 2 | 4 | 124 | 130 |
 | P3 | 2 | 2 | 0 | 21 | 25 |
-| **All** | 2 | 6 | 4 | 374 | 386 |
+| **All** | 2 | 6 | 4 | 375 | 387 |
 
 ## Work order
 
