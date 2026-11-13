@@ -18,13 +18,48 @@ use crate::{Action, Fixup};
 
 /// The id of the row, and its entry.
 pub const ID: &str = "dev-shm";
+/// The row of `dev/pts`: the mount point that the namespace rung of
+/// `pod-enter` binds the host's `/dev/pts` on (TODO/cli.md T-1760).
+pub const PTS_ID: &str = "dev-pts";
 
 /// Make `dev/shm` in `rootfs` where it is absent.
 pub fn dev_shm(rootfs: &Path) -> Fixup {
+    dev_dir(
+        rootfs,
+        "shm",
+        ID,
+        "T-1759",
+        0o1777,
+        "mode 1777, for shm_open and sem_open",
+    )
+}
+
+/// Make `dev/pts` in `rootfs` where it is absent: with no directory there,
+/// `tty` of a `run -t` found no name on the namespace rung.
+pub fn dev_pts(rootfs: &Path) -> Fixup {
+    dev_dir(
+        rootfs,
+        "pts",
+        PTS_ID,
+        "T-1760",
+        0o755,
+        "the mount point of the host's /dev/pts",
+    )
+}
+
+/// Make `dev/NAME` with `mode` where it is absent.
+fn dev_dir(
+    rootfs: &Path,
+    name: &str,
+    id: &'static str,
+    entry: &'static str,
+    mode: u32,
+    why: &str,
+) -> Fixup {
     let row = |action, detail: &str| Fixup {
-        entry: "T-1759",
-        id: ID,
-        path: "dev/shm".into(),
+        entry,
+        id,
+        path: format!("dev/{name}"),
         action,
         detail: detail.into(),
         degraded: action == Action::Failed,
@@ -35,16 +70,21 @@ pub fn dev_shm(rootfs: &Path) -> Fixup {
         Ok(_) => return row(Action::Skipped, "the image's /dev is not a directory"),
         Err(e) => return row(Action::Skipped, &format!("the rootfs has no /dev: {e}")),
     }
-    let shm = dev.join("shm");
-    match std::fs::symlink_metadata(&shm) {
+    let at = dev.join(name);
+    match std::fs::symlink_metadata(&at) {
         Ok(m) if m.file_type().is_dir() => return row(Action::Unchanged, ""),
-        Ok(_) => return row(Action::Skipped, "the image's /dev/shm is not a directory"),
+        Ok(_) => {
+            return row(
+                Action::Skipped,
+                &format!("the image's /dev/{name} is not a directory"),
+            )
+        }
         Err(_) => {}
     }
-    let made = std::fs::create_dir(&shm)
-        .and_then(|()| std::fs::set_permissions(&shm, std::fs::Permissions::from_mode(0o1777)));
+    let made = std::fs::create_dir(&at)
+        .and_then(|()| std::fs::set_permissions(&at, std::fs::Permissions::from_mode(mode)));
     match made {
-        Ok(()) => row(Action::Created, "mode 1777, for shm_open and sem_open"),
+        Ok(()) => row(Action::Created, why),
         Err(e) => row(Action::Failed, &e.to_string()),
     }
 }
@@ -64,6 +104,10 @@ mod tests {
         let m = std::fs::metadata(d.join("a/dev/shm")).unwrap();
         assert_eq!(m.mode() & 0o7777, 0o1777);
         assert_eq!(dev_shm(&d.join("a")).action, Action::Unchanged);
+        // T-1760: the mount point of /dev/pts, mode 755.
+        assert_eq!(dev_pts(&d.join("a")).action, Action::Created);
+        let m = std::fs::metadata(d.join("a/dev/pts")).unwrap();
+        assert_eq!(m.mode() & 0o7777, 0o755);
 
         // A /dev of the image that is a link is left as it is.
         std::fs::create_dir_all(d.join("b")).unwrap();

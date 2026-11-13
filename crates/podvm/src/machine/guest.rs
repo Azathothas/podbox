@@ -39,8 +39,9 @@ use archive::tools;
 use drive::drive;
 
 /// The version of the base archive format; a change of [`cpio`] bumps it,
-/// so an old cached archive is not reused. 2 keeps the hard links.
-pub const BASE_FORMAT: u32 = 2;
+/// so an old cached archive is not reused. 2 keeps the hard links; 3 the
+/// owners of the image (T-1776).
+pub const BASE_FORMAT: u32 = 3;
 const DEFAULT_MEM: u64 = 512 << 20;
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(600);
 
@@ -129,6 +130,11 @@ pub fn base_archive(
     let tmp = path.with_extension(format!("partial-{}", std::process::id()));
     let file = std::fs::File::create(&tmp).map_err(|e| format!("{}: {e}", tmp.display()))?;
     let mut w = cpio::Newc::new(std::io::BufWriter::new(file));
+    // TODO/machine.md T-1776: the owners of the image, from the sidecar
+    // beside the rootfs; with no sidecar each file stays root's.
+    if let Some(dir) = rootfs.parent() {
+        let _ = w.owners_from(&dir.join(".meta.jsonl"));
+    }
     let built = w
         .tree(rootfs)
         .and_then(|()| w.finish())

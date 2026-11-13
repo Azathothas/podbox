@@ -118,6 +118,7 @@ pub fn entry(id: &str) -> &'static str {
         "ca-hash-dir" => "T-0412",
         "dev-fd-link" => "T-0413",
         shm::ID => "T-1759",
+        shm::PTS_ID => "T-1760",
         _ => "-",
     }
 }
@@ -318,6 +319,7 @@ pub fn complete(rootfs: &str, opts: &Options) -> Result<Report> {
         .map(Report::from)
         .map_err(|e| Error::Complete(e.to_string()))?;
     r.fixups.push(shm::dev_shm(Path::new(rootfs)));
+    r.fixups.push(shm::dev_pts(Path::new(rootfs)));
     Ok(r)
 }
 

@@ -2419,3 +2419,51 @@ file name, a file body, an argv element and a variable leaves no canary
 in the argv or the environment of a host process, in the per-run
 directory or in the state of podvm, and that `ip link` in the guest shows
 `lo` only
+
+# T-1776: Each file of a guest of the machine tier belongs to root
+
+**Source:** PodUtils/podrunner#81 (COORD-021 of podrunner, for PodUtils/podrunner@T-037)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+In a guest of the machine tier, each file of the image belongs to root:
+`/home/runner` of podrunner's runner image is `root:root 750`, so the user
+`runner` cannot run `/home/runner/run.sh` (exit 126). The rootfs rungs keep
+the owners.
+
+## Premise
+
+The base archive (`newc`) writes 0 in the owner and the group of each
+entry. The extraction keeps the ids of its own process and records the
+image's ids in its sidecar, `.meta.jsonl` beside the rootfs.
+
+## Approach
+
+Write the owner and the group of the sidecar in each entry of the base
+archive, and bump the format of the archive so that no cached archive is
+used again.
+
+## Decision
+
+An entry that the sidecar does not name stays root's.
+
+## Prove
+
+`cargo test -p podvm the_base_archive_keeps_the_owners_of_the_image` passes, and a guest of the machine tier shows the owner of the image
+
+## Done
+
+**Done 2026-11-13.** `Newc::owners_from` in
+`crates/podvm/src/machine/guest/cpio.rs` reads the sidecar, and each entry
+of the base archive carries its uid and gid (`BASE_FORMAT` 3 in
+`crates/podvm/src/machine/guest.rs`). In a TCG guest on the cloud host,
+`run --rm --podvm-tier=machine alpine stat -c "%u:%g" /etc/shadow` prints
+`0:42` (the group `shadow` of the image; `0:0` before), within the bound,
+and no emulator stays after the run. The test
+`the_base_archive_keeps_the_owners_of_the_image` holds the header fields.
+

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-384 entries: 4 open, 6 partial, 5 blocked, 369 done.
+385 entries: 4 open, 5 partial, 4 blocked, 372 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -44,12 +44,12 @@ each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
 1. The defects of the QA pass (experiment 443, 2026-11-13: 518 rows pass,
-   64 fail; the merged reruns: 578 pass, 5 fail), then the release
-   `0.2.0-beta.8` for the beta testers (`docs/HANDOFF.md`). Open:
-   [T-1760](cli.md) (partial: `tty` on the namespace rung waits for the
-   /dev/pts half of COORD-073), [T-1770](net.md) (blocked on COORD-075)
-   and [T-1774](image.md) (P3). The copy of the rootfs on each run (11 s
-   for golang) is T-1749.
+   64 fail; the merged reruns: 578 pass, 5 fail) and the release
+   `0.2.0-beta.8` for the beta testers (`docs/HANDOFF.md`). The fixes that
+   came with podcrates `v0.38.0` and the owners in a guest of the machine
+   tier (PodUtils/podrunner#81) go out in the next beta. Open:
+   [T-1774](image.md) (P3). The copy of the rootfs on each
+   run (11 s for golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)

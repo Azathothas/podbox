@@ -434,7 +434,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1757](cli.md) | P1 | S | none | cli | done | `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root |
 | [T-1758](enter.md) | P1 | M | none | enter | done | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
 | [T-1759](enter.md) | P1 | M | none | enter | done | No /dev/shm on either rung: python multiprocessing fails |
-| [T-1760](cli.md) | P2 | M | none | cli | partial | `-t` gives no terminal on the namespace rung, and says nothing |
+| [T-1760](cli.md) | P2 | M | none | cli | done | `-t` gives no terminal on the namespace rung, and says nothing |
 | [T-1761](cli.md) | P1 | M | none | cli | done | `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung |
 | [T-1762](image.md) | P1 | M | none | image | done | The source fixup probes four HTTPS hosts on each run: about 2 s of each ubuntu run, uncached |
 | [T-1763](image.md) | P2 | S | none | image | done | The `openssl rehash` step prints 108 lines on each python run and costs about 0.5 s |
@@ -444,16 +444,17 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1767](image.md) | P2 | S | none | image | done | Quiet runs print notes: a false chown EINVAL on extraction, the probe line of `pull -q`, the base archive of the machine tier |
 | [T-1768](image.md) | P2 | S | none | image | done | `cp -r` of a container path copies each hard link as a file |
 | [T-1769](cli.md) | P3 | S | none | cli | done | An unknown verb or flag prints the whole usage |
-| [T-1770](net.md) | P3 | S | none | net | blocked | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
+| [T-1770](net.md) | P3 | S | none | net | done | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
 | [T-1771](image.md) | P2 | S | none | image | done | node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy |
 | [T-1772](cli.md) | P2 | S | none | cli | done | `-w` with a directory that the image lacks is refused; docker creates it |
 | [T-1773](image.md) | P2 | S | none | image | done | A step of the completion fails on each run of the userland rung |
 | [T-1774](image.md) | P3 | S | none | image | open | busybox `head -c` of `/dev/urandom` stops at 1 MiB on the userland rung |
 | [T-1775](cli.md) | P1 | S | none | cli | done | `cp` into a running container of the namespace rung writes under the run's tmpfs |
+| [T-1776](machine.md) | P1 | S | none | machine | done | Each file of a guest of the machine tier belongs to root |
 
 ## Counts
 
-384 entries: 4 open, 6 partial, 5 blocked, 369 done.
+385 entries: 4 open, 5 partial, 4 blocked, 372 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -463,10 +464,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 0 | 162 | 163 |
-| P2 | 0 | 3 | 4 | 123 | 130 |
-| P3 | 4 | 2 | 1 | 19 | 26 |
-| **All** | 4 | 6 | 5 | 369 | 384 |
+| P1 | 0 | 1 | 0 | 163 | 164 |
+| P2 | 0 | 2 | 4 | 124 | 130 |
+| P3 | 4 | 2 | 0 | 20 | 26 |
+| **All** | 4 | 5 | 4 | 372 | 385 |
 
 ## Work order
 

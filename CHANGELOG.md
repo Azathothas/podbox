@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `tty` on the namespace rung, the knob flags of `lab`, the owners in a guest, 2026-11-13
+
+Record: T-1760, T-1770, T-1776, PodUtils/podcrates#136, PodUtils/podrunner#81.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.38.0`. The namespace rung
+  binds `/dev/pts`, and each rootfs has a `dev/pts`: `tty` in a `run -t`
+  names its pty.
+- `podvm lab scenarios` prints lines that `lab plan` takes, and a bad
+  value of a knob names its range or its words.
+- In a guest of the machine tier, each file of the image has the owner and
+  the group that the image gives it, not root's: a non-root user of the
+  image can run its programs.
+
 ## 0.2.0-beta.8 (2026-11-13)
 
 ### Fixed: /proc on the namespace rung, `exec` in the run's mounts, `-w`, 2026-11-13

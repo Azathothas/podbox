@@ -3,8 +3,12 @@
 //! The kernel unpacks each `newc` archive of the initrd in order, and a
 //! later archive may add files to an earlier one. So the base archive of
 //! an image (its rootfs) is built once and cached, and each run appends a
-//! small archive (`/podvm-init`, the console nodes). Each entry is owned by
-//! root, with time 0, so the same tree gives the same bytes.
+//! small archive (`/podvm-init`, the console nodes). Each entry of the
+//! image has the owner and the group that the image gives it, from the
+//! sidecar of the extraction ([`Newc::owners_from`], TODO/machine.md
+//! T-1776): the extraction keeps the ids of its own process, and before
+//! each file of a guest was root's. Each other entry is root's. The time
+//! is 0, so the same tree gives the same bytes.
 //!
 //! Device nodes, sockets and FIFOs of the rootfs are left out: the kernel
 //! makes the console nodes from the run archive, and `devtmpfs` serves the
@@ -34,6 +38,8 @@ pub struct Newc<W: Write> {
     /// The archive inode of each `(dev, ino)` of the tree with more than
     /// one link.
     links: HashMap<(u64, u64), u32>,
+    /// The owner and the group of each name of the image (T-1776).
+    owners: HashMap<String, (u32, u32)>,
 }
 
 impl<W: Write> Newc<W> {
@@ -43,7 +49,30 @@ impl<W: Write> Newc<W> {
             ino: 1,
             written: 0,
             links: HashMap::new(),
+            owners: HashMap::new(),
         }
+    }
+
+    /// The owners of the image from the sidecar of its extraction: one JSON
+    /// object on each line, with `path`, `uid` and `gid`. A line that does
+    /// not parse is left out, and its entry is root's.
+    pub fn owners_from(&mut self, sidecar: &Path) -> io::Result<()> {
+        let text = std::fs::read_to_string(sidecar)?;
+        for line in text.lines() {
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+                continue;
+            };
+            let id = |k: &str| v.get(k).and_then(serde_json::Value::as_u64);
+            if let (Some(path), Some(uid), Some(gid)) =
+                (v.get("path").and_then(|p| p.as_str()), id("uid"), id("gid"))
+            {
+                self.owners.insert(
+                    path.trim_start_matches('/').to_string(),
+                    (uid as u32, gid as u32),
+                );
+            }
+        }
+        Ok(())
     }
 
     fn put(&mut self, bytes: &[u8]) -> io::Result<()> {
@@ -83,10 +112,11 @@ impl<W: Write> Newc<W> {
         nlink: u32,
     ) -> io::Result<()> {
         let name = name.trim_start_matches('/');
+        let (uid, gid) = self.owners.get(name).copied().unwrap_or((0, 0));
         let head = format!(
             "070701{ino:08x}{mode:08x}{:08x}{:08x}{nlink:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}",
-            0,
-            0,
+            uid,
+            gid,
             0,
             data.len(),
             0,

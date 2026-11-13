@@ -4180,7 +4180,7 @@ gives PASS for `run.user-entrypoint.ns` and `run.user-node.ns`.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4204,7 +4204,15 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 
 ## Done
 
-**Partial 2026-11-13; the rest waits for podcrates.** A foreground `run
+**Done 2026-11-13.** podcrates `v0.38.0` (PodUtils/podcrates#136, its
+podcrates@T-504) binds the host's `/dev/pts` on the `/dev/pts` of the image
+in the namespace rung, where that directory exists, and podvm's completion
+now makes `dev/pts` (mode 755, the row `dev-pts` of
+`crates/podvm-complete/src/shm.rs`). On the namespace rung of the cloud
+host, `script -qc "podvm run --rm -t alpine tty"` prints `/dev/pts/1`; the
+test `dev_shm_is_made_once_and_never_through_a_link` holds the directory.
+
+**Partial 2026-11-13; the rest waited for podcrates.** A foreground `run
 -t` opens a pty of the host's `/dev/ptmx` (`crates/podvm/src/run/pty.rs`),
 hands its slave to the payload as descriptors 0, 1 and 2, and relays the
 master to podvm's stdout and podvm's stdin to the master. Where podvm's

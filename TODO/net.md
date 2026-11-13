@@ -513,7 +513,7 @@ not served.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -535,12 +535,12 @@ The fix in the lab is podvm's; a cause in a crate of podcrates goes there as a C
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `lab.knobs.corp-proxy`, `lab.mtu-big`, `lab.nat-bad`, and a test of the lab holds the fix
 
-## Blocker
+## Done
 
-**Blocked 2026-11-13 on podcrates.** Each of the three defects is in
-the file of the knob flags of `pod-netlab` in PodUtils/podcrates
-(`v0.36.0`):
-`Knobs::flags` writes an empty `--udp`, `number()` gives one text for each
-parse error, and `word()` names no word. COORD-075 (issue 298) asks for
-the three fixes. podvm takes the tag that brings them, then runs the
-Prove.
+**Done 2026-11-13.** podcrates `v0.38.0` (PodUtils/podcrates#136, its
+podcrates@T-503) fixes the three in `pod-netlab`, and podvm takes the tag
+with no change of its own. On the cloud host: `lab scenarios` prints
+`corp-proxy ... --nat both --tcp 3128`, which `lab plan` takes at exit 0;
+`lab plan --nat both --mtu 99999` says `the value is out of its range 1280
+to 1499`; `lab plan --nat bogus` says `the value is not one of: none,
+nat44, nat66, both`.

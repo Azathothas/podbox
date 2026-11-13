@@ -300,3 +300,40 @@ fn a_terminal_runs_the_command_through_guest_tty() {
         .iter()
         .any(|x| x.contains("path=/r/tty.sock,server=on,wait=on")));
 }
+
+/// TODO/machine.md T-1776 (PodUtils/podrunner#81): each entry of the image
+/// has the owner and the group of the sidecar; an entry it does not name is
+/// root's.
+#[test]
+fn the_base_archive_keeps_the_owners_of_the_image() {
+    let d = std::env::temp_dir().join(format!("podvm-t1776-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    let root = d.join("rootfs");
+    std::fs::create_dir_all(root.join("home/runner")).unwrap();
+    std::fs::write(root.join("home/runner/run.sh"), b"#!/bin/sh\n").unwrap();
+    std::fs::write(
+        d.join(".meta.jsonl"),
+        "{\"path\":\"home/runner\",\"uid\":1001,\"gid\":1001,\"mode\":\"0750\"}\n\
+         {\"path\":\"home/runner/run.sh\",\"uid\":1001,\"gid\":121,\"mode\":\"0755\"}\nnot json\n",
+    )
+    .unwrap();
+    let mut w = cpio::Newc::new(Vec::new());
+    w.owners_from(&d.join(".meta.jsonl")).unwrap();
+    w.tree(&root).unwrap();
+    let a = w.finish().unwrap();
+    // The ids of the header that precedes `name`: the header is 110 bytes,
+    // and the uid and the gid are its fields 3 and 4 (8 hex digits each).
+    let ids = |name: &str| {
+        let n = format!("{name}\0");
+        let at = a.windows(n.len()).position(|w| w == n.as_bytes()).unwrap();
+        let h = &a[at - 110..at];
+        let hex = |r: std::ops::Range<usize>| {
+            u32::from_str_radix(std::str::from_utf8(&h[r]).unwrap(), 16).unwrap()
+        };
+        (hex(22..30), hex(30..38))
+    };
+    assert_eq!(ids("home/runner"), (1001, 1001));
+    assert_eq!(ids("home/runner/run.sh"), (1001, 121));
+    assert_eq!(ids("home"), (0, 0), "a name with no row is root's");
+    let _ = std::fs::remove_dir_all(&d);
+}
