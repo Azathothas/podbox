@@ -4044,6 +4044,16 @@ becomes a silent no-op.
 with the named reason where a subtree is delegated, and a test that each
 flag is refused by name where none is
 
+## Correction
+
+**Amended 2026-11-13.** The cloud host cannot prove this entry: its
+`/sys/fs/cgroup` is cgroup v1, and its cgroup2 mount
+(`/sys/fs/cgroup/unified`) has only the controller `hugetlb`. The Prove
+needs a host with a delegated cgroup2 subtree with `memory`, `cpu` and
+`pids`, for example a hosted runner of GitHub (cgroup2 with each
+controller) in a workflow of this repository.
+
+
 # T-1752: A versioned JSON Schema for the record of `run --report`, published in each release
 
 **Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a

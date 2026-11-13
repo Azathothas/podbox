@@ -423,14 +423,14 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1746](probe.md) | P2 | M | none | probe | blocked | `run` reads the cached probe, and probes again only when its key changes |
 | [T-1747](cli.md) | P3 | M | none | cli | open | `--memory`, `--cpus` and `--pids-limit` by cgroup2 where a subtree is delegated |
 | [T-1748](supervise.md) | P2 | S | none | supervise | done | A foreground payload dies when its `podvm run` is killed with SIGKILL |
-| [T-1749](enter.md) | P3 | L | none | enter | open | A read-only image as the lower layer of the root, with a tmpfs upper layer, and no copy |
+| [T-1749](enter.md) | P3 | L | none | enter | partial | A read-only image as the lower layer of the root, with a tmpfs upper layer, and no copy |
 | [T-1750](machine.md) | P3 | L | none | machine | open | `exec` into a running guest of the machine tier |
 | [T-1751](machine.md) | P3 | L | none | machine | open | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
 | [T-1752](cli.md) | P3 | M | none | cli | done | A versioned JSON Schema for the record of `run --report`, published in each release |
 
 ## Counts
 
-361 entries: 5 open, 7 partial, 4 blocked, 345 done.
+361 entries: 4 open, 8 partial, 4 blocked, 345 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -442,8 +442,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 0 | 151 | 153 |
 | P2 | 0 | 3 | 4 | 113 | 120 |
-| P3 | 5 | 2 | 0 | 16 | 23 |
-| **All** | 5 | 7 | 4 | 345 | 361 |
+| P3 | 4 | 3 | 0 | 16 | 23 |
+| **All** | 4 | 8 | 4 | 345 | 361 |
 
 ## Work order
 

@@ -3462,7 +3462,7 @@ pass; the loader family finds `/usr/lib/aarch64-linux-gnu/libc.so.6`.
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3493,3 +3493,18 @@ shows that the copy is not the cost.
 `cargo test -p podvm` exits 0, with a test that a second `run` of the same
 image writes no copy of the image (the store holds one tree of the image
 after two runs)
+
+## Done
+
+**Partial 2026-11-13.** The first step of the Approach, the measurement.
+`PODVM_442_MIRROR=1 sh experiments/442-run-copy-cost.sh` exits 0
+([the run](../experiments/results/run-copy-cost.txt)) on the cloud host
+(ext4, no FICLONE, so each fill copies the bytes): the median of 5 runs
+of `run --rm IMAGE true` is 77 ms for busybox:musl (1.5 MiB, fill 5 ms,
+6 %), 2861 ms for ubuntu:24.04 (74.6 MiB, fill 681 ms, 23 %) and 12611 ms
+for golang:1.24.7-bookworm (810.3 MiB, fill 8377 ms, 66 %). The copy is
+the cost of a large image, so the entry goes on. Remaining: the root with
+no copy for each rung (an overlay mount in the user namespace where it
+mounts; else a copy-up of the path table on the loader family), and the
+Prove.
+

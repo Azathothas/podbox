@@ -1,0 +1,12 @@
+== conditions
+date              2026-11-13T02:25:59Z
+host kernel       Linux 6.18.44-fc-v445
+store filesystem  ext2/ext3
+podvm             podvm 0.2.0-beta.7
+
+image | tree | form | fill ms (median of 5) | run ms (median of 5) | fill share
+busybox:musl | 6 files, 1.5 MiB | copy | 5 | 77 | 6 %
+ubuntu:24.04 | 2586 files, 74.6 MiB | copy | 681 | 2861 | 23 %
+golang:1.24.7-bookworm | 29056 files, 810.3 MiB | copy | 8377 | 12611 | 66 %
+
+verdict: THE NUMBERS ABOVE ARE THE COST OF THE FILL
