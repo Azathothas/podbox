@@ -15,7 +15,7 @@ podvm-extract = { path = "../podvm-extract" }
 # The table, the launcher, the logs and the verbs of the lifecycle. This
 # crate keeps podvm's settings, its record fields, the entry of a payload and
 # the ownership memo.
-pod-supervise = { git = "https://github.com/PodUtils/podcrates", tag = "v0.35.0" }
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.35.0", default-features = false }
+pod-supervise = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0", default-features = false }
 serde.workspace = true
 serde_json.workspace = true
