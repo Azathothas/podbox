@@ -1,9 +1,8 @@
 # Handoff
 
-The state on 2026-11-13, in the session that worked the defects of the QA
-pass (experiment 443) for the release `0.2.0-beta.8`, the complete release
-for the beta testers (`docs/decisions.md`, "Complete release first"). A
-fresh session with no memory reads this file first, then `AGENTS.md`,
+The state on 2026-11-13, after the release `0.2.0-beta.8` (issue 302) for
+the beta testers (`docs/decisions.md`, "Complete release first"). A fresh
+session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.
 
@@ -31,15 +30,11 @@ file when each step below is done.
 Experiment 443 (`experiments/443-qa-surface.sh`) drives the CLI on the
 namespace rung and on the chroot-denied fixture (`ul`). The first pass
 gave 518 PASS and 64 FAIL, and T-1753 to T-1771; the reruns found T-1772
-to T-1775. The merged capture gives 578 PASS and 5 FAIL. The five:
-
-* T-1760 (partial): `tty` on the namespace rung needs a bind of
-  `/dev/pts`, the half of COORD-073 (#296) that podcrates `v0.37.0` does
-  not hold.
-* T-1770 (blocked): COORD-075 (#298) asks for three fixes of the knob
-  flags of `pod-netlab`.
-* T-1774 (open, P3): busybox `head -c` of `/dev/urandom` on the userland
-  rung.
+to T-1775. The merged capture gives 578 PASS and 5 FAIL. Since then,
+podcrates `v0.38.0` closed `tty` on the namespace rung (T-1760) and the
+three rows of `lab` (T-1770); they wait for the next rerun. The one row
+left is T-1774 (open, P3): busybox `head -c` of `/dev/urandom` on the
+userland rung.
 
 ## Other open COORD issues
 
@@ -53,22 +48,19 @@ to T-1775. The merged capture gives 578 PASS and 5 FAIL. The five:
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
-2. The release `0.2.0-beta.8` is the commit "release: version
-   0.2.0-beta.8". Its gate, `secrets.yml`, `arm.yml`, the nightly trial
-   and `release.yml` run through one `[gh action] requested` issue in the
-   form of issue 287, where the session cannot dispatch them itself. Push
-   nothing to `main` while that request is open. When the release run
-   passes, record its run ids in `TODO/PROGRESS.md`.
-3. Announce the release by COORD issues to podrunner and podcrates; the
+2. Announce `0.2.0-beta.8` by COORD issues to podrunner and podcrates; the
    beta testers get the README's Install and "Report a problem".
-4. Take each podcrates tag that answers COORD-073 (/dev/pts) or COORD-075,
-   then run the rows that the entries name. Close COORD-076 (#299) when
-   podcrates records the take of `v0.37.0`.
-5. Before an entry is set done, run `cargo test -p podvm`. Do not edit
-   `TODO/` while `cargo test --workspace` runs: the record tests read the
-   files on disk. Do not edit `experiments/443-qa-surface.sh` while it
-   runs: `sh` reads each later section from its byte offset.
-6. The interposer: a new entry point needs its name in `interpose.map`.
-   It exports the lookups of users, groups and hosts (T-1753), and a
-   constructor keeps podvm's variables for a process that clears its
-   environment (T-1756).
+3. The release `0.2.0-beta.9`, for podrunner's `microvm` kind: it holds
+   podcrates `v0.38.0`, the owners in a guest of the machine tier (T-1776)
+   and the guest with no NIC and one channel (T-1751, partial). Bump the
+   version in a commit "release: version 0.2.0-beta.9", then one
+   `[gh action] requested` issue in the form of issue 302 (one dispatch of
+   the gate). Name the release in COORD-077 (#303) with a `state:` line.
+4. Tell podcrates of the take of `v0.38.0` (PodUtils/podcrates#136), and
+   close COORD-076 (#299): podcrates recorded the take of `v0.37.0`.
+5. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
+   from its own path: in a worktree, build it in the worktree's own
+   `target/`, or it reads and writes the main checkout.
+6. Before an entry is set done, run `cargo test -p podvm`. Do not edit
+   `TODO/` while `cargo test --workspace` runs, and do not edit
+   `experiments/443-qa-surface.sh` while it runs.
