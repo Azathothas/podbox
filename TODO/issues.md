@@ -190,11 +190,12 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #293 | COORD-070: podvm takes podcrates v0.35.0 (the answer to PodUtils/podcrates#127) (to podcrates) | closed | T-1662, T-1746 |
 | #294 | COORD-071: ask for an overlay root in pod-enter's namespace rung: the image read-only under a tmpfs upper layer (podvm T-1749, V-5 of podswarm) (to podcrates) | open | T-1749 |
 | #295 | COORD-072: podvm takes podcrates v0.36.0 (the answer to PodUtils/podcrates#129) (to podcrates) | closed | T-1746 |
-| #296 | COORD-073: ask for a proc mount on the /proc of the image in pod-enter's namespace rung (podvm T-1758) (to podcrates) | open | T-1758 |
+| #296 | COORD-073: ask for a proc mount on the /proc of the image in pod-enter's namespace rung (podvm T-1758) (to podcrates) | closed | T-1758 |
 | #297 | COORD-074: ask for an entry of pod-enter that joins the mount namespace of a running payload, for exec (podvm T-1765) (to podcrates) | closed | T-1765 |
-| #298 | COORD-075: ask for three fixes of the knob flags of pod-netlab: an empty --udp, the range of a number, the words of a flag (podvm T-1770) (to podcrates) | open | T-1770 |
-| #299 | COORD-076: podvm takes podcrates v0.37.0 (the answer to PodUtils/podcrates#134) (to podcrates) | open | T-1758, T-1765 |
+| #298 | COORD-075: ask for three fixes of the knob flags of pod-netlab: an empty --udp, the range of a number, the words of a flag (podvm T-1770) (to podcrates) | closed | T-1770 |
+| #299 | COORD-076: podvm takes podcrates v0.37.0 (the answer to PodUtils/podcrates#134) (to podcrates) | closed | T-1758, T-1765 |
 | #300 | [gh action] requested | closed (gate 43384381442 and secrets 43384387248 green on 7f1b23b6; arm 43386208714 failed: experiment 356 asked for refusals that T-1761 and T-1772 removed) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.8` (AGENTS.md, section 9) |
 | #301 | [gh action] requested | closed (secrets 43389382246 green on 2dde7df0; the gate 43389376336 was cancelled at the bound of a job beside a second dispatch of it) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.8` (AGENTS.md, section 9) |
 | #302 | [gh action] requested | closed (gate 43394989985, arm 43397131676, trial 43398052471, release 43399714037, all green on 2dde7df0) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.8` (AGENTS.md, section 9) |
 | #303 | COORD-077: the owners in a guest of the machine tier, and the guest with no NIC and one host channel (the answer to PodUtils/podrunner#81 and #83) (to podrunner) | open | T-1776, T-1751 |
+| #304 | COORD-078: podvm v0.2.0-beta.8 is released, and podvm takes podcrates v0.38.0 (the answer to PodUtils/podcrates#136) (to all) | open | T-1760, T-1770 |

@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.9 (2026-11-13)
+
 ### Fixed: `tty` on the namespace rung, the knob flags of `lab`, the owners in a guest, 2026-11-13
 
 Record: T-1760, T-1770, T-1776, PodUtils/podcrates#136, PodUtils/podrunner#81.
-Deployed: not released.
+Deployed: version 0.2.0-beta.9.
 
 - podvm takes the crates of podcrates at `v0.38.0`. The namespace rung
   binds `/dev/pts`, and each rootfs has a `dev/pts`: `tty` in a `run -t`
@@ -25,7 +27,7 @@ Deployed: not released.
 ### Added: a guest with no NIC and one channel to a host socket, 2026-11-13
 
 Record: T-1751, PodUtils/podrunner#83.
-Deployed: not released.
+Deployed: version 0.2.0-beta.9.
 
 - `run --podvm-tier=machine --podvm-net none` boots a guest with no
   network card: `ip link` shows `lo` only.

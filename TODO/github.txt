@@ -185,11 +185,12 @@
 293 issue closed
 294 issue open
 295 issue closed
-296 issue open
+296 issue closed
 297 issue closed
-298 issue open
-299 issue open
+298 issue closed
+299 issue closed
 300 issue closed
 301 issue closed
 302 issue closed
 303 issue open
+304 issue open
