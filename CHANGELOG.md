@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.10 (2026-11-13)
+
 ### Changed: podcrates v0.39.0, 2026-11-13
 
 Record: PodUtils/podcrates#137.
-Deployed: not released.
+Deployed: version 0.2.0-beta.10.
 
 - podvm takes the crates of podcrates at `v0.39.0`. The channel of a guest
   (`--podvm-channel`) runs on its `pod-link`; a guest still shows `lo`
@@ -20,7 +22,7 @@ Deployed: not released.
 ### Fixed: the help of the channel, and the directory of its socket, 2026-11-13
 
 Record: T-1751.
-Deployed: not released.
+Deployed: version 0.2.0-beta.10.
 
 - `run --help` and `podvm man` list `--podvm-net` and `--podvm-channel`.
 - The socket of the channel is in a directory of mode 0700, new for each
@@ -29,7 +31,7 @@ Deployed: not released.
 ### Added: stdin for an incus instance that stays, 2026-11-13
 
 Record: T-1777, PodUtils/podrunner#85.
-Deployed: not released.
+Deployed: version 0.2.0-beta.10.
 
 - `run -d -i --name NAME --podvm-tier=incus` gives the piped stdin to the
   command of the instance: a file of root, mode 0600, that goes once the
