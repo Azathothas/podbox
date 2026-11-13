@@ -116,7 +116,7 @@ macro_rules! open_fixed {
                     $path,
                     crate::map::open_writes($flags),
                     // T-1725: O_NOFOLLOW, and O_CREAT|O_EXCL, do not follow the last link.
-                    $flags & 0o400000 == 0 && $flags & 0o300 != 0o300,
+                    $flags & crate::oflags::O_NOFOLLOW == 0 && $flags & 0o300 != 0o300,
                     &mut buf,
                 )
             };
@@ -172,7 +172,7 @@ macro_rules! open_fixed {
                     $path,
                     crate::map::open_writes($flags),
                     // T-1725: O_NOFOLLOW, and O_CREAT|O_EXCL, do not follow the last link.
-                    $flags & 0o400000 == 0 && $flags & 0o300 != 0o300,
+                    $flags & crate::oflags::O_NOFOLLOW == 0 && $flags & 0o300 != 0o300,
                     &mut buf,
                 )
             };

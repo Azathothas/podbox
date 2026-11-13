@@ -88,12 +88,7 @@ pub unsafe extern "C" fn __getcwd_chk(buf: *mut c_char, size: usize, buflen: usi
 // directory (PodUtils/podcrates#102). Each keeps glibc's check of the mode
 // and then takes the same route as its plain call.
 
-#[cfg(target_arch = "aarch64")]
-const O_DIRECTORY: c_int = 0o40000;
-#[cfg(not(target_arch = "aarch64"))]
-const O_DIRECTORY: c_int = 0o200000;
-const O_CREAT: c_int = 0o100;
-const O_TMPFILE: c_int = 0o20000000 | O_DIRECTORY;
+use crate::oflags::{O_CREAT, O_TMPFILE};
 
 /// glibc's `__OPEN_NEEDS_MODE`: `O_CREAT`, or each bit of `O_TMPFILE`
 /// (which holds `O_DIRECTORY`). A fortified open with such flags has no mode

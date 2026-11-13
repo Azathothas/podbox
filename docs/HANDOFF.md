@@ -57,7 +57,8 @@ Each waits for a peer; podvm closes it when the peer answers.
 2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662
    (partial: `podvm lab scenarios` and `plan` are on the local `main`; the
    guest parts wait for podcrates@T-345 to podcrates@T-347), then T-1722,
-   T-1744 (its proof needs `arm.yml`), T-1406.
+   T-1744 (partial: its last proof is a run of `arm.yml` on a
+   commit that carries it), T-1406.
 3. Blocked: T-1663 and T-1664 (they run in T-1662's lab guest), T-1714
    (podcrates@T-107).
 4. After podvm's own order: the podrunner part, then the asks of podswarm

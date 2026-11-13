@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the open flags of the interposer on aarch64, 2026-11-13
+
+Record: T-1744.
+Deployed: not released.
+
+- On aarch64 the interposer read the x86_64 values of `O_NOFOLLOW`,
+  `O_DIRECTORY`, `O_DIRECT` and `O_LARGEFILE`. An `O_NOFOLLOW` open of a
+  link in the rootfs followed the link there. Each flag now has the value
+  of the target.
+
 ### Added: `podvm lab scenarios` and `podvm lab plan`, 2026-11-13
 
 Record: T-1662 (partial), PodUtils/podcrates#103.

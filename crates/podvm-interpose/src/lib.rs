@@ -75,6 +75,7 @@ pub mod emulate;
 pub mod identity;
 pub mod map;
 pub mod memo;
+pub mod oflags;
 pub mod procfs;
 pub mod real;
 pub mod say;

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-361 entries: 9 open, 6 partial, 3 blocked, 343 done.
+361 entries: 8 open, 7 partial, 3 blocked, 343 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -55,7 +55,7 @@ that is not done. Read its Prove before you start. Set its status with
    guest, the probes and the judge wait for podcrates@T-345 to
    podcrates@T-347), [T-1663](net.md) and [T-1664](net.md) (blocked: they
    run in the lab guest of T-1662).
-3. The record and the tree: [T-1744](interpose.md) (the open flags of the
+3. The record and the tree: [T-1744](interpose.md) (partial: the open flags of the
    interposer on aarch64; its proof needs a run of `arm.yml`).
 4. [T-1406](podssh.md), partial: live-relay pairing over `pod-relay`.
    Blocked on podcrates: [T-1714](probe.md) waits for

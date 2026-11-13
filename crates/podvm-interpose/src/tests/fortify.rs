@@ -11,14 +11,7 @@ unsafe extern "C" {
 }
 
 const O_RDONLY: c_int = 0;
-const O_WRONLY: c_int = 1;
-const O_CREAT: c_int = 0o100;
-const O_CLOEXEC: c_int = 0o2000000;
-const O_PATH: c_int = 0o10000000;
-#[cfg(target_arch = "aarch64")]
-const O_DIRECTORY: c_int = 0o40000;
-#[cfg(not(target_arch = "aarch64"))]
-const O_DIRECTORY: c_int = 0o200000;
+use crate::oflags::{O_CLOEXEC, O_CREAT, O_DIRECTORY, O_PATH, O_WRONLY};
 
 fn body(fd: c_int) -> String {
     let mut b = [0u8; 64];

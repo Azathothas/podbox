@@ -50,7 +50,9 @@ const PATH_AT: usize = 2;
 /// `sizeof(struct sockaddr_un)`.
 const SUN_LEN: usize = PATH_AT + SUN_PATH;
 use crate::raw_calls::{SYS_CLOSE, SYS_OPENAT};
-const O_PATH_DIR: c_long = 0o10_000_000 | 0o200_000 | 0o2_000_000; // O_PATH|O_DIRECTORY|O_CLOEXEC
+// T-1744: O_DIRECTORY differs on aarch64.
+const O_PATH_DIR: c_long =
+    (crate::oflags::O_PATH | crate::oflags::O_DIRECTORY | crate::oflags::O_CLOEXEC) as c_long;
 const EINVAL: c_int = 22;
 const ENAMETOOLONG: c_int = 36;
 

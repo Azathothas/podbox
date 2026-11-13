@@ -3805,7 +3805,7 @@ with no rewrite.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3828,8 +3828,7 @@ no clause tells `O_DIRECT` from `O_DIRECTORY`, so the runs passed.
 One module of open flags with a `cfg` for each architecture, as
 `chk_calls.rs` gives `O_DIRECTORY` for T-1743. Each of the four files
 takes its flags from it. A unit test compares each value with the value
-that a C program of the target prints (`zig cc`, as experiment 439 reads
-the layouts of `struct stat`).
+that a C program of the target prints from the kernel's `<asm/fcntl.h>`.
 
 ## Decision
 
@@ -3838,6 +3837,27 @@ from a crate: the interposer has no dependency.
 
 ## Prove
 
-`sh experiments/356-no-chroot-rung.sh` exits 0 on arm64 in
-`.github/workflows/arm.yml`, which also runs the interposer tests there, with a
-clause that opens a link with `O_NOFOLLOW`
+`cargo test --manifest-path crates/podvm-interpose/Cargo.toml` passes in
+`.github/workflows/arm.yml` on arm64 and in `gate.yml` on x86_64, with
+`the_open_flags_agree_with_the_c_headers` and
+`an_open_with_o_nofollow_does_not_follow_a_link_of_the_rootfs`
+
+## Correction
+
+**Amended 2026-11-13.** The Prove names the two interposer tests in place
+of a new clause of experiment 356: `arm.yml` runs the interposer tests
+natively on arm64, and the second test opens a link with `O_NOFOLLOW`.
+The reference is the kernel's header, because glibc's `O_LARGEFILE` is 0
+on a 64-bit target.
+
+## Done
+
+**Partial 2026-11-13.** `crates/podvm-interpose/src/oflags.rs` gives the
+open flags with a `cfg` for aarch64; `create_calls.rs`, `procfs/exe.rs`,
+`device.rs`, `sock_calls.rs` and `chk_calls.rs` take them from it. The
+interposer tests pass on x86_64 (91), with
+`the_open_flags_agree_with_the_c_headers` and
+`an_open_with_o_nofollow_does_not_follow_a_link_of_the_rootfs`; with the
+value `0o100000` planted for `O_NOFOLLOW` on x86_64, both fail. Clippy of
+the interposer for `aarch64-unknown-linux-gnu` exits 0. Remaining: the
+run of the interposer tests on arm64 in `arm.yml`.

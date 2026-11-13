@@ -34,10 +34,8 @@ const O_TRUNC: c_int = 0o1000;
 const O_APPEND: c_int = 0o2000;
 const O_NONBLOCK: c_int = 0o4000;
 const O_DSYNC: c_int = 0o10000;
-const O_DIRECT: c_int = 0o40000;
-const O_LARGEFILE: c_int = 0o100000;
-const O_DIRECTORY: c_int = 0o200000;
-const O_NOFOLLOW: c_int = 0o400000;
+// T-1744: the four flags that differ on aarch64.
+use crate::oflags::{O_DIRECT, O_DIRECTORY, O_LARGEFILE, O_NOFOLLOW};
 const O_CLOEXEC: c_int = 0o2000000;
 const O_SYNC: c_int = 0o4010000;
 const O_PATH: c_int = 0o10000000;
