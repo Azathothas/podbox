@@ -34,11 +34,9 @@ The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a
   hosted arm64 runner (T-1721).
-* PodUtils/podrunner takes the betas for its kinds. COORD-079 (issue 307,
-  T-1777), COORD-081 (issue 311, T-1778) and COORD-082 (issue 316,
-  T-1779) and COORD-084 (issue 319, T-1779) wait for its take of
-  `0.2.0-beta.13`; COORD-077 (issue 303,
-  T-1776) is closed.
+* PodUtils/podrunner takes the betas for its kinds. It closed each of its
+  asks to podvm (PodUtils/podrunner#85, #87, #88, #90); podvm closed its
+  answers (issues 303, 307, 311, 316, 319) on 2026-11-13.
 
 Each partial entry names its remaining clauses. Each blocked entry names
 its blocker and the condition that clears it.
@@ -52,8 +50,8 @@ first entry that is not done. Read its Prove before you start. Check
 each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
-1. podrunner takes `0.2.0-beta.13` (COORD-079, issue 307; COORD-081,
-   issue 311; COORD-082, issue 316; COORD-084, issue 319). The QA pass of
+1. A new ask of a peer session comes first (the watcher of `AGENTS.md`,
+   section 9). The QA pass of
    experiment 443 is worked, and each of its entries is done. The copy
    of the rootfs on each run (11 s for golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:

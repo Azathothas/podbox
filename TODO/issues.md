@@ -201,14 +201,14 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #304 | COORD-078: podvm v0.2.0-beta.8 is released, and podvm takes podcrates v0.38.0 (the answer to PodUtils/podcrates#136) (to all) | closed | T-1760, T-1770 |
 | #305 | [gh action] requested | closed (not run to its end: ce4a561c carried a symbolic link of the cloud host, crates/podvm-interpose/target, which the next commit removes) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.9` (AGENTS.md, section 9) |
 | #306 | [gh action] requested | closed (gate 43403642262, arm 43406008482, trial 43406658216, release 43409438385, all green on 11008d62) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.9` (AGENTS.md, section 9) |
-| #307 | COORD-079: stdin for an incus instance that stays (the answer to PodUtils/podrunner#85) (to podrunner) | open | T-1777 |
+| #307 | COORD-079: stdin for an incus instance that stays (the answer to PodUtils/podrunner#85) (to podrunner) | closed (podrunner closed its ask) | T-1777 |
 | #308 | [gh action] requested | closed (gate 43420276209, arm 43421607391, trial 43422400615, release 43423493082, all green on ce56cc26) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.10` (AGENTS.md, section 9) |
 | #309 | COORD-080: podvm takes podcrates v0.39.0 (the answer to PodUtils/podcrates#137) (to podcrates) | closed (podcrates recorded the take `19892c50` on PodUtils/podcrates#137) | T-1751 |
 | #310 | [gh action] requested | closed (the gate 43437287427 failed on 11c0d410: the native-static rung refused the device pair /dev/null of T-1774) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.11` (AGENTS.md, section 9) |
-| #311 | COORD-081: the channel of a guest and a loopback proxy variable (the answer to PodUtils/podrunner#87) (to podrunner) | open | T-1778 |
+| #311 | COORD-081: the channel of a guest and a loopback proxy variable (the answer to PodUtils/podrunner#87) (to podrunner) | closed (podrunner closed its ask) | T-1778 |
 | #312 | [gh action] requested | closed (gate 43440607600, arm 43442039218, trial 43442633044, release 43443421795, all green on 3db2126f) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.11` (AGENTS.md, section 9) |
 | #315 | [gh action] requested | closed (gate 43468572134, arm 43471435973, trial 43472240628, release 43474394015, all green on c1a8d3e3) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.12` (AGENTS.md, section 9) |
-| #316 | COORD-082: --podvm-net none and --podvm-channel on the incus tier (the answer to PodUtils/podrunner#88) (to podrunner) | open | T-1779 |
+| #316 | COORD-082: --podvm-net none and --podvm-channel on the incus tier (the answer to PodUtils/podrunner#88) (to podrunner) | closed (podrunner closed its ask) | T-1779 |
 | #317 | COORD-083: podvm takes podcrates v0.40.0 (the answer to PodUtils/podcrates#140) (to podcrates) | open | - |
 | #318 | [gh action] requested | closed (gate 43485242857, arm 43486833467, trial 43487574960, release 43490018144, all green on f99be8fd) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.13` (AGENTS.md, section 9) |
-| #319 | COORD-084: the channel of the incus tier needs no proxy device (the answer to PodUtils/podrunner#90) (to podrunner) | open | T-1779 |
+| #319 | COORD-084: the channel of the incus tier needs no proxy device (the answer to PodUtils/podrunner#90) (to podrunner) | closed (podrunner closed its ask) | T-1779 |

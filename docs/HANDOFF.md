@@ -38,23 +38,22 @@ host's devices on the userland rung under a user namespace).
 
 ## Open COORD issues
 
-* COORD-079 (#307) and COORD-081 (#311): podrunner's take of
-  `0.2.0-beta.11` (T-1777, T-1778).
+* COORD-083 (#317): podcrates records the take of `v0.40.0`.
 * COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
   when podswarm or podcrates reads it.
-* COORD-069 (#291): closed with beta.13, which carries T-1746.
 * COORD-071 (#294): an overlay root for T-1749 (podcrates@T-486, open).
 * COORD-041 (#260): `pod-netlab` for T-1662.
 
-COORD-001 (#194), COORD-076 (#299) and COORD-080 (#309) are closed.
+COORD-001 (#194), COORD-069 (#291), COORD-076 (#299), COORD-077 (#303),
+COORD-079 (#307), COORD-080 (#309), COORD-081 (#311), COORD-082 (#316)
+and COORD-084 (#319) are closed.
 
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
-2. podrunner takes `0.2.0-beta.13` for its `microvm` and `incus` kinds:
-   close COORD-079 (#307), COORD-081 (#311), COORD-082 (#316) and
-   COORD-084 (#319) when it says so. Close COORD-068 (#290) when podswarm
-   or podcrates reads it (V-2 and V-7 are done).
+2. podrunner closed each of its asks to podvm; their answers are closed.
+   Close COORD-068 (#290) when podswarm or podcrates reads it (V-2 and
+   V-7 are done).
 3. Close COORD-083 (#317) when podcrates records the take of `v0.40.0`.
 4. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
