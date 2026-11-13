@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.12 (2026-11-13)
+
 ### Added: no NIC and a host channel on the incus tier, 2026-11-13
 
 Record: T-1779, PodUtils/podrunner#88.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.12.
 
 - `--podvm-net none` and `--podvm-channel HOST_SOCKET:127.0.0.1:PORT`
   serve the incus tier (`run`, `run -d`, `create`): the instance has no
@@ -22,7 +24,7 @@ Deployed: not deployed; the next release carries it.
 ### Added: a sealed run of the machine tier, 2026-11-13
 
 Record: T-1751, PodUtils/podcrates#124 (ask V-7 of podswarm).
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.12.
 
 - `run --podvm-tier=machine --podvm-sealed IMAGE < bundle.tar` takes the
   command, the environment, the working directory and the files of the
