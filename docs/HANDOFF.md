@@ -36,27 +36,30 @@ to T-1775. The merged capture gives 583 PASS and 0 FAIL: the reruns
 took the fixes of podcrates `v0.38.0` (T-1760, T-1770) and of T-1774 (the
 host's devices on the userland rung under a user namespace).
 
-## Other open COORD issues
+## Open COORD issues
 
-* COORD-068 (#290): the asks of podswarm are T-1745 to T-1752.
-* COORD-069 (#291): the reader of the probe report for T-1746.
-* COORD-071 (#294): an overlay root for T-1749.
-* COORD-076 (#299): podvm's take of `v0.37.0`.
+* COORD-079 (#307) and COORD-081 (#311): podrunner's take of
+  `0.2.0-beta.11` (T-1777, T-1778).
+* COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
+  when podswarm or podcrates reads it.
+* COORD-069 (#291): the reader of the probe report is in podcrates
+  `v0.36.0`; close it when T-1746 (open) is done.
+* COORD-071 (#294): an overlay root for T-1749 (podcrates@T-486, open).
 * COORD-041 (#260): `pod-netlab` for T-1662.
-* COORD-001 (#194): the crates that podvm hands over and takes.
+
+COORD-001 (#194), COORD-076 (#299) and COORD-080 (#309) are closed.
 
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
 2. podrunner takes `0.2.0-beta.11` for its `microvm` and `incus` kinds:
    close COORD-079 (#307) and COORD-081 (#311) when it says so.
-3. Close COORD-080 (#309) when podcrates records the take of `v0.39.0`.
-4. The rest of T-1751 (podswarm's shield `guest`: no host file in the
+3. The rest of T-1751 (podswarm's shield `guest`: no host file in the
    guest).
-5. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
+4. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no
    symbolic link: issue 305 stopped on one.
-6. Before an entry is set done, run `cargo test -p podvm`. Do not edit
+5. Before an entry is set done, run `cargo test -p podvm`. Do not edit
    `TODO/` while `cargo test --workspace` runs, and do not edit
    `experiments/443-qa-surface.sh` while it runs.

@@ -1619,7 +1619,7 @@ driver of podrunner reads `probe --json`.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -1652,7 +1652,7 @@ of 10 runs of `podvm run --rm IMAGE true` with a warm cache is lower than
 the median with no cache by at least 80 percent of the median of 10 runs
 of `podvm probe --json`
 
-## Blocker
+## Correction
 
 **Blocked 2026-11-13 on podcrates.** `run` needs the structured
 `pod_hostprobe::Findings` (`ptmx_usable`, `chroot_usable`, the banner,
@@ -1669,9 +1669,16 @@ embeds that object under one key beside podvm's own fields, and the cache
 reads the key back with `report::read`. The condition that clears the
 block: a tag of podcrates with podcrates@T-485.
 
-## Correction
-
 **Amended 2026-11-13.** The effort is M, not S: the cache needs a reader of
 its document, measured in `crates/podvm-image/src/probe_cache.rs` and
 `pod-hostprobe` `v0.35.0`.
+
+**Unblocked 2026-11-13.** podcrates `v0.36.0` (`408fb13`) carries
+podcrates@T-485 (PodUtils/podcrates#129): `report::write` and
+`report::read` are in `pod-hostprobe` behind the feature `report`. podvm
+takes `v0.39.0` (`4c2d17c7`, COORD-080, issue 309), which keeps them. The
+entry is open, at low priority (the owner's ruling "Complete release
+first", 2026-11-13). The feature is off by default, so the work turns it
+on where podvm writes and reads the document. COORD-069 (issue 291)
+stays open until this entry is done.
 

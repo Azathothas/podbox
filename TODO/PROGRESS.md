@@ -7,7 +7,7 @@ start.
 
 ## State
 
-387 entries: 2 open, 6 partial, 4 blocked, 375 done.
+387 entries: 3 open, 6 partial, 3 blocked, 375 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -34,9 +34,9 @@ The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a
   hosted arm64 runner (T-1721).
-* PodUtils/podrunner takes the betas for its kinds; the owners of a guest
-  of the machine tier (T-1776) and its channel (T-1751) answer
-  PodUtils/podrunner#81 and #83 (COORD-077, issue 303).
+* PodUtils/podrunner takes the betas for its kinds. COORD-079 (issue 307,
+  T-1777) and COORD-081 (issue 311, T-1778) wait for its take of
+  `0.2.0-beta.11`; COORD-077 (issue 303, T-1776) is closed.
 
 Each partial entry names its remaining clauses. Each blocked entry names
 its blocker and the condition that clears it.
@@ -50,8 +50,8 @@ first entry that is not done. Read its Prove before you start. Check
 each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
-1. podrunner takes `0.2.0-beta.10` (COORD-077, issue 303; COORD-079,
-   issue 307). The QA pass of
+1. podrunner takes `0.2.0-beta.11` (COORD-079, issue 307; COORD-081,
+   issue 311). The QA pass of
    experiment 443 is worked, and each of its entries is done. The rest of
    [T-1751](machine.md) (partial) is podswarm's: no host file in the
    guest. The copy of the rootfs on each run (11 s for golang) is T-1749.
@@ -65,9 +65,11 @@ status with `podvm-count` in the same commit as the work.
 3. [T-1740](enter.md) (partial: a cheaper syscall tier) and
    [T-1350](gate.md) (partial: the wrapper of the parked Windows lane).
 4. Low priority, the asks of podswarm (PodUtils/podcrates#124):
-   [T-1746](probe.md) (`pod-hostprobe`'s reader is in `v0.36.0`; the
-   probe costs about 50 ms on the cloud host), [T-1749](enter.md)
-   (partial; COORD-071), [T-1747](cli.md), [T-1750](machine.md) and
+   [T-1746](probe.md) (open: `pod-hostprobe`'s reader is in `v0.36.0`,
+   behind its feature `report`; the probe costs about 50 ms on the cloud
+   host), [T-1749](enter.md)
+   (partial; COORD-071: the overlay root is podcrates@T-486, open),
+   [T-1747](cli.md), [T-1750](machine.md) and
    [T-1751](machine.md). V-1, V-4 and V-8 are done.
 
 The entries done since the resume of 2026-11-11 are in the record; the

@@ -64,13 +64,13 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #167 | [Scope] Container cages: docker/podman run parity for the sandbox hardening flags | closed | T-1655 |
 | #168 | [Scope] MicroVMs: fast disposable guests from an OCI image, on KVM or TCG | closed | T-1656 |
 | #169 | [Scope] User-space kernels (gVisor): a syscall-interpreting tier without user namespaces | closed | T-1657, T-1729 |
-| #170 | [Scope] Wrapper sandboxes (bwrap, landrun, bailey): unprivileged Landlock and seccomp confinement | open | T-1658 |
+| #170 | [Scope] Wrapper sandboxes (bwrap, landrun, bailey): unprivileged Landlock and seccomp confinement | closed | T-1658 |
 | #171 | [Reference] pkgforge-dev/cross-libc-dlopen @ 34482c7: cross-libc loading rules | closed (lesson taken in T-0701, T-0702, T-0706) | none: a reference (references/README.md) |
-| #172 | [Scope] Provider shapes and bare userlands: Lambda, Cloudflare, Vercel, Nimbus, busybox, distroless profiles | open | T-1659 |
+| #172 | [Scope] Provider shapes and bare userlands: Lambda, Cloudflare, Vercel, Nimbus, busybox, distroless profiles | closed | T-1659 |
 | #173 | [Reference] proot-me/proot @ 65f3f7d: refused: ptrace is filtered | closed (refused; lesson taken in T-0706) | none: a reference (references/README.md) |
 | #174 | [Scope] Notebooks: Jupyter and marimo runs, and a session that wipes and keeps one directory | closed | T-1660 |
 | #175 | [Reference] QaidVoid/onelf @ 158b4af: launch ladder, exec lock, symlink check | closed (lesson taken in T-0202, T-0304, T-0305, T-0803, T-1001; podcrates pod-enter, pod-extract) | none: a reference (references/README.md) |
-| #176 | [Scope] Language runtimes: Node, Deno and Bun permission models, wasmtime and workerd | open | T-1661 |
+| #176 | [Scope] Language runtimes: Node, Deno and Bun permission models, wasmtime and workerd | closed | T-1661 |
 | #177 | [Reference] qemu-rs/qemu-rs @ 4854135: refused: GPL plugin bindings | closed (refused (GPL); ruled in T-1307) | none: a reference (references/README.md) |
 | #178 | [Scope] Network labs: NAT, IPv6, policy and impairment labs inside a guest | open | T-1662 |
 | #179 | [Reference] clint/fakeroot (salsa.debian.org) @ 860de25: ownership model and the errno test | closed (lesson taken in T-0704, T-0710, T-0711) | none: a reference (references/README.md) |
@@ -78,7 +78,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #181 | [Reference] sigoden/fakepty @ a265016: pty trap catalogue for T-1402 | closed (lesson taken in T-1402) | none: a reference (references/README.md) |
 | #182 | [Scope] Observability: packet capture, counters and connection logs without CAP_NET_RAW | open | T-1664 |
 | #183 | [Reference] talaria0101/dropssh @ 0aafa21: concurrent relay and SSH server | closed (lesson taken by PodUtils/podssh) | none: a reference (references/README.md) |
-| #184 | [Scope] Egress broker: a policy proxy and the guest's view of a loopback-only proxy | open | T-1665 |
+| #184 | [Scope] Egress broker: a policy proxy and the guest's view of a loopback-only proxy | closed | T-1665 |
 | #185 | [Reference] talaria0101/nix-experiment @ d8835f2: litmus payload and version forensics | closed (lesson taken in T-0414, T-1111) | none: a reference (references/README.md) |
 | #186 | [Scope] Security probe and compare: an inside-the-payload report diffed against a reference | closed | T-1666 |
 | #187 | [Reference] talaria0101/sandbox-insights @ 0889f5f: probe discipline and the four walls | closed (lesson taken in T-0415, T-0712, T-1308) | none: a reference (references/README.md) |
@@ -88,7 +88,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #191 | [Reference] talaria0101/vm-research @ 7697b9b: machine tier and TCG benchmarks | closed (lesson taken in T-1301 to T-1306, T-1308) | none: a reference (references/README.md) |
 | #192 | [Reference] ylang-ylang/dockless @ ed35b5d: fail-fast CLI guardrails | closed (lesson taken in T-0801, T-0804) | none: a reference (references/README.md) |
 | #193 | [Scope] podvm does what sand-net does, without root: index | open | T-1654 to T-1668 |
-| #194 | COORD-001: the crates podvm hands over and takes, and the access of podcrates@T-040 (to podcrates) | open | T-1675 to T-1681 |
+| #194 | COORD-001: the crates podvm hands over and takes, and the access of podcrates@T-040 (to podcrates) | closed (each take is done: T-1675 to T-1681; podvm takes each `pod-*` crate at v0.39.0; `pod-netlab` stays with COORD-041, #260) | T-1675 to T-1681 |
 | #195 | COORD-002: watch-org.sh sees no repository but the last on Windows: CRLF in the names (to podcrates) | closed (podvm took the pin 54427f6) | none: a COORD issue (to podcrates); podcrates fixed it in `54427f6`, and podvm closes it when it takes that pin |
 | #196 | COORD-003: podvm's inventory of the hosts and services of other parties, for pod-services (to podcrates) | closed (podcrates podcrates@T-054 and podcrates@T-066 done; the data of podvm is in pod-services from v0.5.0) | T-1679; the take stays under #194 |
 | #197 | COORD-004: answers to Q2 and Q3 of the M6 import plan, and the pod-term take (to podcrates) | closed (pod-term taken 75ed306) | T-1675, T-1681 |
@@ -185,7 +185,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #288 | COORD-066: podvm takes podcrates v0.34.0 (the answer to PodUtils/podcrates#103 and #104) (to podcrates) | closed | T-1662 |
 | #289 | COORD-067: GNU tar with an absolute -C works where chroot is denied: the fortified opens take the path table (the answer to PodUtils/podcrates#102 and PodUtils/podrunner#70) (to podcrates) (to podrunner) | closed | T-1743 |
 | #290 | COORD-068: podvm's answer to the asks V-1 to V-8 of podswarm (PodUtils/podcrates#124): entries T-1745 to T-1752 (to podcrates) | open | T-1745, T-1746, T-1747, T-1748, T-1749, T-1750, T-1751, T-1752 |
-| #291 | COORD-069: ask for a reader of the probe report in pod-hostprobe, so that run can use the probe cache (podvm T-1746, V-2 of podswarm) (to podcrates) | open | T-1746 |
+| #291 | COORD-069: ask for a reader of the probe report in pod-hostprobe, so that run can use the probe cache (podvm T-1746, V-2 of podswarm) (to podcrates) | open (the reader is in podcrates v0.36.0; it closes when T-1746 is done) | T-1746 |
 | #292 | [gh action] requested | closed (gate 43351811176, secrets 43351815639, arm 43351820031, all green on 845faba1) | none: a request of the gate, secrets and `arm.yml` on the head of `main` of 2026-11-13 (the commit that adds this row), for T-1662, T-1744, T-1748 and podcrates v0.35.0 (AGENTS.md, section 9) |
 | #293 | COORD-070: podvm takes podcrates v0.35.0 (the answer to PodUtils/podcrates#127) (to podcrates) | closed | T-1662, T-1746 |
 | #294 | COORD-071: ask for an overlay root in pod-enter's namespace rung: the image read-only under a tmpfs upper layer (podvm T-1749, V-5 of podswarm) (to podcrates) | open | T-1749 |
@@ -203,7 +203,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #306 | [gh action] requested | closed (gate 43403642262, arm 43406008482, trial 43406658216, release 43409438385, all green on 11008d62) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.9` (AGENTS.md, section 9) |
 | #307 | COORD-079: stdin for an incus instance that stays (the answer to PodUtils/podrunner#85) (to podrunner) | open | T-1777 |
 | #308 | [gh action] requested | closed (gate 43420276209, arm 43421607391, trial 43422400615, release 43423493082, all green on ce56cc26) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.10` (AGENTS.md, section 9) |
-| #309 | COORD-080: podvm takes podcrates v0.39.0 (the answer to PodUtils/podcrates#137) (to podcrates) | open | - |
+| #309 | COORD-080: podvm takes podcrates v0.39.0 (the answer to PodUtils/podcrates#137) (to podcrates) | closed (podcrates recorded the take `19892c50` on PodUtils/podcrates#137) | T-1751 |
 | #310 | [gh action] requested | closed (the gate 43437287427 failed on 11c0d410: the native-static rung refused the device pair /dev/null of T-1774) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.11` (AGENTS.md, section 9) |
 | #311 | COORD-081: the channel of a guest and a loopback proxy variable (the answer to PodUtils/podrunner#87) (to podrunner) | open | T-1778 |
 | #312 | [gh action] requested | closed (gate 43440607600, arm 43442039218, trial 43442633044, release 43443421795, all green on 3db2126f) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.11` (AGENTS.md, section 9) |

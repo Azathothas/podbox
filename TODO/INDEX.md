@@ -420,7 +420,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1743](interpose.md) | P1 | S | none | interpose | done | GNU tar with an absolute `-C` opens the directory on the host: the fortified opens skip the table |
 | [T-1744](interpose.md) | P2 | S | none | interpose | done | The open flags of the interposer have their x86_64 values on aarch64 |
 | [T-1745](cli.md) | P3 | L | none | cli | done | A Rust call for `run` with a typed request that returns the record of `--report` |
-| [T-1746](probe.md) | P2 | M | none | probe | blocked | `run` reads the cached probe, and probes again only when its key changes |
+| [T-1746](probe.md) | P2 | M | none | probe | open | `run` reads the cached probe, and probes again only when its key changes |
 | [T-1747](cli.md) | P3 | M | none | cli | open | `--memory`, `--cpus` and `--pids-limit` by cgroup2 where a subtree is delegated |
 | [T-1748](supervise.md) | P2 | S | none | supervise | done | A foreground payload dies when its `podvm run` is killed with SIGKILL |
 | [T-1749](enter.md) | P3 | L | none | enter | partial | A read-only image as the lower layer of the root, with a tmpfs upper layer, and no copy |
@@ -456,7 +456,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-387 entries: 2 open, 6 partial, 4 blocked, 375 done.
+387 entries: 3 open, 6 partial, 3 blocked, 375 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -467,9 +467,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 0 | 165 | 167 |
-| P2 | 0 | 2 | 4 | 124 | 130 |
+| P2 | 1 | 2 | 3 | 124 | 130 |
 | P3 | 2 | 2 | 0 | 21 | 25 |
-| **All** | 2 | 6 | 4 | 375 | 387 |
+| **All** | 3 | 6 | 3 | 375 | 387 |
 
 ## Work order
 
