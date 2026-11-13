@@ -64,7 +64,7 @@ CLAUDE.local.md
 # builds into its own target directory, which the rooted rule above does not
 # reach. Measured on 2026-09-08: 23 build artefacts were committed before this
 # line existed.
-/crates/podvm-interpose/target/
+/crates/podvm-interpose/target
 **/*.rs.bk
 *.pdb
 
