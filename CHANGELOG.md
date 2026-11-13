@@ -8,6 +8,27 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: GNU tar with an absolute `-C` where chroot is denied, 2026-11-13
+
+Record: T-1743, PodUtils/podcrates#102, PodUtils/podrunner#70.
+Deployed: not released.
+
+- The interposer maps the paths of the fortified opens of glibc
+  (`__open_2`, `__open64_2`, `__openat_2`, `__openat64_2`). Before, a
+  program built with `_FORTIFY_SOURCE` that opened a path with flags known
+  only at run time opened it on the host. GNU tar of Ubuntu 24.04 does so
+  for the directory of `-C`: `tar -xf x.tar -C /abs/dir` failed, or wrote
+  the members into a host directory of that name.
+
+### Changed: podcrates v0.34.0, 2026-11-13
+
+Record: PodUtils/podcrates#103, PodUtils/podcrates#104.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.34.0` (through `v0.33.0`).
+  No behaviour of podvm changes. The breaking changes of the two tags
+  (`pod-session`, `pod-netstack`) touch no crate that podvm uses.
+
 ## 0.2.0-beta.6 (2026-11-12)
 
 ### Changed: the relay of podvm-ssh is pod-relay, 2026-11-12

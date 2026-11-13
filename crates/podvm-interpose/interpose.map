@@ -74,6 +74,11 @@
     __readlink_chk;
     __readlinkat_chk;
     __getcwd_chk;
+    /* T-1743: the fortified opens of glibc. */
+    __open_2;
+    __open64_2;
+    __openat_2;
+    __openat64_2;
     getxattr;
     lgetxattr;
     setxattr;

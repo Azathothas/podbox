@@ -2324,3 +2324,83 @@ exits 0 (`crates/podvm/tests/dos_refusal.rs`): `podvm windows run --guest
 dos ver` with `PODVM_DOS_BASE` at a path that does not exist exits 125,
 names the path in "no DOS base image at", and leaves its `HOME` empty. The
 test runs the binary, so the variable stays in the child.
+
+# T-1750: `exec` into a running guest of the machine tier
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-6
+**Category:** machine
+**Milestone:** none
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+podswarm keeps one warm sandbox for each slot and runs each attempt with
+`exec`. The machine tier has no warm form, so each attempt boots a guest.
+
+## Premise
+
+The machine tier boots one guest for each `run` and reads the exit code
+through markers (T-1656). `run -d` and `exec` exist for the rootfs rungs
+(`pod-supervise`), not for a guest.
+
+## Approach
+
+`run -d --podvm-tier=machine` keeps the guest and its emulator under the
+launcher. `exec` sends the command over one host channel (a
+`virtio-serial` port on a Unix socket) to an agent in the guest init, and
+reads its exit code back.
+
+## Decision
+
+The channel is the one of T-1751; one design serves both.
+
+## Prove
+
+`cargo test -p podvm` exits 0, with a test that `exec` into a running
+guest gives the exit code of its command (under TCG on the cloud host)
+
+# T-1751: The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-7
+**Category:** machine
+**Milestone:** none
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+podswarm's shield `guest` requires that no file name, file content, argv
+value or environment value of a run appears in a host file or in the argv
+of a host process. The machine tier uses 9p volumes, a run archive on the
+host and QEMU user-mode network.
+
+## Premise
+
+QEMU can boot with `-nic none`, one `virtio-serial` port on a `chardev`
+Unix socket in a per-run directory of mode 0700, and one raw scratch
+disk. `-overcommit mem-lock=on` needs `RLIMIT_MEMLOCK`.
+
+## Approach
+
+A plan of the machine tier for this shield: the run data go into the
+guest through the `chardev` socket only, no 9p, no virtiofs, no host
+stdin file, `-nic none`, a raw scratch disk, and `mem-lock=on` where the
+limit allows it.
+
+## Decision
+
+podvm runs the canary tests itself. podswarm's tests E-19 to E-21 are its
+adoption trial, not conditions of this entry.
+
+## Prove
+
+`cargo test -p podvm` exits 0, with a test that a run with a canary in a
+file name, a file body, an argv element and a variable leaves no canary
+in the argv or the environment of a host process, in the per-run
+directory or in the state of podvm, and that `ip link` in the guest shows
+`lo` only

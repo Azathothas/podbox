@@ -1610,3 +1610,44 @@ Clears when: a podcrates tag carries the schema of `pod-hostprobe`.
 **Filed 2026-11-10.** From issue 239, the amendment of T-1670 and the
 podrunner design review (the ruling "podrunner", 2026-11-10): the podvm
 driver of podrunner reads `probe --json`.
+
+# T-1746: `run` reads the cached probe, and probes again only when its key changes
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-2
+**Category:** probe
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Each `run` probes the host again (`crates/podvm/src/run/prepare.rs:112`
+calls `podvm_probe::run()`). A podswarm worker that starts one attempt
+for each task pays the probe each time.
+
+## Premise
+
+The probe cache of T-0111 exists, with the key of T-1333; only `probe
+--cached` reads it. `podvm_image::probe_cache::resolve` gives the cached
+result while its key matches the confinement of the machine, and measures
+again where it does not.
+
+## Approach
+
+`run` takes its findings from `probe_cache::resolve`. A run says on
+stderr, with `--debug`, whether the rung came from the cache or from a
+probe now, as `probe --cached` does.
+
+## Decision
+
+The key of T-1333 decides when the cache is stale; this entry adds no
+second rule.
+
+## Prove
+
+`sh experiments/170-probe-cache.sh` exits 0, with a clause that the median
+of 10 runs of `podvm run --rm IMAGE true` with a warm cache is lower than
+the median with no cache by at least 80 percent of the median of 10 runs
+of `podvm probe --json`

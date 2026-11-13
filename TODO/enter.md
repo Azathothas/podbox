@@ -3453,3 +3453,43 @@ tree of issue 282 for aarch64 and x86_64. Remaining: the run of `arm.yml`.
 356 on arm64 with exit 0: clauses 19 and 22 (the gcc bookworm image, with
 the glibc object) and the dladdr and library clauses of the debian image
 pass; the loader family finds `/usr/lib/aarch64-linux-gnu/libc.so.6`.
+
+# T-1749: A read-only image as the lower layer of the root, with a tmpfs upper layer, and no copy
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-5
+**Category:** enter
+**Milestone:** none
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+`run` copies the image into a tree for each container. A podswarm task
+for each attempt pays the copy each time.
+
+## Premise
+
+A user with no root has no overlay mount where namespaces are denied. On
+the userland rung the path table of the interposer can map a path to a
+read-only lower tree and a per-run upper tree; on the namespace rung an
+overlay mount in the user namespace can do it (Linux 5.11 and later).
+
+## Approach
+
+Measure the cost of the copy first. Then, for each rung, choose the way:
+an overlay mount in the user namespace where it mounts, else a copy-up
+of the path table on the loader family. Each rung that cannot do it keeps
+the copy and says so.
+
+## Decision
+
+Measure before the design: the entry can close with a measurement that
+shows that the copy is not the cost.
+
+## Prove
+
+`cargo test -p podvm` exits 0, with a test that a second `run` of the same
+image writes no copy of the image (the store holds one tree of the image
+after two runs)

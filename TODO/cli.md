@@ -3962,3 +3962,122 @@ exits 0 with `an_exec_takes_the_read_only_table_of_its_container`. On the
 fixture, `exec` of a container with `-v DIR:/e:ro` answers "Read-only file
 system" and DIR stays empty. Remaining: the run of experiment 356 with
 clause 35.
+
+# T-1745: A Rust call for `run` with a typed request that returns the record of `--report`
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-1
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+A podswarm worker runs podvm as a program and parses its CLI. The flags
+change at each beta (the ruling "Compatibility", 2026-11-05), so a worker
+that parses them can break at each beta.
+
+## Premise
+
+`run --report PATH` writes one JSON record for each run (T-1695). The
+steps of `run` are functions of the crate `podvm`, but no public call
+takes a typed request and gives that record.
+
+## Approach
+
+A public module of the crate `podvm` with a request type (image, argv,
+environment, mounts, limits, boundary) and a call that runs it and gives
+the record of `--report`. The CLI of `run` becomes a caller of the same
+call.
+
+## Decision
+
+The call is a library call of podvm, not a crate of podcrates: it holds
+the ladder and the rungs of podvm. podswarm takes it by git tag.
+
+## Prove
+
+`cargo test -p podvm` exits 0, with a test that starts `true` through the
+call and reads its record (exit code 0, the entered rung)
+
+# T-1747: `--memory`, `--cpus` and `--pids-limit` by cgroup2 where a subtree is delegated
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-3
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`run` refuses the cgroup flags by name. podswarm wants `memory.max` for
+its boundaries `sandbox` and `vm`, so that a limit is enforced by the
+kernel and not only polled by its keeper. The same limits serve G-12 of
+PodUtils/podcrates#36 (podrunner).
+
+## Premise
+
+A user with no root can write a cgroup2 subtree only where systemd or the
+host delegated it (`cgroup.subtree_control` and write access to the
+directory). The probe of podvm does not report that today.
+
+## Approach
+
+The probe reports a delegated subtree. `run` makes one child cgroup for
+each run there, writes `memory.max`, `cpu.max` and `pids.max`, and moves
+the payload into it before the exec. With no delegation, each flag stays
+refused by name. A run over its memory limit ends with a named reason
+(`memory.events`, `oom_kill`).
+
+## Decision
+
+podvm writes no cgroup outside a delegated subtree, and a flag never
+becomes a silent no-op.
+
+## Prove
+
+`cargo test -p podvm` exits 0, with a test that a run over `--memory` ends
+with the named reason where a subtree is delegated, and a test that each
+flag is refused by name where none is
+
+# T-1752: A versioned JSON Schema for the record of `run --report`, published in each release
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-8
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+podswarm reads the record of `run --report` and the JSON of `probe
+--json`, and must refuse a version that it does not know. Neither record
+names a schema version, and no schema is in the release.
+
+## Premise
+
+T-1714 holds the half of `probe --json`: it waits for the schema of
+`pod-hostprobe` (podcrates@T-107). The record of `--report` is podvm's own
+(T-1695).
+
+## Approach
+
+A schema file of the record of `--report` in the tree, a field
+`schema_version` in each record, and the schema file as an asset of
+`release.yml`. A test validates a record against the schema.
+
+## Decision
+
+The half of `probe --json` stays T-1714.
+
+## Prove
+
+`cargo test -p podvm` exits 0, with a test that each record of `run
+--report` names its schema version and validates against the schema file
+of the tree

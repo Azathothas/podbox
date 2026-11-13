@@ -153,31 +153,31 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #256 | COORD-037: the answer to PodUtils/podrunner#62: exec ignores a :ro volume; podvm T-1726 fixes it (to podrunner) | closed | T-1726 |
 | #257 | COORD-038: podvm takes podcrates v0.21.0 and pod-incus (the answer to PodUtils/podcrates#63) (to podcrates) | closed (podcrates#63 and #65) | T-1727 |
 | #258 | COORD-039: each container has its own rootfs (T-1709, issue 234) (to podrunner) | closed | T-1709 |
-| #259 | COORD-040: ask for pod-confine and a confine step of pod-enter's child (podvm T-1658, issue 170) (to podcrates) | open | T-1658 |
+| #259 | COORD-040: ask for pod-confine and a confine step of pod-enter's child (podvm T-1658, issue 170) (to podcrates) | closed | T-1658 |
 | #260 | COORD-041: ask for pod-netlab, and who reads the guest's modloop (podvm T-1662, issues 178, 180, 182) (to podcrates) | open | T-1662 |
 | #261 | COORD-042: pod-extract refuses a layer whose root directory entry has an empty name (public.ecr.aws/lambda/provided:al2023) (to podcrates) | closed | T-1659 |
 | #262 | COORD-043: podvm takes podcrates v0.22.0; a detached payload ends with its launcher (the answer to PodUtils/podcrates#71) (to all) | closed (podcrates#71) | T-1732 |
 | #263 | COORD-044: three gaps of podvm's inventory in pod-services: gcr.io, mirror.gcr.io and the NIC modules of the guest (podvm T-1679) (to podcrates) | closed | T-1679 |
-| #264 | COORD-045: podvm takes podcrates v0.24.0; pod-services is taken (the answer to PodUtils/podcrates#69 and #70) (to podcrates) | open | T-1658, T-1659, T-1679 |
+| #264 | COORD-045: podvm takes podcrates v0.24.0; pod-services is taken (the answer to PodUtils/podcrates#69 and #70) (to podcrates) | closed | T-1658, T-1659, T-1679 |
 | #265 | COORD-046: podvm v0.2.0-beta.4 is released: a tree for each container, absolute links, exec under :ro (the answer to PodUtils/podrunner#62) (to podrunner) | closed | T-1709, T-1725, T-1726, T-1732 |
-| #266 | COORD-047: podvm takes podcrates v0.25.0 (the answer to PodUtils/podcrates#76) (to podcrates) | open | T-1658 |
+| #266 | COORD-047: podvm takes podcrates v0.25.0 (the answer to PodUtils/podcrates#76) (to podcrates) | closed | T-1658 |
 | #267 | COORD-048: Plan.confine and the /tmp that the namespace rung mounts in the child: the rule holds the directory under the mount (to podcrates) | closed | T-1658 |
 | #268 | COORD-049: real labels and one JSON report for each run (A-V-07, A-V-09 and G-06 of PodUtils/podcrates#39) (to all) | closed | T-1695 |
 | #269 | COORD-050: mcr.microsoft.com for pod-services (the image of podvm's profile playwright-chromium) (to podcrates) | closed | T-1694 |
 | #270 | COORD-051: podvm takes podcrates v0.26.0 (the answer to PodUtils/podcrates#77) (to podcrates) | closed | T-1658, T-1694 |
 | #271 | cfb asks: tracker for the 9 asks of cfb owned by podvm (from podcrates#35) | open | tracker: T-1658, T-1665, T-1663, T-1694, T-1695, T-1714, T-1723, T-1739 |
 | #272 | CI plan items: tracker for the 3 items owned by podvm (from podcrates#47) | open | tracker: T-1656, T-1723 (P3-3); #271 (P1-1) |
-| #273 | COORD-052: podvm v0.2.0-beta.5 is released: confine for run -d, exec and the loader family; labels and run --report; headless Chromium (to all) | open | T-1658, T-1694, T-1695, T-1711, T-1738 |
+| #273 | COORD-052: podvm v0.2.0-beta.5 is released: confine for run -d, exec and the loader family; labels and run --report; headless Chromium (to all) | closed | T-1658, T-1694, T-1695, T-1711, T-1738 |
 | #274 | COORD-053: registry.npmjs.org (workerd) for pod-services (to podcrates) | closed | T-1661 |
 | #275 | COORD-054: the wasmtime release for pod-services (to podcrates) | closed | T-1661 |
 | #276 | COORD-055: podvm takes podcrates v0.27.0 (the answer to PodUtils/podcrates#85) (to podcrates) | closed | T-1658 |
 | #277 | COORD-056: pod-guest commit_argv: qemu-img commit takes no OUTFILE; podvm windows setup fails under KVM (to podcrates) | closed | T-1641 |
-| #278 | COORD-057: podvm takes podcrates v0.28.0 (the answer to PodUtils/podcrates#86) (to podcrates) | open | T-1641, T-1661 |
+| #278 | COORD-057: podvm takes podcrates v0.28.0 (the answer to PodUtils/podcrates#86) (to podcrates) | closed | T-1641, T-1661 |
 | #279 | COORD-058: podvm takes podcrates v0.29.0; the confine help; aarch64 interposer in progress (to all) | closed | T-1658, T-1721 |
 | #280 | COORD-059: podvm takes podcrates v0.30.0 (the answer to PodUtils/podcrates#89) (to podcrates) | closed | T-1680 |
 | #281 | COORD-060: pod-extract refuses a correct plain-tar layer: the hash stops at the end-of-archive marker (to podcrates) | closed | T-1741 |
 | #282 | COORD-061: pod-enter libc_beside does not find the aarch64 glibc of a Debian image (the search is depth-first from the end) (to podcrates) | closed | T-1742 |
 | #283 | COORD-062: the hand-off of pod-relay for podvm (blocking facade, reverse-v1) (to podcrates) | closed | T-1678 |
 | #284 | COORD-063: podvm takes podcrates v0.31.0 (the answer to PodUtils/podcrates#90) (to podcrates) | closed | T-1741, T-1742 |
-| #285 | COORD-064: podvm takes podcrates v0.32.0 and the trial of pod-relay (the answer to PodUtils/podcrates#93) (to podcrates) | open | T-1678 |
-| #286 | COORD-065: podvm v0.2.0-beta.6 carries the aarch64 interposer (for PodUtils/podrunner#52) (to podrunner) | open | T-1721 |
+| #285 | COORD-064: podvm takes podcrates v0.32.0 and the trial of pod-relay (the answer to PodUtils/podcrates#93) (to podcrates) | closed | T-1678 |
+| #286 | COORD-065: podvm v0.2.0-beta.6 carries the aarch64 interposer (for PodUtils/podrunner#52) (to podrunner) | closed | T-1721 |

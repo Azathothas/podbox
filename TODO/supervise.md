@@ -1374,3 +1374,42 @@ with the current tree and with the released beta.2 (digest
 race does not show on this host, so the guard is the fix of the cause
 that the Premise infers. `cargo test -p podvm` exits 0 with
 `wait_settles_a_record_that_still_says_running`.
+
+# T-1748: A foreground payload dies when its `podvm run` is killed with SIGKILL
+
+**Source:** PodUtils/podcrates#124 (the asks of podswarm to podvm, a message from a
+  peer session; PodUtils/podcrates#107 is its tracker), ask V-4
+**Category:** supervise
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+When the `podvm` process of a foreground `run` dies by SIGKILL, its
+payload can stay. A podswarm worker that kills `podvm` on a timeout must
+leave no payload.
+
+## Premise
+
+The detached case has this since T-1732: the launcher of `run -d` sets
+`Plan.die_with_parent` of `pod-enter` (`PR_SET_PDEATHSIG(SIGKILL)`), and
+experiment 437 holds it. A foreground run sets no such flag on each
+rung.
+
+## Approach
+
+Set `Plan.die_with_parent` for a foreground run on each rung where the
+payload is a child of `podvm`, and name each rung where it is not (the
+machine tier ends its emulator in its own way).
+
+## Decision
+
+Same mechanism as T-1732, with no second one.
+
+## Prove
+
+`sh experiments/437-payload-dies-with-launcher.sh` exits 0, with a clause
+that SIGKILL of a foreground `podvm run IMAGE sleep 60` leaves no live
+process of the payload within 5 s

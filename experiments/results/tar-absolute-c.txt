@@ -1,0 +1,33 @@
+== conditions
+date              2026-11-13T00:59:37Z
+host kernel       Linux 6.18.44-fc-v445
+podvm             podvm 0.2.0-beta.6
+image             mirror.gcr.io/library/ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5
+
+== the forms, one run under the fixture
+  mode userland
+  tar tar (GNU tar) 1.35
+  /tmp/podvm441g | tar -xf x.tar -C d | ok
+  /tmp/podvm441g | tar -xzf x.tgz -C d | ok
+  /tmp/podvm441g | tar -xf x.tar -C $B/d | ok
+  /tmp/podvm441g | tar -xzf x.tgz -C $B/d | ok
+  /tmp/podvm441g | cd d && tar -xf ../x.tar | ok
+  /tmp/podvm441g | cd d && gzip -dc ../x.tgz | tar -xf - | ok
+  /podvm441/app | tar -xf x.tar -C d | ok
+  /podvm441/app | tar -xzf x.tgz -C d | ok
+  /podvm441/app | tar -xf x.tar -C $B/d | ok
+  /podvm441/app | tar -xzf x.tgz -C $B/d | ok
+  /podvm441/app | cd d && tar -xf ../x.tar | ok
+  /podvm441/app | cd d && gzip -dc ../x.tgz | tar -xf - | ok
+  /tmp/podvm441 | tar -xf x.tar -C d | ok
+  /tmp/podvm441 | tar -xzf x.tgz -C d | ok
+  /tmp/podvm441 | tar -xf x.tar -C $B/d | ok
+  /tmp/podvm441 | tar -xzf x.tgz -C $B/d | ok
+  /tmp/podvm441 | cd d && tar -xf ../x.tar | ok
+  /tmp/podvm441 | cd d && gzip -dc ../x.tgz | tar -xf - | ok
+  exit 0
+
+== clause 1: the rung
+== clause 2: each form gives d/f
+== clause 3: the host directory /tmp/podvm441/d stays, empty
+verdict: EACH FORM EXTRACTS IN THE ROOTFS, AND THE HOST IS UNTOUCHED

@@ -28,7 +28,7 @@ The current work order is [PROGRESS.md](PROGRESS.md).
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -78,19 +78,6 @@ expected verdicts of two scenarios from their knobs.
 runs every offline scenario with its time, and a flushed
 policy chain inside the guest makes the check fail.
 
-## Blocker
-
-**Blocked 2026-11-11 on podcrates.** The Decision takes `pod-netlab`,
-which podcrates lists under M7 after a study, with no date. COORD-041
-(issue 260) asks for it, and asks who reads the guest's modules. Measured
-here: the pinned guest kernel (`6.12.110-0-virt`) has `NET_NS` and
-`IPV6` built in, and nf_tables, nft_nat, sch_netem, wireguard, tun, veth
-and nf_nat as modules; they are in `boot/modloop-virt` (a squashfs with
-xz, 21 MB), and `squashfs.ko` is in the modloop only, so the host must
-read it and give the guest a module set with its `modules.dep`. The
-condition that clears the block: podcrates's answer on the crate and on
-the reader. T-1663 and T-1664 run in this lab guest.
-
 ## Correction
 
 **Filed 2026-11-06.** Quoted from issue 178:
@@ -115,6 +102,29 @@ F21: a wildcard-bound UDP server answers from the route's preferred
 ```
 
 The effort of T-1662 was XL before call C17 of `docs/decisions.md`; pod-todo has no XL.
+
+**Blocked 2026-11-11 on podcrates.** The Decision takes `pod-netlab`,
+which podcrates lists under M7 after a study, with no date. COORD-041
+(issue 260) asks for it, and asks who reads the guest's modules. Measured
+here: the pinned guest kernel (`6.12.110-0-virt`) has `NET_NS` and
+`IPV6` built in, and nf_tables, nft_nat, sch_netem, wireguard, tun, veth
+and nf_nat as modules; they are in `boot/modloop-virt` (a squashfs with
+xz, 21 MB), and `squashfs.ko` is in the modloop only, so the host must
+read it and give the guest a module set with its `modules.dep`. The
+condition that clears the block: podcrates's answer on the crate and on
+the reader. T-1663 and T-1664 run in this lab guest.
+
+**Unblocked 2026-11-13.** podcrates answered on the crate and on the
+reader. The reader of the modloop is `pod_guest::modloop::modules`
+(podcrates@T-206, in `v0.24.0`). podvm takes `v0.34.0`, which holds the
+offline part of `pod-netlab` (podcrates@T-207, `v0.33.0`,
+PodUtils/podcrates#103): the knobs, the layout and the scenarios of issue
+178, the plan of a lab, the derivation of each verdict and the judge of
+the counters. podvm can now build `podvm lab` on the host and the first
+clause of the Prove (the derived verdicts of two scenarios). The probe
+program in the guest (podcrates@T-345), the world (podcrates@T-346) and
+the run in the guest (podcrates@T-347) follow in podcrates; experiment
+418 waits for them.
 
 # T-1663: Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs
 

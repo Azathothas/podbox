@@ -3711,3 +3711,133 @@ browser runs its default mode: a zygote, a renderer and a GPU process.
 (clauses 1 to 5): the DOM, a screenshot, no connection under
 `net.ports`, no process left, and a command with no `--single-process`.
 
+
+# T-1743: GNU tar with an absolute `-C` opens the directory on the host: the fortified opens skip the table
+
+**Source:** PodUtils/podcrates#102 (COORD-063 of podcrates) and
+  PodUtils/podrunner#70 (COORD-012 of podrunner), messages from peer
+  sessions; podrunner's runs 43242367198 and 43271963245;
+  `crates/podvm-interpose/src/chk_calls.rs`
+**Category:** interpose
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+On a host that denies chroot, podrunner runs its runner image (Ubuntu
+24.04, GNU tar 1.35) on the loader family of the userland rung.
+`tar -xf x.tar -C /tmp/d` fails with "Cannot open: No such file or
+directory", and `tar -xf x.tar -C d` passes. The form with `-z` and the
+form with no `-z` fail the same way, on `v0.2.0-beta.5` and
+`v0.2.0-beta.6`. PodUtils/podrunner@T-096 waits for the fix.
+
+## Premise
+
+GNU tar opens the directory of `-C` in `chdir_do` with
+`openat(chdir_fd, name, open_searchdir_flags & ~O_NOFOLLOW)`. The flags
+are not a constant and the call gives no mode, so under
+`_FORTIFY_SOURCE` the inline `openat` of glibc calls `__openat_2`. The
+`tar` of Ubuntu 24.04 imports `__openat_2` and `__open_2` (measured with
+`nm -D`, 2026-11-13). The interposer exports `open`, `open64`, `openat`
+and `openat64`, but no fortified open, so the path reaches the host
+unmapped. A relative `-C` resolves from the real working directory, which
+is in the rootfs, so it passes. Where the host has a directory with the
+name of an absolute `-C`, tar writes each member on the host.
+
+## Approach
+
+Export `__open_2`, `__open64_2`, `__openat_2` and `__openat64_2` from
+`chk_calls.rs`, beside the fortified path calls of T-1704. Each keeps
+glibc's check (`O_CREAT` or `O_TMPFILE` with no mode ends the process)
+and then calls the plain entry point of the interposer with mode 0. The
+value of `O_TMPFILE` holds `O_DIRECTORY`, which is not the same on
+aarch64.
+
+## Decision
+
+The four entry points go into the interposer; podvm changes no flag of
+the payload. musl has no fortified opens, so the musl object exports them
+with no caller.
+
+## Prove
+
+`sh experiments/441-tar-absolute-c.sh` exits 0, and the interposer tests
+(`gate.yml`, job "workspace and interposer tests") pass
+`the_fortified_opens_take_the_path_table`: each of podrunner's forms
+gives `d/f` on the chroot-denied fixture, and the host directory with the
+name of the absolute `-C` stays empty
+
+## Done
+
+**Done 2026-11-13.** `chk_calls.rs` exports `__open_2`, `__open64_2`,
+`__openat_2` and `__openat64_2`; each keeps glibc's check of the mode and
+takes the route of its plain call. `interpose.map` declares the four
+names. The new `build.rs` of the interposer names `interpose.map`, so
+cargo links the objects again when the map changes: before, the musl
+object kept the export list of the old map and failed the export check
+of `podvm-interpose-build`.
+
+The interposer tests pass (89, `--test-threads=1`), with
+`the_fortified_opens_take_the_path_table` and
+`a_fortified_open_needs_a_mode_as_glibc_says`. `PODVM_441_MIRROR=1 sh
+experiments/441-tar-absolute-c.sh` exits 0
+([the run](../experiments/results/tar-absolute-c.txt)): each of the 18
+forms gives `d/f` on the chroot-denied fixture, and the host directory
+with the name of an absolute `-C` stays, empty. The release
+`0.2.0-beta.6` exits 1 on the same script
+([the run](../experiments/results/tar-absolute-c-beta6.txt)): each
+absolute `-C` where the host has no such directory says "Cannot open",
+as on podrunner's runner, and `mkdir -p /podvm441/app` fails. coreutils
+`mkdir -p` opens the parents through the same fortified opens. A trace of
+the release gives `openat(AT_FDCWD, "/tmp/podvm441/d", O_PATH|O_DIRECTORY)`
+with no rewrite.
+
+# T-1744: The open flags of the interposer have their x86_64 values on aarch64
+
+**Source:** found while T-1743 was made (2026-11-13);
+  `crates/podvm-interpose/src/create_calls.rs:119`,
+  `crates/podvm-interpose/src/procfs/exe.rs:125`,
+  `crates/podvm-interpose/src/device.rs:37`,
+  `crates/podvm-interpose/src/sock_calls.rs:53`
+**Category:** interpose
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The interposer reads the open flags with the values of x86_64 on each
+target. On aarch64, `O_DIRECTORY` is `0o40000`, `O_NOFOLLOW` is
+`0o100000`, `O_DIRECT` is `0o200000` and `O_LARGEFILE` is `0o400000`.
+So `open_fixed!` reads `O_LARGEFILE` as `O_NOFOLLOW` and follows the last
+link of an `O_NOFOLLOW` open (T-1725). `procfs/exe.rs` and `device.rs`
+read `O_DIRECT` as `O_DIRECTORY`, and `sock_calls.rs` opens a directory
+with `O_DIRECT` in place of `O_DIRECTORY`.
+
+## Premise
+
+T-1721 builds the interposer for aarch64, and `arm.yml` runs experiment
+356 there. No clause of 356 opens with `O_NOFOLLOW` through a link, and
+no clause tells `O_DIRECT` from `O_DIRECTORY`, so the runs passed.
+
+## Approach
+
+One module of open flags with a `cfg` for each architecture, as
+`chk_calls.rs` gives `O_DIRECTORY` for T-1743. Each of the four files
+takes its flags from it. A unit test compares each value with the value
+that a C program of the target prints (`zig cc`, as experiment 439 reads
+the layouts of `struct stat`).
+
+## Decision
+
+The values come from the kernel's `asm-generic` and `arm64` headers, not
+from a crate: the interposer has no dependency.
+
+## Prove
+
+`sh experiments/356-no-chroot-rung.sh` exits 0 on arm64 in
+`.github/workflows/arm.yml`, which also runs the interposer tests there, with a
+clause that opens a link with `O_NOFOLLOW`

@@ -316,3 +316,6 @@ mod sock;
 
 // TODO/interpose.md T-1725.
 mod links;
+
+// TODO/interpose.md T-1743.
+mod fortify;

@@ -336,7 +336,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1659](cli.md) | P2 | M | none | cli | done | Provider shapes and bare userlands as built-in profiles |
 | [T-1660](cli.md) | P2 | L | none | cli | done | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
 | [T-1661](cli.md) | P2 | M | none | cli | done | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
-| [T-1662](net.md) | P2 | L | none | net | blocked | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
+| [T-1662](net.md) | P2 | L | none | net | open | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
 | [T-1663](net.md) | P2 | L | none | net | blocked | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
 | [T-1664](net.md) | P2 | L | none | net | blocked | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
 | [T-1665](net.md) | P2 | L | none | net | done | An egress broker, and the guest's view of a loopback-only proxy |
@@ -417,10 +417,20 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1740](enter.md) | P3 | M | none | enter | partial | Raw system calls of a dynamic program on the loader family: measure the syscall tier, then choose the default |
 | [T-1741](image.md) | P1 | S | none | image | done | A plain tar layer whose end padding is past the last read is refused as a digest mismatch |
 | [T-1742](enter.md) | P2 | S | none | enter | done | The loader family does not find the glibc of a Debian image on arm64 |
+| [T-1743](interpose.md) | P1 | S | none | interpose | done | GNU tar with an absolute `-C` opens the directory on the host: the fortified opens skip the table |
+| [T-1744](interpose.md) | P2 | S | none | interpose | open | The open flags of the interposer have their x86_64 values on aarch64 |
+| [T-1745](cli.md) | P3 | L | none | cli | open | A Rust call for `run` with a typed request that returns the record of `--report` |
+| [T-1746](probe.md) | P2 | S | none | probe | open | `run` reads the cached probe, and probes again only when its key changes |
+| [T-1747](cli.md) | P3 | M | none | cli | open | `--memory`, `--cpus` and `--pids-limit` by cgroup2 where a subtree is delegated |
+| [T-1748](supervise.md) | P2 | S | none | supervise | open | A foreground payload dies when its `podvm run` is killed with SIGKILL |
+| [T-1749](enter.md) | P3 | L | none | enter | open | A read-only image as the lower layer of the root, with a tmpfs upper layer, and no copy |
+| [T-1750](machine.md) | P3 | L | none | machine | open | `exec` into a running guest of the machine tier |
+| [T-1751](machine.md) | P3 | L | none | machine | open | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
+| [T-1752](cli.md) | P3 | M | none | cli | open | A versioned JSON Schema for the record of `run --report`, published in each release |
 
 ## Counts
 
-351 entries: 0 open, 5 partial, 4 blocked, 342 done.
+361 entries: 10 open, 5 partial, 3 blocked, 343 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -430,10 +440,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 2 | 0 | 150 | 152 |
-| P2 | 0 | 1 | 4 | 112 | 117 |
-| P3 | 0 | 2 | 0 | 15 | 17 |
-| **All** | 0 | 5 | 4 | 342 | 351 |
+| P1 | 0 | 2 | 0 | 151 | 153 |
+| P2 | 4 | 1 | 3 | 112 | 120 |
+| P3 | 6 | 2 | 0 | 15 | 23 |
+| **All** | 10 | 5 | 3 | 343 | 361 |
 
 ## Work order
 

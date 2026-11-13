@@ -77,3 +77,67 @@ pub unsafe extern "C" fn __getcwd_chk(buf: *mut c_char, size: usize, buflen: usi
     }
     unsafe { crate::getcwd(buf, size) }
 }
+
+// ⛔ T-1743. The fortified opens. `_FORTIFY_SOURCE` makes the inline `open`
+// and `openat` of glibc call `__open_2` or `__openat_2` where the flags are
+// not a constant and the caller gives no mode. glibc's own definitions then
+// call its internal `open`, past this object, so the path reached the host
+// unmapped. GNU tar 1.35 of Ubuntu 24.04 opens the directory of `-C` so:
+// an absolute `-C /tmp/d` opened the host's `/tmp/d`, and a relative `-C d`
+// worked only because the kernel resolved it from the real working
+// directory (PodUtils/podcrates#102). Each keeps glibc's check of the mode
+// and then takes the same route as its plain call.
+
+#[cfg(target_arch = "aarch64")]
+const O_DIRECTORY: c_int = 0o40000;
+#[cfg(not(target_arch = "aarch64"))]
+const O_DIRECTORY: c_int = 0o200000;
+const O_CREAT: c_int = 0o100;
+const O_TMPFILE: c_int = 0o20000000 | O_DIRECTORY;
+
+/// glibc's `__OPEN_NEEDS_MODE`: `O_CREAT`, or each bit of `O_TMPFILE`
+/// (which holds `O_DIRECTORY`). A fortified open with such flags has no mode
+/// to give, and glibc ends the process.
+pub(crate) fn needs_mode(flags: c_int) -> bool {
+    flags & O_CREAT != 0 || flags & O_TMPFILE == O_TMPFILE
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __open_2(path: *const c_char, flags: c_int) -> c_int {
+    if needs_mode(flags) {
+        chk_fail();
+    }
+    unsafe { crate::open(path, flags, 0) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __open64_2(path: *const c_char, flags: c_int) -> c_int {
+    if needs_mode(flags) {
+        chk_fail();
+    }
+    unsafe { crate::open64(path, flags, 0) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __openat_2(dirfd: c_int, path: *const c_char, flags: c_int) -> c_int {
+    if needs_mode(flags) {
+        chk_fail();
+    }
+    unsafe { crate::openat(dirfd, path, flags, 0) }
+}
+
+/// # Safety
+/// The payload's own contract for this entry point.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn __openat64_2(dirfd: c_int, path: *const c_char, flags: c_int) -> c_int {
+    if needs_mode(flags) {
+        chk_fail();
+    }
+    unsafe { crate::openat64(dirfd, path, flags, 0) }
+}
