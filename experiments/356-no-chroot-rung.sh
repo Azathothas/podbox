@@ -49,9 +49,10 @@
 #      libraries, the PODVM_MAPS table and PODVM_GUEST_EXE inside it.
 #      Detached payloads stay builtin-only: `while :` keeps the
 #      container up for ps and stop.
-#   10. workdir (T-1412): -w to a missing directory refuses naming
-#      the path and the image at 125, on the fixture and sane; -w /tmp
-#      prints exactly /tmp (the //tmp read-back is fixed, T-1411).
+#   10. workdir (T-1412, T-1772): -w to a missing directory makes it, and
+#      -w to a file of the image refuses naming the path and the image at
+#      125, on the fixture and sane; -w /tmp prints exactly /tmp (the
+#      //tmp read-back is fixed, T-1411).
 #   11. maps (T-1407): the banner names the PODVM_MAPS anchoring; a
 #      caller table is scrubbed; --unsafe-host-paths opts out; an
 #      absolute-path read sees the image; a /tmp write stays off host.
@@ -534,19 +535,22 @@ grep -q "created-hi" "$WORK/out-fx-logs2.txt" || { echo "logs did not carry the 
 step fx-stop2 0 $FX "$PB" stop ul356c
 step fx-rm2 0 $FX "$PB" rm ul356c
 
-# Clause 10 (T-1412 workdir): a missing directory refuses naming the
-# path and the image at 125, on the fixture and on the sane host;
-# `-w /tmp` is the passing control.
-step fx-workdir "$RUN_ERR" $FX "$PB" run --rm -w /no/such/dir "$ALPINE" true
-grep -q "/no/such/dir" "$WORK/out-fx-workdir.txt" || { echo "workdir refusal did not name the path" >>"$REPORT"; fail=1; }
-grep -q "for image" "$WORK/out-fx-workdir.txt" || { echo "workdir refusal did not name the image" >>"$REPORT"; fail=1; }
+# Clause 10 (T-1412, TODO/cli.md T-1772 workdir): a missing directory is
+# made, as docker does, and the payload starts in it; a working directory
+# that is a file of the image refuses naming the path and the image at
+# 125, on the fixture and on the sane host. `-w /tmp` is the control.
+step fx-workdir 0 $FX "$PB" run --rm -w /no/such/dir "$ALPINE" pwd
+grep -qx "/no/such/dir" "$WORK/out-fx-workdir.txt" || { echo "a missing workdir was not made" >>"$REPORT"; fail=1; }
+step fx-workdir-file "$RUN_ERR" $FX "$PB" run --rm -w /etc/hostname "$ALPINE" true
+grep -q "/etc/hostname" "$WORK/out-fx-workdir-file.txt" || { echo "workdir refusal did not name the path" >>"$REPORT"; fail=1; }
+grep -q "for image" "$WORK/out-fx-workdir-file.txt" || { echo "workdir refusal did not name the image" >>"$REPORT"; fail=1; }
 step fx-workdir-tmp 0 $FX "$PB" run --rm -w /tmp "$ALPINE" pwd
 # ⭐ T-1411: the read-back joins with one separator. `-w /tmp` prints
 # exactly `/tmp`; `//tmp` was the doubled join and fails the clause.
 grep -qx "/tmp" "$WORK/out-fx-workdir-tmp.txt" || { echo "-w /tmp control did not print exactly /tmp" >>"$REPORT"; fail=1; }
 grep -qx "//tmp" "$WORK/out-fx-workdir-tmp.txt" && { echo "-w /tmp printed the doubled //tmp" >>"$REPORT"; fail=1; }
-step sane-workdir "$RUN_ERR" "$PB" run --rm -w /no/such/dir "$ALPINE" true
-grep -q "/no/such/dir" "$WORK/out-sane-workdir.txt" || { echo "sane-host workdir refusal did not name the path" >>"$REPORT"; fail=1; }
+step sane-workdir "$RUN_ERR" "$PB" run --rm -w /etc/hostname "$ALPINE" true
+grep -q "/etc/hostname" "$WORK/out-sane-workdir.txt" || { echo "sane-host workdir refusal did not name the path" >>"$REPORT"; fail=1; }
 
 # Clause 11 (T-1407 maps): the banner names the PODVM_MAPS anchoring;
 # a caller-supplied table is scrubbed; `--unsafe-host-paths` opts out;
@@ -683,19 +687,20 @@ grep -qx "/usr/bin/readlink" "$WORK/out-fx-exe-readlink.txt" || { echo "readlink
 # ⭐ T-1652: go and its compile and link children run on the
 # native-static rung. The source comes from the image's own dash on the
 # loader family, which writes inside the rootfs; the build output lands
-# in the rootfs, and the host keeps no /tmp/g356. The three runs keep
-# their records (no --rm): a run with --rm extracts the image again, so
-# a write of one run is not in the next (measured, 2026-11-11).
+# in the rootfs, and the host keeps no /tmp/g356. Each container has its
+# own tree, as in docker, so the build and the program run by `exec` in
+# the container that wrote the source (2026-11-13; before, the three
+# runs shared the image's tree).
 if native_rung 18; then
 	rm -rf /tmp/g356
 	step fx-go-version 0 $FX "$PB" run --rm "$GOLANG" go version
 	grep -q "^go version go1\.24\.7 linux/amd64$" "$WORK/out-fx-go-version.txt" || { echo "go version did not answer on the native-static rung" >>"$REPORT"; fail=1; }
 	step fx-go-src 0 $FX "$PB" run --name g356src "$GOLANG" sh -c 'mkdir -p /tmp/g356 && printf "package main\nimport \"fmt\"\nfunc main() { fmt.Println(\"g356-ok\") }\n" > /tmp/g356/main.go'
-	step fx-go-build 0 $FX "$PB" run --name g356build -w /tmp/g356 -e GOTOOLCHAIN=local "$GOLANG" go build -o /tmp/g356/h main.go
-	step fx-go-run 0 $FX "$PB" run --name g356run "$GOLANG" /tmp/g356/h
+	step fx-go-build 0 $FX "$PB" exec -w /tmp/g356 -e GOTOOLCHAIN=local g356src go build -o /tmp/g356/h main.go
+	step fx-go-run 0 $FX "$PB" exec g356src /tmp/g356/h
 	grep -qx "g356-ok" "$WORK/out-fx-go-run.txt" || { echo "the program that go built did not print its line" >>"$REPORT"; fail=1; }
 	[ -e /tmp/g356 ] && { echo "the go build wrote on the host" >>"$REPORT"; fail=1; }
-	$FX "$PB" rm g356src g356build g356run >/dev/null 2>&1
+	$FX "$PB" rm g356src >/dev/null 2>&1
 	step fx-dispatch-probe 0 $FX "$PB" probe --json
 	grep -q '"user_dispatch":true' "$WORK/out-fx-dispatch-probe.txt" || { echo "the probe did not report measured_by.user_dispatch true" >>"$REPORT"; fail=1; }
 fi
@@ -987,17 +992,13 @@ grep -q "Read-only file system" "$WORK/out-fx-read-only.txt" || { echo "a write 
 grep -qx "rw-ok" "$WORK/out-fx-read-only.txt" || { echo "a write to a volume under --read-only failed" >>"$REPORT"; fail=1; }
 grep -qx "read-ok" "$WORK/out-fx-read-only.txt" || { echo "a read under --read-only failed" >>"$REPORT"; fail=1; }
 grep -qx "w" "$VOL/rw356" 2>/dev/null || { echo "the volume write did not land in the host directory" >>"$REPORT"; fail=1; }
-# Outside the fixture the rung is the host's: a rung with no read-only
-# layer (namespace, chroot) refuses by name; the userland rung has the
-# layer and runs.
+# Outside the fixture the rung is the host's. Since TODO/cli.md T-1761 a
+# run with --read-only takes the loader family on each rung, so it runs,
+# and a write to the image fails with EROFS.
 SANE_RUNG=$($CTL "$PB" system info --format '{{.EnteredRung}}' 2>/dev/null)
 echo "host rung         ${SANE_RUNG:--}" >>"$REPORT"
-if [ "$SANE_RUNG" = userland ]; then
-	step sane-read-only 0 $CTL "$PB" run --rm --read-only "$ALPINE" true
-else
-	step sane-read-only "$RUN_ERR" $CTL "$PB" run --rm --read-only "$ALPINE" true
-	grep -q "read-only layer" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung was not refused by name" >>"$REPORT"; fail=1; }
-fi
+step sane-read-only 0 $CTL "$PB" run --rm --read-only "$ALPINE" sh -c 'touch /etc/ro356s 2>&1; true'
+grep -q "Read-only file system" "$WORK/out-sane-read-only.txt" || { echo "--read-only on the capable rung did not refuse a write with EROFS" >>"$REPORT"; fail=1; }
 
 # Clause 31 (T-1707): a relative program resolves against -w.
 # A child of the relative program needs the interposer: without it the

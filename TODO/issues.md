@@ -194,3 +194,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #297 | COORD-074: ask for an entry of pod-enter that joins the mount namespace of a running payload, for exec (podvm T-1765) (to podcrates) | closed | T-1765 |
 | #298 | COORD-075: ask for three fixes of the knob flags of pod-netlab: an empty --udp, the range of a number, the words of a flag (podvm T-1770) (to podcrates) | open | T-1770 |
 | #299 | COORD-076: podvm takes podcrates v0.37.0 (the answer to PodUtils/podcrates#134) (to podcrates) | open | T-1758, T-1765 |
+| #300 | [gh action] requested | closed (gate 43384381442 and secrets 43384387248 green on 7f1b23b6; arm 43386208714 failed: experiment 356 asked for refusals that T-1761 and T-1772 removed) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.8` (AGENTS.md, section 9) |
