@@ -38,6 +38,8 @@ pub struct Prepared {
     pub rung: String,
     pub detach: bool,
     pub rm: bool,
+    /// `-t`: a foreground `run` gives the payload a pty (TODO/cli.md T-1760).
+    pub tty: bool,
     /// `--timeout` in milliseconds: the wall bound of the run, or `None`.
     /// TODO/cli.md T-1655.
     pub wall_ms: Option<u64>,

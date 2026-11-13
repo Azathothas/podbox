@@ -233,7 +233,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--pull"), status: Native, note: "never, missing (default) or always" },
     Row { verb: "run", flag: Some("--insecure-registry"), status: Native, note: "docker's flag and docker's meaning; every use is disclosed on stderr" },
     Row { verb: "run", flag: Some("--tls-verify"), status: Native, note: "podman's flag and podman's meaning; every use is disclosed on stderr" },
-    Row { verb: "run", flag: Some("-t, --tty"), status: Degraded, note: "REFUSED BY NAME where /dev/ptmx is unusable, rather than running without a pty and letting the payload discover it (T-0503). On --podvm-tier=machine a terminal of a virtio console with the size of the host terminal (T-1723)" },
+    Row { verb: "run", flag: Some("-t, --tty"), status: Degraded, note: "a foreground run gives the payload a pty of the host's /dev/ptmx as its 0, 1 and 2, and relays it, also where podvm has no terminal (T-1760); it is not the controlling terminal, and on the namespace rung `tty` finds no name (no /proc, T-1758). REFUSED BY NAME where /dev/ptmx is unusable (T-0503). On --podvm-tier=machine a terminal of a virtio console with the size of the host terminal (T-1723)" },
     Row { verb: "run", flag: Some("-i, --interactive"), status: Stub, note: "accepted and a no-op: podvm never detaches stdin, so it is already interactive when the caller's is" },
     Row { verb: "run", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
     Row { verb: "run", flag: Some("-d, --detach"), status: Native, note: "starts a detached launcher and prints the container id, returning when the payload is running" },

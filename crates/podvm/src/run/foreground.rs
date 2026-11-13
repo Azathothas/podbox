@@ -258,6 +258,26 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
             return e.exit_code();
         }
     }
+    // TODO/cli.md T-1760: `-t` gives the payload a pty, as docker's does.
+    let mut pty = None;
+    if p.tty {
+        match super::pty::Pty::open().and_then(|t| Ok((t.slaves()?, t))) {
+            Ok((slaves, t)) => {
+                let fd = |i: usize| super::pty::raw(&slaves[i]);
+                pass.extend([(0, fd(0)), (1, fd(1)), (2, fd(2))]);
+                pty = Some((t, slaves));
+            }
+            Err(e) => {
+                let _ = writeln!(
+                    err,
+                    "podvm run: -t: podvm could not open a pty: {e} (TODO/cli.md T-1760)"
+                );
+                drop(memo);
+                let _ = std::fs::remove_file(&p.memo_host_path);
+                return podvm_image::error::EXIT_RUNTIME_ERROR;
+            }
+        }
+    }
     let plan = Plan {
         argv: p.argv.clone(),
         env,
@@ -310,6 +330,7 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
     // From here the payload is entered: its code is its own (T-1695).
     r.ran = true;
     r.container = Some(fg.id.clone());
+    let relay = pty.map(|(t, slaves)| (t.relay(), slaves));
     let code = match p.ladder {
         Some(mode) => {
             let _ = writeln!(
@@ -374,6 +395,15 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
             }
         }
     };
+    if let Some((relay, slaves)) = relay {
+        drop(slaves);
+        match relay {
+            Ok(r) => r.finish(),
+            Err(e) => {
+                let _ = writeln!(err, "podvm run: -t: the relay of the pty: {e}");
+            }
+        }
+    }
     if wall.is_some_and(super::wall::Wall::disarm) {
         r.timed_out = true;
         let _ = writeln!(

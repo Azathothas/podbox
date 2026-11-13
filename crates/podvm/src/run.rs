@@ -224,6 +224,9 @@ pub(crate) use acquire::*;
 
 mod wall;
 
+// TODO/cli.md T-1760: the pty of `run -t`.
+mod pty;
+
 // TODO/machine.md T-1656: a guest from an OCI image.
 mod foreign;
 mod machine;

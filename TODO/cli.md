@@ -4172,7 +4172,7 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4193,6 +4193,26 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.tty.ns`, `run.tty-term.ns`, `run.tty.ul`, and a test of the CLI holds the fix
+
+## Done
+
+**Partial 2026-11-13; the rest waits for podcrates.** A foreground `run
+-t` opens a pty of the host's `/dev/ptmx` (`crates/podvm/src/run/pty.rs`),
+hands its slave to the payload as descriptors 0, 1 and 2, and relays the
+master to podvm's stdout and podvm's stdin to the master. Where podvm's
+stdin is a terminal, the pty takes its window size and that terminal is
+raw for the run (the `Raw` guard of the machine tier). The relay drains
+for at most 2 s after the payload exits. By hand on the cloud host, with
+no terminal: `run --rm -t alpine sh -c 'test -t 1 && echo tty; test -t 0
+&& echo in'` prints `tty` and `in` on both rungs, and under `script` the
+userland rung's `tty` prints `/dev/pts/1`. The test
+`a_pty_gives_a_terminal_to_its_slave` holds the pty.
+
+Open: `run.tty-term.ns`. On the namespace rung `ttyname` finds no name:
+the root has no /proc and no /dev/pts, which are mounts of `pod-enter`.
+COORD-073 (issue 296) asks for both. The slave is not the controlling
+terminal: `pod-enter` makes no session, so job control of an interactive
+shell does not work; `exec -t` keeps the terminal of the caller.
 
 # T-1761: `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung
 
