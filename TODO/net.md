@@ -505,3 +505,32 @@ Remaining clause: a `connect` of a payload that ignores the variables to a
 named upstream reaches the broker (its Unix socket), the name resolving
 to a fake address that maps to the name. Today such a payload is refused,
 not served.
+
+# T-1770: `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** net
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`lab scenarios` prints `--udp ` with no value for corp-proxy, and that line does not parse back; `--mtu 99999` says "not a whole number"; `--nat bogus` does not list the words.
+
+## Premise
+
+`Knobs::flags` and the errors of the knobs are `pod-netlab`'s.
+
+## Approach
+
+A COORD issue to podcrates for the flags and the words; podvm takes the tag.
+
+## Decision
+
+The fix in the lab is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `lab.knobs.corp-proxy`, `lab.mtu-big`, `lab.nat-bad`, and a test of the lab holds the fix

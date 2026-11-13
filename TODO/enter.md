@@ -3509,3 +3509,90 @@ mounts; else a copy-up of the path table on the loader family), and the
 Prove. The overlay mount belongs to `pod-enter`'s namespace rung: COORD-071
 (issue 294) asks podcrates for it. The loader family is podvm's part.
 
+
+# T-1758: The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** enter
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the namespace rung `go version` fails with `readlink /proc/self/exe: no such file or directory`, and `/proc/self/status` is missing, although the rung can mount.
+
+## Premise
+
+The rung mounts a tmpfs on /tmp and nothing on /proc; the mount of proc needs a PID namespace or a bind of the host's /proc (podcrates' `pod-enter`).
+
+## Approach
+
+Mount proc in the namespace rung (a new PID namespace where it is permitted, else a read-only bind of /proc), in `pod-enter` through a COORD issue if the step is the crate's.
+
+## Decision
+
+The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `imgs.go-version.ns`, `tools.go-mod.ns`, `run.proc.ns`, and a test of the entry holds the fix
+
+# T-1759: No /dev/shm on either rung: python multiprocessing fails
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** enter
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`multiprocessing.Pool(2)` fails with FileNotFoundError on the namespace rung; `/dev/shm` does not exist on both rungs. On the userland rung python works only because `sem_open` reaches the host's /dev/shm.
+
+## Premise
+
+The rootfs has no /dev/shm, and podvm makes none.
+
+## Approach
+
+Give each run a private /dev/shm: a tmpfs on the namespace rung, a directory of the run mapped by the path table on the userland rung.
+
+## Decision
+
+The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `imgs.python-mp.ns`, `run.shm.ns`, `run.shm.ul`, and a test of the entry holds the fix
+
+# T-1764: `--podvm-confine` without /etc in the read list breaks the loader on the namespace rung
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** enter
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`--podvm-confine 'read=/usr;write=/tmp'` with python exits 127: `libpython3.12.so.1.0: cannot open shared object`.
+
+## Premise
+
+ld.so reads `/etc/ld.so.cache`, which the spec does not allow, and its search does not reach /usr/local/lib.
+
+## Approach
+
+Allow `/etc/ld.so.cache` and the library directories of the image in each confine spec, as the system directories are.
+
+## Decision
+
+The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.confine-py.ns`, and a test of the entry holds the fix

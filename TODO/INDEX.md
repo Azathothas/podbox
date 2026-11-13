@@ -427,10 +427,28 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1750](machine.md) | P3 | L | none | machine | open | `exec` into a running guest of the machine tier |
 | [T-1751](machine.md) | P3 | L | none | machine | open | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
 | [T-1752](cli.md) | P3 | M | none | cli | done | A versioned JSON Schema for the record of `run --report`, published in each release |
+| [T-1753](interpose.md) | P1 | M | none | interpose | open | The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens |
+| [T-1754](interpose.md) | P1 | S | none | interpose | open | `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails |
+| [T-1755](interpose.md) | P1 | S | none | interpose | open | `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails |
+| [T-1756](interpose.md) | P2 | S | none | interpose | open | A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored |
+| [T-1757](cli.md) | P1 | S | none | cli | open | `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root |
+| [T-1758](enter.md) | P1 | M | none | enter | open | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
+| [T-1759](enter.md) | P1 | M | none | enter | open | No /dev/shm on either rung: python multiprocessing fails |
+| [T-1760](cli.md) | P2 | M | none | cli | open | `-t` gives no terminal on the namespace rung, and says nothing |
+| [T-1761](cli.md) | P1 | M | none | cli | open | `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung |
+| [T-1762](image.md) | P1 | M | none | image | open | The source fixup probes four HTTPS hosts on each run: about 2 s of each ubuntu run, uncached |
+| [T-1763](image.md) | P2 | S | none | image | open | The `openssl rehash` step prints 108 lines on each python run and costs about 0.5 s |
+| [T-1764](enter.md) | P2 | S | none | enter | open | `--podvm-confine` without /etc in the read list breaks the loader on the namespace rung |
+| [T-1765](cli.md) | P1 | S | none | cli | open | `-e NAME` with no value does not pass the host's variable, and `exec` does not take the environment of `run` |
+| [T-1766](cli.md) | P2 | S | none | cli | open | `--strict` and `probe` disagree with the rung that a run enters on the userland fixture |
+| [T-1767](image.md) | P2 | S | none | image | open | Quiet runs print notes: a false chown EINVAL on extraction, the probe line of `pull -q`, the base archive of the machine tier |
+| [T-1768](image.md) | P2 | S | none | image | open | `cp -r` of a container path copies each hard link as a file |
+| [T-1769](cli.md) | P3 | S | none | cli | open | An unknown verb or flag prints the whole usage |
+| [T-1770](net.md) | P3 | S | none | net | open | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
 
 ## Counts
 
-361 entries: 3 open, 5 partial, 4 blocked, 349 done.
+379 entries: 21 open, 5 partial, 4 blocked, 349 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -440,10 +458,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 0 | 152 | 153 |
-| P2 | 0 | 2 | 4 | 114 | 120 |
-| P3 | 3 | 2 | 0 | 18 | 23 |
-| **All** | 3 | 5 | 4 | 349 | 361 |
+| P1 | 9 | 1 | 0 | 152 | 162 |
+| P2 | 7 | 2 | 4 | 114 | 127 |
+| P3 | 5 | 2 | 0 | 18 | 25 |
+| **All** | 21 | 5 | 4 | 349 | 379 |
 
 ## Work order
 

@@ -49,9 +49,10 @@ pub const RUN_OPTIONS: &str = "\
   -v, --volume H:G[:rw]
                    show the host path H at the guest path G. Repeatable. A
                    path rewrite through PODVM_MAPS on the userland loader
-                   family, not a mount: a write lands in H. Refused by name
-                   on every other rung, for :ro until TODO/enter.md T-1655,
-                   and for a -w or a first program inside G
+                   family, not a mount: a write lands in H, and :ro refuses
+                   a write (TODO/cli.md T-1655). A 9p mount on the machine
+                   tier; refused on the namespace rung until TODO/cli.md
+                   T-1761, and for a -w or a first program inside G
                    (TODO/enter.md T-1653)
   --unsafe-host-paths
                    podvm's own, userland rung only: opt into the

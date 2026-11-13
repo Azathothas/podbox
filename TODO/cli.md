@@ -4135,3 +4135,177 @@ The x86_64 leg of `nightly.yml` stages the file as the asset
 signs it with the binaries; the first release after this commit carries
 it. The half of `probe --json` stays T-1714.
 
+
+# T-1757: `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`run -u 1000 node:22-slim id -u` gives 0 on the namespace rung, with no message. With `--entrypoint id` it gives 1000.
+
+## Premise
+
+The path of the image's ENTRYPOINT (`docker-entrypoint.sh`) loses the user of `-u`.
+
+## Approach
+
+Apply `-u` to the argv that the ENTRYPOINT makes, on each rung; a test of the plan with an ENTRYPOINT and `-u`.
+
+## Decision
+
+The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.user-entrypoint.ns`, `run.user-node.ns`, and a test of the CLI holds the fix
+
+# T-1760: `-t` gives no terminal on the namespace rung, and says nothing
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`script -qc 'podvm run --rm -t alpine tty'` prints `not a tty` with exit 0 on the namespace rung; with no terminal `-t` exits 1 with no message on both rungs.
+
+## Premise
+
+The namespace rung does not allocate a pty for `-t`.
+
+## Approach
+
+Allocate the pty on each rung that runs `-t`, and refuse by name where stdin is not a terminal, as docker does.
+
+## Decision
+
+The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.tty.ns`, `run.tty-term.ns`, `run.tty.ul`, and a test of the CLI holds the fix
+
+# T-1761: `-v`, `--tmpfs` and `--read-only` are refused on the namespace rung with a message that names the chroot rung
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the namespace rung, which can mount, `run -v HOST:GUEST`, `:ro`, `--tmpfs` and `--read-only` exit 125: "this host permits chroot(2), so podvm enters the chroot rung ... podvm cannot mount(2)". `--tmpfs` names its internal path of the store in the error.
+
+## Premise
+
+`crates/podvm/src/lifecycle/volume.rs` decides on chroot and not on the entered rung.
+
+## Approach
+
+Bind-mount volumes (read-only for `:ro`), mount the tmpfs and remount the root read-only in the namespace rung; decide the refusal on the entered rung.
+
+## Decision
+
+The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.vol.ns`, `run.vol-ro-read.ns`, `run.vol-ro-write.ns`, `run.vol-file.ns`, `run.vol-ls.ns`, `run.vol-wd.ns`, `run.vol-deb.ns`, `run.vol-ro-write-deb.ns`, `run.tmpfs.ns`, `run.tmpfs-tmp.ns`, `run.readonly.ns`, `run.readonly-tmpfs.ns`, `run.readonly-deb.ns`, `run.confine-vol.ns`, and a test of the CLI holds the fix
+
+# T-1765: `-e NAME` with no value does not pass the host's variable, and `exec` does not take the environment of `run`
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`FOO=x podvm run -e FOO alpine sh -c 'echo $FOO'` prints nothing; `exec` in a container of `run -d -e RV=v` does not see RV; on the namespace rung `exec` does not see the container's /tmp.
+
+## Premise
+
+The parse keeps `-e NAME` with no value as nothing; `exec` builds its environment from the image only and enters a new tmpfs.
+
+## Approach
+
+Pass `-e NAME` from the host's environment; give `exec` the environment of the record; enter the container's /tmp.
+
+## Decision
+
+The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.env-pass.ns`, `run.env-pass.ul`, `life.exec-env-run.ns`, `life.exec-env-run.ul`, `life.exec-sees-run-fs.ns`, and a test of the CLI holds the fix
+
+# T-1766: `--strict` and `probe` disagree with the rung that a run enters on the userland fixture
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On the chroot-denied fixture `run --strict` exits 0 with warnings (experiment 356, clause 6, wants 125), and `probe` names `namespace` (or `supervise`) while each run enters `userland`.
+
+## Premise
+
+The probe's selection and the entered rung of T-1713 are two answers; `--strict` reads the selection.
+
+## Approach
+
+Make `--strict` and the probe's rung line read the entered rung; keep the selection as its own field.
+
+## Decision
+
+The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.strict.ul`, `sys.probe.ul`, `sys.probe-strict.ul`, `sys.info-consistent`, and a test of the CLI holds the fix
+
+# T-1769: An unknown verb or flag prints the whole usage
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm frobnicate` and `run --foo` print more than 40 and 150 lines; each error ends with "podvm: invoked as ./podvm"; `profile list` breaks its columns on long names.
+
+## Premise
+
+The refusal prints the usage of the verb in full.
+
+## Approach
+
+Print one line that names the flag or the verb and the help command, and size the columns of `profile list` to the names.
+
+## Decision
+
+The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `sys.unknown-verb-out`, `sys.unknown-flag-short`, `sys.profile-cols`, and a test of the CLI holds the fix

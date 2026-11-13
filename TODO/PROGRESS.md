@@ -7,7 +7,7 @@ start.
 
 ## State
 
-361 entries: 3 open, 5 partial, 4 blocked, 349 done.
+379 entries: 21 open, 5 partial, 4 blocked, 349 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -43,10 +43,20 @@ first entry that is not done. Read its Prove before you start. Check
 each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
-1. A QA pass of the whole surface (the verbs of docker and podman on each
-   rung, the machine tier, the incus tier, the SSH transport) on the cloud
-   host and the hosted runners; each defect becomes an entry and is fixed;
-   then a release for the beta testers.
+1. The defects of the QA pass (experiment 443, 2026-11-13: 518 rows pass,
+   64 fail), then a release for the beta testers. P1 first:
+   [T-1757](cli.md) (`-u` with an ENTRYPOINT runs as root),
+   [T-1761](cli.md) (`-v`, `--tmpfs`, `--read-only` on the namespace
+   rung), [T-1753](interpose.md) (NSS reads the host's /etc),
+   [T-1754](interpose.md) (`scandir64`), [T-1755](interpose.md)
+   (`lutimes`), [T-1758](enter.md) (/proc on the namespace rung),
+   [T-1759](enter.md) (/dev/shm), [T-1765](cli.md) (`-e NAME`, the
+   environment of `exec`), [T-1762](image.md) (the HTTPS probes of the
+   source fixup). Then P2: [T-1756](interpose.md), [T-1760](cli.md),
+   [T-1763](image.md), [T-1764](enter.md), [T-1766](cli.md),
+   [T-1767](image.md), [T-1768](image.md); then P3: [T-1769](cli.md),
+   [T-1770](net.md). The copy of the rootfs on each run (11 s for golang)
+   is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)

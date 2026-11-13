@@ -151,7 +151,7 @@ image = "gcr.io/distroless/static-debian12"
 extends = "default"
 confine = true
 leaves_out = [
-  "the project at /workspace and the state at /state: -v needs the userland rung, which takes no confine layer yet (TODO/enter.md T-1658)",
+  "the project at /workspace and the state at /state: -v serves them under the confine layer on the userland rung; on the namespace rung -v waits for TODO/cli.md T-1761",
   "bailey's built environment (only PATH, LANG, LC_ALL, TERM, HOME, XDG_*)",
   "bailey's egress per port: TCP is free unless net.ports names the ports",
   "file_max, tmp_size and shm_size",

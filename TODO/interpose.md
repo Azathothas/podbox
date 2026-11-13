@@ -3866,3 +3866,119 @@ interposer tests pass on x86_64 (91), with
 `an_open_with_o_nofollow_does_not_follow_a_link_of_the_rootfs`; with the
 value `0o100000` planted for `O_NOFOLLOW` on x86_64, both fail. Clippy of
 the interposer for `aarch64-unknown-linux-gnu` exits 0.
+
+# T-1753: The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** interpose
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the userland rung, `getent hosts NAME` does not see `--add-host`, `getent passwd 1000` gives the host's user, and `id` in the node image names the host's user `ubuntu` for uid 1000. glibc's NSS and musl open `/etc/hosts`, `/etc/passwd`, `/etc/group` and `/etc/services` through calls inside libc that do not go through the exported symbols.
+
+## Premise
+
+The interposer rewrites exported entry points only. glibc's `nss_files` uses `__open_nocancel`-family calls and `fopen` inside libc; musl's `getpw*` uses `__fopen_rb_ca`.
+
+## Approach
+
+Find each internal path of NSS and of musl's database readers; serve them (an exported override of `getpwnam`, `getgrnam`, `gethostbyname` and the `nss_files` lookups that reads the rootfs files, or a `LD_PRELOAD`-visible symbol that libc calls).
+
+## Decision
+
+The fix in the interposer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.nss-hosts.ul`, `run.nss-hosts-musl.ul`, `run.nss-passwd.ul`, `run.nss-passwd-alpine.ul`, `run.user-node.ul`, and a test of the interposer holds the fix
+
+# T-1754: `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** interpose
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On the userland rung `node -e 'fs.readdirSync("/etc")'` lists the host's /etc, and `readdirSync` of a directory that the payload just made gives ENOENT, so `npm install` fails.
+
+## Premise
+
+node imports `scandir64`; the interposer wraps `scandir` only (`crates/podvm-interpose/src/stat_calls.rs`).
+
+## Approach
+
+Wrap `scandir64` and `scandirat`, and check the import table of node, python, go's cgo and busybox for each other path call with a `64` name that the interposer does not export.
+
+## Decision
+
+The fix in the interposer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.node-readdir-tmp.ul`, `tools.npm.ul`, and a test of the interposer holds the fix
+
+# T-1755: `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** interpose
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On the userland rung `apt-get install -y curl` in ubuntu exits 100: dpkg cannot set the times of each `.dpkg-new` file.
+
+## Premise
+
+dpkg calls `lutimes`; the interposer wraps `utimes` and `utimensat` but not `lutimes` (nor `futimesat`).
+
+## Approach
+
+Wrap `lutimes` and `futimesat` through the table, with a test of each.
+
+## Decision
+
+The fix in the interposer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `tools.apt-install-ubu.ul`, and a test of the interposer holds the fix
+
+# T-1756: A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** interpose
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On the userland rung `apk add curl` installs, but the trigger of busybox says `/bin/busybox: not found` and apk exits with an error.
+
+## Premise
+
+The trigger script execs `/bin/busybox` from a shell that apk starts with an exec path the loader family does not rewrite.
+
+## Approach
+
+Trace the exec of the trigger and route it through the exec walk of T-1646.
+
+## Decision
+
+The fix in the interposer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `tools.apk.ul`, and a test of the interposer holds the fix

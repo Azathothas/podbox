@@ -3401,3 +3401,119 @@ rest of the raw blob into the hash before each check. `cargo test -p podvm
 --test import_padded` exits 0 (`crates/podvm/tests/import_padded.rs`: the
 tar of issue 281, 71 680 bytes, imports and extracts), and the
 reproduction of issue 281 by hand extracts with exit 0.
+
+# T-1762: The source fixup probes four HTTPS hosts on each run: about 2 s of each ubuntu run, uncached
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** image
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Each `run` of ubuntu sends four sequential HEAD requests (one host from a comment line of ubuntu.sources); `--no-source-fixup` cuts a `true` run from 3.5 s to 1.4 s. A firewalled host can pay up to about 16 s per run (estimate).
+
+## Premise
+
+`crates/podvm-complete/src/reach.rs` probes once per host per invocation, with no cache across runs, and reads hosts from comment lines.
+
+## Approach
+
+Read hosts from the active lines only; cache each verdict in the store with an age bound; run the probes in parallel.
+
+## Decision
+
+The fix in the image layer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.true-py.ns`, and a test of the image layer holds the fix
+
+# T-1763: The `openssl rehash` step prints 108 lines on each python run and costs about 0.5 s
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Each run of python or golang prints 108 lines `rehash: warning: skipping duplicate certificate` on stderr, in quiet mode.
+
+## Premise
+
+The CA step runs `openssl rehash` in each fresh copy and passes its stderr through; the bundle is appended twice.
+
+## Approach
+
+Capture the step's stderr into the banner, append the bundle once, and do the step once for each image, not for each run.
+
+## Decision
+
+The fix in the image layer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `run.true-py.ns`, `imgs.python.ns`, and a test of the image layer holds the fix
+
+# T-1767: Quiet runs print notes: a false chown EINVAL on extraction, the probe line of `pull -q`, the base archive of the machine tier
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+As real root, `extract` prints "restore ownership with chown of etc/shadow ... EINVAL" although no chown happens; `pull -q` prints a probe line; a first run prints 6 lines; `restart` prints the name twice.
+
+## Premise
+
+`crates/podvm/src/diagnose.rs` writes the note from the ids, not from a call; the quiet mode does not cover these paths.
+
+## Approach
+
+Write the ownership note only from a failed call; keep each note under `--verbose`; print the name once.
+
+## Decision
+
+The fix in the image layer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `img.extract-diag`, `img.pull.q-stdout`, `life.restart.ns`, `life.restart.ul`, and a test of the image layer holds the fix
+
+# T-1768: `cp -r` of a container path copies each hard link as a file
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`cp -r busybox:/bin DIR` writes 480 MiB for 1 MiB: 406 hard links become copies.
+
+## Premise
+
+The copy walks files and does not keep the links.
+
+## Approach
+
+Keep each hard link as a link (by device and inode), as `cp -a` and docker do.
+
+## Decision
+
+The fix in the image layer is podvm's; a cause in a crate of podcrates goes there as a COORD issue.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the rows `img.cp-r-hardlinks`, and a test of the image layer holds the fix

@@ -118,7 +118,7 @@ pub use filter::*;
 /// quieter and less honest, not smaller.
 pub const TABLE: &[Row] = &[
     // ------------------------------------------------------------- the verbs
-    Row { verb: "run", flag: Option::None, status: Degraded, note: "enters a chroot, never a namespace. The banner names what the selected rung does not provide, on every run. A SIGINT or SIGTERM to a foreground run is forwarded to the payload and named on stderr with the payload's exit (TODO/supervise.md T-1335)" },
+    Row { verb: "run", flag: Option::None, status: Degraded, note: "enters the rung that the ladder selects (namespace, chroot or userland), which system info names as .EnteredRung. The banner names what the selected rung does not provide, on every run. A SIGINT or SIGTERM to a foreground run is forwarded to the payload and named on stderr with the payload's exit (TODO/supervise.md T-1335)" },
     Row { verb: "exec", flag: Option::None, status: Degraded, note: "a fresh chroot re-entry sharing only the filesystem, never an entry into a running container's namespaces (T-0505)" },
     Row { verb: "pull", flag: Option::None, status: Native, note: "HTTPS only. A registry offering only http:// is a named refusal, never a downgrade" },
     Row { verb: "images", flag: Option::None, status: Native, note: "one record per platform of a tag" },
@@ -299,7 +299,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--blkio-weight, --cgroup-parent, --cpu-period, --cpu-quota, --cpu-shares, --cpuset-cpus, --oom-kill-disable, --pids-limit"), status: NoneStatus, note: "resource limits need a cgroup this runtime does not grant" },
     Row { verb: "run", flag: Some("--ulimit"), status: Native, note: "NAME=SOFT[:HARD], -1 for no limit, repeatable: set in the child before the exec on every rung and kept in the record for a detached run. A hard value over podvm's own is refused by name. fsize below 2 TiB ends a .NET payload with SIGXFSZ (T-1655)" },
     Row { verb: "run", flag: Some("--pid, --ipc, --uts, --userns"), status: NoneStatus, note: "the payload shares this machine's namespaces; there is no PID, IPC, UTS or user namespace to select" },
-    Row { verb: "run", flag: Some("--isolation"), status: NoneStatus, note: "there is no isolation backend to select: one chroot rung, chosen by the probe" },
+    Row { verb: "run", flag: Some("--isolation"), status: NoneStatus, note: "there is no isolation backend to select: the ladder selects the rung, and --podvm-tier selects a tier" },
     Row { verb: "run", flag: Some("--runtime"), status: NoneStatus, note: "one runtime, not a set: podvm enters a chroot and selects no OCI runtime" },
     Row { verb: "run", flag: Some("--security-opt"), status: Degraded, note: "no-new-privileges only: PR_SET_NO_NEW_PRIVS in the child before the exec (T-1655). Each other option (seccomp, apparmor, label) is refused by name: no security backend takes it" },
     Row { verb: "run", flag: Some("--group-add"), status: NoneStatus, note: "the runtime grants no supplementary groups; --user names the identity instead (TODO/interpose.md T-0711)" },
@@ -347,7 +347,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "images", flag: Some("--no-trunc"), status: Native, note: "print full IDs and digests" },
     Row { verb: "images", flag: Some("-a, --all"), status: Stub, note: "accepted for parity: podvm stores no intermediate images, so every image is already listed" },
     Row { verb: "images", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "images", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over repository and tag, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)" },
+    Row { verb: "images", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over repository and tag, and label=KEY[=VALUE] over the labels of the image (TODO/cli.md T-1331, T-1695)" },
     // ------------------------------------------------------- the rest's flags
     Row { verb: "rmi", flag: Some("-f, --force"), status: Stub, note: "accepted for parity. podvm never prompts, so there is no confirmation to suppress, and it refuses a held image whether or not this is given" },
     Row { verb: "rmi", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
@@ -415,7 +415,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "ps", flag: Some("--format"), status: Native, note: "the same template shape as the other verbs" },
     Row { verb: "ps", flag: Some("--podvm-tier"), status: Native, note: "podvm's own: incus acts on the instances of podvm in incus (the label user.podvm), never on another instance. With no flag, tier = incus in $store/config routes a name that is an instance of podvm in incus (TODO/machine.md T-1722)" },
     Row { verb: "ps", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
-    Row { verb: "ps", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over name and id prefix, label= matches nothing (records carry no labels) (TODO/cli.md T-1331)" },
+    Row { verb: "ps", flag: Some("-f, --filter"), status: Native, note: "caller-side predicate: name=<substring> over name and id prefix, and label=KEY[=VALUE] over the labels of --label (TODO/cli.md T-1331, T-1695)" },
     Row { verb: "stop", flag: Some("-t, --time, --timeout"), status: Native, note: "seconds between SIGTERM and SIGKILL. Default 10; 0 sends SIGKILL at once, as docker does (T-1691); a kill is reported on stderr" },
     Row { verb: "stop", flag: Some("--podvm-tier"), status: Native, note: "podvm's own: incus acts on the instances of podvm in incus (the label user.podvm), never on another instance. With no flag, tier = incus in $store/config routes a name that is an instance of podvm in incus (TODO/machine.md T-1722)" },
     Row { verb: "stop", flag: Some("-h, --help"), status: Native, note: "prints this verb's usage and exits 0" },
