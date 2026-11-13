@@ -22,6 +22,7 @@ mod hosts_tests; // TODO/deps.md T-1679
 mod images;
 mod incus;
 mod interpose;
+mod lab; // TODO/net.md T-1662
 mod ladder;
 mod lifecycle;
 mod machine;
@@ -67,6 +68,7 @@ usage: podvm <command> [options]
   man          render this manual from the binary's own usage strings
   profile      list and show the profiles that `run --profile` takes
   notebook     run cycles of a notebook that keep only one directory
+  lab          plan a network lab in one guest: scenarios, steps, verdicts
   probe-inside run podvm's probe inside an image and write what it gets there
   compare      compare a report of probe-inside with a reference
   pull         fetch an image into the content-addressed store
@@ -190,6 +192,7 @@ fn main() -> std::process::ExitCode {
         Some("man") => exit(man::man(rest)),
         Some("profile") => exit(profile::main(rest)), // TODO/cli.md T-1654
         Some("notebook") => exit(notebook::main(rest)), // TODO/cli.md T-1660
+        Some("lab") => exit(lab::main(rest)),         // TODO/net.md T-1662
         Some("probe-inside") => exit(sandprobe::probe_inside(rest)), // T-1666
         Some("compare") => exit(sandprobe::compare(rest)), // T-1666
         Some("pull") => exit(images::pull("pull", rest)),

@@ -866,6 +866,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-netlab"
+version = "0.34.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.34.0#ee514e740ffc61c595daf9c6e22deb0238fa1ece"
+dependencies = [
+ "pod-core",
+ "serde_json",
+]
+
+[[package]]
 name = "pod-oci"
 version = "0.34.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.34.0#ee514e740ffc61c595daf9c6e22deb0238fa1ece"
@@ -1040,6 +1049,7 @@ dependencies = [
  "pod-broker",
  "pod-core",
  "pod-incus",
+ "pod-netlab",
  "pod-proxy",
  "pod-services",
  "podvm-complete",

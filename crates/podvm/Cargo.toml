@@ -40,6 +40,8 @@ pod-incus = { git = "https://github.com/PodUtils/podcrates", tag = "v0.34.0" }
 # TODO/deps.md T-1679: the hosts of other parties (the guest kernel's
 # archive, the default server of login), one list in podcrates.
 pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.34.0" }
+# The offline part of a network lab: knobs, plan, verdicts (TODO/net.md T-1662).
+pod-netlab = { git = "https://github.com/PodUtils/podcrates", tag = "v0.34.0" }
 # TODO/net.md T-1665: the egress broker of `--net broker`, chained to the
 # host's proxy through `pod-proxy`.
 pod-broker = { git = "https://github.com/PodUtils/podcrates", tag = "v0.34.0" }

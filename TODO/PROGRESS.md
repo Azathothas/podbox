@@ -7,7 +7,7 @@ start.
 
 ## State
 
-361 entries: 10 open, 5 partial, 3 blocked, 343 done.
+361 entries: 9 open, 6 partial, 3 blocked, 343 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -51,8 +51,8 @@ that is not done. Read its Prove before you start. Set its status with
 2. The scope entries (issues 166 to 189, index issue 193), in this order:
    [T-1667](cli.md) (partial:
    the check of labs in a guest waits for the network entries); the network entries
-   [T-1662](net.md) (open: the host side of `podvm lab` on the offline
-   part of `pod-netlab`; the guest parts wait for podcrates@T-345 to
+   [T-1662](net.md) (partial: `podvm lab scenarios` and `plan` run; the
+   guest, the probes and the judge wait for podcrates@T-345 to
    podcrates@T-347), [T-1663](net.md) and [T-1664](net.md) (blocked: they
    run in the lab guest of T-1662).
 3. The record and the tree: [T-1744](interpose.md) (the open flags of the

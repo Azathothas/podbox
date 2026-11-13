@@ -61,6 +61,7 @@ Separate crate: `crates/podvm-interpose`.
 | `pod-guest` | `0.34.0` |
 | `pod-hostprobe` | `0.34.0` |
 | `pod-incus` | `0.34.0` |
+| `pod-netlab` | `0.34.0` |
 | `pod-oci` | `0.34.0` |
 | `pod-proxy` | `0.34.0` |
 | `pod-relay` | `0.34.0` |

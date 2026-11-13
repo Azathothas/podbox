@@ -182,6 +182,6 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #285 | COORD-064: podvm takes podcrates v0.32.0 and the trial of pod-relay (the answer to PodUtils/podcrates#93) (to podcrates) | closed | T-1678 |
 | #286 | COORD-065: podvm v0.2.0-beta.6 carries the aarch64 interposer (for PodUtils/podrunner#52) (to podrunner) | closed | T-1721 |
 | #287 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.7` on `2edace91` (AGENTS.md, section 9) |
-| #288 | COORD-066: podvm takes podcrates v0.34.0 (the answer to PodUtils/podcrates#103 and #104) (to podcrates) | open | T-1662 |
+| #288 | COORD-066: podvm takes podcrates v0.34.0 (the answer to PodUtils/podcrates#103 and #104) (to podcrates) | closed | T-1662 |
 | #289 | COORD-067: GNU tar with an absolute -C works where chroot is denied: the fortified opens take the path table (the answer to PodUtils/podcrates#102 and PodUtils/podrunner#70) (to podcrates) (to podrunner) | open | T-1743 |
 | #290 | COORD-068: podvm's answer to the asks V-1 to V-8 of podswarm (PodUtils/podcrates#124): entries T-1745 to T-1752 (to podcrates) | open | T-1745, T-1746, T-1747, T-1748, T-1749, T-1750, T-1751, T-1752 |

@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `podvm lab scenarios` and `podvm lab plan`, 2026-11-13
+
+Record: T-1662 (partial), PodUtils/podcrates#103.
+Deployed: not released.
+
+- `podvm lab scenarios` lists the 27 offline network labs of sand-net,
+  and `podvm lab plan SCENARIO` (or the knob flags `--stack`, `--nat`,
+  `--policy` and the rest) prints the steps that build and remove the lab
+  in a guest and the verdict that each probe must give. A bad knob exits
+  125 by name. `lab up`, `down`, `check`, `try` and `matrix` refuse until
+  the guest parts of `pod-netlab` exist.
+
 ## 0.2.0-beta.7 (2026-11-13)
 
 ### Fixed: GNU tar with an absolute `-C` where chroot is denied, 2026-11-13

@@ -17,8 +17,9 @@ Remove this file when each step below is done.
 * The newest release is `v0.2.0-beta.6`. The request for
   `v0.2.0-beta.7` (the gate, `arm.yml`, the nightly trial and the release,
   in one block, on `2edace91`) is issue 287; read its answer first. beta.7
-  carries T-1743 for PodUtils/podrunner@T-096. The commit that maps
-  issues 287 to 290 waits on the local `main` until issue 287 has run.
+  carries T-1743 for PodUtils/podrunner@T-096. The commits after
+  `2edace91` (the map of issues 287 to 290, and `podvm lab`) wait on the
+  local `main` until issue 287 has run.
 * podvm takes the crates of PodUtils/podcrates at `v0.34.0`.
 * The record is in the format of `pod-todo` (T-1672, call C17).
   `podvm-count --set T-NNNN STATUS` writes the status line and the row;
@@ -32,8 +33,6 @@ Remove this file when each step below is done.
 
 Each waits for a peer; podvm closes it when the peer answers.
 
-* COORD-066 (#288, to podcrates): the take of `v0.34.0`. Close it when
-  PodUtils/podcrates#104 records it.
 * COORD-067 (#289, to podcrates and podrunner): T-1743. Write the release
   of beta.7 into it; close it when podrunner pins beta.7.
 * COORD-068 (#290, to podcrates): the asks of podswarm are T-1745 to
@@ -55,10 +54,10 @@ Each waits for a peer; podvm closes it when the peer answers.
    `TODO/PROGRESS.md`), push the local commit, amend COORD-067 (#289) with
    the release, and close issue 287. On a failure, fix it, close issue 287
    and open a new request.
-2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662 (open:
-   `podvm lab` on the host with `pod-netlab`'s offline part; the first
-   clause of its Prove), then T-1722, T-1744 (its proof needs `arm.yml`),
-   T-1406.
+2. The work order of `TODO/PROGRESS.md`: T-1667 (partial), T-1662
+   (partial: `podvm lab scenarios` and `plan` are on the local `main`; the
+   guest parts wait for podcrates@T-345 to podcrates@T-347), then T-1722,
+   T-1744 (its proof needs `arm.yml`), T-1406.
 3. Blocked: T-1663 and T-1664 (they run in T-1662's lab guest), T-1714
    (podcrates@T-107).
 4. After podvm's own order: the podrunner part, then the asks of podswarm

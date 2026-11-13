@@ -336,7 +336,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1659](cli.md) | P2 | M | none | cli | done | Provider shapes and bare userlands as built-in profiles |
 | [T-1660](cli.md) | P2 | L | none | cli | done | `podvm notebook`: Jupyter and marimo cycles that keep one directory |
 | [T-1661](cli.md) | P2 | M | none | cli | done | Language runtime profiles: Node, Deno and Bun permissions, wasmtime and workerd |
-| [T-1662](net.md) | P2 | L | none | net | open | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
+| [T-1662](net.md) | P2 | L | none | net | partial | Network labs: NAT, IPv6, policy and impairment labs inside one guest |
 | [T-1663](net.md) | P2 | L | none | net | blocked | Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs |
 | [T-1664](net.md) | P2 | L | none | net | blocked | Observability: capture, counters and connection logs without `CAP_NET_RAW` |
 | [T-1665](net.md) | P2 | L | none | net | done | An egress broker, and the guest's view of a loopback-only proxy |
@@ -430,7 +430,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-361 entries: 10 open, 5 partial, 3 blocked, 343 done.
+361 entries: 9 open, 6 partial, 3 blocked, 343 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -441,9 +441,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 0 | 151 | 153 |
-| P2 | 4 | 1 | 3 | 112 | 120 |
+| P2 | 3 | 2 | 3 | 112 | 120 |
 | P3 | 6 | 2 | 0 | 15 | 23 |
-| **All** | 10 | 5 | 3 | 343 | 361 |
+| **All** | 9 | 6 | 3 | 343 | 361 |
 
 ## Work order
 

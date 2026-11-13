@@ -28,7 +28,7 @@ The current work order is [PROGRESS.md](PROGRESS.md).
 **Milestone:** none
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -125,6 +125,26 @@ clause of the Prove (the derived verdicts of two scenarios). The probe
 program in the guest (podcrates@T-345), the world (podcrates@T-346) and
 the run in the guest (podcrates@T-347) follow in podcrates; experiment
 418 waits for them.
+
+## Done
+
+**Partial 2026-11-13.** The host side of `podvm lab` on the offline part
+of `pod-netlab` (`v0.34.0`), in `crates/podvm/src/lab.rs`: `podvm lab
+scenarios` lists the 27 offline scenarios with their flags, and `podvm lab
+plan SCENARIO` (or the knob flags of sand-net) checks the knobs and prints
+the steps that build and remove the lab in the guest (namespaces
+`pv-NAME-g|r|w`), the verdict of each probe and the counters that must
+move or stay. Each knob flag has a row of the parity table; a bad knob or
+a contradiction exits 125 by name. `up`, `down`, `check`, `try` and
+`matrix` exit 125 and name the guest parts that they wait for. The first
+clause of the Prove holds: `cargo test -p podvm` exits 0 with
+`the_verdicts_of_two_scenarios_derive_from_their_knobs` (`dual-nat`:
+`tcp4-443` ALLOW and the counter `return` moves; `blackout`: `tcp4-443`
+DROPPED, `return` stays and `dropped` moves) and five more tests.
+Remaining: the guest with the lab kernel options and the module set of
+the modloop, the run of the steps and the probes in it, the judge of the
+counters, and experiment 418 (`lab try dual-nat`, `lab matrix`, a flushed
+chain fails the check); they wait for podcrates@T-345 to podcrates@T-347.
 
 # T-1663: Tunnels and live uplinks: WireGuard kill switch, WARP uplink, proxy-forced programs
 
