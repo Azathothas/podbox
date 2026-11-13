@@ -1,8 +1,8 @@
 # Handoff
 
-The state on 2026-11-13, after the release `0.2.0-beta.13` (issue 318).
+The state on 2026-11-13, after the release `0.2.0-beta.14` (issue 320).
 `0.2.0-beta.8` (issue 302) is the complete release for the beta testers
-(`docs/decisions.md`, "Complete release first"); beta.9 to beta.13 serve
+(`docs/decisions.md`, "Complete release first"); beta.9 to beta.14 serve
 podrunner's kinds and podswarm's V-2 and V-7. A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
@@ -38,6 +38,8 @@ host's devices on the userland rung under a user namespace).
 
 ## Open COORD issues
 
+* COORD-085 (#321): the engine of T-1780; close it when podrunner has
+  taken beta.14.
 * COORD-083 (#317): podcrates records the take of `v0.40.0`.
 * COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
   when podswarm or podcrates reads it.

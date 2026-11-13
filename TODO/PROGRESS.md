@@ -11,13 +11,13 @@ start.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.13` (2026-11-13, release run
-  43490018144 on `f99be8fd`; the gate 43485242857, `arm.yml` 43486833467
-  and the nightly trial 43487574960 passed first, through issue 318): the
-  channel of the incus tier with no proxy device (T-1779,
-  PodUtils/podrunner#90), `run` takes the probe from the cache (T-1746),
-  and podcrates `v0.40.0`. beta.12 (issue 315) gave the sealed run of the
-  machine tier (T-1751) and the flags of T-1779.
+* The newest release is `v0.2.0-beta.14` (2026-11-13, release run
+  43512350059 on `d8443ce8`; the gate 43509205484, `arm.yml` 43510876931
+  and the nightly trial 43511436790 passed first, through issue 320): a
+  container engine in a guest of the machine tier (`--podvm-engine`,
+  T-1780, PodUtils/podrunner#92), cgroup2 and `lo` in each guest. beta.13
+  (issue 318) gave the channel of the incus tier with no proxy device,
+  the probe cache of `run` and podcrates `v0.40.0`.
   `v0.2.0-beta.8` (release run 43399714037, issue 302) is the complete
   beta of the QA pass. `release.yml` needs a successful gate run on its
   commit; dispatch `nightly.yml` with `trial=true` on `main` first. A
