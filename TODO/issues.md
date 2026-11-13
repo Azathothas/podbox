@@ -185,7 +185,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #288 | COORD-066: podvm takes podcrates v0.34.0 (the answer to PodUtils/podcrates#103 and #104) (to podcrates) | closed | T-1662 |
 | #289 | COORD-067: GNU tar with an absolute -C works where chroot is denied: the fortified opens take the path table (the answer to PodUtils/podcrates#102 and PodUtils/podrunner#70) (to podcrates) (to podrunner) | closed | T-1743 |
 | #290 | COORD-068: podvm's answer to the asks V-1 to V-8 of podswarm (PodUtils/podcrates#124): entries T-1745 to T-1752 (to podcrates) | open | T-1745, T-1746, T-1747, T-1748, T-1749, T-1750, T-1751, T-1752 |
-| #291 | COORD-069: ask for a reader of the probe report in pod-hostprobe, so that run can use the probe cache (podvm T-1746, V-2 of podswarm) (to podcrates) | open (the reader is in podcrates v0.36.0; it closes when T-1746 is done) | T-1746 |
+| #291 | COORD-069: ask for a reader of the probe report in pod-hostprobe, so that run can use the probe cache (podvm T-1746, V-2 of podswarm) (to podcrates) | closed (T-1746 is done in be29f5d9 and released in v0.2.0-beta.13) | T-1746 |
 | #292 | [gh action] requested | closed (gate 43351811176, secrets 43351815639, arm 43351820031, all green on 845faba1) | none: a request of the gate, secrets and `arm.yml` on the head of `main` of 2026-11-13 (the commit that adds this row), for T-1662, T-1744, T-1748 and podcrates v0.35.0 (AGENTS.md, section 9) |
 | #293 | COORD-070: podvm takes podcrates v0.35.0 (the answer to PodUtils/podcrates#127) (to podcrates) | closed | T-1662, T-1746 |
 | #294 | COORD-071: ask for an overlay root in pod-enter's namespace rung: the image read-only under a tmpfs upper layer (podvm T-1749, V-5 of podswarm) (to podcrates) | open | T-1749 |
@@ -210,3 +210,5 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #315 | [gh action] requested | closed (gate 43468572134, arm 43471435973, trial 43472240628, release 43474394015, all green on c1a8d3e3) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.12` (AGENTS.md, section 9) |
 | #316 | COORD-082: --podvm-net none and --podvm-channel on the incus tier (the answer to PodUtils/podrunner#88) (to podrunner) | open | T-1779 |
 | #317 | COORD-083: podvm takes podcrates v0.40.0 (the answer to PodUtils/podcrates#140) (to podcrates) | open | - |
+| #318 | [gh action] requested | closed (gate 43485242857, arm 43486833467, trial 43487574960, release 43490018144, all green on f99be8fd) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.13` (AGENTS.md, section 9) |
+| #319 | COORD-084: the channel of the incus tier needs no proxy device (the answer to PodUtils/podrunner#90) (to podrunner) | open | T-1779 |

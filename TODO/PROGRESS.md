@@ -11,11 +11,13 @@ start.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.12` (2026-11-13, release run
-  43474394015 on `c1a8d3e3`; the gate 43468572134, `arm.yml` 43471435973
-  and the nightly trial 43472240628 passed first, through issue 315): the
-  sealed run of the machine tier (T-1751, ask V-7 of podswarm) and no NIC
-  with a host channel on the incus tier (T-1779, PodUtils/podrunner#88).
+* The newest release is `v0.2.0-beta.13` (2026-11-13, release run
+  43490018144 on `f99be8fd`; the gate 43485242857, `arm.yml` 43486833467
+  and the nightly trial 43487574960 passed first, through issue 318): the
+  channel of the incus tier with no proxy device (T-1779,
+  PodUtils/podrunner#90), `run` takes the probe from the cache (T-1746),
+  and podcrates `v0.40.0`. beta.12 (issue 315) gave the sealed run of the
+  machine tier (T-1751) and the flags of T-1779.
   `v0.2.0-beta.8` (release run 43399714037, issue 302) is the complete
   beta of the QA pass. `release.yml` needs a successful gate run on its
   commit; dispatch `nightly.yml` with `trial=true` on `main` first. A
@@ -26,14 +28,16 @@ The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
   `actions_run_trigger` answers "Actions has been disabled for this user".
   Each run of a cloud session is an issue `[gh action] requested`
   (`docs/decisions.md`, 2026-11-13, "Workflow fallback").
-* podvm takes the crates of PodUtils/podcrates at `v0.40.0` (`1335e9a`).
+* podvm takes the crates of PodUtils/podcrates at `v0.40.0` (`1335e9a`;
+  COORD-083, issue 317).
   A change of moved code goes to podcrates as a COORD issue.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a
   hosted arm64 runner (T-1721).
 * PodUtils/podrunner takes the betas for its kinds. COORD-079 (issue 307,
   T-1777), COORD-081 (issue 311, T-1778) and COORD-082 (issue 316,
-  T-1779) wait for its take of `0.2.0-beta.12`; COORD-077 (issue 303,
+  T-1779) and COORD-084 (issue 319, T-1779) wait for its take of
+  `0.2.0-beta.13`; COORD-077 (issue 303,
   T-1776) is closed.
 
 Each partial entry names its remaining clauses. Each blocked entry names
@@ -48,8 +52,8 @@ first entry that is not done. Read its Prove before you start. Check
 each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
-1. podrunner takes `0.2.0-beta.12` (COORD-079, issue 307; COORD-081,
-   issue 311; COORD-082, issue 316). The QA pass of
+1. podrunner takes `0.2.0-beta.13` (COORD-079, issue 307; COORD-081,
+   issue 311; COORD-082, issue 316; COORD-084, issue 319). The QA pass of
    experiment 443 is worked, and each of its entries is done. The copy
    of the rootfs on each run (11 s for golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:

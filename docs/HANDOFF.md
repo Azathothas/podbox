@@ -1,9 +1,9 @@
 # Handoff
 
-The state on 2026-11-13, after the release `0.2.0-beta.12` (issue 315).
+The state on 2026-11-13, after the release `0.2.0-beta.13` (issue 318).
 `0.2.0-beta.8` (issue 302) is the complete release for the beta testers
-(`docs/decisions.md`, "Complete release first"); beta.9 to beta.12 serve
-podrunner's kinds and podswarm's V-7. A fresh
+(`docs/decisions.md`, "Complete release first"); beta.9 to beta.13 serve
+podrunner's kinds and podswarm's V-2 and V-7. A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.
@@ -42,8 +42,7 @@ host's devices on the userland rung under a user namespace).
   `0.2.0-beta.11` (T-1777, T-1778).
 * COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
   when podswarm or podcrates reads it.
-* COORD-069 (#291): T-1746 is done on `main` (`run` reads the probe
-  cache); close it with the next release.
+* COORD-069 (#291): closed with beta.13, which carries T-1746.
 * COORD-071 (#294): an overlay root for T-1749 (podcrates@T-486, open).
 * COORD-041 (#260): `pod-netlab` for T-1662.
 
@@ -52,12 +51,11 @@ COORD-001 (#194), COORD-076 (#299) and COORD-080 (#309) are closed.
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
-2. podrunner takes `0.2.0-beta.12` for its `microvm` and `incus` kinds:
-   close COORD-079 (#307), COORD-081 (#311) and COORD-082 (#316) when it
-   says so. Close COORD-068 (#290) when podswarm or podcrates reads it
-   (V-7 is done in beta.12).
-3. podcrates `v0.40.0` is taken on `main` (PodUtils/podcrates#140): answer
-   there with the commit of the take; the next release carries it.
+2. podrunner takes `0.2.0-beta.13` for its `microvm` and `incus` kinds:
+   close COORD-079 (#307), COORD-081 (#311), COORD-082 (#316) and
+   COORD-084 (#319) when it says so. Close COORD-068 (#290) when podswarm
+   or podcrates reads it (V-2 and V-7 are done).
+3. Close COORD-083 (#317) when podcrates records the take of `v0.40.0`.
 4. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no
