@@ -3594,7 +3594,7 @@ with 405 names. The test `copy_tree_keeps_hard_links` holds it. Experiment
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3623,3 +3623,20 @@ The variable follows the CA step: `--no-host-cas` sets nothing.
 `sh experiments/443-qa-surface.sh` gives PASS for the row `tools.npm.ul`
 behind the proxy of the cloud host, and a test of the CA step holds the
 variable
+
+## Correction
+
+**2026-11-13.** The premise was wrong. `tools.npm.ns` passed behind the
+proxy in the QA pass, so node reached the registry through the trust that
+podvm gives the image. The row `tools.npm.ul` failed on `npm error
+syscall scandir ... ENOENT '/tmp/p'`: the `scandir64` of T-1754, not TLS.
+No variable is needed, and the test of the CA step that the Prove names
+has no subject.
+
+## Done
+
+**Done 2026-11-13, with no change.** With the interposer of T-1754, `run
+--rm -e https_proxy=... node:22-slim sh -c 'npm install is-number && node
+-e ...'` prints `true` on the namespace rung and on the chroot-denied
+fixture, behind the proxy of the cloud host. Experiment 443 runs
+`tools.npm.ul` again before the release.
