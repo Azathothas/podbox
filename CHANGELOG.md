@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.35.0, 2026-11-13
+
+Record: PodUtils/podcrates#127.
+Deployed: not released.
+
+- podvm takes the crates of podcrates at `v0.35.0`. `pod-oci` sends no
+  login to a registry over plain HTTP. No other behaviour of podvm
+  changes.
+
 ### Fixed: a foreground payload ends when its podvm is killed, 2026-11-13
 
 Record: T-1748, PodUtils/podcrates#124 (V-4).
