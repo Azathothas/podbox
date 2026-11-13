@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.13 (2026-11-13)
+
 ### Fixed: the channel of the incus tier needs no proxy device, 2026-11-13
 
 Record: T-1779, PodUtils/podrunner#90.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.13.
 
 - `--podvm-channel` on the incus tier mounts the host socket into the
   instance, and podvm's init relays `127.0.0.1:PORT` to it. The `proxy`
@@ -22,7 +24,7 @@ Deployed: not deployed; the next release carries it.
 ### Changed: `run` takes the probe from the cache, 2026-11-13
 
 Record: T-1746, PodUtils/podcrates#124 (ask V-2 of podswarm).
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.13.
 
 - `run` and `create` take the findings of the probe from
   `$PODVM_STORE/probe.json` where its key matches the confinement and
@@ -35,7 +37,7 @@ Deployed: not deployed; the next release carries it.
 ### Changed: podcrates v0.40.0, 2026-11-13
 
 Record: PodUtils/podcrates#140.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.13.
 
 - podvm takes the crates of podcrates at `v0.40.0`. The release adds
   carriers of `pod-link` and fields of `pod-job` that podvm does not use
