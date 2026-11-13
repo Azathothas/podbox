@@ -429,7 +429,7 @@ pub(super) fn enter(
 }
 
 /// A pidfd of `pid` (Linux 5.3), or `None`.
-fn pidfd_open(pid: i64) -> Option<std::os::fd::OwnedFd> {
+pub(crate) fn pidfd_open(pid: i64) -> Option<std::os::fd::OwnedFd> {
     use std::os::fd::FromRawFd;
     unsafe extern "C" {
         fn syscall(n: std::ffi::c_long, ...) -> std::ffi::c_long;
@@ -444,4 +444,19 @@ fn pidfd_open(pid: i64) -> Option<std::os::fd::OwnedFd> {
         )
     };
     (fd >= 0).then(|| unsafe { std::os::fd::OwnedFd::from_raw_fd(fd as i32) })
+}
+
+/// Join the mount namespace of the payload `pid`; false where it is
+/// refused (T-1775).
+pub(crate) fn join_mounts(pid: Option<i64>) -> bool {
+    use std::os::fd::AsRawFd;
+    unsafe extern "C" {
+        fn setns(fd: i32, nstype: i32) -> i32;
+    }
+    const CLONE_NEWNS: i32 = 0x0002_0000;
+    let Some(fd) = pid.and_then(crate::exec::enter::pidfd_open) else {
+        return false;
+    };
+    // SAFETY: a pidfd and a namespace type; podvm cp runs on one thread.
+    unsafe { setns(fd.as_raw_fd(), CLONE_NEWNS) == 0 }
 }

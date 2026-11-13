@@ -282,7 +282,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
     Ok(o)
 }
 
-mod enter;
+pub(crate) mod enter;
 use enter::*;
 
 mod command;

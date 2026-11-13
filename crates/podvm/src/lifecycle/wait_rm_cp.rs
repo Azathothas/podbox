@@ -176,11 +176,9 @@ pub fn rm(args: &[String]) -> i32 {
 }
 
 /// `rm` of one container. ⛔ TODO/supervise.md T-1708: `rm -f` of a running
-/// container stops it with SIGKILL through its launcher, which kills the
-/// payload's tree and writes the end. Where processes of the tree stayed
-/// after the kill, the record stays and the verb exits 125 naming the
-/// count: removing it would forget processes that still run in the rootfs.
-/// A later `rm` of that record removes it and names the count again.
+/// container stops it with SIGKILL through its launcher. Where processes of
+/// the tree stayed after the kill, the record stays and the verb exits 125
+/// naming the count; a later `rm` removes it and names the count again.
 pub(super) fn remove_tree(
     s: &podvm_image::Store,
     want: &str,
@@ -328,10 +326,16 @@ fn copy_named(
     if let Some((name, inside)) = split(arg)
         && let Ok(c) = podvm_supervise::get(s, &name)
     {
+        // T-1775: `cp` joins the mounts of a running payload of the
+        // namespace rung, as `exec` does (T-1765); `setns` moves the cwd.
+        let outside = std::path::absolute(outside).unwrap_or_else(|_| outside.to_path_buf());
+        if c.state == podvm_supervise::table::State::Running && c.rung == "namespace" {
+            crate::exec::enter::join_mounts(c.pid);
+        }
         return copy_one(
             std::path::Path::new(&c.rootfs),
             &inside,
-            outside,
+            &outside,
             out_of,
             recursive,
         );
@@ -401,16 +405,13 @@ pub(super) fn copy_one(
     recursive: bool,
 ) -> i32 {
     let joined = root.join(inside.trim_start_matches('/'));
-    // ⚠ Stat BEFORE gating: a symlink source is gated on its own path
-    // (its parent), never resolved. `within` resolves, so gating a link
-    // that points outside would refuse a replication that escapes
-    // nothing: distro rootfses are full of such links (`/etc/mtab
-    // -> /proc/self/mounts`, TODO/extract.md T-0305).
+    // ⚠ Stat BEFORE gating: a symlink source is gated on its parent, never
+    // resolved; `within` resolves, and `/etc/mtab -> /proc/self/mounts` of
+    // a distro escapes nothing (TODO/extract.md T-0305).
     let src_side: &std::path::Path = if out_of { &joined } else { outside };
     let src_is_link = is_link(src_side);
-    // ⛔ THE SAME CONTAINMENT GATE every other path in this tree takes. A
-    // path of `../../etc/shadow` is a request to touch outside the rootfs,
-    // and `cp` is the verb most likely to be handed one.
+    // ⛔ THE SAME CONTAINMENT GATE as each other path: `cp` is the verb most
+    // likely to be handed a `../../etc/shadow`.
     let target = if src_is_link && out_of {
         match joined.parent() {
             Some(parent) => match podvm_image::contain::within(root, parent) {

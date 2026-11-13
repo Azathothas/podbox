@@ -4143,7 +4143,7 @@ it. The half of `probe --json` stays T-1714.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4164,6 +4164,14 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.user-entrypoint.ns`, `run.user-node.ns`, and a test of the CLI holds the fix
+
+## Done
+
+**Done 2026-11-13.** `classify` of `crates/podvm/src/interpose.rs` follows
+the `#!` line of the first program (`interpose/shebang.rs`), so `-u` reaches
+a payload whose ENTRYPOINT is a script; where `-u` cannot reach the
+payload, the run refuses at 125. The rerun of experiment 443 ([the run](../experiments/results/qa-surface.txt))
+gives PASS for `run.user-entrypoint.ns` and `run.user-node.ns`.
 
 # T-1760: `-t` gives no terminal on the namespace rung, and says nothing
 
@@ -4465,3 +4473,52 @@ pwd` prints `/newdir` on the namespace rung and on the chroot-denied
 fixture. The test `a_missing_workdir_is_made_and_never_through_a_link`
 holds it; its first form found that `/a/../b` made `a`, and the walk now
 reads each component first.
+
+# T-1775: `cp` into a running container of the namespace rung writes under the run's tmpfs
+
+**Source:** experiment 443 (`experiments/443-qa-surface.sh`, the second rerun of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+After T-1765, `podvm cp FILE NAME:/tmp/F && podvm exec NAME cat /tmp/F`
+fails on the namespace rung: `exec` joins the payload's mount namespace,
+where /tmp is the run's tmpfs, and `cp` wrote into the /tmp of the rootfs
+under it. The row `life.cp-in.ns` passed before T-1765.
+
+## Premise
+
+The namespace rung mounts its tmpfs on the host path of the rootfs's /tmp,
+inside the payload's mount namespace, so a process that joins that
+namespace sees the tmpfs at the same host path.
+
+## Approach
+
+`cp` joins the payload's mount namespace before the copy, as `exec` does;
+the local path is made absolute first, because `setns` moves the working
+directory.
+
+## Decision
+
+A refused join copies into the rootfs, as before T-1765.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the row `life.cp-in.ns`, and a test of the CLI holds the fix
+
+## Done
+
+**Done 2026-11-13.** `copy_named` in `crates/podvm/src/lifecycle/wait_rm_cp.rs`
+calls `join_mounts` (`crates/podvm/src/exec/enter.rs`: a pidfd and
+`setns(CLONE_NEWNS)`) for a running container of the namespace rung, after
+it makes the local path absolute. On the cloud host, `cp cpin.txt
+qa-c:/tmp/cpin.txt` (a relative local path) then `exec qa-c cat
+/tmp/cpin.txt` prints `cpin`, and `cp qa-c:/tmp/r` copies the file that the
+run wrote to its /tmp. `PODVM_443_ONLY=life sh
+experiments/443-qa-surface.sh` on this binary gives PASS for each of its 76
+rows, `life.cp-in.ns` and `life.exec-sees-run-fs.ns` among them.
+

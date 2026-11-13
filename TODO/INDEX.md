@@ -428,10 +428,10 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1751](machine.md) | P3 | L | none | machine | open | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
 | [T-1752](cli.md) | P3 | M | none | cli | done | A versioned JSON Schema for the record of `run --report`, published in each release |
 | [T-1753](interpose.md) | P1 | M | none | interpose | done | The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens |
-| [T-1754](interpose.md) | P1 | S | none | interpose | open | `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails |
-| [T-1755](interpose.md) | P1 | S | none | interpose | open | `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails |
+| [T-1754](interpose.md) | P1 | S | none | interpose | done | `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails |
+| [T-1755](interpose.md) | P1 | S | none | interpose | done | `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails |
 | [T-1756](interpose.md) | P2 | S | none | interpose | done | A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored |
-| [T-1757](cli.md) | P1 | S | none | cli | open | `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root |
+| [T-1757](cli.md) | P1 | S | none | cli | done | `-u` is dropped on the namespace rung when the image has an ENTRYPOINT: the payload runs as root |
 | [T-1758](enter.md) | P1 | M | none | enter | done | The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing |
 | [T-1759](enter.md) | P1 | M | none | enter | done | No /dev/shm on either rung: python multiprocessing fails |
 | [T-1760](cli.md) | P2 | M | none | cli | partial | `-t` gives no terminal on the namespace rung, and says nothing |
@@ -449,10 +449,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1772](cli.md) | P2 | S | none | cli | done | `-w` with a directory that the image lacks is refused; docker creates it |
 | [T-1773](image.md) | P2 | S | none | image | done | A step of the completion fails on each run of the userland rung |
 | [T-1774](image.md) | P3 | S | none | image | open | busybox `head -c` of `/dev/urandom` stops at 1 MiB on the userland rung |
+| [T-1775](cli.md) | P1 | S | none | cli | done | `cp` into a running container of the namespace rung writes under the run's tmpfs |
 
 ## Counts
 
-383 entries: 7 open, 6 partial, 5 blocked, 365 done.
+384 entries: 4 open, 6 partial, 5 blocked, 369 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -462,10 +463,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 3 | 1 | 0 | 158 | 162 |
+| P1 | 0 | 1 | 0 | 162 | 163 |
 | P2 | 0 | 3 | 4 | 123 | 130 |
 | P3 | 4 | 2 | 1 | 19 | 26 |
-| **All** | 7 | 6 | 5 | 365 | 383 |
+| **All** | 4 | 6 | 5 | 369 | 384 |
 
 ## Work order
 

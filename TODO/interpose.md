@@ -3920,7 +3920,7 @@ users, the groups, the group list, `gethostbyname`, `gethostbyname2` and
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3942,6 +3942,13 @@ The fix in the interposer is podvm's; a cause in a crate of podcrates goes there
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.node-readdir-tmp.ul`, `tools.npm.ul`, and a test of the interposer holds the fix
 
+## Done
+
+**Done 2026-11-13.** The interposer maps `scandir64` and the other path
+calls of the audit of the common images (`crates/podvm-interpose/src/stat_calls/more.rs`).
+The rerun of experiment 443 ([the run](../experiments/results/qa-surface.txt)) gives PASS for
+`run.node-readdir-tmp.ul` and `tools.npm.ul`; the test of the audit holds it.
+
 # T-1755: `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails
 
 **Source:** experiment 443 (`experiments/443-qa-surface.sh`, the QA pass of 2026-11-13, [the run](../experiments/results/qa-surface.txt))
@@ -3949,7 +3956,7 @@ The fix in the interposer is podvm's; a cause in a crate of podcrates goes there
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3970,6 +3977,14 @@ The fix in the interposer is podvm's; a cause in a crate of podcrates goes there
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `tools.apt-install-ubu.ul`, and a test of the interposer holds the fix
+
+## Done
+
+**Done 2026-11-13.** The interposer maps `lutimes`, `futimesat` and the
+rest of the audit (`crates/podvm-interpose/src/stat_calls/more.rs`). The
+rerun of experiment 443 ([the run](../experiments/results/qa-surface.txt)) gives PASS for
+`tools.apt-install-ubu.ul`: `apt-get install` works in ubuntu on the
+chroot-denied fixture.
 
 # T-1756: A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored
 
