@@ -209,3 +209,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #312 | [gh action] requested | closed (gate 43440607600, arm 43442039218, trial 43442633044, release 43443421795, all green on 3db2126f) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.11` (AGENTS.md, section 9) |
 | #315 | [gh action] requested | closed (gate 43468572134, arm 43471435973, trial 43472240628, release 43474394015, all green on c1a8d3e3) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.12` (AGENTS.md, section 9) |
 | #316 | COORD-082: --podvm-net none and --podvm-channel on the incus tier (the answer to PodUtils/podrunner#88) (to podrunner) | open | T-1779 |
+| #317 | COORD-083: podvm takes podcrates v0.40.0 (the answer to PodUtils/podcrates#140) (to podcrates) | open | - |
