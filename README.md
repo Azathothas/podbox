@@ -16,13 +16,52 @@ The machine tier boots a Linux guest from an OCI image (`run
 --podvm-tier=machine`, TODO/machine.md T-1656), and Windows, DOS, and
 `machine ssh` guests.
 `--podvm-tier` also selects `incus` (an incusd over its REST API,
-T-1718), `emulate` (a static qemu-user, T-1651) and `syscall` (a static
-program on the native-static rung, T-1657).
+T-1718; `tier = incus` in `$store/config` selects it with no flag,
+T-1722), `runsc` (gVisor, rootless, T-1729), `emulate` (a static
+qemu-user, T-1651) and `syscall` (each system call through podvm's
+handler, T-1657, T-1731). `podvm lab` plans a network lab in one guest
+(T-1662), and the crate `podvm-api` runs podvm from Rust (T-1745).
 
 Read [the architecture](docs/architecture.md) for the execution paths.
 Read [the limits](docs/limits.md) before you select a path.
 [The generated source state](docs/runtime-state.md) names the current build inputs.
 [The work record](TODO/PROGRESS.md) gives current verification and remaining work.
+
+## Install
+
+Download the binary of your architecture from
+[the releases](https://github.com/PodUtils/podvm/releases), check it
+against its `.sha256`, and put it on `PATH`:
+
+```sh
+curl -fLO https://github.com/PodUtils/podvm/releases/download/TAG/podvm-x86_64
+curl -fLO https://github.com/PodUtils/podvm/releases/download/TAG/podvm-x86_64.sha256
+sha256sum -c podvm-x86_64.sha256
+install -m 0755 podvm-x86_64 ~/.local/bin/podvm
+podvm version --verbose
+```
+
+Each binary is static: it needs no library of the host. The release has
+binaries for x86_64, aarch64, armv7, i686, loongarch64, powerpc64le and
+riscv64gc; the interposer of the userland rung is in the x86_64 and
+aarch64 binaries. `podvm run --help` and `podvm man` list each flag, with
+the parity of each docker flag.
+
+## Report a problem
+
+Open [an issue](https://github.com/PodUtils/podvm/issues/new/choose) with
+the bug form. Give the command, the image with its tag, what you expected,
+and the output of:
+
+```sh
+podvm version --verbose
+podvm system info --format '{{.Version}} {{.Rung}} {{.EnteredRung}} {{.Platform}} {{.Kernel}}'
+podvm probe
+```
+
+Run the failing command again with `--verbose` (the banner names the
+mechanism that podvm entered) and, for `run`, with `--report report.json`,
+which records the rung, the exit code and the times of the run.
 
 ## Build on Linux
 

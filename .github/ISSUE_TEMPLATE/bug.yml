@@ -20,21 +20,30 @@ body:
     attributes:
       label: How to reproduce it
       description: >-
-        The smallest sequence that shows it. If it is intermittent, say how
-        often.
+        The smallest sequence that shows it, with the image and its tag. If it
+        is intermittent, say how often.
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
-      label: Environment
+      label: podvm and the host
       description: >-
-        Paste the output of the probe, which reports the host, the shell and
-        the tool versions.
-      placeholder: sh scripts/doctor/doctor.sh
+        Paste the output of these three commands. They name the build, the
+        rung that podvm selects on your host, and what the host permits.
+      placeholder: |
+        podvm version --verbose
+        podvm system info --format '{{.Version}} {{.Rung}} {{.EnteredRung}} {{.Platform}} {{.Kernel}}'
+        podvm probe
+      render: text
+    validations:
+      required: true
   - type: textarea
     id: logs
     attributes:
-      label: Output
-      description: Redact any credential before pasting. Check twice.
+      label: Output of the failing command
+      description: >-
+        Run it again with `--verbose` (the banner names the mechanism) and, for
+        `run`, with `--report report.json`, and paste both. Redact any
+        credential before pasting. Check twice.
       render: text
