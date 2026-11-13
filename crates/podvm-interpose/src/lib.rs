@@ -476,5 +476,8 @@ pub use raw_calls::*;
 mod sock_calls;
 pub use sock_calls::*;
 
+mod nss;
+pub use nss::*;
+
 #[cfg(test)]
 mod tests;

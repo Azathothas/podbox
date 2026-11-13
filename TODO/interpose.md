@@ -3874,7 +3874,7 @@ the interposer for `aarch64-unknown-linux-gnu` exits 0.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3895,6 +3895,23 @@ The fix in the interposer is podvm's; a cause in a crate of podcrates goes there
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.nss-hosts.ul`, `run.nss-hosts-musl.ul`, `run.nss-passwd.ul`, `run.nss-passwd-alpine.ul`, `run.user-node.ul`, and a test of the interposer holds the fix
+
+## Done
+
+**Done 2026-11-13.** The interposer exports the lookups of the databases
+(`crates/podvm-interpose/src/nss.rs`, `nss/hosts.rs`): `getpw*`, `getgr*`,
+`getgrouplist`, `initgroups`, `gethostbyname*` and `getaddrinfo`. Where
+`PODVM_MAPS` is set, each lookup reads the image's `/etc/passwd`,
+`/etc/group` or `/etc/hosts` through the path table with raw system calls
+into stack buffers; with no table, each lookup is libc's. A user or group
+that the image lacks is not found; a host name that the image's
+`/etc/hosts` lacks goes to libc (DNS). `PODVM_443_ONLY=run sh
+experiments/443-qa-surface.sh` gives PASS for the five rows of the Prove,
+and no row that passed before fails; the full capture comes with the rerun
+of experiment 443 before the release. The test
+`tests::nss::the_lookups_read_the_image_files` of the interposer holds the
+users, the groups, the group list, `gethostbyname`, `gethostbyname2` and
+`getaddrinfo`.
 
 # T-1754: `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails
 

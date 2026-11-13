@@ -427,7 +427,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1750](machine.md) | P3 | L | none | machine | open | `exec` into a running guest of the machine tier |
 | [T-1751](machine.md) | P3 | L | none | machine | open | The guest plan of shield `guest`: no host file in the guest, no network card, one serial channel |
 | [T-1752](cli.md) | P3 | M | none | cli | done | A versioned JSON Schema for the record of `run --report`, published in each release |
-| [T-1753](interpose.md) | P1 | M | none | interpose | open | The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens |
+| [T-1753](interpose.md) | P1 | M | none | interpose | done | The userland rung reads the host's /etc/hosts, /etc/passwd and /etc/group through libc's internal opens |
 | [T-1754](interpose.md) | P1 | S | none | interpose | open | `scandir64` and other 64-bit directory calls skip the path table: node lists the host's /etc, npm install fails |
 | [T-1755](interpose.md) | P1 | S | none | interpose | open | `lutimes` skips the path table: dpkg fails on each package, so apt-get install fails |
 | [T-1756](interpose.md) | P2 | S | none | interpose | open | A trigger of apk runs `/bin/busybox` by an absolute path that is not anchored |
@@ -449,7 +449,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-380 entries: 21 open, 5 partial, 4 blocked, 350 done.
+380 entries: 20 open, 5 partial, 4 blocked, 351 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -459,10 +459,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 8 | 1 | 0 | 153 | 162 |
+| P1 | 7 | 1 | 0 | 154 | 162 |
 | P2 | 8 | 2 | 4 | 114 | 128 |
 | P3 | 5 | 2 | 0 | 18 | 25 |
-| **All** | 21 | 5 | 4 | 350 | 380 |
+| **All** | 20 | 5 | 4 | 351 | 380 |
 
 ## Work order
 

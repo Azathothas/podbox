@@ -90,6 +90,28 @@
     execl;
     execlp;
     execle;
+    /* T-1753: the databases of the image, which libc reads past open. */
+    getpwnam;
+    getpwuid;
+    getpwnam_r;
+    getpwuid_r;
+    getpwent;
+    setpwent;
+    endpwent;
+    getgrnam;
+    getgrgid;
+    getgrnam_r;
+    getgrgid_r;
+    getgrent;
+    setgrent;
+    endgrent;
+    getgrouplist;
+    initgroups;
+    gethostbyname;
+    gethostbyname2;
+    gethostbyname_r;
+    gethostbyname2_r;
+    getaddrinfo;
     /* T-1743: the fortified opens of glibc. */
     __open_2;
     __open64_2;
