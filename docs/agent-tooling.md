@@ -49,6 +49,8 @@ Use shell tools (`git`, `curl`, `cargo`, `gh`) before MCP tools.
 For a read-only query of GitHub, use a mirror that `AGENTS.md`, section 4, names.
 Dispatch a workflow of this repository with the GitHub tool
 `actions_run_trigger` (`AGENTS.md`, section 9, item 5).
+When the dispatch fails, open an issue titled `[gh action] requested` in the
+form of the same item.
 [Remote rules](security/remote-ops.md) govern each route.
 
 For the parked Windows lane, use `wsl-toolkit --instance podvm` from

@@ -180,9 +180,35 @@ watches them.
 
 5. A session dispatches the workflows of this repository itself, with the
    GitHub tool `actions_run_trigger` (the owner's account), and reads the
-   run with `actions_list` and `get_job_logs`. The issues titled
-   `[gh action] requested` are superseded (`docs/decisions.md`,
+   run with `actions_list` and `get_job_logs` (`docs/decisions.md`,
    2026-11-09, "Workflow dispatch").
+
+   When a session cannot start a run (the tool refuses the dispatch, no
+   run starts, GitHub Actions is disabled for its pushing account, or it
+   may not push a tag), it opens a NEW issue in this repository titled
+   exactly `[gh action] requested`, one for each run (`docs/decisions.md`,
+   2026-11-13, "Workflow fallback"). COORD issues stay the channel to the
+   other sessions; a COORD issue that waits for the run names the request.
+   The owner's local agent that runs the request is a smaller model, so
+   the body holds nothing that needs judgement:
+
+   * one line that says why;
+   * ONE `sh` block: `set -e` first, each `gh` command in full (`-R
+     OWNER/NAME` and every flag), and a last line that echoes the run ids;
+   * the closing sentence: "Run the block as it is, once. Then write here:
+     the output of the last line, or the line where it stopped and its
+     error."
+
+   Never amend the block of an open request, and never add a second block
+   in a comment: close the issue and open a new one. If the block checks
+   the head of `main`, push nothing to `main` until it ran. Example block:
+
+   ```sh
+   set -e
+   gh workflow run gate.yml -R PodUtils/podvm --ref main
+   sleep 10
+   echo "run ids: $(gh run list -R PodUtils/podvm --workflow gate.yml --branch main --limit 1 --json databaseId --jq '.[].databaseId')"
+   ```
 
 ## 10. Decisions
 
