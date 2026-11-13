@@ -122,8 +122,9 @@ stays `done`: everything it claimed to deliver is delivered and its
 
 The source build produces separate `node`, `operator`, `proxy`, and `shell` executables.
 The remote CLI needs compatible helpers beside podvm or on PATH.
-Each release target since beta.10 carries the helper archive
-(T-1405 in [podssh](../TODO/podssh.md)). The beta.9 assets contain podvm only.
+Each release target since `v0.1.0-beta.10` carries the helper archive
+(T-1405 in [podssh](../TODO/podssh.md)). The `v0.1.0-beta.9` assets contain
+the CLI only.
 
 The relay legs carry a 10 s bound on each connection, pings on each
 socket, and a 10 s write bound on the server of each session; a stalled

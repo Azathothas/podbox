@@ -37,6 +37,7 @@ clauses in its own record:
 | [T-1740](enter.md) | a cheaper mechanism for the syscall tier |
 | [T-1749](enter.md) | the root with no copy (COORD-071 for the namespace rung; the loader family is podvm's) |
 | [T-1350](gate.md) | the wrapper of the parked Windows lane |
+| [T-1751](machine.md) | podswarm's shield `guest`: no host file in the guest |
 
 ## Facts that save time
 
@@ -48,8 +49,9 @@ clauses in its own record:
 * The Windows lane on wsl-toolkit is parked (`docs/containers.md`). A
   cloud session does not need it.
 * The files that podcrates imported are frozen until podvm takes the
-  crate (`AGENTS.md`, section 9, item 4). podvm took each of its 11 crates
-  at `v0.17.0` (T-1655). A fix of moved code goes to podcrates as a
+  crate (`AGENTS.md`, section 9, item 4). The hand-over is done (T-1681),
+  and the manifests of podvm name each `pod-*` crate at `v0.39.0`
+  (COORD-080, issue 309). A fix of moved code goes to podcrates as a
   COORD issue.
 * `refactor/` is not on `main`. It is on the branch
   `archive/podbox-worktree` (`docs/history/worktree-archive.md`). T-1673
