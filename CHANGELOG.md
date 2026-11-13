@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the crate podvm-api, a typed call for `run`, 2026-11-13
+
+Record: T-1745, PodUtils/podcrates#124 (V-1).
+Deployed: not released.
+
+- A program that runs podvm can link `podvm-api` (by the git tag of this
+  repository): a typed `Run` request starts the podvm binary of the same
+  version and gives back the record of `--report`. The values of the
+  environment go through a private env file, never through argv.
+
 ### Added: the JSON Schema of `run --report`, 2026-11-13
 
 Record: T-1752, PodUtils/podcrates#124 (V-8).

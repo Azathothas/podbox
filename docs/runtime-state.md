@@ -28,6 +28,7 @@ Declared version: `0.2.0-beta.7`.
 | `podvm-windows` | [crates/podvm-windows/Cargo.toml](../crates/podvm-windows/Cargo.toml) |
 | `podvm-ssh` | [crates/podvm-ssh/Cargo.toml](../crates/podvm-ssh/Cargo.toml) |
 | `podvm-todo` | [crates/podvm-todo/Cargo.toml](../crates/podvm-todo/Cargo.toml) |
+| `podvm-api` | [crates/podvm-api/Cargo.toml](../crates/podvm-api/Cargo.toml) |
 
 Separate crate: `crates/podvm-interpose`.
 

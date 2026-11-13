@@ -1052,6 +1052,7 @@ dependencies = [
  "pod-netlab",
  "pod-proxy",
  "pod-services",
+ "podvm-api",
  "podvm-complete",
  "podvm-dispatch",
  "podvm-enter",
@@ -1066,6 +1067,13 @@ dependencies = [
  "tokio",
  "toml",
  "xz4rust",
+]
+
+[[package]]
+name = "podvm-api"
+version = "0.2.0-beta.7"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]

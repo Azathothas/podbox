@@ -53,3 +53,8 @@ podvm-supervise = { path = "../podvm-supervise" }
 # because the whole guest side is `cmd.exe` and a FAT mailbox and none of it
 # shares a line with the OCI path.
 podvm-windows = { path = "../podvm-windows" }
+
+[dev-dependencies]
+# TODO/cli.md T-1745: each flag that podvm-api writes has a row of the
+# parity table, and a run through podvm-api reads its record.
+podvm-api = { path = "../podvm-api" }

@@ -3971,7 +3971,7 @@ clause 35.
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4001,6 +4001,33 @@ the ladder and the rungs of podvm. podswarm takes it by git tag.
 
 `cargo test -p podvm` exits 0, with a test that starts `true` through the
 call and reads its record (exit code 0, the entered rung)
+
+## Correction
+
+**Amended 2026-11-13.** The call is the crate `podvm-api`, not a public
+module of the crate `podvm`, and it spawns the podvm binary of the same
+version (`docs/decisions.md`, call C20): a run in the caller's process
+would make the caller the subreaper of the payload's tree, arm
+`PR_SET_PDEATHSIG` on its thread and give the payload its streams. The
+CLI of `run` stays the one path of a run; the crate holds the map of a
+typed request to its argv, and podvm's parity test holds the map.
+
+## Done
+
+**Done 2026-11-13.** `crates/podvm-api` (one dependency, `serde_json`):
+`Run` (image, command, environment, volumes, workdir, labels, ulimits,
+timeout, tier, confine, pull) with `check`, `argv`, `job` and `run`; `Job`
+(a private directory of mode 0700, the env file of mode 0600, the
+`Command` that the caller can change) and `Report` (the record of layout
+1; another version is refused). `cargo test -p podvm-api` passes (4
+tests). `cargo test -p podvm` passes with
+`a_run_through_the_api_gives_its_record` (`tests/api.rs`: an imported
+one-file image runs through the call, the record names the rung, the
+labels and exit code 0 and holds no value of the environment; a missing
+image gives a record with `refused`) and
+`each_flag_of_podvm_api_has_a_served_run_row`, which fails with
+`--workdir` renamed in the crate.
+
 
 # T-1747: `--memory`, `--cpus` and `--pids-limit` by cgroup2 where a subtree is delegated
 

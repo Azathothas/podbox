@@ -7,7 +7,7 @@ start.
 
 ## State
 
-361 entries: 4 open, 7 partial, 4 blocked, 346 done.
+361 entries: 3 open, 7 partial, 4 blocked, 347 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -60,8 +60,8 @@ that is not done. Read its Prove before you start. Set its status with
 5. After podvm's own order (the owner's ruling "Priority",
    2026-11-09): the podrunner part (issues 229 to 240) and the clauses
    of PodUtils/podcrates#39; then the asks of podswarm
-   (PodUtils/podcrates#124): [T-1745](cli.md), [T-1747](cli.md) and
-   [T-1749](enter.md) to [T-1751](machine.md); V-4 and V-8 are done, and
+   (PodUtils/podcrates#124): [T-1747](cli.md), [T-1749](enter.md) to
+   [T-1751](machine.md); V-1, V-4 and V-8 are done, and
    [T-1746](probe.md) (V-2) is blocked on a reader
    of the probe report in `pod-hostprobe` (COORD-069, issue 291). Each ask has a
    fallback in podswarm.

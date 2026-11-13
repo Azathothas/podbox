@@ -66,8 +66,10 @@ Each waits for a peer; podvm closes it when the peer answers.
    then T-1722 (needs incus, which the cloud host lacks), T-1406.
 3. Blocked: T-1663 and T-1664 (they run in T-1662's lab guest), T-1714
    (podcrates@T-107), T-1746 (podcrates@T-485).
-4. After podvm's own order: the asks of podswarm, T-1745, T-1747 and
-   T-1749 to T-1751 (P3; T-1748 and T-1752 are done).
+4. After podvm's own order: the asks of podswarm, T-1747 (needs a host
+   with a delegated cgroup2 subtree), T-1749 (partial; COORD-071 asks
+   podcrates for the overlay root), T-1750 and T-1751 (P3). T-1745, T-1748
+   and T-1752 are done.
 5. Before an entry is set done, run `cargo test -p podvm`: the test
    `each_listed_gap_names_an_entry_that_is_not_done` reads the record.
    The record tests of `podvm-todo` read the files on disk, so do not edit

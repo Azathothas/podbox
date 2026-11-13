@@ -16,6 +16,7 @@ members = [
     "crates/podvm-windows",
     "crates/podvm-ssh",
     "crates/podvm-todo",
+    "crates/podvm-api",
 ]
 
 # ⛔ podvm-interpose is NOT a workspace member. It is a cdylib that runs inside

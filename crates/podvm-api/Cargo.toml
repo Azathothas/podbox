@@ -1,0 +1,13 @@
+[package]
+name = "podvm-api"
+description = "The typed request of podvm run and its report, for a program that runs podvm (TODO/cli.md T-1745)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# ⭐ One dependency: the caller links this crate, not podvm. The crate spawns
+# the podvm binary of the same version and reads its report (T-1745).
+[dependencies]
+serde_json.workspace = true

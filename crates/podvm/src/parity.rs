@@ -454,4 +454,6 @@ mod lookup;
 pub use lookup::*;
 
 #[cfg(test)]
-mod tests;
+mod api_tests;
+#[cfg(test)]
+mod tests; // TODO/cli.md T-1745
