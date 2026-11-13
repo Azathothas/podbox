@@ -16,8 +16,10 @@
 //! execute of the system directories of the image that exist (`/bin`,
 //! `/sbin`, `/usr`, `/lib`, `/lib64`, `/lib32`, and podvm's own `/.podvm`), read of `/proc`, and
 //! the device nodes `/dev/null` (read and write), `/dev/zero`,
-//! `/dev/random` and `/dev/urandom` (read). `/etc` is not among them: a
-//! profile names each file of `/etc` that it reads.
+//! `/dev/random` and `/dev/urandom` (read), and the files of `/etc` that
+//! the dynamic loader reads before `main` (`/etc/ld.so.cache` of glibc,
+//! `/etc/ld-musl-ARCH.path` of musl; TODO/enter.md T-1764). Each other file
+//! of `/etc` is not among them: a profile names each file that it reads.
 
 pub use pod_confine::{Access, Spec};
 
@@ -28,7 +30,17 @@ pub const SYSTEM_EXEC: &[&str] = &[
     "/bin", "/sbin", "/usr", "/lib", "/lib64", "/lib32", "/.podvm",
 ];
 /// The paths that a program reads at its start.
-pub const SYSTEM_READ: &[&str] = &["/proc", "/dev/zero", "/dev/random", "/dev/urandom"];
+/// Without `/etc/ld.so.cache`, glibc's loader searches only `/lib` and
+/// `/usr/lib`, so python of `/usr/local/lib` did not start (T-1764).
+pub const SYSTEM_READ: &[&str] = &[
+    "/proc",
+    "/dev/zero",
+    "/dev/random",
+    "/dev/urandom",
+    "/etc/ld.so.cache",
+    "/etc/ld-musl-x86_64.path",
+    "/etc/ld-musl-aarch64.path",
+];
 /// The paths that a program writes at its start.
 pub const SYSTEM_WRITE: &[&str] = &["/dev/null"];
 
@@ -247,8 +259,10 @@ mod tests {
             "a path the image lacks has no rule"
         );
         assert!(
-            !paths.iter().any(|p| p.starts_with("/etc")),
-            "/etc is not given"
+            !paths
+                .iter()
+                .any(|p| p.starts_with("/etc") && !SYSTEM_READ.contains(p)),
+            "/etc is not given, beyond the files of the loader (T-1764)"
         );
         let ws = s.paths.iter().find(|r| r.path == "/workspace").unwrap();
         assert!(ws.access.contains(Access::READ) && !ws.access.contains(Access::WRITE));
@@ -256,6 +270,23 @@ mod tests {
         assert!(tool.access.contains(Access::EXECUTE));
         assert_eq!(s.connect, Some(vec![443]));
         assert!(!s.deny.is_empty(), "the default deny list of pod-confine");
+    }
+
+    #[test]
+    fn the_loader_reads_its_cache_under_each_spec() {
+        // TODO/enter.md T-1764: python of /usr/local/lib needs ld.so.cache.
+        let ask = parse("read=/usr;write=/tmp").unwrap();
+        let s = spec(&ask, &|p| p == "/etc/ld.so.cache" || p == "/usr");
+        let has = |p: &str| {
+            s.paths
+                .iter()
+                .any(|r| r.path == p && r.access == Access::READ)
+        };
+        assert!(has("/etc/ld.so.cache"), "{:?}", s.paths);
+        assert!(
+            !has("/etc/ld-musl-x86_64.path"),
+            "a file that the image lacks gets no rule"
+        );
     }
 
     #[test]

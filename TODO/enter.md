@@ -3599,7 +3599,7 @@ It is a directory, not a tmpfs: `--shm-size` stays unserved.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3620,3 +3620,18 @@ The fix in the entry is podvm's; a cause in a crate of podcrates goes there as a
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.confine-py.ns`, and a test of the entry holds the fix
+
+## Done
+
+**Done 2026-11-13.** `SYSTEM_READ` of `crates/podvm-enter/src/confine.rs`
+now holds the files of /etc that the dynamic loader reads before `main`:
+`/etc/ld.so.cache` (glibc) and `/etc/ld-musl-x86_64.path` and
+`/etc/ld-musl-aarch64.path` (musl). Each gets a read rule where the image
+has it. Without the cache, glibc's loader searched only /lib and /usr/lib,
+and python of /usr/local/lib did not start. By hand on the cloud host:
+`run --podvm-confine 'read=/usr;write=/tmp' python:3.12-slim python3 -c
+'open("/etc/hostname").read()'` now raises `PermissionError` on
+/etc/hostname, as the row expects. The test
+`the_loader_reads_its_cache_under_each_spec` holds the rule, and the old
+test still holds that no other file of /etc gets one. The row of the Prove
+comes with the rerun of experiment 443 before the release.
