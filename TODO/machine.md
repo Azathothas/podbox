@@ -2427,7 +2427,9 @@ that podrunner's `microvm` kind can run an untrusted job: `--podvm-net
 none` boots the guest with `-nic none` and no NIC module, and
 `--podvm-channel HOST_SOCKET:127.0.0.1:PORT` gives the guest one
 `virtio-serial` port, `podvm.ch`, on a chardev socket of the run
-(`crates/podvm/src/machine/guest/channel.rs`). In the guest, `podvm
+(`crates/podvm/src/machine/guest/channel.rs`). The socket is in a
+directory of its own, mode 0700: QEMU's chardev server takes its first
+client, and no other user may be that client. In the guest, `podvm
 guest-channel PORT` listens on the loopback port and opens one stream of
 `pod-link` for each connection; on the host, podvm dials `HOST_SOCKET` for
 each stream. Both flags are refused on each other tier, and `--podvm-net

@@ -149,6 +149,12 @@ pub const RUN_OPTIONS: &str = "\
                    starts, naming both numbers (TODO/machine.md T-1305)
   --podvm-cpus N  podvm's own, machine tier only and refused elsewhere: the
                    guest's vCPUs, 1 to 64 (TODO/cli.md T-1654)
+  --podvm-net none  podvm's own, machine tier only: the guest has no NIC,
+                   and `ip link` shows lo only (TODO/machine.md T-1751)
+  --podvm-channel HOST_SOCKET:127.0.0.1:PORT  podvm's own, machine tier
+                   only: each TCP connection to PORT in the guest reaches
+                   the Unix socket HOST_SOCKET of the host, over one
+                   virtio-serial port (TODO/machine.md T-1751)
   --report PATH    podvm's own: one JSON document of the run at PATH,
                    written with a rename at its end, also when podvm refuses
                    before the start: the image and its digest, the rung,

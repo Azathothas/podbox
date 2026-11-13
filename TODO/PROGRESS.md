@@ -7,19 +7,19 @@ start.
 
 ## State
 
-385 entries: 3 open, 6 partial, 4 blocked, 372 done.
+385 entries: 2 open, 6 partial, 4 blocked, 373 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.8` (2026-11-13, release run
-  43399714037 on `2dde7df0`; the gate 43394989985, `arm.yml` 43397131676
-  and the nightly trial 43398052471 passed first, through issue 302): the
-  fixes of the QA pass of experiment 443, and podcrates `v0.37.0`. Its
-  `podvm-x86_64` checks against its `.sha256` and reports `podvm
-  0.2.0-beta.8`. `release.yml` needs a successful gate run on its commit;
-  dispatch `nightly.yml` with `trial=true` on `main` first. A request
-  asks for one dispatch of the gate: two runs of it cancel each other
-  (issue 301).
+* The newest release is `v0.2.0-beta.9` (2026-11-13, release run
+  43409438385 on `11008d62`; the gate 43403642262, `arm.yml` 43406008482
+  and the nightly trial 43406658216 passed first, through issue 306): the
+  owners in a guest of the machine tier, the guest with no NIC and one
+  channel, and podcrates `v0.38.0`. `v0.2.0-beta.8` (release run
+  43399714037, issue 302) is the complete beta of the QA pass.
+  `release.yml` needs a successful gate run on its commit; dispatch
+  `nightly.yml` with `trial=true` on `main` first. A request asks for one
+  dispatch of the gate: two runs of it cancel each other (issue 301).
 * GitHub Actions is disabled for the account that a cloud session pushes
   and dispatches with (2026-11-13): a push starts no run, and
   `actions_run_trigger` answers "Actions has been disabled for this user".
@@ -46,14 +46,10 @@ first entry that is not done. Read its Prove before you start. Check
 each claim that an entry waits against the code and the crates. Set its
 status with `podvm-count` in the same commit as the work.
 
-1. The next beta, `0.2.0-beta.9`: podcrates `v0.38.0` (`tty` on the
-   namespace rung, the knob flags of `lab`), the owners in a guest of the
-   machine tier (PodUtils/podrunner#81) and the guest with no NIC and one
-   channel ([T-1751](machine.md),
-   partial; PodUtils/podrunner#83). The QA pass of experiment 443 (518
-   PASS, 64 FAIL) is worked; the merged reruns give 578 PASS, 5 FAIL, and
-   each of the five is closed or open by name. Open: [T-1774](image.md)
-   (P3). The copy of the rootfs on each run (11 s for golang) is T-1749.
+1. podrunner takes `0.2.0-beta.9` (COORD-077, issue 303). The QA pass of
+   experiment 443 is worked, and each of its entries is done. The rest of
+   [T-1751](machine.md) (partial) is podswarm's: no host file in the
+   guest. The copy of the rootfs on each run (11 s for golang) is T-1749.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)

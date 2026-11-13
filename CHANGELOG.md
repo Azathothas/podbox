@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the help of the channel, and the directory of its socket, 2026-11-13
+
+Record: T-1751.
+Deployed: not released.
+
+- `run --help` and `podvm man` list `--podvm-net` and `--podvm-channel`.
+- The socket of the channel is in a directory of mode 0700, new for each
+  run: no other user of the host can connect to it before podvm.
+
 ## 0.2.0-beta.9 (2026-11-13)
 
 ### Fixed: `tty` on the namespace rung, the knob flags of `lab`, the owners in a guest, 2026-11-13

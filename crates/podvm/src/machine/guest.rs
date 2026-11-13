@@ -357,8 +357,11 @@ pub fn boot(r: &Request) -> i32 {
     }
     // TODO/machine.md T-1751: the one channel to a host socket.
     if r.channel.is_some() {
-        let _ = std::fs::remove_file(channel::socket_path(&sock));
-        extra.extend(channel::argv(&channel::socket_path(&sock)));
+        let ch = channel::socket_path(&sock);
+        if let Err(e) = channel::make_dir(&ch) {
+            return fail(format!("the directory of the channel socket: {e}"));
+        }
+        extra.extend(channel::argv(&ch));
     }
     for (v, (host, _, _)) in vols.iter().zip(&r.volumes) {
         extra.push("-virtfs".to_string());
@@ -409,7 +412,9 @@ pub fn boot(r: &Request) -> i32 {
     let code = drive(r, &qemu, &argv, &nonce, &dir, &sock);
     let _ = std::fs::remove_file(&sock);
     let _ = std::fs::remove_file(tty::socket_path(&sock));
-    let _ = std::fs::remove_file(channel::socket_path(&sock));
+    if let Some(d) = channel::socket_path(&sock).parent() {
+        let _ = std::fs::remove_dir_all(d);
+    }
     let _ = std::fs::remove_dir_all(&dir);
     code
 }

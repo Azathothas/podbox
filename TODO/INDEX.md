@@ -448,13 +448,13 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1771](image.md) | P2 | S | none | image | done | node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy |
 | [T-1772](cli.md) | P2 | S | none | cli | done | `-w` with a directory that the image lacks is refused; docker creates it |
 | [T-1773](image.md) | P2 | S | none | image | done | A step of the completion fails on each run of the userland rung |
-| [T-1774](image.md) | P3 | S | none | image | open | busybox `head -c` of `/dev/urandom` stops at 1 MiB on the userland rung |
+| [T-1774](image.md) | P3 | S | none | image | done | busybox `head -c` of `/dev/urandom` stops at 1 MiB on the userland rung |
 | [T-1775](cli.md) | P1 | S | none | cli | done | `cp` into a running container of the namespace rung writes under the run's tmpfs |
 | [T-1776](machine.md) | P1 | S | none | machine | done | Each file of a guest of the machine tier belongs to root |
 
 ## Counts
 
-385 entries: 3 open, 6 partial, 4 blocked, 372 done.
+385 entries: 2 open, 6 partial, 4 blocked, 373 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -466,8 +466,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 2 | 0 | 163 | 165 |
 | P2 | 0 | 2 | 4 | 124 | 130 |
-| P3 | 3 | 2 | 0 | 20 | 25 |
-| **All** | 3 | 6 | 4 | 372 | 385 |
+| P3 | 2 | 2 | 0 | 21 | 25 |
+| **All** | 2 | 6 | 4 | 373 | 385 |
 
 ## Work order
 

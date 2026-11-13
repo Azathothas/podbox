@@ -3690,7 +3690,7 @@ fixture, `run --rm python:3.12-slim true` exits 0 with nothing on stderr.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3714,3 +3714,21 @@ podvm fixes it where the cause is the interposer; a cause in a crate of podcrate
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the row `run.urandom.ul`, and a test of the interposer holds the fix
+
+## Correction
+
+**2026-11-13.** The Premise was a dash. `strace` of the row on a fresh tree
+of the QA store shows busybox `head` reading the device node of the run's
+tree (`.../trees/ID/rootfs/dev/urandom`), and the row prints 2000000. The
+1 MiB end is the size of the regular file that the completion writes in
+place of `/dev/urandom` where mknod(2) is refused (T-0401, the dev shim,
+which `--strict` names), as in experiment 356 under a user namespace. The
+failing rows of the QA pass read a tree that held such a file.
+
+## Done
+
+**Done 2026-11-13, with no change.** On the chroot-denied fixture, `run
+--rm alpine sh -c 'head -c 2000000 /dev/urandom | wc -c'` prints 2000000
+on a fresh tree. The shim that ends at 1 MiB is the documented
+substitution of T-0401, not a defect of the interposer.
+

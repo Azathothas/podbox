@@ -52,9 +52,20 @@ pub fn parse(verb: &str, a: &str) -> Result<(PathBuf, u16), i32> {
     Ok((PathBuf::from(host), port))
 }
 
-/// The chardev socket of the run, beside the stderr socket.
+/// The chardev socket of the run, in a directory of its own beside the
+/// stderr socket (a short path: a Unix socket path has at most 108 bytes).
+/// QEMU's chardev server takes its first client, so no other user may
+/// reach the socket before podvm: [`make_dir`] makes the directory 0700.
 pub fn socket_path(err_sock: &Path) -> PathBuf {
-    err_sock.with_extension("ch")
+    err_sock.with_extension("chd").join("s")
+}
+
+/// Make the directory of [`socket_path`], mode 0700, new for this run.
+pub fn make_dir(sock: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    let dir = sock.parent().expect("a socket in a directory");
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::DirBuilder::new().mode(0o700).create(dir)
 }
 
 /// The emulator's arguments: a second `virtio-serial` bus with one port.
@@ -216,9 +227,24 @@ mod tests {
         ] {
             assert!(parse("run", bad).is_err(), "{bad}");
         }
-        let a = argv(Path::new("/r/x.ch"));
+        let sock = socket_path(Path::new("/tmp/podvm-guest-n.err"));
+        assert_eq!(sock, Path::new("/tmp/podvm-guest-n.chd/s"));
+        let a = argv(&sock);
         assert!(a
             .iter()
             .any(|w| w == "virtserialport,bus=podvmch.0,chardev=podvmchd,name=podvm.ch"));
+    }
+
+    /// QEMU's chardev server takes its first client: the directory of the
+    /// socket is the run's own, mode 0700.
+    #[test]
+    fn the_socket_directory_is_the_runs_own() {
+        use std::os::unix::fs::PermissionsExt;
+        let err = std::env::temp_dir().join(format!("podvm-ch-{}.err", std::process::id()));
+        let sock = socket_path(&err);
+        make_dir(&sock).unwrap();
+        let m = std::fs::metadata(sock.parent().unwrap()).unwrap();
+        assert_eq!(m.permissions().mode() & 0o777, 0o700);
+        let _ = std::fs::remove_dir_all(sock.parent().unwrap());
     }
 }
