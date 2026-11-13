@@ -19,18 +19,18 @@ podvm-probe = { path = "../podvm-probe" }
 # the trust anchors and the handshake of `pod-tls`; `pod-ws` gives the way
 # out of each connection.
 rustls.workspace = true
-pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0", features = ["blocking", "plain-ws"] }
-pod-ws = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0" }
-pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0", default-features = false }
+pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0", features = ["blocking", "plain-ws"] }
+pod-ws = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }
+pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0", default-features = false }
 # The proxy of a relay leg (`transport/egress.rs`): the rules of `HTTPS_PROXY`,
 # `ALL_PROXY` and `NO_PROXY`, and the dial through an HTTP CONNECT or SOCKS5
 # proxy, shared with podssh and podnet through PodUtils/podcrates. The
 # blocking face runs on a private runtime of one thread; podvm's own code
 # stays synchronous.
-pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0", default-features = false, features = ["blocking"] }
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0", default-features = false, features = ["blocking"] }
 # The line discipline of a session with no pty (`session.rs`), shared with
 # podssh through PodUtils/podcrates.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0" }
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }
 
 [dev-dependencies]
 # The fake relay of the tests reads and writes the relay's control frames.

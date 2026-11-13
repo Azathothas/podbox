@@ -15,7 +15,7 @@ podvm-image = { path = "../podvm-image" }
 # its layout of the rootfs and its settings to it. `tar` is taken there for
 # its entry API and never for `unpack()` (TODO/extract.md T-0301), with
 # `flate2`'s Rust backend and `ruzstd`.
-pod-extract = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0" }
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0", default-features = false }
+pod-extract = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0", default-features = false }
 # TODO/image.md T-1709: the FICLONE of the container tree (`tree.rs`).
-pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.39.0" }
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }

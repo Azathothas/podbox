@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.40.0, 2026-11-13
+
+Record: PodUtils/podcrates#140.
+Deployed: not deployed; the next release carries it.
+
+- podvm takes the crates of podcrates at `v0.40.0`. The release adds
+  carriers of `pod-link` and fields of `pod-job` that podvm does not use
+  yet; podvm builds and tests with no change of code.
+
 ## 0.2.0-beta.12 (2026-11-13)
 
 ### Added: no NIC and a host channel on the incus tier, 2026-11-13
