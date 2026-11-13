@@ -4247,7 +4247,7 @@ on the default rung, with no network.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4268,6 +4268,24 @@ The fix in the CLI is podvm's; a cause in a crate of podcrates goes there as a C
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `run.env-pass.ns`, `run.env-pass.ul`, `life.exec-env-run.ns`, `life.exec-env-run.ul`, `life.exec-sees-run-fs.ns`, and a test of the CLI holds the fix
+
+## Done
+
+**Partial 2026-11-13; the rest waits for podcrates.** Done: `-e NAME`
+and `--env=NAME` of `run` and `exec` take the caller's value, and an unset
+NAME names nothing (`from_host` in `crates/podvm/src/run/parse/values.rs`;
+the test `e_name_takes_the_value_of_the_caller`). `exec` of a container
+takes the environment of its record without podvm's own variables
+(`PODVM_*`, `LD_PRELOAD`), then its own `-e`
+(`crates/podvm/src/exec/enter.rs`). On both rungs `FOO=hostval podvm run
+-e FOO` prints `hostval`, and `exec -e XV=x` in a container of `run -d -e
+RV=v` sees `RV=v XV=x`. `--env-file` keeps its rule of T-0801: a line
+without `=` is refused.
+
+Open: `life.exec-sees-run-fs.ns`. The run's /tmp is a tmpfs in the run's
+own mount namespace, and `exec` enters a new one through `pod-enter`.
+COORD-074 (issue 297) asks podcrates for an entry that joins the mount
+namespace of the payload (`setns` with its pidfd) before the chroot.
 
 # T-1766: `--strict` and `probe` disagree with the rung that a run enters on the userland fixture
 

@@ -100,7 +100,7 @@ fn parse_flags_with(
         let a = &args[i];
         if let Some(flag) = expecting.take() {
             match flag {
-                "-e" => o.env.push(a.clone()),
+                "-e" => o.env.extend(from_host(a)),
                 "--env-file" => {
                     let es = read_env_file(verb, a)?;
                     o.env.extend(es);
@@ -305,7 +305,7 @@ fn parse_flags_with(
                     return Err(EXIT_FLAG_ERROR);
                 }
             },
-            other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
+            other if other.starts_with("--env=") => o.env.extend(from_host(&other[6..])),
             other if other.starts_with("--log-driver=") => match &other[13..] {
                 "json-file" => {}
                 v => {
@@ -442,6 +442,7 @@ fn parse_flags_with(
 }
 
 mod values;
+pub(crate) use values::from_host;
 use values::*;
 
 mod opts;

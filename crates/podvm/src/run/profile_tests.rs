@@ -200,3 +200,16 @@ fn a_profile_with_an_image_takes_the_words_as_the_command() {
     .unwrap();
     assert_eq!(o.image.as_deref(), Some("mirror/x:1"));
 }
+
+/// TODO/cli.md T-1765: `-e NAME` takes the value of the caller's
+/// environment, and an unset NAME names nothing, as in docker.
+#[test]
+fn e_name_takes_the_value_of_the_caller() {
+    let path = std::env::var("PATH").expect("the tests run with PATH");
+    let o = parse(
+        "run",
+        &v(&["-e", "PATH", "--env=PODVM_T1765_UNSET", "-e", "A=1", "img"]),
+    )
+    .unwrap();
+    assert_eq!(o.env, v(&[&format!("PATH={path}"), "A=1"]));
+}

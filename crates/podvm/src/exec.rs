@@ -4,8 +4,9 @@
 //! enter.** Its `exec` re-runs the `TOOL.md` section 6.5 sequence against the
 //! same rootfs, so it shares the filesystem tree with whatever else is in that
 //! rootfs and **nothing else**: not the process table, not `/proc`, not
-//! signals, not the original process's environment. A caller that assumes
-//! otherwise gets a process that cannot see any of them.
+//! signals. A caller that assumes otherwise gets a process that cannot see
+//! any of them. It takes the environment that the container started with,
+//! from the record, as docker's `exec` does (TODO/cli.md T-1765).
 //!
 //! ⭐ That difference is said in three places a caller can reach, and the three
 //! agree because they read one pair of constants: the banner on every run
@@ -82,8 +83,9 @@ pub fn degradation() -> String {
     format!(
         "podvm exec: this is a {} re-entry and not an entry into a running \
          container. It shares {} with anything else in this rootfs and nothing \
-         else: not the process table, not /proc, not signals, not the original \
-         process's environment (TODO/enter.md T-0505)\n",
+         else: not the process table, not /proc, not signals. It takes the \
+         environment that the container started with (TODO/enter.md T-0505, \
+         TODO/cli.md T-1765)\n",
         crate::images::EXEC_MODE,
         crate::images::EXEC_SHARES,
     )
@@ -143,7 +145,7 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
     for a in args {
         if let Some(flag) = expecting.take() {
             match flag {
-                "-e" => o.env.push(a.clone()),
+                "-e" => o.env.extend(crate::run::from_host(a)),
                 "-w" => o.workdir = Some(a.clone()),
                 "--add-host" => crate::complete::add_host(&mut o.ask, "exec", a)?,
                 "--user" => o.user = Some(a.clone()),
@@ -219,7 +221,9 @@ fn parse(args: &[String]) -> std::result::Result<Opts, i32> {
                     return Err(EXIT_FLAG_ERROR);
                 }
             },
-            other if other.starts_with("--env=") => o.env.push(other[6..].to_string()),
+            other if other.starts_with("--env=") => {
+                o.env.extend(crate::run::from_host(&other[6..]))
+            }
             other if other.starts_with("--user=") => o.user = Some(other[7..].to_string()),
             other if other.starts_with("--workdir=") => o.workdir = Some(other[10..].to_string()),
             other if other.starts_with("--platform=") => o.platform = Some(other[11..].to_string()),

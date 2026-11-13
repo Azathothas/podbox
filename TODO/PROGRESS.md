@@ -7,7 +7,7 @@ start.
 
 ## State
 
-380 entries: 18 open, 5 partial, 5 blocked, 352 done.
+380 entries: 17 open, 6 partial, 5 blocked, 352 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -48,8 +48,8 @@ status with `podvm-count` in the same commit as the work.
    [T-1757](cli.md) (`-u` with an ENTRYPOINT runs as root),
    [T-1754](interpose.md) (`scandir64`), [T-1755](interpose.md)
    (`lutimes`), [T-1758](enter.md) (/proc on the namespace rung,
-   blocked on COORD-073), [T-1765](cli.md) (`-e NAME`, the
-   environment of `exec`), [T-1762](image.md) (the HTTPS probes of the
+   blocked on COORD-073), [T-1765](cli.md) (partial: /tmp of
+   `exec` waits for COORD-074), [T-1762](image.md) (the HTTPS probes of the
    source fixup). Then P2: [T-1756](interpose.md), [T-1760](cli.md),
    [T-1763](image.md), [T-1764](enter.md), [T-1766](cli.md),
    [T-1767](image.md), [T-1768](image.md); then P3: [T-1769](cli.md),

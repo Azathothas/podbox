@@ -107,6 +107,16 @@ pub(super) fn volume(verb: &str, spec: &str, o: &mut Opts) -> std::result::Resul
     Ok(())
 }
 
+/// `-e NAME=VALUE` as given; `-e NAME` takes the value of the caller's
+/// environment, and names nothing where the caller does not set NAME, as
+/// docker does (TODO/cli.md T-1765).
+pub(crate) fn from_host(e: &str) -> Option<String> {
+    if e.contains('=') {
+        return Some(e.to_string());
+    }
+    std::env::var_os(e).map(|v| format!("{e}={}", v.to_string_lossy()))
+}
+
 /// `--env-file`: docker's file of `KEY=VALUE` lines, loaded at the flag's
 /// position so a later `-e` wins over the file and a later file over an
 /// earlier flag, the same rule `-e` already documents. TODO/cli.md T-0801.

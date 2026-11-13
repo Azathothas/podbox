@@ -226,7 +226,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "checkpoint", flag: Option::None, status: NoneStatus, note: "freezing a process group needs a cgroup this runtime does not grant, as `pause` says" },
     // ------------------------------------------------------- run's own flags
     Row { verb: "run", flag: Some("--rm"), status: Native, note: "removes the container and its own rootfs when the payload exits; the image's extracted tree stays (TODO/image.md T-1709)" },
-    Row { verb: "run", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
+    Row { verb: "run", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins; -e NAME takes the caller's value, and an unset NAME is dropped" },
     Row { verb: "run", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },
     Row { verb: "run", flag: Some("--entrypoint"), status: Native, note: "as docker: replacing it also drops the image's Cmd" },
     Row { verb: "run", flag: Some("--platform"), status: Native, note: "a bare word is an architecture, as docker reads it" },
@@ -314,7 +314,7 @@ pub const TABLE: &[Row] = &[
     Row { verb: "run", flag: Some("--disable-content-trust"), status: NoneStatus, note: "podvm always verifies digests (TODO/extract.md T-1315); disabling trust is refused rather than honored" },
     Row { verb: "run", flag: Some("--init"), status: NoneStatus, note: "no PID namespace and no init to run. The launcher (or podvm, for a foreground run) is the child subreaper of the payload's tree and kills each descendant at the end (T-1708), so no flag is needed" },
     // ------------------------------------------------------ exec's own flags
-    Row { verb: "exec", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins" },
+    Row { verb: "exec", flag: Some("-e, --env"), status: Native, note: "repeatable; a later one wins over the environment that the container started with; -e NAME takes the caller's value" },
     Row { verb: "exec", flag: Some("-w, --workdir"), status: Native, note: "chdir inside the new root, after the chroot" },
     Row { verb: "exec", flag: Some("--platform"), status: Native, note: "which platform of a multi-platform image to enter" },
     Row { verb: "exec", flag: Some("-t, --tty"), status: Degraded, note: "REFUSED BY NAME where /dev/ptmx is unusable (T-0503)" },

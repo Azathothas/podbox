@@ -37,15 +37,6 @@ pub(super) fn enter(
             "podvm exec: {target} has been created and never started, so its rootfs              is there and nothing is running in it. note: podvm will enter it anyway,              because a fresh chroot shares only the filesystem and needs nothing to              be running (TODO/enter.md T-0505)"
         );
     }
-    // ⚠ The container's own environment is not inherited: T-0505's whole
-    // subject is that this shares the filesystem and NOTHING else, and silently
-    // copying the original's environment would be the implication it refuses.
-    let mut env = podvm_enter::Plan::env_for(&podvm_enter::NAMES, &[], &o.env);
-    // ⭐ T-0711: the requested identity, resolved against the re-entered
-    // rootfs exactly as `run` resolves it against the extracted one.
-    if let Err(code) = crate::lifecycle::apply_user("exec", rootfs, o.user.as_ref(), &mut env) {
-        return code;
-    }
     // ⭐ T-0505's record, read once: the memo below, the device spec, the
     // container's own image name for the workdir refusal, and the image
     // record the entry decision reads the architecture from.
@@ -56,6 +47,23 @@ pub(super) fn enter(
             return podvm_image::error::EXIT_RUNTIME_ERROR;
         }
     };
+    // TODO/cli.md T-1765: the environment of the container, as docker's
+    // `exec` has it: the image's and the `-e` of `run`, then the `-e` of
+    // `exec`. podvm's own variables of the run (`PODVM_*`, its
+    // `LD_PRELOAD`) are made again for this entry, and not inherited. The
+    // processes still share only the filesystem (T-0505).
+    let inherited: Vec<String> = container
+        .env
+        .iter()
+        .filter(|e| !e.starts_with("PODVM_") && !e.starts_with("LD_PRELOAD="))
+        .cloned()
+        .collect();
+    let mut env = podvm_enter::Plan::env_for(&podvm_enter::NAMES, &inherited, &o.env);
+    // ⭐ T-0711: the requested identity, resolved against the re-entered
+    // rootfs exactly as `run` resolves it against the extracted one.
+    if let Err(code) = crate::lifecycle::apply_user("exec", rootfs, o.user.as_ref(), &mut env) {
+        return code;
+    }
     // ⭐ T-0710: the container's host memo, re-handed on this fresh re-entry.
     // A fresh chroot shares only the filesystem; without the same descriptor
     // a second process answers `stat` with the real uid and contradicts the
@@ -68,8 +76,8 @@ pub(super) fn enter(
     env.retain(|e| e.split('=').next().unwrap_or("") != podvm_supervise::table::MEMO_FD_VAR);
     env.push(podvm_supervise::table::memo_fd_env());
     // ⭐ TODO/enter.md T-0501. The container's device spec is
-    // configuration, not environment: T-0505 refuses the original's
-    // environment on a re-entry, but the devices are the container's
+    // configuration, not environment: the spec rides `PODVM_*`, which the
+    // re-entry does not inherit, but the devices are the container's
     // (docker's `exec` sees them), so the spec is read from the record
     // and opened fresh here rather than inherited. A spec gone bad
     // since `create` refuses the exec naming it.

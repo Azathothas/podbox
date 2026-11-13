@@ -439,7 +439,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1762](image.md) | P1 | M | none | image | open | The source fixup probes four HTTPS hosts on each run: about 2 s of each ubuntu run, uncached |
 | [T-1763](image.md) | P2 | S | none | image | open | The `openssl rehash` step prints 108 lines on each python run and costs about 0.5 s |
 | [T-1764](enter.md) | P2 | S | none | enter | open | `--podvm-confine` without /etc in the read list breaks the loader on the namespace rung |
-| [T-1765](cli.md) | P1 | S | none | cli | open | `-e NAME` with no value does not pass the host's variable, and `exec` does not take the environment of `run` |
+| [T-1765](cli.md) | P1 | S | none | cli | partial | `-e NAME` with no value does not pass the host's variable, and `exec` does not take the environment of `run` |
 | [T-1766](cli.md) | P2 | S | none | cli | open | `--strict` and `probe` disagree with the rung that a run enters on the userland fixture |
 | [T-1767](image.md) | P2 | S | none | image | open | Quiet runs print notes: a false chown EINVAL on extraction, the probe line of `pull -q`, the base archive of the machine tier |
 | [T-1768](image.md) | P2 | S | none | image | open | `cp -r` of a container path copies each hard link as a file |
@@ -449,7 +449,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-380 entries: 18 open, 5 partial, 5 blocked, 352 done.
+380 entries: 17 open, 6 partial, 5 blocked, 352 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -459,10 +459,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 5 | 1 | 1 | 155 | 162 |
+| P1 | 4 | 2 | 1 | 155 | 162 |
 | P2 | 8 | 2 | 4 | 114 | 128 |
 | P3 | 5 | 2 | 0 | 18 | 25 |
-| **All** | 18 | 5 | 5 | 352 | 380 |
+| **All** | 17 | 6 | 5 | 352 | 380 |
 
 ## Work order
 
