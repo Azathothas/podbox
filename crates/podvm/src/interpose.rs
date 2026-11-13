@@ -188,7 +188,7 @@ fn resolve<G: GuestRoot + ?Sized>(
 /// cannot load, which fails the payload for the tier's sake.
 pub fn classify<G: GuestRoot + ?Sized>(root: &G, argv0: &str, path_dirs: &[String]) -> Reach {
     let path = match resolve(root, argv0, path_dirs) {
-        Ok(p) => p,
+        Ok(p) => shebang::effective(root, p),
         Err(why) => return Reach::Declined(why),
     };
     let elf = match podvm_enter::abi::Elf::read(&path) {
@@ -471,18 +471,22 @@ pub fn apply<G: GuestRoot + ?Sized>(
                 ),
             }
         }
-        Reach::Declined(why) => {
-            // ⚠ A declined tier carries no memo, so `--user` changes nothing
-            // here: saying so keeps the flag from reading as honoured.
-            let why = match &identity {
-                Some(id) => format!("{why}; --user {id} has no interposed payload to act through"),
-                None => why,
-            };
-            decline(note, verb, first, why);
-        }
+        // ⛔ TODO/cli.md T-1757: `--user` acts only through the interposed
+        // payload. Where the tier is declined, a run as the image's user
+        // would ignore the flag, so it refuses.
+        Reach::Declined(why) => match &identity {
+            Some(id) => {
+                return Err(format!(
+                    "podvm {verb}: --user {id} cannot reach {first}: {why}. podvm refuses \
+                     rather than run it as another user (TODO/cli.md T-1757)"
+                ));
+            }
+            None => decline(note, verb, first, why),
+        },
     }
     Ok(())
 }
 
+mod shebang;
 #[cfg(test)]
 mod tests;

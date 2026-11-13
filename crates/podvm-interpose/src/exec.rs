@@ -39,6 +39,8 @@ mod shell;
 pub(crate) mod walk;
 
 pub(crate) mod calls;
+// TODO/interpose.md T-1754: execl, execlp and execle.
+pub(crate) mod variadic;
 
 use head::HEAD;
 use launch::{Slots, Tail, STACK_SLOTS};

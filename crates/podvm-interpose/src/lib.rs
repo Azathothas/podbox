@@ -468,6 +468,7 @@ pub use dl_calls::*;
 
 mod exec;
 pub use exec::calls::*;
+pub use exec::variadic::*;
 
 mod raw_calls;
 pub use raw_calls::*;

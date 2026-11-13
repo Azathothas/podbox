@@ -322,3 +322,6 @@ mod fortify;
 
 // TODO/interpose.md T-1744.
 mod oflags;
+
+// TODO/interpose.md T-1754, T-1755.
+mod audit;

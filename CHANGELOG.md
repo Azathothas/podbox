@@ -8,6 +8,21 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `-u` with an ENTRYPOINT script, and the path calls of common tools on the userland rung, 2026-11-13
+
+Record: T-1757, T-1754, T-1755.
+Deployed: not released.
+
+- `run -u USER` reaches a payload whose first program is a `#!` script
+  (the ENTRYPOINT of the node image). Where `-u` cannot reach the payload
+  (a static program), the run refuses with exit 125; before, it ran as
+  the image's user.
+- On the userland rung the interposer maps the paths of `scandir64`,
+  `lutimes`, `futimesat`, `lchmod`, `mkfifo`, `mkfifoat`, `mknodat`,
+  `pathconf`, `statfs64`, `statvfs64`, `truncate64`, `inotify_add_watch`,
+  `execl`, `execlp` and `execle`. `apt-get install` in ubuntu works, and
+  node reads the directories of the image, not the host's.
+
 ### Changed: podcrates v0.36.0, 2026-11-13
 
 Record: PodUtils/podcrates#129.

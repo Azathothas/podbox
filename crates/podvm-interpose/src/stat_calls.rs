@@ -477,3 +477,7 @@ pub unsafe extern "C" fn getcwd(buf: *mut c_char, size: usize) -> *mut c_char {
     };
     unsafe { copy_fit(src, n, buf, size) }
 }
+
+// TODO/interpose.md T-1754, T-1755: the path calls of the audit.
+mod more;
+pub use more::*;

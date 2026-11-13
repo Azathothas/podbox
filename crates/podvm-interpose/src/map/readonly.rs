@@ -38,6 +38,7 @@ pub fn is_write_call(what: &[u8]) -> bool {
             | b"utimensat"
             | b"futimesat"
             | b"lutimes"
+            | b"lchmod"
             | b"setxattr"
             | b"lsetxattr"
             | b"removexattr"

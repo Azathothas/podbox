@@ -38,6 +38,7 @@ const NOFOLLOW: &[&[u8]] = &[
     b"llistxattr",
     b"lremovexattr",
     b"lutimes",
+    b"lchmod",
     b"mkdir",
     b"mkdirat",
     b"mknod",

@@ -445,10 +445,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1768](image.md) | P2 | S | none | image | open | `cp -r` of a container path copies each hard link as a file |
 | [T-1769](cli.md) | P3 | S | none | cli | open | An unknown verb or flag prints the whole usage |
 | [T-1770](net.md) | P3 | S | none | net | open | `podvm lab`: a knob line with an empty value, and the words of the errors of the knobs |
+| [T-1771](image.md) | P2 | S | none | image | open | node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy |
 
 ## Counts
 
-379 entries: 21 open, 5 partial, 4 blocked, 349 done.
+380 entries: 22 open, 5 partial, 4 blocked, 349 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -459,9 +460,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 9 | 1 | 0 | 152 | 162 |
-| P2 | 7 | 2 | 4 | 114 | 127 |
+| P2 | 8 | 2 | 4 | 114 | 128 |
 | P3 | 5 | 2 | 0 | 18 | 25 |
-| **All** | 21 | 5 | 4 | 349 | 379 |
+| **All** | 22 | 5 | 4 | 349 | 380 |
 
 ## Work order
 

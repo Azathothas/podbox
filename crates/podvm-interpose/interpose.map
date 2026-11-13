@@ -74,6 +74,22 @@
     __readlink_chk;
     __readlinkat_chk;
     __getcwd_chk;
+    /* T-1754, T-1755: the path calls of the audit of the common images. */
+    scandir64;
+    lutimes;
+    futimesat;
+    lchmod;
+    mkfifo;
+    mkfifoat;
+    mknodat;
+    pathconf;
+    statfs64;
+    statvfs64;
+    truncate64;
+    inotify_add_watch;
+    execl;
+    execlp;
+    execle;
     /* T-1743: the fortified opens of glibc. */
     __open_2;
     __open64_2;

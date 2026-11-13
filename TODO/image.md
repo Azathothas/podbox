@@ -3517,3 +3517,42 @@ The fix in the image layer is podvm's; a cause in a crate of podcrates goes ther
 ## Prove
 
 `sh experiments/443-qa-surface.sh` gives PASS for the rows `img.cp-r-hardlinks`, and a test of the image layer holds the fix
+
+# T-1771: node does not trust the host's CA that podvm appends, so npm fails behind an intercepting proxy
+
+**Source:** the check of T-1754 on the chroot-denied fixture (2026-11-13):
+  `npm install is-number` in node:22-slim says "self-signed certificate in
+  certificate chain"
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Behind a proxy that intercepts TLS, `npm install` fails in the node image,
+although podvm appends the host's CA bundle to the image's trust store
+(T-0407).
+
+## Premise
+
+node reads its own compiled-in list of CAs, not the trust store of the
+system, unless `NODE_EXTRA_CA_CERTS` names a file (or `NODE_USE_SYSTEM_CA`
+on a recent node).
+
+## Approach
+
+Where the CA step appends a host bundle, set `NODE_EXTRA_CA_CERTS` to the
+appended bundle in the environment of the payload, unless the caller set
+it; say so in the banner.
+
+## Decision
+
+The variable follows the CA step: `--no-host-cas` sets nothing.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` gives PASS for the row `tools.npm.ul`
+behind the proxy of the cloud host, and a test of the CA step holds the
+variable
