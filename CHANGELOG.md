@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.14 (2026-11-13)
+
 ### Added: a container engine in a guest of the machine tier, 2026-11-13
 
 Record: T-1780, PodUtils/podrunner#92.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.14.
 
 - `run --podvm-tier=machine --podvm-engine` loads the modules of a
   container engine in the guest: the bridge, `veth`, nf_tables and the
