@@ -38,8 +38,6 @@ host's devices on the userland rung under a user namespace).
 
 ## Open COORD issues
 
-* COORD-085 (#321): the engine of T-1780; close it when podrunner has
-  taken beta.14.
 * COORD-083 (#317): podcrates records the take of `v0.40.0`.
 * COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
   when podswarm or podcrates reads it.
@@ -48,7 +46,7 @@ host's devices on the userland rung under a user namespace).
 
 COORD-001 (#194), COORD-069 (#291), COORD-076 (#299), COORD-077 (#303),
 COORD-079 (#307), COORD-080 (#309), COORD-081 (#311), COORD-082 (#316)
-and COORD-084 (#319) are closed.
+COORD-084 (#319) and COORD-085 (#321) are closed.
 
 ## Next steps, in order
 
