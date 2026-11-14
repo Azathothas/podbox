@@ -1,0 +1,4 @@
+setup: rc 125 in 985 s
+FAIL: clause 1
+podvm windows setup: the installer wrote no SETUP.TXT
+podvm windows setup: nothing was left at /workspace/podvm/.work/vos/home/.local/share/podvm/windows/catalog/26100.9818_VALIDATIONOS.podvm.qcow2

@@ -184,7 +184,8 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
         row.extend([get("ID"), get("CreatedSince"), get("Size")]);
         rows.push(row);
     }
-    // TODO/cli.md T-1816: a lost table is 125, not 0.
+    rows.extend(crate::windows::pull::image_rows(o.digests)); // T-1861
+                                                              // TODO/cli.md T-1816: a lost table is 125, not 0.
     match write!(out, "{}", table(&rows)).and_then(|()| out.flush()) {
         Ok(()) => 0,
         Err(e) => crate::names::stdout::failed(&e),
@@ -233,6 +234,10 @@ pub fn rmi(verb: &str, args: &[String]) -> i32 {
     };
     let mut code = 0;
     for want in wanted {
+        if let Some(name) = want.strip_prefix("windows:") {
+            code = code.max(crate::windows::pull::rmi_named(verb, name)); // T-1861
+            continue;
+        }
         // ⭐ TODO/image.md T-1322. Records before holds: a created
         // container takes no hold, so only its record sees the reference,
         // and docker's rule keys on any container, running or stopped.

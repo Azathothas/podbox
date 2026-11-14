@@ -81,16 +81,32 @@ pub fn provision(
     out: &Path,
     wait: Duration,
 ) -> Result<Vec<u8>> {
-    // podcrates `v0.45.0`: the keys go to the console once the screen of
-    // the boot settles (`Ready::screen`), within this bound (an estimate
-    // of a slow boot under TCG), and not after a fixed sleep (TODO/machine.md
-    // T-1873).
-    let ready = pod_guest::ready::Ready::screen(PROVISION_READY);
-    pod_guest::provision(&settings(), qemu_img, base, plan, out, &ready, wait)
+    pod_guest::provision(
+        &settings(),
+        qemu_img,
+        base,
+        plan,
+        out,
+        &ready_for(plan.accel),
+        wait,
+    )
 }
 
-/// The bound of the wait for a provision boot to be ready for the keys.
-pub const PROVISION_READY: Duration = Duration::from_secs(600);
+/// TODO/machine.md T-1864, T-1873: when the console of a provision boot
+/// takes the keys. podcrates `v0.45.0` waits for a screen that changed and
+/// then stayed the same; its 5 s took a still phase of a boot under TCG
+/// for the shell, and the keys went nowhere (experiment 450, build 9818:
+/// the keys at about 30 s, no SETUP.TXT). The settle is 60 s under TCG and
+/// 15 s under KVM, and the bound 1200 s and 600 s (estimates).
+pub fn ready_for(accel: Accel) -> pod_guest::ready::Ready {
+    let (settle, deadline) = match accel {
+        Accel::Kvm => (Duration::from_secs(15), Duration::from_secs(600)),
+        _ => (Duration::from_secs(60), Duration::from_secs(1200)),
+    };
+    let mut r = pod_guest::ready::Ready::screen(deadline);
+    r.signs = vec![pod_guest::ready::Sign::Screen { settle }];
+    r
+}
 
 /// Remove a per-run directory unless `PODVM_WINDOWS_KEEP` is set.
 pub fn cleanup(plan: &Plan) {

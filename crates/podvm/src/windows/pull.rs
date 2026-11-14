@@ -188,6 +188,80 @@ pub(crate) fn vos_disk(verb: &str, e: &Entry) -> Result<PathBuf, i32> {
     }
 }
 
+/// TODO/machine.md T-1861: the files of a catalog name in the store: the
+/// download, the disk made from it, and its provisioned copy.
+pub(crate) fn files_of(e: &Entry) -> Vec<PathBuf> {
+    let dir = podvm_windows::catalog::store_dir();
+    let mut v = vec![dir.join(e.file)];
+    match e.kind {
+        Kind::DosZip => v.push(podvm_windows::dos::base_cache()),
+        Kind::ValidationOs => {
+            let vhdx = dir.join(e.file.replace(".iso", ".vhdx"));
+            v.push(PathBuf::from(format!("{}.podvm.qcow2", vhdx.display())));
+            v.push(vhdx);
+        }
+        Kind::Iso => {}
+    }
+    v.retain(|p| p.is_file());
+    v
+}
+
+/// TODO/machine.md T-1861: the rows of `podvm images` for each Windows
+/// name that the store holds: `windows`, the name, the pin as the IMAGE ID,
+/// `-` for CREATED, and the bytes of its files.
+pub(crate) fn image_rows(digests: bool) -> Vec<Vec<String>> {
+    podvm_windows::catalog::CATALOG
+        .iter()
+        .filter_map(|e| {
+            let files = files_of(e);
+            if files.is_empty() {
+                return None;
+            }
+            let bytes: u64 = files
+                .iter()
+                .filter_map(|p| std::fs::metadata(p).ok())
+                .map(|m| m.len())
+                .sum();
+            let mut row = vec!["windows".to_string(), e.name.to_string()];
+            if digests {
+                row.push(format!("sha256:{}", e.sha256));
+            }
+            row.extend([
+                e.sha256[..12].to_string(),
+                "-".to_string(),
+                podvm_image::space::mib(bytes),
+            ]);
+            Some(row)
+        })
+        .collect()
+}
+
+/// TODO/machine.md T-1861: `podvm rmi windows:NAME` removes the files of
+/// the name. A name that the store does not hold is 1, as `rmi` of a
+/// missing image is.
+pub(crate) fn rmi_named(verb: &str, name: &str) -> i32 {
+    let e = match podvm_windows::catalog::resolve(name) {
+        Ok(e) => e,
+        Err(why) => {
+            eprintln!("podvm {verb}: {why}");
+            return podvm_image::error::EXIT_CLI_ERROR;
+        }
+    };
+    let files = files_of(e);
+    if files.is_empty() {
+        eprintln!("podvm {verb}: no such image: windows:{}", e.name);
+        return podvm_image::error::EXIT_CLI_ERROR;
+    }
+    for f in &files {
+        if let Err(err) = std::fs::remove_file(f) {
+            eprintln!("podvm {verb}: {}: {err}", f.display());
+            return EXIT_RUNTIME_ERROR;
+        }
+    }
+    println!("Deleted: windows:{}", e.name);
+    0
+}
+
 /// The DOS base of `windows:dos`: the disk of the pinned FreeDOS zip, at the
 /// base cache of the DOS flavor, made where it is not there.
 pub(crate) fn dos_base(verb: &str) -> Result<PathBuf, i32> {

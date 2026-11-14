@@ -526,7 +526,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1861](machine.md) | P1 | M | none | machine | partial | `podvm run windows:NAME` has no image name, no catalog and no `pull`, `images` or `rmi` |
 | [T-1862](machine.md) | P1 | M | none | machine | done | The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check |
 | [T-1863](machine.md) | P1 | M | none | machine | done | `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector |
-| [T-1864](machine.md) | P1 | S | none | machine | open | The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out |
+| [T-1864](machine.md) | P1 | S | none | machine | partial | The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out |
 | [T-1865](machine.md) | P1 | M | none | machine | done | The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel |
 | [T-1866](machine.md) | P1 | M | none | machine | done | There is no generator of the unattended answer file or of the USB FAT media |
 | [T-1867](machine.md) | P1 | L | none | machine | open | `podvm pull windows:11` cannot install a full Windows guest |
@@ -555,10 +555,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1890](machine.md) | P2 | L | none | machine | open | The machine tier has no guest of another architecture |
 | [T-1891](extract.md) | P1 | S | none | extract | done | A tree with a directory of mode 0555 cannot be removed by a user who is not root |
 | [T-1892](enter.md) | P3 | S | none | enter | open | Two exec tables reach the payload: podvm's guest paths and the crate's host paths |
+| [T-1893](machine.md) | P1 | S | none | machine | blocked | The provision of a Windows guest leaves the emulator running when the typing fails |
 
 ## Counts
 
-489 entries: 48 open, 9 partial, 2 blocked, 430 done.
+490 entries: 47 open, 10 partial, 3 blocked, 430 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -568,10 +569,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 74 | 74 |
-| P1 | 2 | 5 | 0 | 193 | 200 |
+| P1 | 1 | 6 | 1 | 193 | 201 |
 | P2 | 30 | 2 | 2 | 141 | 175 |
 | P3 | 16 | 2 | 0 | 22 | 40 |
-| **All** | 48 | 9 | 2 | 430 | 489 |
+| **All** | 47 | 10 | 3 | 430 | 490 |
 
 ## Work order
 

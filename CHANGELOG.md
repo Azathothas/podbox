@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `images` and `rmi` know the Windows names, 2026-11-14
+
+Record: T-1861 (partial), T-1864 (partial).
+Deployed: not deployed; no version change.
+
+- `podvm images` lists each Windows name that the store holds, and
+  `podvm rmi windows:NAME` removes its files.
+- A provision of a Windows guest waits longer for its console under TCG
+  (60 s of a still screen, an estimate) before it types.
+
 ### Added: `windows:validationos` fetches only its disk, by a UDF reader, 2026-11-14
 
 Record: T-1863.

@@ -3198,6 +3198,16 @@ T-1867 allows it. Language is a later flag with the default en-US.
 
 ## Done
 
+**Partial 2026-11-14, later again.** `podvm images` lists each Windows
+name that the store holds (`windows`, the name, the pin as IMAGE ID, the
+bytes of its files), and `podvm rmi windows:NAME` removes its files
+(`windows/pull.rs`, `image_rows`, `rmi_named`). In a fresh home after
+`pull windows:dos`: `images` showed `windows dos 857dcd2ebf9d - 48.9
+MiB`; `rmi windows:dos` printed `Deleted: windows:dos`, exit 0, and left
+no file; a second `rmi` exits 1 with "no such image". The clauses that
+remain: the setup ISO of a desktop (T-1867) and the experiment of the
+Prove.
+
 **Partial 2026-11-14, later.** `podvm pull windows:NAME` takes the
 medium of the catalog (`windows/pull.rs`, `pull_named`): in a fresh home,
 `pull windows:dos` fetched the zip with its progress lines, wrote the
@@ -3384,7 +3394,7 @@ names.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3419,6 +3429,20 @@ on the ValidationOS image under TCG on the cloud host, and it returns the code
 of the payload and not a timeout. `cmd /c exit 42` still gives 42. The result
 goes under `experiments/results/`.
 
+## Done
+
+**Partial 2026-11-14.** podcrates `v0.45.0` runs the command in a child
+`cmd /c` (podcrates@T-592). Experiment 450 (`450-windows-agent-exit.sh`)
+holds the three cases of the Prove, but its first clause, `windows setup`
+of the 9818 VHDX, failed on the cloud host under TCG in four runs
+(274 s to 985 s): "the installer wrote no SETUP.TXT". The readiness of
+`v0.45.0` waits for a screen that settles; its 5 s took a still screen
+at about 30 s for the shell. podvm now asks 60 s under TCG and 15 s
+under KVM (`podvm_windows::ready_for`, estimates), and the setup still
+failed: screen dumps at about 3 and 4 minutes show a black screen with
+only the pointer, so the guest had no console yet, and a black screen
+also settles. The proof moves to KVM with T-1867 (`kvm.yml`), where the
+boot is fast. One run also found T-1893.
 
 # T-1865: The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel
 
@@ -4349,3 +4373,43 @@ guest.
 ## Prove
 
 On an x86_64 host with `qemu-system-aarch64`, `podvm run --rm --podvm-tier=machine --platform linux/arm64` of `mirror.gcr.io/library/alpine:3.20` with `uname -m` prints `aarch64` and exits 0, and no emulator stays after the run
+
+# T-1893: The provision of a Windows guest leaves the emulator running when the typing fails
+
+**Source:** experiment 450 (2026-11-14): `podvm windows setup` exited 125 after 89 s, and `qemu-system-x86_64` stayed
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`pod_guest::provision` stops the emulator when its readiness wait fails,
+but returns with `?` when the typing into the console fails, and the
+emulator runs on after podvm ends. A second QMP client made the typing
+fail with `qmp read: Resource temporarily unavailable (os error 11)`.
+
+## Premise
+
+`provision` is in `pod-guest` (podcrates `v0.45.0`, `src/provision.rs`).
+AGENTS.md, section 2: no emulator stays after a run.
+
+## Approach
+
+Ask podcrates (COORD-115, issue 370) to stop the emulator on each error
+path after the spawn, with a test. podvm takes the tag.
+
+## Decision
+
+The stop belongs to the code that spawned the emulator.
+
+## Prove
+
+`podvm windows setup` with a QMP socket that refuses the keys exits 125, and `pgrep qemu-system` finds no emulator after it
+
+## Blocker
+
+**Blocked 2026-11-14.** Blocker: `pod_guest::provision` returns on a
+failure of the typing with the emulator running. Clears when: a
+podcrates tag carries the ask of COORD-115 (issue 370).
