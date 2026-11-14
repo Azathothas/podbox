@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.15 (2026-11-14)
+
 ### Changed: podcrates v0.42.0, 2026-11-14
 
 Record: PodUtils/podcrates#145.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.15.
 
 - podvm takes the crates of podcrates at `v0.42.0`, which carries the
   overlay root of `pod-enter` (podcrates@T-486) and the published schema
@@ -21,7 +23,7 @@ Deployed: not deployed; the next release carries it.
 ### Changed: a spare tree of each image, 2026-11-14
 
 Record: T-1781.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.15.
 
 - After a run, podvm fills the next tree of the same image in the
   background, and the next run takes it with one rename; the tree of a
@@ -34,7 +36,7 @@ Deployed: not deployed; the next release carries it.
 ### Changed: podcrates v0.41.0, 2026-11-14
 
 Record: PodUtils/podcrates#143.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.15.
 
 - podvm takes the crates of podcrates at `v0.41.0` (the termios mode of
   `pod-term`, relays of `pod-link`); podvm builds and tests with no
