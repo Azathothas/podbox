@@ -21,7 +21,9 @@ pub(super) fn drive(
 ) -> i32 {
     use std::os::unix::process::CommandExt;
     let errlog = dir.join("qemu.err");
-    let mut child = match Command::new(qemu)
+    let mut cmd = Command::new(qemu);
+    crate::machine::die_with_podvm(&mut cmd); // T-1884
+    let mut child = match cmd
         .args(argv)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -115,7 +117,16 @@ pub(super) fn drive(
     }
     // The guest resets after the marker and the emulator exits; a guest
     // that does not, and each child of the emulator, goes with SIGKILL.
-    let ended = wait_bounded(&mut child, Duration::from_secs(10));
+    // TODO/machine.md T-1809: with no marker (the deadline, or an emulator
+    // that ended) nothing is left to wait for, so the kill comes at once;
+    // the bounded wait of 10 s made `--timeout 2` end at 12 s.
+    let grace = if code.is_some() {
+        Duration::from_secs(10)
+    } else {
+        Duration::ZERO
+    };
+    let timed_out = code.is_none() && Instant::now() >= deadline;
+    let ended = wait_bounded(&mut child, grace);
     if !ended {
         // SAFETY: a plain system call on the process group that `spawn`
         // made for the emulator.
@@ -130,6 +141,17 @@ pub(super) fn drive(
     }
     match code {
         Some(c) => c,
+        // TODO/machine.md T-1809: the contract of `--timeout` of the other
+        // rungs: the payload is killed at the bound, and the run exits 137.
+        None if timed_out && r.timeout.is_some() => {
+            eprintln!(
+                "podvm {}: machine tier: the payload ran past --timeout {} s, and the \
+                 guest was killed (TODO/machine.md T-1809)",
+                r.verb,
+                r.timeout.map(|t| t.as_secs()).unwrap_or_default()
+            );
+            137
+        }
         None => {
             let tail = std::fs::read_to_string(dir.join("qemu.err")).unwrap_or_default();
             let tail = tail.lines().last().unwrap_or("");

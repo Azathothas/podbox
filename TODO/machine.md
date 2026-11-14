@@ -2880,7 +2880,7 @@ T-1854 tests each option on each tier.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2911,6 +2911,19 @@ No emulator stays after the run (`AGENTS.md`, section 7).
 ## Prove
 
 `PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`, with a row that `--timeout 2 ... sleep 30` exits 137 in less than 4 s and leaves no `qemu-system` process
+
+## Done
+
+**Done 2026-11-14.** `drive` (`machine/guest/drive.rs`) kills the
+process group of the emulator at once where no exit marker came (the
+deadline, or an emulator that ended), and keeps the wait of 10 s only
+after a marker; a run past `--timeout` exits 137 with "the payload ran
+past --timeout N s, and the guest was killed". By hand under TCG on the
+cloud host: `run --rm --podvm-tier=machine --timeout 2 alpine:3.20 sleep
+30` exits 137 after 2.03 s, and no `qemu-system` stays; `sh -c 'exit 3'`
+still gives 3. Experiment 443 has the row `machine.timeout`. The Prove
+names a host with `/dev/kvm`; the cloud host has none, and the row runs
+under TCG there, which is the slower case.
 
 
 # T-1810: A sealed bundle member that leaves the guest root is skipped and the run exits 0
@@ -3993,7 +4006,7 @@ for the removed sentence turns red when the sentence returns.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4023,6 +4036,19 @@ An emulator never outlives the podvm that started it.
 ## Prove
 
 On the cloud host, `timeout 30 podvm run --rm --podvm-tier=machine mirror.gcr.io/library/alpine:3.20 sleep 300` exits 124 and `pgrep qemu-system` then finds nothing, and the same with `timeout -s KILL`
+
+## Done
+
+**Done 2026-11-14.** `machine::die_with_podvm` sets `PR_SET_PDEATHSIG`
+to SIGKILL in the child of the emulator, and refuses the start where
+podvm is already gone; `drive` (`machine/guest/drive.rs`) and `machine
+ssh` (`machine/ssh/qemu.rs`) take it. Both spawn from the thread that
+waits for the emulator until the end of podvm. By hand on the cloud
+host, with `run --rm --podvm-tier=machine alpine:3.20 sleep 300`:
+`timeout -s TERM 25` gives 124 and `timeout -s KILL 25` gives 137, and
+no `qemu-system` stays after either; beta.17 left one after the KILL
+(ended by hand). The signal and the bounded reap of the Approach are
+not needed: the kernel ends the emulator with podvm.
 
 
 # T-1885: Piped input to a machine run with `-t` is lost before the guest terminal opens

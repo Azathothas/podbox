@@ -58,6 +58,36 @@ pub fn machine(args: &[String]) -> i32 {
     }
 }
 
+/// TODO/machine.md T-1884: the emulator dies with the podvm that started
+/// it. A signal to podvm (the SIGTERM of `timeout`, a SIGKILL) left QEMU
+/// running, and `AGENTS.md`, section 2, allows no emulator after the run.
+/// `PR_SET_PDEATHSIG` fires when the thread that forked ends; each caller
+/// spawns from the thread that waits for the emulator to the end of podvm.
+pub(crate) fn die_with_podvm(cmd: &mut std::process::Command) {
+    use std::os::unix::process::CommandExt;
+    unsafe extern "C" {
+        fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
+        fn getppid() -> i32;
+    }
+    const PR_SET_PDEATHSIG: i32 = 1;
+    const SIGKILL: u64 = 9;
+    let parent = std::process::id() as i32;
+    // SAFETY: prctl and getppid are async-signal-safe, and the closure
+    // allocates nothing between the fork and the exec.
+    unsafe {
+        cmd.pre_exec(move || {
+            if prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
+            // podvm died before the prctl: its signal is already gone.
+            if getppid() != parent {
+                return Err(std::io::Error::from_raw_os_error(3)); // ESRCH
+            }
+            Ok(())
+        });
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

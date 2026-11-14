@@ -8,6 +8,23 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `--timeout` on the machine tier, 2026-11-14
+
+Record: T-1809.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=machine --timeout 2` killed the guest 10 s late and
+  exited 125 with a line about QEMU's socket; it now kills at the bound
+  and exits 137, as the other rungs do.
+
+### Fixed: no emulator outlives podvm, 2026-11-14
+
+Record: T-1884.
+Deployed: not deployed; no version change.
+
+- A machine run that podvm left on a signal (the SIGTERM of `timeout`,
+  a SIGKILL) left its QEMU running. The emulator now dies with podvm.
+
 ### Fixed: `-t` ends the input of the payload, and `-d -t` is refused, 2026-11-14
 
 Record: T-1815, T-1817.

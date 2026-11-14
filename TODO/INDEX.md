@@ -471,7 +471,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1806](supervise.md) | P1 | S | none | supervise | done | A foreground run records only stdout, so `logs` loses each stderr line |
 | [T-1807](supervise.md) | P1 | S | none | supervise | open | A restarted container shows the exit code and end of its previous run while it runs |
 | [T-1808](machine.md) | P0 | M | none | machine | done | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
-| [T-1809](machine.md) | P1 | S | none | machine | open | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
+| [T-1809](machine.md) | P1 | S | none | machine | done | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
 | [T-1810](machine.md) | P0 | S | none | machine | done | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
 | [T-1811](cli.md) | P1 | S | none | cli | done | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
 | [T-1812](probe.md) | P1 | S | none | probe | done | `probe --cached` reports `supervise` where `probe` reports `userland` |
@@ -546,12 +546,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1881](extract.md) | P0 | M | none | extract | blocked | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
 | [T-1882](extract.md) | P2 | S | none | extract | blocked | pod-extract counts the `./` archive root as an entry it could not make |
 | [T-1883](image.md) | P2 | S | none | image | blocked | `create` and `run` do not report the entries that the extraction could not make |
-| [T-1884](machine.md) | P1 | S | none | machine | open | A machine run that podvm ends on SIGTERM leaves its emulator running |
+| [T-1884](machine.md) | P1 | S | none | machine | done | A machine run that podvm ends on SIGTERM leaves its emulator running |
 | [T-1885](machine.md) | P2 | S | none | machine | open | Piped input to a machine run with `-t` is lost before the guest terminal opens |
 
 ## Counts
 
-482 entries: 67 open, 6 partial, 6 blocked, 403 done.
+482 entries: 65 open, 6 partial, 6 blocked, 405 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -561,10 +561,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 16 | 1 | 1 | 178 | 196 |
+| P1 | 14 | 1 | 1 | 180 | 196 |
 | P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 67 | 6 | 6 | 403 | 482 |
+| **All** | 65 | 6 | 6 | 405 | 482 |
 
 ## Work order
 

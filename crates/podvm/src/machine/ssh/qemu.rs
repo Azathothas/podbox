@@ -360,6 +360,7 @@ pub fn ssh(args: &[String]) -> i32 {
         &args.emu_args,
     );
     let mut cmd = std::process::Command::new(&emulator);
+    crate::machine::die_with_podvm(&mut cmd); // T-1884
     cmd.args(&argv).stdin(std::process::Stdio::null());
     match log_file.try_clone() {
         Ok(dup) => {

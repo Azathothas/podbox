@@ -568,6 +568,7 @@ if command -v qemu-system-x86_64 >/dev/null 2>&1; then
 	TO=600 t machine.uname ns "a kernel release, rc 0" '[ $rc -eq 0 ] && [ -n "$out" ]' '$PB run --rm --podvm-tier=machine $A uname -r'
 	TO=600 t machine.exit3 ns "rc 3" '[ $rc -eq 3 ]' "\$PB run --rm --podvm-tier=machine \$A sh -c 'exit 3'"
 	TO=600 t machine.vol ns "invol through 9p" '[ "$out" = invol ]' '$PB run --rm --podvm-tier=machine -v $W/vol:/data $A cat /data/in.txt'
+	TO=60 t machine.timeout ns "rc 137 in under 4 s, no emulator left (T-1809, T-1884)" '[ $rc -eq 137 ] && [ $ms -lt 4000 ] && ! pgrep -x qemu-system-x86_64 >/dev/null' '$PB run --rm --podvm-tier=machine --timeout 2 $A sleep 30'
 	TO=600 t machine.uname.ul ul "a kernel release, rc 0" '[ $rc -eq 0 ] && [ -n "$out" ]' '$X $PB run --rm --podvm-tier=machine $A uname -r'
 else
 	note "machine.uname | run --podvm-tier=machine A uname -r | ns | - | qemu-system-x86_64 absent | INFO"
