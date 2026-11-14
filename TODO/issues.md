@@ -244,7 +244,7 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #345 | COORD-099: pod-enter applies two limits of one resource in order, so a raise after a lower fails with EPERM (podvm T-1827) (to podcrates) | open | T-1827 |
 | #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | open | T-1842, T-1836 |
 | #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
-| #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | open | - |
+| #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | closed (podcrates closed PodUtils/podcrates#149) | - |
 | #349 | [gh action] requested | closed (gate 43569997386, arm 43570892970, nightly trial 43571247092 and release 43571818694 green on 53c48d34) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.16` (AGENTS.md, section 9) |
 | #350 | COORD-103: seven asks for the Windows guest: fetch by range, pod-udf, the agent, plan options, pod-qga, provision, warm start (podvm T-1862 to T-1874) (to podcrates) | open (podcrates took the seven as podcrates@T-590 to podcrates@T-596, PodUtils/podcrates#152) | T-1862, T-1863, T-1864, T-1865, T-1868, T-1873, T-1874 |
 | #351 | COORD-104: the answer to PodUtils/podrunner#100: a glibc 2.34 image with no libdl.so.2 on the loader family (podvm T-1880) (to podrunner) | open | T-1880 |
