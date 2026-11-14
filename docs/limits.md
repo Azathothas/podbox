@@ -236,6 +236,10 @@ instance, where podvm's init relays each connection to the loopback port
 to that socket; it is not an incus `proxy` device (T-1779, [incus](incus.md)).
 A run where no incusd answers exits 125 and names the
 socket. The image carries podvm as the init of the instance (T-1722).
+The instance does not honour `--podvm-confine`, `--user`, `--add-host`,
+`--read-only`, `--tmpfs`, `--ulimit`, `--security-opt`, `--cap-drop`,
+`--label`, `--timeout`, `-t`, `--device` or `--ports`, so the incus tier
+refuses each by name with exit 125 (T-1854).
 
 The owner lifted the KVM deferral on 2026-11-09 ([decisions](decisions.md)).
 A session can start a KVM guest where `/dev/kvm` exists, with a timeout,

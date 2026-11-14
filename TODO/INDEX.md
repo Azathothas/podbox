@@ -516,7 +516,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1851](supervise.md) | P3 | S | none | supervise | open | A store that root and a user share refuses the next run of the user with a bare `Permission denied` |
 | [T-1852](gate.md) | P1 | M | none | gate | open | The QA pass of experiment 443 has no row for the 22 defects that the external gate found |
 | [T-1853](gate.md) | P2 | S | none | gate | open | No check proves that each parity row with a value takes `--flag=value`, and that each verb takes `-h` and `--help` |
-| [T-1854](gate.md) | P1 | S | none | gate | open | No test proves that each option of `run` is honoured or refused on each tier |
+| [T-1854](gate.md) | P1 | S | none | gate | done | No test proves that each option of `run` is honoured or refused on each tier |
 | [T-1855](gate.md) | P2 | S | none | gate | open | The gate does not scan for the source patterns behind five defects |
 | [T-1856](gate.md) | P2 | S | none | gate | open | No test reads the `--report` of each path of a run against its schema and for a secret |
 | [T-1857](gate.md) | P3 | S | none | gate | open | A help text or a document can say "until T-NNNN" after that entry is done |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 63 open, 7 partial, 6 blocked, 407 done.
+483 entries: 62 open, 7 partial, 6 blocked, 408 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -562,10 +562,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 12 | 2 | 1 | 182 | 197 |
+| P1 | 11 | 2 | 1 | 183 | 197 |
 | P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 63 | 7 | 6 | 407 | 483 |
+| **All** | 62 | 7 | 6 | 408 | 483 |
 
 ## Work order
 

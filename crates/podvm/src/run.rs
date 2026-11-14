@@ -265,3 +265,5 @@ mod profile_tests;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tier_options_tests; // TODO/gate.md T-1854

@@ -272,6 +272,24 @@ pub(super) fn unhonoured_flags(o: &Opts) -> Vec<&'static str> {
     .collect()
 }
 
+/// The flags of `o` that an incus instance does not honour (TODO/gate.md
+/// T-1854): those of the machine tier, and the timeout, the terminal, the
+/// devices and the ports, which its job does not carry.
+pub(super) fn incus_unhonoured(o: &Opts) -> Vec<&'static str> {
+    let mut u = unhonoured_flags(o);
+    for (given, flag) in [
+        (o.timeout.is_some(), "--timeout"),
+        (o.tty, "-t"),
+        (!o.devices.is_empty(), "--device"),
+        (!o.ports.is_empty(), "--ports"),
+    ] {
+        if given {
+            u.push(flag);
+        }
+    }
+    u
+}
+
 /// TODO/machine.md T-1803: the report of `--report` learns that a guest
 /// runs the payload, with its image and digest.
 fn note_guest_run(tier: &'static str, o: &Opts, p: &Prepared) {
@@ -309,6 +327,19 @@ pub(super) fn incus_tier(
             "podvm {verb}: --podvm-tier=incus takes no --podvm-mem, --podvm-cpus, \
              --podvm-qemu-arg, --podvm-sealed, --podvm-engine or --network broker yet \
              (TODO/machine.md T-1718)"
+        );
+        return EXIT_FLAG_ERROR;
+    }
+    // TODO/gate.md T-1854: the class of T-1808 on this tier. The job of an
+    // incus instance carries no user, confine layer, read-only root, tmpfs,
+    // limits, labels, hosts, timeout, terminal, device or port; each is
+    // refused by name, not dropped.
+    let unhonoured = incus_unhonoured(o);
+    if !unhonoured.is_empty() {
+        eprintln!(
+            "podvm {verb}: --podvm-tier=incus refused: the instance does not honour {} yet; \
+             podvm refuses each by name and does not drop it (TODO/gate.md T-1854)",
+            unhonoured.join(", ")
         );
         return EXIT_FLAG_ERROR;
     }

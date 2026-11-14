@@ -5229,7 +5229,7 @@ covered with no new test.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5260,6 +5260,28 @@ An option is honoured or refused on each tier; the table says which.
 ## Prove
 
 `cargo test -p podvm --bin podvm tier_option_table` exits 0, and the test fails when the machine refusal of one flag is removed (`podvm-plant` plants it)
+
+## Correction
+
+**Amended, 2026-11-14.** The plant of the Prove is by hand, not a case of
+`podvm-plant`: with the `--label` row taken out of `unhonoured_flags`,
+the test failed, and it passed again with the row back.
+
+## Done
+
+**Done 2026-11-14.** `run/tier_options_tests.rs`:
+`tier_option_table_holds_for_the_machine_and_incus_tiers` checks a table
+of the options of `run` against the refusal of the machine tier
+(`unhonoured_flags`) and of the incus tier (`incus_unhonoured`), and
+`every_field_of_opts_is_classified` names each field of `Opts` with no
+`..`, so a new field fails the build until it is classified. The table
+found the class of T-1808 on the incus tier: its job carried no user,
+confine layer, read-only root, tmpfs, limits, labels, hosts, timeout,
+terminal, device or port, and it refused only six flags; `incus_tier`
+now refuses each by name with 125 before the incusd is reached. By hand:
+`--user`, `--timeout` and `--read-only` with `--podvm-tier=incus` give
+125 with the flag named; `-e A=1` goes on to the check of the incusd.
+`docs/limits.md` states the rule.
 
 
 # T-1855: The gate does not scan for the source patterns behind five defects

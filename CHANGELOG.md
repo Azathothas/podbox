@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the incus tier refuses the options that its instance ignored, 2026-11-14
+
+Record: T-1854.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=incus` took `--user`, `--read-only`, `--podvm-confine`,
+  the limits, `--timeout`, `-t` and more, and dropped them; it now
+  refuses each by name with exit 125, as the machine tier does
+  (T-1808). A test holds the table of each option on each guest tier.
+
 ### Fixed: a restarted container shows no exit code of the run before, 2026-11-14
 
 Record: T-1807 (partial).
