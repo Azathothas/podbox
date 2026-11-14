@@ -3516,6 +3516,16 @@ spare against 8.5 s, experiment 448). The root with no copy stays the
 goal of this entry: the first run of an image and each `create` still
 copy, and a spare uses the disk of one more tree.
 
+**Partial 2026-11-14, later.** podcrates `v0.42.0` carries the overlay
+root of the namespace rung (podcrates@T-486, `Root::Overlay` with
+`run_namespace_root`), and podvm takes the tag. The remaining step is
+the completion: `pod_rootfs` completes one root path, and with an
+overlay its writes must land in the upper layer while its reads see the
+image below. A copy-up of a fixed list of paths would break the first
+time `pod_rootfs` touches a new path, and it cannot serve a listing that
+both layers hold. COORD-090 (issue 326) asks podcrates for a two-layer
+completion; podvm wires the overlay root when a tag carries it.
+
 
 # T-1758: The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing
 
