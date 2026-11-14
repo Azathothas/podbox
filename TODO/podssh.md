@@ -418,7 +418,7 @@ the script is gone.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -448,3 +448,24 @@ podvm runs no program that only shares a name with its helper.
 ## Prove
 
 `cargo test -p podvm --bin podvm resolve_helper` exits 0, with a test that a fake `node` on PATH that fails the handshake gives exit 125 and a refusal that names the helper
+
+## Correction
+
+**Amended, 2026-11-14.** The helpers answer no version handshake, so
+podvm resolves them by name instead: beside the binary under the short
+name (the layout of the release archive), and on PATH only as
+`podvm-ssh-NAME`. A program that only shares the short name on PATH is
+never taken, which is the Decision.
+
+## Done
+
+**Done 2026-11-14.** `resolve_helper_in` (`remote/mod.rs`) looks on PATH
+for `podvm-ssh-NAME` only, and its refusal names the helper and how to
+provide it. The test `resolve_helper_prefers_the_sibling_then_its_own_name_on_path`
+gives exit 125 for a plain helper name on PATH and takes
+`podvm-ssh-probe-helper`. By hand on the cloud host, with Node.js at
+`/opt/node22/bin/node` on PATH: a podvm with no helper beside it exits
+125 with "no podvm-ssh helper `node` beside this binary, and no
+`podvm-ssh-node` on PATH"; beta.17 ran Node.js ("bad option: --relay",
+exit 9). `README.md`, `docs/architecture.md` and `docs/limits.md` name
+the PATH form.

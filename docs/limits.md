@@ -134,7 +134,7 @@ stays `done`: everything it claimed to deliver is delivered and its
 ## SSH
 
 The source build produces separate `node`, `operator`, `proxy`, and `shell` executables.
-The remote CLI needs compatible helpers beside podvm or on PATH.
+The remote CLI needs compatible helpers beside podvm, or on PATH named `podvm-ssh-node`, `podvm-ssh-operator` and `podvm-ssh-proxy` (T-1821): a plain `node` on PATH is Node.js, and podvm does not run it.
 Each release target since `v0.1.0-beta.10` carries the helper archive
 (T-1405 in [podssh](../TODO/podssh.md)). The `v0.1.0-beta.9` assets contain
 the CLI only.

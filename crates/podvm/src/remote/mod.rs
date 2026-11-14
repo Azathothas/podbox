@@ -81,11 +81,13 @@ pub(crate) fn value<'a>(
     })
 }
 
-/// The helper binary `name`, resolved beside this binary first and on PATH
-/// after it. The PATH half is a plain first-executable match: a nearer
-/// same-named file without the exec bit is skipped, not spawned, and a
-/// name that resolves nowhere is a runtime refusal naming the binary and
-/// how to provide it.
+/// The helper binary `name`, resolved beside this binary first (the layout
+/// of the release archive) and on PATH after it under its own name,
+/// `podvm-ssh-NAME`. ⛔ TODO/podssh.md T-1821: on PATH a plain `node` is
+/// Node.js, not the helper, so podvm never takes a program that only
+/// shares the short name. A same-named file without the exec bit is
+/// skipped, and a name that resolves nowhere is a runtime refusal naming
+/// the binary and how to provide it.
 pub(crate) fn resolve_helper(name: &str) -> Result<PathBuf, i32> {
     let sibling: Option<PathBuf> = std::env::current_exe()
         .ok()
@@ -103,13 +105,14 @@ pub(crate) fn resolve_helper_in(
     if let Some(beside) = sibling {
         return Ok(beside);
     }
-    if let Some(found) = path_lookup_in(name, path) {
+    let on_path = format!("podvm-ssh-{name}");
+    if let Some(found) = path_lookup_in(&on_path, path) {
         return Ok(found);
     }
     eprintln!(
-        "podvm remote ssh: no `{name}` beside this binary or on PATH. \
-         Build the podvm-ssh binaries (`cargo build -p podvm-ssh --bins`) \
-         and run this beside them, or put them on PATH"
+        "podvm remote ssh: no podvm-ssh helper `{name}` beside this binary, and no \
+         `{on_path}` on PATH. Unpack the podvm-ssh archive of the release beside \
+         podvm, or put its helpers on PATH as podvm-ssh-NAME (TODO/podssh.md T-1821)"
     );
     Err(EXIT_RUNTIME_ERROR)
 }
@@ -259,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn resolution_prefers_the_sibling_then_path_then_the_refusal() {
+    fn resolve_helper_prefers_the_sibling_then_its_own_name_on_path() {
         use std::os::unix::fs::PermissionsExt;
         let dir = std::env::temp_dir().join(format!("podvm-remote-resolve-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -273,10 +276,19 @@ mod tests {
                 .unwrap(),
             sibling
         );
-        // Without a sibling the PATH entry answers.
+        // Without a sibling the PATH entry answers, under its own name only:
+        // a plain `probe-helper` on PATH is not taken (T-1821, a `node` that
+        // is Node.js).
+        assert_eq!(
+            resolve_helper_in("probe-helper", None, Some(dir.as_os_str())).unwrap_err(),
+            EXIT_RUNTIME_ERROR
+        );
+        let named = dir.join("podvm-ssh-probe-helper");
+        std::fs::write(&named, b"#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&named, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(
             resolve_helper_in("probe-helper", None, Some(dir.as_os_str())).unwrap(),
-            sibling
+            named
         );
         // A name that resolves nowhere is the runtime refusal.
         assert_eq!(
@@ -297,7 +309,7 @@ mod tests {
         );
         // A same-named file without the exec bit on PATH is skipped, not
         // spawned: neutering the exec-bit check would resolve it.
-        let noexec = dir.join("probe-helper-noexec");
+        let noexec = dir.join("podvm-ssh-probe-helper-noexec");
         std::fs::write(&noexec, b"#!/bin/sh\n").unwrap();
         std::fs::set_permissions(&noexec, std::fs::Permissions::from_mode(0o644)).unwrap();
         assert_eq!(

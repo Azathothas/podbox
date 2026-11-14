@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `remote ssh` runs no `node` of PATH that is not its helper, 2026-11-14
+
+Record: T-1821.
+Deployed: not deployed; no version change.
+
+- With no podvm-ssh helper beside podvm, `remote ssh serve` ran the
+  first `node` on PATH, Node.js on most hosts. podvm now takes a helper
+  beside itself, or on PATH only as `podvm-ssh-NAME`, and refuses by
+  name otherwise.
+
 ### Fixed: an `rmi` after `rm` is no longer refused while the spare tree fills, 2026-11-14
 
 Record: T-1781 (correction), PodUtils/podvm#357.

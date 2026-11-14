@@ -136,7 +136,7 @@ podvm machine ssh --help
 ```
 
 The remote commands use the `node`, `operator`, and `proxy` helper executables.
-Place compatible helpers beside podvm or on PATH.
+Place compatible helpers beside podvm, or on PATH as `podvm-ssh-NAME`.
 A source workspace build produces them. Read [the SSH limits](docs/limits.md#ssh)
 before you use a downloaded standalone binary for remote SSH.
 
