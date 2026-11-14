@@ -94,6 +94,7 @@ pub(super) fn enter(
     userland: &Userland,
     exe: &str,
     err: &mut dyn Write,
+    on_spawn: &mut dyn FnMut(i64, &mut dyn Write),
 ) -> UserlandOutcome {
     let me = match std::fs::read_link("/proc/self/exe") {
         Ok(p) => p.to_string_lossy().into_owned(),
@@ -119,7 +120,14 @@ pub(super) fn enter(
     } else {
         WORD
     };
-    match podvm_enter::run_userland(root, plan, &userland.maps, argv, word, None, err) {
+    // TODO/supervise.md T-1786: the pid goes to the hold of a foreground
+    // run before the wait.
+    let ran = podvm_enter::spawn_userland(root, plan, &userland.maps, argv, word, None, err)
+        .and_then(|c| {
+            on_spawn(c.pid, err);
+            c.wait_forwarding(err)
+        });
+    match ran {
         Ok(c) => UserlandOutcome {
             code: c,
             entered: true,

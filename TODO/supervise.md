@@ -1484,9 +1484,13 @@ running)", and `wait` gives 0; `kill` of a `sleep 10` ends it 137 and the
 record reads `exited` 137; `stop -t 3` of a payload that traps TERM ends
 it in 0.03 s with code 7; SIGTERM to podvm gives 143 with no payload
 left; `exec` reads the `/tmp` of the running payload; on the userland
-fixture `ps` lists the run `Up`. Remaining: the native-static rung and a
-run that `PODVM_MODE` forces through the ladder have no pid before the
-wait, so their record still reads `Created` while they run.
+fixture `ps` lists the run `Up`. Later the same day the native-static
+rung takes the hold too (`lifecycle/native.rs`): `busybox:musl sleep 4`
+on the userland fixture, entered through `--podvm-dispatch-enter`, is
+`Up` in `ps` and `running` in `inspect`, then `exited` 0. Remaining: a
+run that `PODVM_MODE` forces through the ladder (a switch for
+measurements) waits inside `run_ladder`, which also closes the memfd of
+the parent, so its record still reads `Created` while it runs.
 
 # T-1800: `ps` aborts with SIGABRT when a command has a multibyte character at byte 17
 
