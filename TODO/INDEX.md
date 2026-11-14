@@ -478,7 +478,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
 | [T-1814](image.md) | P2 | S | none | image | open | `system df` prints the manifest digest in its IMAGE ID column |
 | [T-1815](cli.md) | P1 | S | none | cli | open | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
-| [T-1816](cli.md) | P1 | M | none | cli | open | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
+| [T-1816](cli.md) | P1 | M | none | cli | done | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
 | [T-1817](cli.md) | P1 | S | none | cli | open | `run -t` never delivers end of input, so a payload that reads to the end blocks |
 | [T-1818](complete.md) | P0 | S | none | complete | done | `--no-host-cas` is ignored on an image that ships no CA bundle |
 | [T-1819](enter.md) | P0 | M | none | enter | done | An `exec=` rule of `--podvm-confine` does not deny a program on the loader family |
@@ -526,7 +526,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-457 entries: 55 open, 5 partial, 3 blocked, 394 done.
+457 entries: 54 open, 5 partial, 3 blocked, 395 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -536,10 +536,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 73 | 73 |
-| P1 | 15 | 1 | 1 | 169 | 186 |
+| P1 | 14 | 1 | 1 | 170 | 186 |
 | P2 | 26 | 2 | 2 | 130 | 160 |
 | P3 | 14 | 2 | 0 | 22 | 38 |
-| **All** | 55 | 5 | 3 | 394 | 457 |
+| **All** | 54 | 5 | 3 | 395 | 457 |
 
 ## Work order
 

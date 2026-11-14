@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a full stdout, 2026-11-14
+
+Record: T-1816.
+Deployed: not deployed; no version change.
+
+- With stdout on a full disk (`/dev/full`), `version`, `ps`, `probe`,
+  `doctor` and `inspect` aborted with exit 134, and `images` and `logs`
+  exited 0 with their answer lost. Each verb now exits 125 with one line
+  on stderr that names the error.
+
 ## 0.2.0-beta.16 (2026-11-14)
 
 ### Fixed: `exec=` of `--podvm-confine` on the userland rung, 2026-11-14

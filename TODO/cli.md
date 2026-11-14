@@ -4788,7 +4788,7 @@ never does nothing (T-1421).
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4822,6 +4822,22 @@ panic.
 ## Prove
 
 `cargo test -p podvm --test stdout_full` exits 0, with a test for `version`, `ps`, `images`, `inspect`, `probe` and `logs` with stdout on `/dev/full` (exit 125, the errno named, no SIGABRT)
+
+## Done
+
+**Done 2026-11-14.** `names/stdout.rs`: a panic hook, which `names::start`
+installs, turns the panic of a print macro on stdout into exit 125 and
+the line `podvm VERB: stdout: ERROR` before the abort runs; `exit` of
+`main.rs` flushes stdout and gives 125 where the flush fails; `logs` and
+`images` check their writes and their flush. A failed write is reported
+once. The test `stdout_full_is_125_with_the_errno_named` runs `version`,
+`ps -a`, `images` and `probe` with stdout on `/dev/full`: exit 125 and
+one line with the errno each. By hand with the built binary, also
+`inspect IMG`, `doctor`, `images --format` and `logs NAME`: 125 and one
+line each; beta.15 aborted with 134 or exited 0. A deviation from the
+Approach: a print macro that fails on stderr exits 125 with no line,
+because the hook cannot return to the verb and stderr takes no line;
+the code of the verb is lost there. T-1855 adds the scan of the source.
 
 
 # T-1817: `run -t` never delivers end of input, so a payload that reads to the end blocks

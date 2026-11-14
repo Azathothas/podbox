@@ -483,9 +483,8 @@ fn cached_probe(json: bool, strictness: Strictness) -> i32 {
 
 fn exit(code: i32) -> std::process::ExitCode {
     run::spare::spawn_pending(); // TODO/image.md T-1781
-                                 // ⚠ An exit status carries eight bits. Anything wider would be truncated
-                                 // into a different code, so it is clamped to one that cannot be confused
-                                 // with a verdict.
+    let code = names::stdout::flushed(code); // TODO/cli.md T-1816: a lost answer is 125
+                                             // ⚠ Eight bits: a wider code is clamped to one that is no verdict.
     std::process::ExitCode::from(u8::try_from(code).unwrap_or(EXIT_RUNTIME_ERROR as u8))
 }
 

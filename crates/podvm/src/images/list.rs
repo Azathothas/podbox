@@ -155,7 +155,9 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
         for r in &records {
             match format::render(template, &image_fields(r, &store, o.no_trunc)) {
                 Ok(line) => {
-                    let _ = writeln!(out, "{line}");
+                    if let Err(e) = writeln!(out, "{line}") {
+                        return crate::names::stdout::failed(&e); // T-1816
+                    }
                 }
                 Err(bad) => {
                     eprintln!("podvm images: {bad}");
@@ -182,8 +184,11 @@ pub fn images(verb: &str, args: &[String]) -> i32 {
         row.extend([get("ID"), get("CreatedSince"), get("Size")]);
         rows.push(row);
     }
-    let _ = write!(out, "{}", table(&rows));
-    0
+    // TODO/cli.md T-1816: a lost table is 125, not 0.
+    match write!(out, "{}", table(&rows)).and_then(|()| out.flush()) {
+        Ok(()) => 0,
+        Err(e) => crate::names::stdout::failed(&e),
+    }
 }
 
 /// `podvm rmi` and `podvm image rm`.

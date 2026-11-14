@@ -300,6 +300,7 @@ pub fn install(verb: &str, args: &[String]) -> i32 {
 /// T-1769); with the default, podvm ends quietly, as each Unix tool does.
 pub fn start() {
     podvm_dispatch::main_if_entered("podvm");
+    stdout::install(); // TODO/cli.md T-1816
     unsafe extern "C" {
         fn signal(sig: i32, handler: usize) -> usize;
     }
@@ -308,6 +309,8 @@ pub fn start() {
     // SAFETY: SIG_DFL installs no handler of this process.
     unsafe { signal(SIGPIPE, SIG_DFL) };
 }
+
+pub mod stdout;
 
 #[cfg(test)]
 mod tests {

@@ -169,9 +169,12 @@ pub fn logs(args: &[String]) -> i32 {
                 }
                 None => &bytes[..],
             };
+            // TODO/cli.md T-1816: a failed write is 125, not 0.
             let mut out = std::io::stdout().lock();
-            let _ = out.write_all(bytes);
-            0
+            match out.write_all(bytes).and_then(|()| out.flush()) {
+                Ok(()) => 0,
+                Err(e) => crate::names::stdout::failed(&e),
+            }
         }
         Err(e) => fail("logs", e),
     }

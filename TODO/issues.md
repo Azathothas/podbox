@@ -245,3 +245,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | open | T-1842, T-1836 |
 | #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
 | #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | open | - |
+| #349 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.16` (AGENTS.md, section 9) |
