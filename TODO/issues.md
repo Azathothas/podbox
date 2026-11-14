@@ -234,12 +234,12 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #336 | `podvm load` spools stdin to `$TMPDIR/podvm-load-in-<pid>`, so a planted symlink truncates a file the user never named | closed (T-1782 in `a96c3a5a`, released in `0.2.0-beta.15`) | T-1782 |
 | #337 | COORD-093 of Nemo-010: the machine-tier refusal runs its legs together, and `probe` prints the verdict twice (to podcrates) | closed (podcrates@T-570 in podcrates `v0.43.0`, taken in `b0bb87f1`) | none: podcrates@T-570 (PodUtils/podcrates#147) |
 | #328 | [gh action] requested | closed (gate 43556212876 green on 772734fa; arm 43557049704 failed: experiment 356 wrote into the image tree under a spare tree) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
-| #339 | COORD-094: ask for a foreground holder in pod-supervise, so that a foreground run is Running while its payload runs (PodUtils/podvm#330) (to podcrates) | open | T-1786 |
+| #339 | COORD-094: ask for a foreground holder in pod-supervise, so that a foreground run is Running while its payload runs (PodUtils/podvm#330) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1786 |
 | #338 | [gh action] requested | closed (the gate 43557980918 failed on 08abecca: rustfmt of crates/podvm-interpose) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
 | #340 | [gh action] requested | closed (gate 43559084201, arm 43559993532, nightly trial 43560303295 and release 43560802211 green on 551ba939) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
-| #341 | COORD-095: pod-rootfs writes the host CA bundle into an image with no bundle when host_cas is false (podvm T-1818) (to podcrates) | open | T-1818 |
-| #342 | COORD-096: pod-extract drops S_ISUID and S_ISGID of a 4755 or 2755 file (podvm T-1813) (to podcrates) | open | T-1813 |
-| #343 | COORD-097: pod-supervise keeps the end fields on start and the pid of a Dead record (podvm T-1807) (to podcrates) | open | T-1807 |
+| #341 | COORD-095: pod-rootfs writes the host CA bundle into an image with no bundle when host_cas is false (podvm T-1818) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1818 |
+| #342 | COORD-096: pod-extract drops S_ISUID and S_ISGID of a 4755 or 2755 file (podvm T-1813) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1813 |
+| #343 | COORD-097: pod-supervise keeps the end fields on start and the pid of a Dead record (podvm T-1807) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1807 |
 | #344 | COORD-098: an exec= rule of pod-confine and pod-enter does not deny a program started through the image's loader (podvm T-1819) (to podcrates) | open | T-1819 |
 | #345 | COORD-099: pod-enter applies two limits of one resource in order, so a raise after a lower fails with EPERM (podvm T-1827) (to podcrates) | open | T-1827 |
 | #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | open | T-1842, T-1836 |
@@ -257,3 +257,5 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #358 | Concurrent `create`, `run`, `cp` or `extract` of a never-extracted image all write the same tree, and the first to fail removes it under the others | closed (`2003aff9`) | T-1886 |
 | #359 | COORD-108: pod-broker: a 502 names no upstream status, and a no-rule 403 does not name the port (podvm T-1820) (to podcrates) | open | T-1820 |
 | #360 | COORD-109: pod-guest fat16: a long file name, for the autounattend.xml of an unattended Windows install (podvm T-1866) (to podcrates) | open | T-1866, T-1867 |
+| #361 | COORD-110: pod-services: list software-download.microsoft.com (to podcrates) | open | T-1679 |
+| #362 | COORD-111: podvm took v0.44.0 in 14e972d2 (the answer to PodUtils/podcrates#154) (to podcrates) | open | T-1786, T-1881 |

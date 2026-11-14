@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.18 (2026-11-14)
+
 ### Changed: podcrates `v0.44.0`; a foreground run is live in its record, 2026-11-14
 
 Record: T-1786 (partial), T-1807, T-1813, T-1881 (partial), T-1879.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - A foreground `run` reads `Up` in `ps` while its payload runs, on the
   chroot, namespace and userland rungs: `kill`, `stop`, `wait` and `exec`
@@ -28,7 +30,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `system df` prints the IMAGE ID of `images`, 2026-11-14
 
 Record: T-1814, T-1852 (partial).
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - `system df` printed the manifest digest in its IMAGE ID column; it now
   prints the config digest, as `images` and `inspect` do. Two platform
@@ -38,7 +40,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `podvm windows doctor` checks more, and the UEFI firmware of Debian and Ubuntu is found, 2026-11-14
 
 Record: T-1871 (partial).
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - The doctor names the QEMU version, the firmware pair, the free disk,
   the file-size ceiling, a host that is a VM, the state of each Windows
@@ -50,7 +52,7 @@ Deployed: not deployed; no version change.
 ### Added: the answer file of an unattended Windows install, 2026-11-14
 
 Record: T-1866 (partial).
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - `podvm-windows` builds `autounattend.xml` for Windows 11, Server 2025
   and Windows 10 with a random password; its media and the install
@@ -59,7 +61,7 @@ Deployed: not deployed; no version change.
 ### Added: `podvm run windows:NAME`, and `windows:dos` with no setup, 2026-11-14
 
 Record: T-1861 (partial).
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - A catalog of Windows guests with pinned URL, size and sha256 of each:
   `windows:dos`, `windows:validationos`, `windows:11`, `windows:2025`,
@@ -71,7 +73,7 @@ Deployed: not deployed; no version change.
 ### Fixed: the incus tier refuses the options that its instance ignored, 2026-11-14
 
 Record: T-1854.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - `run --podvm-tier=incus` took `--user`, `--read-only`, `--podvm-confine`,
   the limits, `--timeout`, `-t` and more, and dropped them; it now
@@ -81,7 +83,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a restarted container shows no exit code of the run before, 2026-11-14
 
 Record: T-1807 (partial).
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - After `restart` or `start`, `inspect` showed `running` with the exit
   code and the end time of the run before; they are cleared now while
@@ -90,7 +92,7 @@ Deployed: not deployed; no version change.
 ### Fixed: concurrent `create` of an image that was never extracted, 2026-11-14
 
 Record: T-1886, PodUtils/podvm#358.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - Several `create`, `run`, `cp` or `extract` at once of a pulled image
   that was never extracted wrote one tree together, and the first to
@@ -101,7 +103,7 @@ Deployed: not deployed; no version change.
 ### Fixed: the `--report` of a machine run, 2026-11-14
 
 Record: T-1803.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - The report of a run on the machine or incus tier read as a refusal,
   with no rung, image or exit code; it now names the tier, the image and
@@ -110,7 +112,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `--timeout` on the machine tier, 2026-11-14
 
 Record: T-1809.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - `run --podvm-tier=machine --timeout 2` killed the guest 10 s late and
   exited 125 with a line about QEMU's socket; it now kills at the bound
@@ -119,7 +121,7 @@ Deployed: not deployed; no version change.
 ### Fixed: no emulator outlives podvm, 2026-11-14
 
 Record: T-1884.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - A machine run that podvm left on a signal (the SIGTERM of `timeout`,
   a SIGKILL) left its QEMU running. The emulator now dies with podvm.
@@ -127,7 +129,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `-t` ends the input of the payload, and `-d -t` is refused, 2026-11-14
 
 Record: T-1815, T-1817.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - `run -t` never gave the payload the end of its input, so `cat
   </dev/null` hung; podvm now sends the terminal's end of input (VEOF)
@@ -138,7 +140,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `logs` of a foreground run, `probe --cached`, and the `=` forms of two machine flags, 2026-11-14
 
 Record: T-1806, T-1811, T-1812.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - The log of a foreground run held stdout only; it now holds stderr too,
   each write in its order.
@@ -151,7 +153,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `remote ssh` runs no `node` of PATH that is not its helper, 2026-11-14
 
 Record: T-1821.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - With no podvm-ssh helper beside podvm, `remote ssh serve` ran the
   first `node` on PATH, Node.js on most hosts. podvm now takes a helper
@@ -161,7 +163,7 @@ Deployed: not deployed; no version change.
 ### Fixed: an `rmi` after `rm` is no longer refused while the spare tree fills, 2026-11-14
 
 Record: T-1781 (correction), PodUtils/podvm#357.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - The detached fill of the spare tree took the image's payload hold, so
   an `rmi` or `image prune` in the seconds after `rm` was refused as "in
@@ -173,7 +175,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `exec`, `save`, `load` and `import` exit 1 for a missing image or an invalid name, 2026-11-14
 
 Record: T-1842 (partial), PodUtils/podvm#356.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.18.
 
 - `exec` of an image that the store does not have, `save` of a missing
   image and `import` of an invalid name exited 125; they exit 1 now, as
