@@ -293,7 +293,11 @@ fn first_of_run() -> bool {
     static DONE: AtomicBool = AtomicBool::new(false);
     unsafe extern "C" {
         fn getenv(name: *const core::ffi::c_char) -> *mut core::ffi::c_char;
-        fn setenv(name: *const core::ffi::c_char, value: *const core::ffi::c_char, overwrite: c_int) -> c_int;
+        fn setenv(
+            name: *const core::ffi::c_char,
+            value: *const core::ffi::c_char,
+            overwrite: c_int,
+        ) -> c_int;
     }
     if DONE.swap(true, Ordering::Relaxed) {
         return false;

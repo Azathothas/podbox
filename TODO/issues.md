@@ -235,4 +235,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #337 | COORD-093 of Nemo-010: the machine-tier refusal runs its legs together, and `probe` prints the verdict twice (to podcrates) | open | none: podcrates@T-570 (PodUtils/podcrates#147) |
 | #328 | [gh action] requested | closed (gate 43556212876 green on 772734fa; arm 43557049704 failed: experiment 356 wrote into the image tree under a spare tree) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
 | #339 | COORD-094: ask for a foreground holder in pod-supervise, so that a foreground run is Running while its payload runs (PodUtils/podvm#330) (to podcrates) | open | T-1786 |
-| #338 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
+| #338 | [gh action] requested | closed (the gate 43557980918 failed on 08abecca: rustfmt of crates/podvm-interpose) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
