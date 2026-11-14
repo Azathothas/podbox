@@ -919,3 +919,49 @@ The root names the destination: it is no loss.
 podcrates fixes `pod-extract` (PodUtils/podvm#352) as podcrates@T-599,
 in `v0.44.0` (PodUtils/podcrates#153). The entry clears when podvm takes
 that tag.
+
+# T-1891: A tree with a directory of mode 0555 cannot be removed by a user who is not root
+
+**Source:** gate run 43603709240 (request 365, 2026-11-14): the check of T-1859 found nine stores of `podvm-extract` left on a runner that is not root
+**Category:** extract
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`pod_extract::remove_tree` fails with `cannot remove "file": EACCES` on
+a file inside a directory of mode 0555 when the caller is not root. When
+podcrates@T-598 keeps the exact mode of each directory, `podvm rm`,
+`rmi` and the removal of a spare tree by such a user leave the tree on
+the disk.
+
+## Premise
+
+The unlink of an entry needs write on its directory. Root passes with
+`CAP_DAC_OVERRIDE`. A path-based `chmod` in podvm is not safe: a
+container tree is writable by its payload, which can swap a directory
+for a link during the walk. The walk of `pod-extract` holds a
+descriptor of each directory, so the fix belongs there.
+
+## Approach
+
+Ask podcrates (COORD-113, issue 367) to give each directory owner write
+through the descriptor of the walk before its entries go. Meanwhile the
+fixture of `crates/podvm-extract/src/tree_tests.rs` widens its own
+directories before the removal, so the gate stays green.
+
+## Decision
+
+A tree that podvm made, podvm can remove, as root or not.
+
+## Prove
+
+As uid 1000, `podvm rmi` of an image whose layer holds a directory of mode 0555 with a file in it exits 0 and leaves no tree under the store
+
+## Blocker
+
+**Blocked 2026-11-14.** Blocker: `pod_extract::remove_tree` does not
+widen a directory before it removes the entries. Clears when: a
+podcrates tag carries the ask of COORD-113 (issue 367).

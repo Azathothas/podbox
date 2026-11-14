@@ -553,10 +553,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1888](enter.md) | P2 | S | none | enter | done | A required confine path whose link leaves the tree still grants a host inode |
 | [T-1889](machine.md) | P1 | S | none | machine | done | The machine tier boots an image of another architecture and ends with "no exit marker" |
 | [T-1890](machine.md) | P2 | L | none | machine | open | The machine tier has no guest of another architecture |
+| [T-1891](extract.md) | P1 | S | none | extract | blocked | A tree with a directory of mode 0555 cannot be removed by a user who is not root |
 
 ## Counts
 
-487 entries: 50 open, 14 partial, 4 blocked, 419 done.
+488 entries: 50 open, 14 partial, 5 blocked, 419 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -566,10 +567,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
-| P1 | 4 | 8 | 0 | 187 | 199 |
+| P1 | 4 | 8 | 1 | 187 | 200 |
 | P2 | 31 | 3 | 4 | 137 | 175 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 50 | 14 | 4 | 419 | 487 |
+| **All** | 50 | 14 | 5 | 419 | 488 |
 
 ## Work order
 

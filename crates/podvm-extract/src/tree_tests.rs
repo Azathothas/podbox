@@ -20,7 +20,25 @@ fn store(name: &str) -> Store {
     s
 }
 
+/// TODO/gate.md T-1859, TODO/extract.md T-1891: the fixture holds a
+/// directory of mode 0555, and `pod_extract::remove_tree` cannot remove
+/// its file as a user who is not root (EACCES), so CI found nine stores
+/// left. The tree is the test's own, so each directory gets owner write
+/// first; the walk follows no link.
 fn clean(s: &Store) {
+    fn widen(dir: &std::path::Path) {
+        let Ok(md) = fs::symlink_metadata(dir) else {
+            return;
+        };
+        if !md.is_dir() {
+            return;
+        }
+        let _ = fs::set_permissions(dir, fs::Permissions::from_mode(md.mode() | 0o700));
+        for e in fs::read_dir(dir).into_iter().flatten().flatten() {
+            widen(&e.path());
+        }
+    }
+    widen(s.root());
     let _ = pod_extract::remove_tree(s.root());
 }
 
