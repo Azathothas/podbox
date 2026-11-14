@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the answer file of an unattended Windows install, 2026-11-14
+
+Record: T-1866 (partial).
+Deployed: not deployed; no version change.
+
+- `podvm-windows` builds `autounattend.xml` for Windows 11, Server 2025
+  and Windows 10 with a random password; its media and the install
+  itself come with T-1866 and T-1867.
+
 ### Added: `podvm run windows:NAME`, and `windows:dos` with no setup, 2026-11-14
 
 Record: T-1861 (partial).

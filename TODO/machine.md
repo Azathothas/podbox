@@ -3419,7 +3419,7 @@ of ValidationOS keeps `-nic none`.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3454,6 +3454,26 @@ goes to the machine record with mode 0600 (T-1869 prints it on request).
 ## Prove
 
 `cargo test -p podvm-windows answer_file` exits 0, with new tests: golden
+
+## Done
+
+**Partial 2026-11-14.** The answer file: `podvm-windows/src/answer.rs`,
+a pure `xml(&Answer)` for Windows 11, Server 2025 and Windows 10 (GPT
+for UEFI, the image by its index, the locale, one administrator `podvm`
+with one automatic logon, the out-of-box screens skipped, Remote Desktop
+and its firewall group on, no sleep, and a first logon that writes
+`PODVM-WINDOWS-READY` on COM1 and shuts down; the LabConfig keys for 11
+only), and `password()`, 20 characters from `/dev/urandom`. Tests:
+`answer_file_is_well_formed_for_each_target` (each element closes; the
+index, the marker, Remote Desktop; LabConfig for 11 only; the password
+escaped and in its two places only) and
+`answer_file_password_is_random_and_complex`. The index of the server
+image (2, the Standard edition with the Desktop Experience) is an
+estimate until T-1867 reads the WIM. The clause that remains: the USB
+FAT media, which needs the long name `autounattend.xml` that `fat16` of
+`pod-guest` does not write (8.3 only): COORD-109 (issue 360) asks
+podcrates; and the golden files, the round trip through `fat16` and the
+pinned `-device usb-storage` line of the Prove come with it.
 files for 11, 2025 and 10, XML well-formedness, a round trip of the FAT image
 through the reader of `fat16`, a test that the password is not in any argv, and
 a test that pins the `-device usb-storage` line.

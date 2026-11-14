@@ -528,7 +528,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1863](machine.md) | P1 | M | none | machine | open | `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector |
 | [T-1864](machine.md) | P1 | S | none | machine | open | The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out |
 | [T-1865](machine.md) | P1 | M | none | machine | open | The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel |
-| [T-1866](machine.md) | P1 | M | none | machine | open | There is no generator of the unattended answer file or of the USB FAT media |
+| [T-1866](machine.md) | P1 | M | none | machine | partial | There is no generator of the unattended answer file or of the USB FAT media |
 | [T-1867](machine.md) | P1 | L | none | machine | open | `podvm pull windows:11` cannot install a full Windows guest |
 | [T-1868](machine.md) | P2 | M | none | machine | open | A full Windows guest has no `exec`, `cp`, graceful `stop` or readiness probe |
 | [T-1869](machine.md) | P2 | M | none | machine | open | A Windows guest has no `-p`, no RDP check, no VNC, no screenshot and no `creds` |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 60 open, 9 partial, 6 blocked, 408 done.
+483 entries: 59 open, 10 partial, 6 blocked, 408 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -562,10 +562,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 9 | 4 | 1 | 183 | 197 |
+| P1 | 8 | 5 | 1 | 183 | 197 |
 | P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 60 | 9 | 6 | 408 | 483 |
+| **All** | 59 | 10 | 6 | 408 | 483 |
 
 ## Work order
 
