@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `exec=` of `--podvm-confine` on the userland rung, 2026-11-14
+
+Record: T-1819.
+Deployed: not deployed; no version change.
+
+- On the userland rung, `--podvm-confine` did not deny a script or a
+  program outside its `exec=` paths and the system directories: the
+  kernel executed the loader of the image, which the layer grants. The
+  interposer now checks each program against the exec table of the
+  layer and refuses with EACCES. A static program that `exec=` grants
+  ran with 126; it now runs.
+
 ### Fixed: `--no-host-cas` on an image with no CA bundle, 2026-11-14
 
 Record: T-1818.

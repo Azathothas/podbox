@@ -5423,3 +5423,45 @@ section 2). A fixed shared name is not used in a test.
 ## Prove
 
 After `cargo test --release --workspace`, `ls -d /tmp/podvm-* $CARGO_TARGET_TMPDIR/podvm-*` lists nothing, and `grep -rn '"/tmp/podvm' crates` finds no test path
+
+
+# T-1860: The tests of `podvm-interpose` fail when they run in parallel, and CI does not run them
+
+**Source:** the work on T-1819 (2026-11-14)
+**Category:** gate
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`cargo test --release --target x86_64-unknown-linux-gnu` in
+`crates/podvm-interpose` fails 4 to 6 tests on each run, a different set
+each time (`exec::tests::the_route_enters_each_arm_through_the_rootfs`,
+`tests::links::an_absolute_link_of_the_rootfs_resolves_in_the_rootfs`
+and others), on `main` with no change. With `--test-threads=1`, all 98
+pass. `gate.yml` runs fmt and clippy on the crate, and no test of it.
+
+## Premise
+
+The tests set and remove process variables (`PODVM_MAPS` and others,
+`std::env::set_var` in `src/exec/tests.rs`), which the interposer reads
+from `environ`; two tests that run at the same time see each other's
+table.
+
+## Approach
+
+Give the tests one lock of the environment (a `static Mutex` that each
+test that sets a variable holds), or `--test-threads=1` in one place
+that each caller uses (`.cargo/config.toml` of the crate, or a test
+runner script). Add the test step of the crate to `gate.yml`.
+
+## Decision
+
+A test that fails at random hides a real failure; the crate that runs in
+each payload of the userland rung gets its tests in CI.
+
+## Prove
+
+Ten runs of `cargo test --release --target x86_64-unknown-linux-gnu` in `crates/podvm-interpose`, with the default thread count, each exit 0, and `gate.yml` has a step that runs them

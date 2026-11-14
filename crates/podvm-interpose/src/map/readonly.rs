@@ -14,6 +14,37 @@ use super::*;
 /// The variable of the read-only table.
 pub const RO_VAR: &[u8] = b"PODVM_RO";
 
+/// The variable of the exec table of the confine layer (TODO/enter.md
+/// T-1819): the guest prefixes, comma separated, where a program may run.
+/// On the loader family the kernel executes the loader of the image, so
+/// Landlock checks EXECUTE on the loader only; the interposer checks each
+/// program here before it starts it.
+pub const EXEC_VAR: &[u8] = b"PODVM_EXEC";
+
+/// True where the exec table lets the resolved guest path `path` run: no
+/// table (no confine layer), or a prefix of the table holds it.
+///
+/// # Safety
+/// As [`lookup_env`].
+pub unsafe fn exec_allowed(path: &[u8]) -> bool {
+    let Some((v, v_n)) = (unsafe { lookup_env(EXEC_VAR) }) else {
+        return true;
+    };
+    exec_allowed_in(unsafe { core::slice::from_raw_parts(v, v_n) }, path)
+}
+
+/// [`exec_allowed`] over a given table, for the tests. An empty table lets
+/// nothing run.
+pub fn exec_allowed_in(table: &[u8], path: &[u8]) -> bool {
+    table.split(|c| *c == b',').any(|p| {
+        let mut n = p.len();
+        if n > 1 && p[n - 1] == b'/' {
+            n -= 1;
+        }
+        n > 0 && p[0] == b'/' && prefix(p.as_ptr(), n, path.as_ptr(), path.len())
+    })
+}
+
 /// `EROFS`: a write to a read-only file system.
 pub const EROFS: c_int = 30;
 

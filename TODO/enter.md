@@ -3722,7 +3722,7 @@ exits 0 and changes the file on both. Experiment 443 has the row
 **Milestone:** none
 **Priority:** P0
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3762,3 +3762,43 @@ A confine rule that the binary cannot enforce is refused, not accepted
 ## Prove
 
 `cargo test -p podvm --test confine_exec` exits 0, with tests on the userland rung that a script, a dynamic ELF and a static ELF outside each `exec=` rule are denied, and that a static ELF inside `exec=/tmp` runs
+
+## Correction
+
+**Amended, 2026-11-14.** The test target `confine_exec` of the Prove was
+not made: the measurement needs an image and the fixture of the userland
+rung, so it is in experiment 443 (rows `run.confine-exec-script`,
+`-copy`, `-static` and `-in`, both rungs), with the unit tests
+`exec_allowed_in_takes_each_prefix` and
+`exec_table_names_the_system_dirs_and_each_exec_path`.
+
+## Done
+
+**Done 2026-11-14.** Two causes, both in podvm's own code; no wait for
+podcrates. (1) On the userland rung the kernel executes the loader, so
+Landlock never checked EXECUTE on the program: podvm now gives the
+interposer the exec table of the layer, `PODVM_EXEC` (the system
+directories of the image and each `exec=` path, as guest paths;
+`lifecycle/confine.rs`, `exec_table`, set by `decide`, which drops a
+caller's own), and `plan` of the interposer (`exec.rs`) refuses with
+EACCES each level (the program, a script and its interpreter) whose
+resolved guest path no prefix holds (`map/readonly.rs`,
+`exec_allowed`). (2) The static case of the report: a static child of
+the loader family enters the native-static rung through podvm's own
+binary (T-1724), and the layer gave that binary execute only on the
+other families, so a static program that `exec=` granted got 126; it
+now gets read and execute on each family. Tests:
+`exec_allowed_in_takes_each_prefix` (interposer) and
+`exec_table_names_the_system_dirs_and_each_exec_path`. A deviation from
+the Prove: the measurement is in experiment 443, not in a test of
+`cargo test --test confine_exec`, because it needs an image and the
+fixture of the userland rung; the rows `run.confine-exec-script`,
+`-copy`, `-static` and `-in` run on both rungs, and the section run
+gave 237 pass and 0 fail. By hand, on the fixture
+and on the namespace rung: outside `exec=`, a script, a copied busybox
+and a static program give 126 with the line "the confine layer denies
+the exec of this path (exec=)"; inside `exec=/vol`, the script and the
+static program run. The ask of COORD-098 (issue 344, podcrates@T-583)
+stays for the check of the crate. ⚠ The interposer is not a boundary:
+a raw `execve` system call passes it, as the module doc of
+`map/readonly.rs` says of each check of the table.

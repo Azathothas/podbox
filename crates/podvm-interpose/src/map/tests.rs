@@ -475,3 +475,18 @@ fn denied_in_lets_ro_win_a_tie() {
     assert!(denied_in(b"rw:/data,ro:/data/", b"/data"));
     assert!(!denied_in(b"ro:/,rw:/data", b"/data/f"));
 }
+
+/// TODO/enter.md T-1819: the exec table holds a path under one of its
+/// prefixes, at a component boundary; an empty table holds nothing.
+#[test]
+fn exec_allowed_in_takes_each_prefix() {
+    let t = b"/bin,/usr,/lib,/opt/tool/";
+    assert!(exec_allowed_in(t, b"/bin/sh"));
+    assert!(exec_allowed_in(t, b"/usr/local/bin/python3"));
+    assert!(exec_allowed_in(t, b"/opt/tool/run"));
+    assert!(!exec_allowed_in(t, b"/tmp/s.sh"));
+    assert!(!exec_allowed_in(t, b"/binx/sh"));
+    assert!(!exec_allowed_in(t, b"/vol/bb"));
+    assert!(!exec_allowed_in(b"", b"/bin/sh"));
+    assert!(exec_allowed_in(b"/", b"/tmp/x"));
+}

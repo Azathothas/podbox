@@ -481,7 +481,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1816](cli.md) | P1 | M | none | cli | open | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
 | [T-1817](cli.md) | P1 | S | none | cli | open | `run -t` never delivers end of input, so a payload that reads to the end blocks |
 | [T-1818](complete.md) | P0 | S | none | complete | done | `--no-host-cas` is ignored on an image that ships no CA bundle |
-| [T-1819](enter.md) | P0 | M | none | enter | open | An `exec=` rule of `--podvm-confine` does not deny a program on the loader family |
+| [T-1819](enter.md) | P0 | M | none | enter | done | An `exec=` rule of `--podvm-confine` does not deny a program on the loader family |
 | [T-1820](net.md) | P1 | M | none | net | open | An allowed host through `--network broker` answers 502 "the far end failed" |
 | [T-1821](podssh.md) | P1 | S | none | podssh | open | `remote ssh serve` runs any program named `node` on PATH |
 | [T-1822](supervise.md) | P2 | S | none | supervise | open | `cp` of a file onto a directory fails and blames the source, `cp -r` drops directory modes, and the containment refusals name the wrong operation |
@@ -522,10 +522,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1857](gate.md) | P3 | S | none | gate | open | A help text or a document can say "until T-NNNN" after that entry is done |
 | [T-1858](supervise.md) | P3 | S | none | supervise | open | The `ps` table pads by characters, so a wide character puts its row out of line |
 | [T-1859](gate.md) | P2 | S | none | gate | open | Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each |
+| [T-1860](gate.md) | P2 | S | none | gate | open | The tests of `podvm-interpose` fail when they run in parallel, and CI does not run them |
 
 ## Counts
 
-456 entries: 55 open, 5 partial, 3 blocked, 393 done.
+457 entries: 55 open, 5 partial, 3 blocked, 394 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -534,11 +535,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 1 | 0 | 0 | 72 | 73 |
+| P0 | 0 | 0 | 0 | 73 | 73 |
 | P1 | 15 | 1 | 1 | 169 | 186 |
-| P2 | 25 | 2 | 2 | 130 | 159 |
+| P2 | 26 | 2 | 2 | 130 | 160 |
 | P3 | 14 | 2 | 0 | 22 | 38 |
-| **All** | 55 | 5 | 3 | 393 | 456 |
+| **All** | 55 | 5 | 3 | 394 | 457 |
 
 ## Work order
 

@@ -307,6 +307,13 @@ y" ]' "\$X \$PB run --rm --tmpfs /scratch \$A sh -c 'ls -A /scratch | wc -l; ech
 	TO=60 t run.confine-rootread.$r $r "reads /etc, writes /tmp, not /root" 'has "$out" 3.20 && has "$out" wrote && has "$err" -i denied' "\$X \$PB run --rm --podvm-confine 'read=/;write=/tmp' \$A sh -c 'cat /etc/alpine-release; echo w>/tmp/w && echo wrote; echo x>/root/x'"
 	TO=60 t run.confine-deny.$r $r "cat /etc fails EACCES fast, no hang" '[ $rc -ne 0 ] && [ $rc -ne 124 ] && has "$err" -i denied' "\$X \$PB run --rm --podvm-confine 'read=/usr;write=/tmp' \$A cat /etc/alpine-release"
 	TO=60 t run.confine-ls-root.$r $r "ls / fails EACCES fast, no hang" '[ $rc -ne 0 ] && [ $rc -ne 124 ]' "\$X \$PB run --rm --podvm-confine 'read=/usr;write=/tmp' \$A ls /"
+	# T-1819: an exec= rule on each rung: a script, a copied program and a
+	# static program outside it are denied (126), and inside it they run.
+	mkdir -p "$W/cx-$r" && printf '#!/bin/sh\necho script-ran\n' >"$W/cx-$r/s.sh" && chmod +x "$W/cx-$r/s.sh" && cp "$PB" "$W/cx-$r/static"
+	TO=60 t run.confine-exec-script.$r $r "a script outside exec= is denied (T-1819)" 'has "$out" s=126' "\$X \$PB run --rm -v \$W/cx-\$RG:/vol --podvm-confine 'read=/etc,/vol;exec=/bin' \$A sh -c '/vol/s.sh; echo s=\$?'"
+	TO=60 t run.confine-exec-copy.$r $r "a copied program outside exec= is denied (T-1819)" 'has "$out" bb=126' "\$X \$PB run --rm --podvm-confine 'read=/etc;write=/tmp;exec=/bin' \$A sh -c 'cp /bin/busybox /tmp/bb; /tmp/bb true; echo bb=\$?'"
+	TO=60 t run.confine-exec-static.$r $r "a static program outside exec= is denied (T-1819)" 'has "$out" st=126' "\$X \$PB run --rm -v \$W/cx-\$RG:/vol --podvm-confine 'read=/etc,/vol;exec=/bin' \$A sh -c '/vol/static version >/dev/null 2>&1; echo st=\$?'"
+	TO=60 t run.confine-exec-in.$r $r "a script and a static program inside exec= run (T-1819)" 'has "$out" script-ran && has "$out" st=0' "\$X \$PB run --rm -v \$W/cx-\$RG:/vol --podvm-confine 'read=/etc;exec=/vol' \$A sh -c '/vol/s.sh; /vol/static version >/dev/null 2>&1; echo st=\$?'"
 	TO=60 t run.confine-host-root.$r $r "a host path outside the rootfs is not read" '[ $rc -ne 0 ] && [ $rc -ne 124 ]' "\$X \$PB run --rm --podvm-confine 'read=/;write=/tmp' \$A ls \$W"
 	TO=60 t run.confine-deb.$r $r "bash: denied fast" '[ $rc -ne 0 ] && [ $rc -ne 124 ] && has "$err" -i denied' "\$X \$PB run --rm --podvm-confine 'read=/usr;write=/tmp' \$D bash -c 'cat /etc/debian_version'"
 	TO=60 t run.confine-py.$r $r "python: PermissionError on /etc/hostname" '[ $rc -eq 1 ] && has "$err" PermissionError' "\$X \$PB run --rm --podvm-confine 'read=/usr;write=/tmp' \$PY python3 -c 'open(\"/etc/hostname\").read()'"

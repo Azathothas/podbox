@@ -346,6 +346,7 @@ pub(super) fn enter(
                 entered,
                 rootfs,
                 userland.as_ref(),
+                &mut env,
             ) {
                 Ok(c) if ask.is_some() => c,
                 Ok(_) => {

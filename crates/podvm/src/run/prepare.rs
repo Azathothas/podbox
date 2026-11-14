@@ -455,8 +455,8 @@ pub(crate) fn prepare(
         entered,
         &rootfs,
         userland.as_ref(),
+        &mut env,
     )?;
-    let _ = path_dirs;
     // ⚠ The lock this function took goes here. It existed to keep the rootfs
     // from being deleted between the extraction check and now; the process that
     // ENTERS takes its own, and for `-d` that is the launcher rather than this.
