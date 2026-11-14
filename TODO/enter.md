@@ -3652,3 +3652,95 @@ and python of /usr/local/lib did not start. By hand on the cloud host:
 `the_loader_reads_its_cache_under_each_spec` holds the rule, and the old
 test still holds that no other file of /etc gets one. The row of the Prove
 comes with the rerun of experiment 443 before the release.
+
+
+# T-1804: `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-04 (CODE-04; verify item 5 and V-4)
+**Category:** enter
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --read-only -v $PWD/vol:/data/:ro alpine:3.20 sh -c 'echo CHANGED > /data/f'`
+succeeds and the file changes on the host. Without the trailing slash,
+or without `--read-only`, the write is refused. The flag that makes a run
+stricter makes a `:ro` volume writable, and `--strict` does not see it.
+The table is `PODVM_RO=ro:/,rw:/dev,rw:/data/,ro:/data`.
+
+## Premise
+
+Two causes. `crates/podvm/src/run/parse/values.rs:104` records the `:ro`
+guest without its trailing slash, and the volume keeps `/data/`; so
+`read_only_table` (`crates/podvm/src/lifecycle/volume.rs:331`) emits both
+`rw:/data/` and `ro:/data`. `denied_in`
+(`crates/podvm-interpose/src/map/readonly.rs:102`) strips one trailing
+slash from each prefix and keeps the first entry on a tie of length,
+which is the `rw` entry.
+
+## Approach
+
+Normalize each guest path once, where the volume is parsed, and build
+each table from that one spelling. In `denied_in`, let an `ro` entry win
+a tie of length, so that a duplicate can never widen access.
+
+## Decision
+
+Both changes: the first removes the duplicate, the second makes a
+duplicate safe. The interposer is podvm's own crate.
+
+## Prove
+
+`cargo test -p podvm-interpose denied_in` exits 0 and `cargo test -p podvm --bin podvm read_only_table` exits 0, with tests that `ro:/,rw:/data/,ro:/data` denies `/data/f` and that `--read-only -v H:/data/:ro` gives no `rw:` entry for `/data`
+
+
+# T-1819: An `exec=` rule of `--podvm-confine` does not deny a program on the loader family
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), O-03 (MACH-07; verify V-1; REPORT, "Findings that were rejected or corrected", rows 1, 2 and 6)
+**Category:** enter
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the userland rung, `--podvm-confine 'read=/etc;write=/tmp;exec=/bin;connect=443'`
+lets `/tmp/s.sh` (a script) and `/tmp/bb` (busybox, copied) run; a
+script and a program in a volume also run, and `exec=` empty runs
+`/vol/bb`. The same spec on the namespace rung denies the script (126).
+The read, write and connect rules are enforced. The results for a static
+program disagree: the report owner says that a static program in `/tmp`
+runs under `read=/tmp;exec=/bin`, and the verifier says that a static
+child is denied under each of `exec=/bin`, `exec=/tmp`, `exec=/tmp/pv`
+and `exec=/` (126), so a rule that grants `/tmp` denies it.
+
+## Premise
+
+On the loader family the interposer starts a dynamic program or a script
+through the loader of the image, which is in a system directory that
+the layer always grants; Landlock then checks EXECUTE on the loader and
+only READ on the program. The layer is built in `pod-enter` and
+`pod-confine` (podcrates v0.42.0), reached from
+`crates/podvm/src/lifecycle/confine.rs`. The static case is not settled.
+
+## Approach
+
+First measure the static case on both rungs with a static ELF, not a
+script. Then the interposer checks the exec table against the resolved
+program path before it starts the loader, and refuses with EACCES; and
+podvm asks podcrates to check that `LANDLOCK_ACCESS_FS_EXECUTE` is in the
+handled set and granted for each `exec=` path (proposed COORD issue).
+Until both hold, refuse `exec=` on the loader family by name.
+
+## Decision
+
+A confine rule that the binary cannot enforce is refused, not accepted
+(the recommendation of the report, step 3).
+
+## Prove
+
+`cargo test -p podvm --test confine_exec` exits 0, with tests on the userland rung that a script, a dynamic ELF and a static ELF outside each `exec=` rule are denied, and that a static ELF inside `exec=/tmp` runs

@@ -544,3 +544,87 @@ with no change of its own. On the cloud host: `lab scenarios` prints
 `lab plan --nat both --mtu 99999` says `the value is out of its range 1280
 to 1499`; `lab plan --nat bogus` says `the value is not one of: none,
 nat44, nat66, both`.
+
+
+# T-1820: An allowed host through `--network broker` answers 502 "the far end failed"
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), O-04 (MACH-08; tester-reported, not re-run by the report owner)
+**Category:** net
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the machine tier, `--network broker --allow example.com` gives
+`HTTP/1.1 502 Bad Gateway: the far end failed` for `CONNECT
+example.com:443` and for `www.example.com` under `*.example.com`, in four
+runs on ports 80 and 443. The policy answers are right (403, 407,
+loopback). The host reaches the same URLs through the same proxy with
+200. T-1665 promises 200 for an allowed host.
+
+## Premise
+
+Not established. The broker dials the far end through the inherited
+proxy of the host, and prints no upstream status. The cause is in
+`pod-broker` (podcrates) or in podvm's use of it
+(`crates/podvm/src/broker.rs`), or in the proxy of the QA host.
+
+## Approach
+
+Print the upstream status line and the proxy that the broker used, with
+no body and no credential, under `--verbose`. Add a fixture proxy that
+answers 200 to the exact CONNECT that the broker sends, and a test
+through it. If the CONNECT form is wrong, podvm asks podcrates (proposed
+COORD issue).
+
+## Decision
+
+A 502 names its cause.
+
+## Prove
+
+`cargo test -p podvm --test broker_upstream` exits 0, with a test that an allowed host behind a fixture proxy answers 200, and that a refused upstream prints its status line
+
+
+# T-1847: The scenarios and knobs of `lab` differ from the surface that sand-net documents
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MISC-03 (a gap of scope, not a regression)
+**Category:** net
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm lab scenarios` lists 27 scenarios, and sand-net lists 39: the
+`corp-proxy-pod`, `vpn-*` and `warp-*` scenarios are absent. Five value
+sets differ (`symmetric-nat`, `pmtu-*` with MTU 1400 against 1280,
+`cgnat*`, `nat64-*` with NAT66 on, `locked-443` and `corp-proxy` with DNS).
+`--icmp allow` is refused (only `pass` and `drop`), `--nat64` alone has no
+DNS64, and `--loss` takes 0.01 to 20 percent where sand-net takes up to 49.
+
+## Premise
+
+The surface is `pod-netlab` of podcrates (v0.40.0 at the QA, v0.42.0 now,
+`src/scenario.rs` and `src/knobs/check.rs`). The lab help says the guest
+parts wait for podcrates (T-1662, issue 260).
+
+## Approach
+
+podvm asks podcrates for the missing scenarios and the sand-net values,
+or for a documented reason per difference (proposed COORD issue), and
+accept `allow` as a word for `pass`. podvm names the version of
+`pod-netlab` and the absent scenarios in `docs/limits.md` and in the help
+of `lab scenarios` meanwhile.
+
+## Decision
+
+The scope index (#193) makes sand-net the reference for the lab; a
+difference is either closed or documented.
+
+## Prove
+
+`podvm lab plan --icmp allow` exits 0, and `podvm lab scenarios` lists each scenario of the sand-net table or `docs/limits.md` names each absent one

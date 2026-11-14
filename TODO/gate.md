@@ -5134,3 +5134,246 @@ scripts/common/check-one-home.sh` (67 documents) exit 0, and
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0.
 
 
+
+
+# T-1852: The QA pass of experiment 443 has no row for the 22 defects that the external gate found
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), `gate/final-suite.sh` and `gate/output-release.txt` (93 of 115 checks passed on the release)
+**Category:** gate
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+An external gate of 115 checks found 22 defects in the release, and
+experiment 443, which was green before the release, has no row for any
+of them: `ps` with a multibyte command, `--report` after the image, a
+secret in a refused report, `--read-only` with a `:ro` volume and a
+trailing slash, the exit code of a missing name on eight verbs, the
+stderr of a foreground log, the end fields after `restart`, `logs` to
+`/dev/full`, `run -d -t`, `-t` and end of input, the setuid bit after
+extraction, the IMAGE ID of `system df`, `probe --cached`, and on the
+machine tier the confine layer, the dropped flags, the timeout and the
+`=` forms.
+
+## Premise
+
+Experiment 443 tests the documented result of each verb on its happy
+path and its documented refusal. It has no adversarial rows (a value at
+a byte boundary, a flag after the image, a full stdout, a flag on a
+tier that does not serve it), and its machine section was not run for
+beta.14.
+
+## Approach
+
+Add one row to `experiments/443-qa-surface.sh` for each of the 22 checks
+(the QA script is a list of the inputs; write the rows in the format of
+443, do not copy the script). Run the machine section in `kvm.yml` before
+each release. The release request names the result file.
+
+## Decision
+
+A defect that an external pass found becomes a row of the pass of the
+release, so that it cannot come back unseen.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` exits 0 with the 22 new rows present and matched, and `PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`
+
+
+# T-1853: No check proves that each parity row with a value takes `--flag=value`, and that each verb takes `-h` and `--help`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), lesson of F-12 (MACH-06) and MISC-05
+**Category:** gate
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Two classes of defect came from a parity row with no parser arm: the
+`=` forms of `--podvm-net` and `--podvm-channel` and `--podvm-tier` on
+`start`, `ps` and `rm` (T-1811), and twelve verbs that refuse `-h` and
+`--help` although the parity table lists them as Native (T-1833).
+
+## Premise
+
+The parity table (`crates/podvm/src/parity.rs`) is data. A test can walk
+it: each Native or Degraded row of a flag that takes a value, and each
+verb.
+
+## Approach
+
+Add a test that walks the table: each flag that takes a value parses the
+same with a space and with `=`; each verb and sub-verb answers `-h` and
+`--help` with exit 0 and a usage on stdout. A row whose parser has no arm
+fails the test with its name.
+
+## Decision
+
+The table is the contract, and the test reads it, so a new row is
+covered with no new test.
+
+## Prove
+
+`cargo test -p podvm --bin podvm parity_surface` exits 0, and the test fails when one `=` arm or one help arm is removed (`podvm-plant` plants it)
+
+
+# T-1854: No test proves that each option of `run` is honoured or refused on each tier
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), lesson of F-08, F-09 (MACH-01, MACH-02, RUNS-02) and O-02 (RUNS-01)
+**Category:** gate
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The machine tier dropped `--podvm-confine` and eight hardening flags with
+exit 0 (T-1808); the completion of an image with no bundle dropped
+`--no-host-cas` (T-1818). Each is an option that the parser accepted and
+a later branch never read. T-1421 forbids a silent no-op, and no test
+enforces it.
+
+## Premise
+
+`Opts` (`crates/podvm/src/run/parse/opts.rs`) holds each option. Each
+tier branch (`crates/podvm/src/run/machine.rs`, the incus branch, the
+rootfs path) reads a subset.
+
+## Approach
+
+Write a table of each field of `Opts` and each tier: honoured, refused by
+name, or not applicable. A test sets each field to a value that is not
+the default, runs the dispatch with a fake boot for each tier, and fails
+when a field is neither read nor refused. A field added to `Opts` with no
+row fails the build of the test.
+
+## Decision
+
+An option is honoured or refused on each tier; the table says which.
+
+## Prove
+
+`cargo test -p podvm --bin podvm tier_option_table` exits 0, and the test fails when the machine refusal of one flag is removed (`podvm-plant` plants it)
+
+
+# T-1855: The gate does not scan for the source patterns behind five defects
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), lesson of F-01, F-17, CODE-08, CODE-10 and P-01
+**Category:** gate
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Five defects have a pattern that a scan can find: a byte slice of user
+text (`&joined[..17]`, T-1800); a print macro in a verb, which aborts on
+a full stdout (T-1816); a discarded write result (`let _ = out.write_all`,
+T-1816); a predictable temporary name (`std::env::temp_dir()` with a pid,
+T-1782; `.interpose.so.tmp`, T-1844); and a `|| exit 125` in a guest
+script that skips the exit marker (T-1823).
+
+## Premise
+
+`docs/conventions/forbidden-patterns.md` lists patterns, and
+`scripts/common/check-gate.sh` and `podvm-gate` run scans. None of the
+five patterns is in them.
+
+## Approach
+
+Add the five patterns to the forbidden-pattern list with the reason and
+the approved form, and a scan in `podvm-gate` that reports each new hit
+in `crates/` with its path and line. Each present hit is fixed by its
+entry, or carries a reviewed comment marker.
+
+## Decision
+
+A scan of the source is cheap and finds the class, not only the case.
+
+## Prove
+
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and exits 1 when `podvm-plant` plants one of the five patterns in a file of `crates/podvm/src`
+
+
+# T-1856: No test reads the `--report` of each path of a run against its schema and for a secret
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), lesson of F-02, F-03, O-01, RUNS-15 and RUNS-16
+**Category:** gate
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Five report defects passed the schema check: each report was valid JSON
+with allowed nulls, and each said a wrong thing (podvm's argv as the
+payload's, `refused: 0` for a run that ran, a start record for a
+detached run, a value of `-e`, no report with exit 0).
+
+## Premise
+
+The schema allows `null` for unknown values, so a schema check cannot
+see a wrong value. The tests of `crates/podvm/src/run/report.rs` cover a
+foreground success.
+
+## Approach
+
+Add a test of the meaning of the report on each path: success, nonzero,
+signal, timeout, refusal before the parse, refusal after the parse,
+detached, machine (a fake boot), and an unwritable path. Each run passes
+`-e K=canary-value`, and the test asserts that the canary is in no file
+that the run wrote, and that `refused` is null exactly when the payload
+ran.
+
+## Decision
+
+A report is checked for what it says, not only for its form.
+
+## Prove
+
+`cargo test -p podvm --test report_paths_meaning` exits 0, with one case for each of the nine paths above
+
+
+# T-1857: A help text or a document can say "until T-NNNN" after that entry is done
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), lesson of RUNS-23 and MACH-11
+**Category:** gate
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The help of `-v` says "refused on the namespace rung until TODO/cli.md
+T-1761", and T-1761 is done; the machine refusal of `exec` and `create`
+says "arrives with T-1656", and T-1656 is done. Each text is true until
+its entry closes and nothing tells the session that closes it.
+
+## Premise
+
+The gate reads `TODO/INDEX.md` and can read each string of
+`crates/podvm/src` and each file of `docs/`.
+
+## Approach
+
+Add a check to `podvm-gate`: a sentence with "until", "arrives with" or
+"waits for" and an entry id, in `crates/` or `docs/` (not
+`docs/history/`), fails when that entry is done. The message names the
+file, the line and the entry.
+
+## Decision
+
+A promise about a future entry is checked when the entry closes.
+
+## Prove
+
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 after T-1831 and T-1832, and exits 1 when `podvm-plant` plants "until TODO/cli.md T-1761" in a help text

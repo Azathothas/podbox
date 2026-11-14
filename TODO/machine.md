@@ -2758,3 +2758,313 @@ clauses: `info overlay2 2`, a bridge network, `nslookup srv` and `ping
 srv` from a second container, `nc 127.0.0.1 8080` gives `mapped`, and no
 emulator stays. Experiments 444 and 445 still pass. The test
 `the_closure_puts_each_dependency_first_once` holds the order.
+
+
+# T-1803: The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), O-01 (RUNS-03 second half, MACH-04; verify, "New observation")
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=machine --report rep1.json alpine:3.20 sh -c 'exit 7'`
+writes `"rung": null, "image": null, "image_digest": null,
+"exit_code": null, "refused": 7`, and no CPU or RSS. A payload that exits
+0 gives `"refused": 0`. A machine timeout gives `timed_out: false` and
+`timeout_s: null`. The schema says `refused` is null where the payload
+ran. The report is schema-valid, so a consumer cannot detect the fault.
+
+## Premise
+
+A guest run returns its code through the `Err` arm of the preparation
+(`crates/podvm/src/run/prepare.rs:84`, `return Err(f(...))`, with
+`machine_tier` at `crates/podvm/src/run/machine.rs:94`), so `prepared`
+(`crates/podvm/src/run/foreground.rs:145`) is never reached and
+`Report::end` treats the run as not started.
+
+## Approach
+
+Return a third outcome from the preparation: prepared for the rootfs
+path, a guest run with its code, or a refusal with its code. Fill the
+report from the parsed options and the acquired record before the
+dispatch, set `ran` when the guest payload starts, and set `timed_out`
+and the signal from the result of the driver. The CPU and RSS fields of
+a guest are `null` with the reason in the schema description.
+
+## Decision
+
+The report describes the run that the caller asked for, on each tier.
+
+## Prove
+
+`PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`, with rows that a machine run of `exit 7` writes `exit_code: 7`, `refused: null`, `rung` and `image`, and that a machine `--timeout 2` writes `timed_out: true`
+
+
+# T-1808: The machine tier accepts `--podvm-confine` and eight hardening flags and drops them
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-08 (MACH-01, blocker) and F-09 (RUNS-02, MACH-02; verify items 6a and 8 and V-5)
+**Category:** machine
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=machine --podvm-confine 'read=/tmp;exec=/bin' alpine:3.20 sh -c 'head -1 /etc/passwd'`
+prints the line and exits 0; the help says the machine tier refuses the
+layer by name. In the guest, `-u 1000` and `-u nosuchuser` run as uid 0,
+`--read-only` permits a write to `/etc`, `--tmpfs /mnt/x` makes nothing,
+`--ulimit nofile=512:512` leaves 1024, `--security-opt no-new-privileges`
+and `--cap-drop ALL` leave `NoNewPrivs: 0` and the full capability set,
+`--add-host` adds no line, and `--label a=b` gives `labels: []`. No line
+on stderr says so, and plain `--strict` exits 0. The payload runs as root
+with each capability where the caller asked otherwise.
+
+## Premise
+
+`machine_tier` (`crates/podvm/src/run/machine.rs:94`) builds the guest
+request from argv, env, workdir, the volumes and the machine flags only
+(`crates/podvm/src/run/machine.rs:209`). It never reads `o.confine`,
+`o.user`, `o.add_hosts`, `o.read_only`, `o.tmpfs` or `o.hardening`, and the
+machine path returns before `confine::decide`, which is only on the
+rootfs path. The incus tier already refuses its unsupported flags by
+name.
+
+## Approach
+
+Refuse each of `--podvm-confine`, `--user`, `--add-host`, `--read-only`,
+`--tmpfs`, `--ulimit`, `--security-opt`, `--cap-drop` and `--label` on the
+machine tier by name with exit 125, before the boot, unless a later
+entry implements it in the guest init with a proof. `--strict` classes
+each refused flag. T-1854 adds the test that each option of the run is
+honoured or refused on each tier.
+
+## Decision
+
+A refusal now; an implementation in the guest (user, hosts, limits,
+no-new-privs) is a separate entry when a caller asks. The QA patch
+0003 is a candidate for the refusals, to be read before use.
+
+## Prove
+
+`cargo test -p podvm --bin podvm machine_refuses` exits 0, with a test that each of the nine flags with `--podvm-tier=machine` exits 125 and names the flag before any boot
+
+
+# T-1809: `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-10 (RUNS-04, MACH-03; verify item 7)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=machine --timeout 2 alpine:3.20 sleep 30` took
+12.09 s and 12.10 s and exited 125 with "the guest gave no exit marker
+before the timeout; qemu: ... QEMU waiting for connection". The rootfs
+rung exits 137 at 2.07 s. The help says the payload and its tree are
+killed with SIGKILL at the bound.
+
+## Premise
+
+`drive` sets the deadline (`crates/podvm/src/machine/guest/drive.rs:43`);
+after it, the loop breaks and `wait_bounded` waits a fixed 10 s
+(`crates/podvm/src/machine/guest/drive.rs:118`) before the kill, and a
+run with no marker returns `EXIT_RUNTIME_ERROR`.
+
+## Approach
+
+At the deadline, kill the process group of the emulator and return 137
+with the reason `wall`; keep the bounded wait only for the reap after the
+kill. Name the timeout on stderr, not the chardev of QEMU.
+
+## Decision
+
+The machine tier keeps the contract of `--timeout` of the other rungs.
+No emulator stays after the run (`AGENTS.md`, section 7).
+
+## Prove
+
+`PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`, with a row that `--timeout 2 ... sleep 30` exits 137 in less than 4 s and leaves no `qemu-system` process
+
+
+# T-1810: A sealed bundle member that leaves the guest root is skipped and the run exits 0
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-11 (MACH-05; verify item 10), MACH-13 items 3 and 4
+**Category:** machine
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=machine --podvm-sealed alpine:3.20 < bundle.tar`
+with a member `../mach-escape-clean.txt` exits 0; the member is neither
+written nor named. `d/../../mach-deep.txt` is the same. An absolute
+member `/mach-abs.txt` is accepted and lands at `/mach-abs.txt` in the
+guest. Two nits of the same path: the files of the bundle carry an mtime
+of 1970, and an empty pipe gets "reads the bundle of the run from stdin,
+a pipe or a file", which does not say why it refused.
+
+## Premise
+
+`check` (`crates/podvm/src/machine/guest/sealed.rs:74`) validates only the
+JSON; `unpack` (`crates/podvm/src/machine/guest/sealed.rs:99`) calls
+`unpack_in` and ignores its `false` result
+(`crates/podvm/src/machine/guest/sealed.rs:114`). The tar headers
+that podvm writes for the guest have an mtime of 0.
+
+## Approach
+
+In `check`, refuse each member whose path has `..`, starts with `/`, or
+has a component that is not normal, with exit 125, naming no bundle
+value. Treat a `false` of `unpack_in` as an error. Keep the mtime of the
+member. Say "the bundle is empty" for an empty stream.
+
+## Decision
+
+A sealed run fails loudly on a bad member; it never runs with a member
+left out. The comment at `sealed.rs` line 96 is corrected to the new
+check.
+
+## Prove
+
+`cargo test -p podvm --bin podvm sealed_members` exits 0, with tests that `../x`, `d/../../x` and `/x` members are refused with exit 125 and that an empty bundle names the reason
+
+
+# T-1823: An early end of the guest init reads "the guest gave no exit marker" with the socket of QEMU
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), CODE-06, RUNS-12, RUNS-13, RUNS-20, MACH-13 item 2, `findings/code.md` "Not covered" (a full `/tmp`)
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On the machine tier, `-w /no/such/dir` and `-w /etc/hostname` exit 125
+with "the guest gave no exit marker; qemu: ... -chardev socket ... QEMU
+waiting for connection"; the rootfs rung makes the missing directory, as
+docker does, and refuses a file by name. `--platform linux/arm64` boots
+an x86_64 guest and gives the same text; the rootfs rung names the
+architecture. `--entrypoint /no/such` gives exit 127 with only the line
+of the guest shell. A full `/tmp` gives the same text. Each message
+prints a host path `/tmp/podvm-guest-ID.err`.
+
+## Premise
+
+The guest init does `cd W || exit 125`
+(`crates/podvm/src/machine/guest/init.rs:76`) and `. FRAGMENT || exit 125`
+(`crates/podvm/src/machine/guest/init.rs:108`), and leaves without the
+exit marker; `drive` reports each early end as a missing marker and
+appends the stderr of QEMU. `prepare_image`
+(`crates/podvm/src/run/machine.rs:37`) does not make the workdir and does
+not compare the platform of the image with the guest.
+
+## Approach
+
+Before the boot: compare the platform of the image with the architecture
+of the guest kernel and refuse by name; make a missing workdir in the
+tree and refuse a file by name; check that the entrypoint resolves in
+the tree. In the init: print the exit marker with a podvm reason before
+each early exit. In `drive`: say "the emulator did not start" or "the
+guest ended before the payload" and print the chardev path only under
+`--verbose`.
+
+## Decision
+
+The rootfs rung and the machine tier give one answer for one input,
+where the tree on the host can tell.
+
+## Prove
+
+`PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`, with rows for `-w /no/such/dir` (prints the directory, exit 0), `-w /etc/hostname`, `--platform linux/arm64` and `--entrypoint /no/such` (each refused by name, no "exit marker" text)
+
+
+# T-1846: A failed incus run leaves its instance, `ps` omits instances, `rm` calls an ERROR instance running, and `system info` takes `tier = bogus`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MACH-09, MACH-10 (tester-reported; the host could not start an instance)
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=incus alpine:3.20 true` exits 125 at the start of
+the instance, and `incus list` then shows `podvm-42b540560a8d,ERROR`; a
+second run leaves `incrun,ERROR`. With `tier = incus` in the
+configuration, `podvm ps -a` omits a stopped instance. `podvm rm inc1`
+on an instance in state ERROR says "the instance runs". With
+`tier = bogus`, `system info` prints `supervise userland` and exits 0,
+while `run` refuses the value.
+
+## Premise
+
+The error path of the incus run does not delete the instance. `ps` lists
+the table of `pod-supervise` only. The text "the instance runs" is
+`crates/podvm/src/incus/verbs.rs:280`, for each state that is not
+stopped. `system info` does not read the configuration as `run` does.
+
+## Approach
+
+Delete the instance on each error after its creation, and name it in the
+refusal if the delete fails. Merge the instances with the podvm label
+into `ps` when the configuration selects incus. Name the state in the
+`rm` refusal. Validate the configuration in `system info` as `run` does.
+
+## Decision
+
+docs/incus.md says that a run deletes its instance; a failed run too.
+
+## Prove
+
+`cargo test -p podvm --bin podvm incus_verbs` exits 0, with tests against the fake incus API of the tests: a failed start sends the DELETE, `ps` lists a labelled instance, `rm` of an ERROR instance names ERROR, and `system info` with `tier = bogus` exits 125
+
+
+# T-1849: `run` does not say that the machine tier needs `qemu-system`, and the guest sees less memory than `--podvm-mem` asks
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), benchmark P2 and P6 (`benchmarks/compare.md`, part C)
+**Category:** machine
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`run --podvm-tier=machine` without `qemu-system-x86_64` exits 125 with one
+line; the help of `--podvm-tier` and the README ("Each binary is static:
+it needs no library of the host") do not name the emulator. `doctor`
+checks it. `--podvm-mem 256M` gives a guest `MemTotal` of 223 016 kB
+(85.1 %), 512M gives 91.7 %, 1G gives 94.9 %.
+
+## Premise
+
+The guest kernel keeps a reserve; the help of `--podvm-mem` does not say
+that the value is the memory of the virtual machine, not the memory free
+for the payload.
+
+## Approach
+
+Name `qemu-system-ARCH` and `podvm doctor` in the help of `--podvm-tier`
+for `machine`. Say in the help of `--podvm-mem` and in `docs/limits.md`
+that the guest kernel keeps a part of the size.
+
+## Decision
+
+The value stays the size of the virtual machine, as QEMU's `-m` is.
+
+## Prove
+
+`cargo test -p podvm --bin podvm machine_help` exits 0, with a test that `run --help` names `qemu-system` and `doctor` beside `--podvm-tier` and says what `--podvm-mem` sizes

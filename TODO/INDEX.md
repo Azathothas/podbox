@@ -462,10 +462,68 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1785](interpose.md) | P3 | S | none | interpose | done | The notice of `--user` repeats in each process of a run |
 | [T-1786](supervise.md) | P1 | M | none | supervise | blocked | A foreground run is recorded `Created` while its payload runs |
 | [T-1787](image.md) | P2 | S | none | image | done | `system df` misses the trees and the extractions that no image names, and no verb removes the latter |
+| [T-1800](supervise.md) | P0 | S | none | supervise | open | `ps` aborts with SIGABRT when a command has a multibyte character at byte 17 |
+| [T-1801](cli.md) | P0 | S | none | cli | open | `--report` after the image is read as podvm's, so a payload argument overwrites a host file |
+| [T-1802](cli.md) | P0 | S | none | cli | open | A run refused before `prepare` writes the `-e` values into its report |
+| [T-1803](machine.md) | P1 | M | none | machine | open | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
+| [T-1804](enter.md) | P0 | S | none | enter | open | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
+| [T-1805](supervise.md) | P1 | M | none | supervise | open | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
+| [T-1806](supervise.md) | P1 | S | none | supervise | open | A foreground run records only stdout, so `logs` loses each stderr line |
+| [T-1807](supervise.md) | P1 | S | none | supervise | open | A restarted container shows the exit code and end of its previous run while it runs |
+| [T-1808](machine.md) | P0 | M | none | machine | open | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
+| [T-1809](machine.md) | P1 | S | none | machine | open | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
+| [T-1810](machine.md) | P0 | S | none | machine | open | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
+| [T-1811](cli.md) | P1 | S | none | cli | open | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
+| [T-1812](probe.md) | P1 | S | none | probe | open | `probe --cached` reports `supervise` where `probe` reports `userland` |
+| [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
+| [T-1814](image.md) | P2 | S | none | image | open | `system df` prints the manifest digest in its IMAGE ID column |
+| [T-1815](cli.md) | P1 | S | none | cli | open | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
+| [T-1816](cli.md) | P1 | M | none | cli | open | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
+| [T-1817](cli.md) | P1 | S | none | cli | open | `run -t` never delivers end of input, so a payload that reads to the end blocks |
+| [T-1818](complete.md) | P0 | S | none | complete | open | `--no-host-cas` is ignored on an image that ships no CA bundle |
+| [T-1819](enter.md) | P0 | M | none | enter | open | An `exec=` rule of `--podvm-confine` does not deny a program on the loader family |
+| [T-1820](net.md) | P1 | M | none | net | open | An allowed host through `--network broker` answers 502 "the far end failed" |
+| [T-1821](podssh.md) | P1 | S | none | podssh | open | `remote ssh serve` runs any program named `node` on PATH |
+| [T-1822](supervise.md) | P2 | S | none | supervise | open | `cp` of a file onto a directory fails and blames the source, `cp -r` drops directory modes, and the containment refusals name the wrong operation |
+| [T-1823](machine.md) | P2 | M | none | machine | open | An early end of the guest init reads "the guest gave no exit marker" with the socket of QEMU |
+| [T-1824](cli.md) | P2 | S | none | cli | open | The machine notice ignores `-q`, and the banner is said to print "on every run" where runs are quiet by default |
+| [T-1825](cli.md) | P2 | M | none | cli | open | A `--report` that cannot be written exits 0, and the report of a detached run is never finished |
+| [T-1826](complete.md) | P2 | S | none | complete | open | `--no-steps` leaves no line and no report row that says what the caller gave up |
+| [T-1827](cli.md) | P2 | S | none | cli | open | A repeated `--ulimit` that raises a hard limit, `--ulimit nofile=-1` and a hard value over podvm's own all fail with a bare EPERM |
+| [T-1828](cli.md) | P2 | S | none | cli | open | `--add-host` takes a non-address, `-e =V` is dropped, `--env-file` removes quotes, and a repeated `--label` key keeps both values |
+| [T-1829](cli.md) | P3 | S | none | cli | open | Refusals of `run` lead with the wrong cause or name the wrong spelling |
+| [T-1830](cli.md) | P2 | S | none | cli | open | A `--tmpfs` run leaves its map in the record, so a later `exec` cannot see the path |
+| [T-1831](cli.md) | P2 | S | none | cli | open | The help of `run` and `create` promises what the verbs do not do |
+| [T-1832](cli.md) | P3 | S | none | cli | open | The manual, `--help` and `docs/limits.md` disagree with the binary in six places |
+| [T-1833](cli.md) | P2 | S | none | cli | open | Twelve commands refuse `-h` and `--help`, and `system df --help` prints the usage of `system info` |
+| [T-1834](cli.md) | P2 | S | none | cli | open | `system info --format '{{json .X}}'` prints counts and `StrictOk` as strings |
+| [T-1835](probe.md) | P2 | S | none | probe | open | `compare --strict` passes an empty report, an unparsable one, or one that lost whole sections |
+| [T-1836](image.md) | P3 | S | none | image | open | Six image messages name the wrong cause or repeat themselves |
+| [T-1837](cli.md) | P3 | S | none | cli | open | The refusals of `lab`, `windows fetch`, `remote ssh` and `probe-inside` do not name the value, the unit or the verb |
+| [T-1838](cli.md) | P3 | S | none | cli | open | The help of `windows` and `machine ssh` does not align its columns, and 21 sentences start with a lowercase `note:` |
+| [T-1839](image.md) | P2 | S | none | image | open | `load` takes an index with `schemaVersion` 9 and names an image with no ref-name annotation `sha256` |
+| [T-1840](image.md) | P2 | S | none | image | open | The `images` table cannot tell two platform records apart, `images REPO` shows only `latest`, and `inspect` has no `.Config.Labels` |
+| [T-1841](image.md) | P2 | S | none | image | open | `save` advises a `--platform` it does not have, and `pull -a` records the endpoint host, which makes a duplicate record |
+| [T-1842](image.md) | P2 | S | none | image | open | `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken |
+| [T-1843](image.md) | P2 | S | none | image | open | `extract --force` removes the extracted root before it takes the lock of the store |
+| [T-1844](interpose.md) | P2 | S | none | interpose | open | `interpose::place` writes the object through one fixed temporary name in the root |
+| [T-1845](cli.md) | P3 | S | none | cli | open | `profile show` writes a part of the document to stdout and then fails |
+| [T-1846](machine.md) | P2 | M | none | machine | open | A failed incus run leaves its instance, `ps` omits instances, `rm` calls an ERROR instance running, and `system info` takes `tier = bogus` |
+| [T-1847](net.md) | P3 | M | none | net | open | The scenarios and knobs of `lab` differ from the surface that sand-net documents |
+| [T-1848](supervise.md) | P2 | M | none | supervise | open | No verb removes the exited containers in bulk, and `container` names verbs "listed above" that it does not list |
+| [T-1849](machine.md) | P3 | S | none | machine | open | `run` does not say that the machine tier needs `qemu-system`, and the guest sees less memory than `--podvm-mem` asks |
+| [T-1850](cli.md) | P3 | M | none | cli | open | `exec` takes 1.6 times the time of `docker exec`, and `pull` 1.4 times the time of `podman pull` |
+| [T-1851](supervise.md) | P3 | S | none | supervise | open | A store that root and a user share refuses the next run of the user with a bare `Permission denied` |
+| [T-1852](gate.md) | P1 | M | none | gate | open | The QA pass of experiment 443 has no row for the 22 defects that the external gate found |
+| [T-1853](gate.md) | P2 | S | none | gate | open | No check proves that each parity row with a value takes `--flag=value`, and that each verb takes `-h` and `--help` |
+| [T-1854](gate.md) | P1 | S | none | gate | open | No test proves that each option of `run` is honoured or refused on each tier |
+| [T-1855](gate.md) | P2 | S | none | gate | open | The gate does not scan for the source patterns behind five defects |
+| [T-1856](gate.md) | P2 | S | none | gate | open | No test reads the `--report` of each path of a run against its schema and for a secret |
+| [T-1857](gate.md) | P3 | S | none | gate | open | A help text or a document can say "until T-NNNN" after that entry is done |
 
 ## Counts
 
-396 entries: 2 open, 5 partial, 3 blocked, 386 done.
+454 entries: 60 open, 5 partial, 3 blocked, 386 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -474,11 +532,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 1 | 169 | 171 |
-| P2 | 0 | 2 | 2 | 130 | 134 |
-| P3 | 2 | 2 | 0 | 22 | 26 |
-| **All** | 2 | 5 | 3 | 386 | 396 |
+| P0 | 8 | 0 | 0 | 65 | 73 |
+| P1 | 15 | 1 | 1 | 169 | 186 |
+| P2 | 24 | 2 | 2 | 130 | 158 |
+| P3 | 13 | 2 | 0 | 22 | 37 |
+| **All** | 60 | 5 | 3 | 386 | 454 |
 
 ## Work order
 

@@ -4580,3 +4580,854 @@ now splits its empty case from its `--help`. The test
 `a_usage_error_leaves_stdout_empty_and_help_writes_it` passes; by hand,
 each of the nine prints 0 bytes to stdout with no argument and the same
 usage to stdout with `--help`.
+
+
+# T-1801: `--report` after the image is read as podvm's, so a payload argument overwrites a host file
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-02 (CODE-02; verify item 4a)
+**Category:** cli
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run alpine:3.20 true --report $PWD/important.txt` exits 0 and
+replaces `important.txt` with the JSON report; the payload also gets
+`--report`. `podvm run --name --report alpine:3.20 cmd` writes a report
+to a file named `alpine:3.20` and names the container `--report`. The
+help of `run` says that parsing stops at the image name.
+
+## Premise
+
+`path_in` (`crates/podvm/src/run/report.rs:178`) scans each argument up to
+`--`, the payload's included, before the parser, and does not know which
+flags take a value. `run` calls it first
+(`crates/podvm/src/run/foreground.rs:119`). `Report::write` renames over
+the target.
+
+## Approach
+
+Delete the scan. The parser of `run` returns the report path in `Opts`,
+also for a refusal after the parse (a `Result` that carries the path).
+A refusal before the parser knows the path writes no report.
+
+## Decision
+
+One parser decides which words are podvm's. The QA patch 0002 stops the
+scan at the image instead; that keeps two parsers, so this entry does
+not take it as is.
+
+## Prove
+
+`cargo test -p podvm --bin podvm report_path` exits 0, with tests that `run IMG true --report F` and `run --name --report IMG cmd` write no file F and no file named after the image, and that `run --report F IMG true` writes F
+
+
+# T-1802: A run refused before `prepare` writes the `-e` values into its report
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-03 (CODE-03, RUNS-03 first half; verify item 4b)
+**Category:** cli
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --report leak3.json --pull never -e API_TOKEN=s3cr3t nosuchimage:1 true`
+exits 125 and the report holds
+`"argv": ["--report", "leak3.json", "--pull", "never", "-e", "API_TOKEN=s3cr3t", ...]`.
+The same podvm argv lands in the report of a flag error, an unpulled
+image and a payload the entry cannot run. The schema says `argv` is the
+command of the payload, and the help and `run/report.rs` say the report
+holds no value of an environment variable.
+
+## Premise
+
+`Report::begin` (`crates/podvm/src/run/report.rs:60`) keeps the raw argv
+of podvm; only `prepared` (`crates/podvm/src/run/report.rs:93`, called at
+`crates/podvm/src/run/foreground.rs:145`) replaces it, and a refusal
+never reaches it.
+
+## Approach
+
+`begin` keeps no argv. `argv` is the payload command from the parse when
+the parse reached the image, and `null` before that. No field of the
+report holds a value of `-e`, `--env` or `--env-file`.
+
+## Decision
+
+The schema already allows `null` (`podvm-run-report.v1.schema.json`).
+Redaction as `NAME=<redacted>` (the QA patch) keeps podvm's flags in a
+field that the schema defines as the payload's; this entry does not do
+that.
+
+## Prove
+
+`cargo test -p podvm --bin podvm report_refusal` exits 0, with a test that a refused run with `-e K=canary-value` writes a report in which the bytes `canary-value` do not occur and `argv` is the payload command or `null`
+
+
+# T-1811: `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-12 (MACH-06; verify item 9)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=machine --podvm-net=none alpine:3.20 true` exits
+125 with "\"--podvm-net=none\" is in the parity table and this parser has
+no arm for it. That is a bug in podvm (TODO/cli.md T-0801)". The same for
+`--podvm-channel=...`, and for `podvm start --podvm-tier=machine nosuch`,
+`ps --podvm-tier=machine` and `rm --podvm-tier=machine`. The forms with a
+space work, and `--podvm-mem=128M` works.
+
+## Premise
+
+`crates/podvm/src/run/parse.rs:140` and `:147` match `--podvm-net` and
+`--podvm-channel` only as a separate word; the `=` arms exist for tier,
+mem, cpus, qemu-arg and confine (`crates/podvm/src/run/parse.rs:396`).
+The lifecycle verbs admit the parity row of `--podvm-tier` and have no
+arm for it.
+
+## Approach
+
+Split `--flag=value` once, at admission, for each flag that takes a value,
+so that no arm needs its own `=` form. Give `start`, `ps` and `rm` an arm
+for `--podvm-tier` that serves the tiers of T-1722 and refuses the others
+by name, as a usage error.
+
+## Decision
+
+The message "a bug in podvm" stays only for a row that no parser admits.
+T-1853 adds the check that each row takes both forms.
+
+## Prove
+
+`cargo test -p podvm --bin podvm eq_form` exits 0, with a test that `--podvm-net=none` and `--podvm-channel=P:H:N` parse as their space forms, and that `start --podvm-tier=machine X` gives a named usage refusal and not the T-0801 text
+
+
+# T-1815: `run -d -t` and `create -t` accept `-t` and never allocate a terminal
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-16 (CODE-07; verify item 16)
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run -d -t --name ttyd alpine:3.20 sh -c 'test -t 1 && echo TTY || echo NOTTY'`
+exits 0, and `logs ttyd` prints `NOTTY`. No line says that `-t` was
+dropped, and `inspect` records nothing. Where `/dev/ptmx` is unusable,
+the same command is refused for a terminal that it would not use.
+
+## Premise
+
+The detached branch (`crates/podvm/src/run/foreground.rs:151`) never reads
+`p.tty`; only the foreground branch does (`crates/podvm/src/run/foreground.rs:263`).
+`create` takes the option set of `run`.
+
+## Approach
+
+Refuse `-t` with `-d` and on `create` by name, before the check of
+`/dev/ptmx`, as `--tmpfs` is refused for a detached run.
+
+## Decision
+
+A detached terminal needs the launcher to hold the master; that is a
+separate feature with its own entry if a user asks. An accepted flag
+never does nothing (T-1421).
+
+## Prove
+
+`cargo test -p podvm --bin podvm detach_tty` exits 0, with tests that `run -d -t` and `create -t` exit 125 and name `-t`
+
+
+# T-1816: A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-17 (CODE-09), CODE-08, MISC-07
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm version >/dev/full`, `probe`, `doctor`, `inspect IMG` and `ps` to
+`/dev/full` exit 134 with "failed printing to stdout: No space left on
+device" (measured again on `main` for `version`, 2026-11-14).
+`podvm images >/dev/full` and `podvm logs NAME >/dev/full` exit 0 with no
+byte written and no message (`images` measured on `main`). A refusal on a
+full disk with an unwritable stderr also aborts.
+
+## Premise
+
+The print macros panic on a write error, and the release profile aborts
+(`Cargo.toml`, `panic = "abort"`). `logs` discards the error
+(`crates/podvm/src/lifecycle/logs_stop.rs:170`, `let _ = out.write_all`);
+`images` discards the error of its writer.
+
+## Approach
+
+Each verb writes its answer through one checked writer at the verb
+boundary. A write or flush error prints `podvm VERB: stdout: ERRNO` on
+stderr (when stderr can take it) and exits 125. A failed write to stderr
+does not change the exit code of the verb. T-1855 adds the scan for
+`println!` in a verb and for a discarded write result.
+
+## Decision
+
+`panic = "abort"` stays: a panic is a defect, and a full disk is not a
+panic.
+
+## Prove
+
+`cargo test -p podvm --test stdout_full` exits 0, with a test for `version`, `ps`, `images`, `inspect`, `probe` and `logs` with stdout on `/dev/full` (exit 125, the errno named, no SIGABRT)
+
+
+# T-1817: `run -t` never delivers end of input, so a payload that reads to the end blocks
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-18 (RUNS-27), RUNS-11 (disputed), MACH-13 item 5
+**Category:** cli
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`timeout 5 podvm run -t alpine:3.20 cat </dev/null` ends at the outer
+timeout (124), and so does `printf 'input\n' | podvm run -t alpine:3.20 cat`
+after it prints `input`. A single `read` returns. The machine relay has
+the same shape (not measured). RUNS-11 reports a NUL byte before the
+first byte of a `-t` payload under `script -qec`, with a control that
+shows no NUL for `script -qec "echo hi"`; the report refutes it as a
+narration of `script`, and MACH-13 sees the same `^@` on the machine
+console. The claim is disputed and not settled.
+
+## Premise
+
+The stdin thread of the relay (`crates/podvm/src/run/pty.rs`, the loop
+after the master is cloned) drops its write clone on EOF, and the read
+thread keeps another clone of the same master, so the slave never reads
+0. The machine relay drops `w` and keeps `conn`
+(`crates/podvm/src/machine/guest/tty.rs`).
+
+## Approach
+
+On EOF of stdin, write the VEOF character of the terminal (read from
+termios, `0x04` by default) to the master, as the QA patch 0006 does; do
+the same in the machine relay. Add a byte-exact test of the output of
+`-t` with stdin from `/dev/null`, which settles the NUL claim.
+
+## Decision
+
+A pty has no half-close; VEOF is the terminal's own end of input.
+
+## Prove
+
+`cargo test -p podvm --test pty_eof` exits 0, with a test that `run -t IMG cat` ends with stdin from `/dev/null` and from a closed pipe, and that the output of `run -t IMG echo hi` is exactly `hi` and CR LF
+
+
+# T-1824: The machine notice ignores `-q`, and the banner is said to print "on every run" where runs are quiet by default
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-14, MISC-10, benchmark P1 (`benchmarks/compare.md`, part C)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --podvm-tier=machine -q alpine:3.20 echo qtest` still prints
+"podvm run: machine tier: a guest under KVM ..." on stderr; `-q` is
+documented as forcing silence. `system info --format '{{.Banner}}'` says
+"printed on every run and exec", and the parity note of `run` says "The
+banner names what the selected rung does not provide, on every run",
+while a default run prints 0 bytes on stderr and the help of `-q` says
+"Runs are already quiet by default". The benchmark report asks for one
+line on the default path that names the rung and that it gives no
+isolation.
+
+## Premise
+
+`crates/podvm/src/machine/guest.rs:347` prints the notice with no test of
+the banner switch. The texts are `crates/podvm/src/system.rs:114` and
+`crates/podvm/src/parity.rs:121`.
+
+## Approach
+
+Gate the machine notice on the same switch as the entry banner. Make the
+two texts say "with `--verbose`". Write the question of a default line
+for the owner in `docs/decisions.md`, with the recommendation: one line
+on stderr only where the entered rung gives no isolation and stdout or
+stderr is a terminal.
+
+## Decision
+
+Quiet by default stays until the owner answers; the texts must say what
+the binary does now.
+
+## Prove
+
+`cargo test -p podvm --bin podvm banner_quiet` exits 0, with a test that the machine notice is not printed under `-q`, and `podvm system info --format '{{.Banner}}'` names `--verbose`
+
+
+# T-1825: A `--report` that cannot be written exits 0, and the report of a detached run is never finished
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-15, RUNS-16
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm run --report /no/such/dir/rep.json alpine:3.20 true` prints "the
+report could not be written" and exits 0, so a caller that reads the exit
+code believes it has a report. `podvm run -d --name rptto --timeout 1 --report r.json alpine:3.20 sleep 30`
+ends `Exited (137)`, and the report keeps `exit_code: null`,
+`signal: null`, `timed_out: false` and `ended` equal to `started`.
+
+## Premise
+
+`crates/podvm/src/run/foreground.rs:126` prints the write error as a
+notice. The report is written once, before the launcher returns; the
+launcher of a detached run never rewrites it.
+
+## Approach
+
+Check that the directory of the report path is writable before the run,
+and refuse with 125 by name if not; a write that fails after the run
+exits 125 with the payload code named on stderr. The launcher of a
+detached run rewrites the report at the end of the payload with the
+fields of the end, by the same atomic rename.
+
+## Decision
+
+The report is one document of the run (T-1695), so a detached run gets
+its end; a start record is not a report.
+
+## Prove
+
+`cargo test -p podvm --test report_paths` exits 0, with a test that an unwritable report directory exits 125 before the payload runs, and a test that a detached run with `--timeout 1` leaves a report with `timed_out: true` and `signal: 9` after `wait`
+
+
+# T-1827: A repeated `--ulimit` that raises a hard limit, `--ulimit nofile=-1` and a hard value over podvm's own all fail with a bare EPERM
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-06, RUNS-07, RUNS-26
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`--ulimit nofile=64 --ulimit nofile=128` exits 125 with
+"setrlimit(RLIMIT_NOFILE): EPERM (1)"; the reverse order prints 64, and
+podman takes the last value (128). `--ulimit nofile=-1` gives the same
+EPERM as uid 1000 and as root on the namespace rung, although the help
+says `-1` means no limit. `--ulimit nofile=64:1048577` over a hard limit
+of 1048576 gives the bare EPERM; the parity note says such a value "is
+refused by name".
+
+## Premise
+
+`pod-enter` applies each limit in order in the child (podcrates
+v0.42.0, `src/launch.rs`), so the first call lowers the hard limit and
+the second cannot raise it. `RLIM_INFINITY` over a finite hard limit
+needs `CAP_SYS_RESOURCE`. podvm parses the values in
+`crates/podvm/src/run/parse/values.rs:19` and checks no ceiling.
+
+## Approach
+
+In podvm: keep one value for each resource, the last one, before the
+plan reaches `pod-enter`. Read the hard limit of podvm (`prlimit`) and
+refuse a hard value over it by name with both numbers. Take `-1` as "the
+hard limit that podvm has" when podvm cannot raise it, and say so on
+stderr under `--verbose`. podvm asks podcrates to refuse a list with two
+entries for one resource (proposed COORD issue).
+
+## Decision
+
+Docker and podman keep the last value for a resource. `-1` that cannot
+be infinite takes the inherited hard limit, which is the largest value
+the payload can have.
+
+## Prove
+
+`cargo test -p podvm --bin podvm ulimit_plan` exits 0, with tests that two `nofile` values leave the last, that `-1` resolves to the inherited hard limit, and that a hard value over it is refused with both numbers
+
+
+# T-1828: `--add-host` takes a non-address, `-e =V` is dropped, `--env-file` removes quotes, and a repeated `--label` key keeps both values
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-08, RUNS-09, RUNS-10, RUNS-19, `findings/code.md` "Not covered" (an `--add-host` with a newline)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --add-host foo:notanip alpine:3.20 cat /etc/hosts` writes
+`notanip foo`; podman refuses "invalid IP address in add-host". An
+`--add-host` value with a newline or a space makes the whole hosts fixup
+fail, so the name of the container is missing from `/etc/hosts`, exit 0,
+visible only under `--verbose`. `-e =V` exits 0 and sets nothing; docker
+and podman refuse it. `--env-file` with `B="two words"` gives
+`B=[two words]`; docker and podman keep the quotes. `--label a=b --label a=c`
+keeps both; podman keeps `a=c`.
+
+## Premise
+
+`add_host` (`crates/podvm/src/complete/strict.rs:481`) checks only for a
+`:`. `from_host` (`crates/podvm/src/run/parse/values.rs:113`) takes each
+string with a `=`, an empty name too. The quote removal is at
+`crates/podvm/src/run/parse/values.rs:171`. `label`
+(`crates/podvm/src/run/parse/values.rs:196`) keeps each value.
+
+## Approach
+
+Parse the address of `--add-host` as IPv4 or IPv6 and the name as a host
+name; refuse anything else with exit 125, naming the value. Refuse an
+empty name in `-e` as `--env-file` already does. Keep the value of an
+`--env-file` line byte for byte after the trim of the line. Keep the last
+value of a repeated label key in the record and the report.
+
+## Decision
+
+docker's behaviour for each of the four, measured by the QA on docker
+26.1.5 and podman 5.4.2. The help of `--env-file` names the rule.
+
+## Prove
+
+`cargo test -p podvm --bin podvm run_values` exits 0, with tests for `foo:notanip` and a value with a newline (refused, value named), `-e =V` (refused), `B="two words"` (quotes kept) and `a=b a=c` (one label, `a=c`)
+
+
+# T-1829: Refusals of `run` lead with the wrong cause or name the wrong spelling
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-21, RUNS-22, RUNS-24, RUNS-25, MACH-13 item 1, `findings/life.md` coverage row `logs --tail -1`, verify V-1 (the `,` separator)
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run` with no image prints the whole help, 11 521 bytes, to stderr
+with exit 1; an unknown flag prints one line with exit 125. `podvm run --env`
+says "-e needs a value"; docker says `--env`. A missing `--entrypoint`
+program on the userland rung leads with "chroot(2) is denied on this
+machine" before "names no file in the image". `--security-opt
+no-new-privileges=bogus` is refused as if the option had no backend.
+`--podvm-confine read=/definitely-not-in-image` names the host path of
+the tree. `logs --tail -1` says "unknown option \"-1\"". A confine spec
+with `,` in place of `;` is refused as "the path \"exec=/bin\" of read is
+not absolute", which does not name the separator.
+
+## Premise
+
+`crates/podvm/src/run/parse.rs:431` prints the flag as the parser stored
+it. The texts of the entrypoint, security-opt and confine refusals are in
+`crates/podvm/src/run/parse/values.rs` and `crates/podvm/src/lifecycle/confine.rs`.
+
+## Approach
+
+With no image: print the usage line and "an image is needed", exit 1.
+Name the spelling that the caller used. Put the image check before the
+chroot sentence. For `no-new-privileges=X`, say that X is not `true` or
+`false`. Name the guest path in a confine refusal. Name `;` as the
+separator when a rule value holds `=`. Say that `--tail` takes a count of
+zero or more.
+
+## Decision
+
+Text only; no exit code changes. The exit 1 for no image
+matches docker 26.1.5.
+
+## Prove
+
+`cargo test -p podvm --bin podvm refusal_text` exits 0, with a test for each of the seven texts above
+
+
+# T-1830: A `--tmpfs` run leaves its map in the record, so a later `exec` cannot see the path
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-05 (tester-reported, not re-run by the report owner)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --name tmptmp --tmpfs /tmp alpine:3.20 sh -c 'echo hi > /tmp/x'`
+works, and then `podvm exec tmptmp ls -la /tmp` prints
+"ls: /tmp: No such file or directory". The same for `--tmpfs /etc`. The
+record keeps `PODVM_MAPS=...,/tmp:/.../tmpfs/25983/0`, and the run removed
+that directory at its end. A control with `--tmpfs /mnt/x` keeps `/etc`
+and `/tmp`.
+
+## Premise
+
+`add_tmpfs` (`crates/podvm/src/run/acquire.rs:172`) adds the map to the
+environment that the record keeps, and `exec` into a container reuses
+that environment.
+
+## Approach
+
+Keep the tmpfs maps out of the environment in the record, or rebuild the
+maps of an `exec` from the record without the tmpfs entries.
+
+## Decision
+
+A tmpfs ends with its run, as the help says; `exec` after it sees the
+tree of the image.
+
+## Prove
+
+`cargo test -p podvm --test tmpfs_exec` exits 0, with a test that `exec` after a named `run --tmpfs /tmp` lists `/tmp` of the tree
+
+
+# T-1831: The help of `run` and `create` promises what the verbs do not do
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), LIFE-06, LIFE-07, RUNS-18, RUNS-23, LIFE-09
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm create -d` prints an id and starts nothing; `create --help` lists
+`-d` ("start the container") and `--report`, and `create --report` is
+refused. The help of `--strict` says it refuses where "the selected
+rung" is Degraded and that an "escape ... still refuse[s]"; plain
+`--strict` on the userland rung exits 0 with seven warnings, one of them
+the raw-syscall escape. The help of `-v` says "refused on the namespace
+rung until TODO/cli.md T-1761"; T-1761 is done and `-v` works there.
+`--label` (Native, filterable) is absent from `run --help` and
+`create --help`, and `rm -v` (Stub) from `rm --help`.
+
+## Premise
+
+`create` takes the option set and the help of `run`
+(`crates/podvm/src/lifecycle.rs:98`). The texts are in
+`crates/podvm/src/run.rs:54` (the `-v` text), `crates/podvm/src/run.rs:99`
+(the `--strict` text) and the usage of `rm` at
+`crates/podvm/src/lifecycle/wait_rm_cp.rs:124`. The escape gap is
+`Capability { hit: false }` in `crates/podvm/src/complete/strict.rs`.
+
+## Approach
+
+Refuse `-d` on `create` by name, and leave `-d` and `--report` out of
+`create --help`. Rewrite the `--strict` sentence: plain `--strict`
+refuses the safety classes it can attribute and warns on a gap it cannot
+attribute; `--strict=all` refuses each. Remove the T-1761 clause. Add
+`--label` and `rm -v`.
+
+## Decision
+
+The behaviour of `--strict` stays (the QA calls it defensible); the text
+changes. T-1857 adds the check for an "until T-NNNN" whose entry is done.
+
+## Prove
+
+`cargo test -p podvm --bin podvm help_text` exits 0, with tests that `create -d` exits 125, that `create --help` has no `--report`, that `run --help` has `--label` and no "until TODO/cli.md T-1761", and that `rm --help` has `-v`
+
+
+# T-1832: The manual, `--help` and `docs/limits.md` disagree with the binary in six places
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MACH-11, MACH-12, IMG-18, IMG-20, MISC-08, MISC-09
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`exec` and `create` with `--podvm-tier=machine` say "running an OCI image
+as a guest arrives with T-1656"; T-1656 is done, and `exec --help` does
+not say the tier is refused. `docs/limits.md:80-81` says "A dynamic
+program and a detached run refuse by name" on the syscall and emulate
+tiers; a dynamic program runs there. `extract --help` says a reference
+that names more than one image is refused; the host platform is taken
+silently. `pull --help` calls `--insecure-registry` "docker's flag";
+`docker pull` has none (it is a daemon option). The manual heads
+sections `podvm prune`, `podvm df`, `podvm abi`, `podvm install-names`,
+and each of them is refused at the top level. `podvm --help` omits
+`login` and `logout`.
+
+## Premise
+
+The machine text is `crates/podvm/src/tier.rs:178`. The pull text is
+`crates/podvm/src/images.rs:39` and the parity notes at
+`crates/podvm/src/parity.rs:234` and `:342`. The host preference is
+deliberate (`crates/podvm-image/src/store/records.rs`). The top-level
+list is in `crates/podvm/src/main.rs`.
+
+## Approach
+
+Correct each text to the behaviour: "the machine tier serves `run`; a
+re-entry into a guest is T-1750"; scope the limits sentence to a
+detached run; say that `extract` prefers the host platform and print the
+chosen platform on stderr; say "docker's daemon option of the same
+name"; head the manual sections by the verb that serves them; add
+`login` and `logout` to the top-level help.
+
+## Decision
+
+Text only. The behaviour of each verb stays.
+
+## Prove
+
+`cargo test -p podvm --bin podvm doc_text` exits 0, with tests on the six texts, and `podvm --help` lists `login` and `logout`
+
+
+# T-1833: Twelve commands refuse `-h` and `--help`, and `system df --help` prints the usage of `system info`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MISC-05
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm lab plan --help` exits 125 with "flag --help: the flag needs a
+value"; `lab up`, `down`, `check`, `try` and `matrix` refuse before any
+flag; `profile list --help` prints the usage to stderr with exit 125;
+`profile show --help` says "unknown option"; `prune`, `install-names`,
+`abi` and `df` with `--help` exit 125 (measured for `prune` on `main`).
+The manual says "Every verb prints its own usage with -h or --help and
+exits 0", and the parity row of `prune -h, --help` says Native.
+`system df --help` and `system abi --help` exit 0 with the usage of
+`system info`.
+
+## Premise
+
+The lab parser reads `-h` as a knob; the guest verbs of `lab` refuse
+first; the profile verbs have no help arm; the four top-level names go
+to the parity lookup, which refuses them with the advice to use the
+group.
+
+## Approach
+
+Take `-h` and `--help` first in each of those verbs. For the four
+top-level names, print the usage of the group verb with exit 0. Give
+`system df` and `system abi` their own usage.
+
+## Decision
+
+The rule of the manual holds for each name that the manual or the
+parity table lists. T-1853 adds the check over the parity table.
+
+## Prove
+
+`cargo test -p podvm --test help_every_verb` exits 0, with a test that each verb and sub-verb of the parity table answers `-h` and `--help` with exit 0 and its own usage on stdout
+
+
+# T-1834: `system info --format '{{json .X}}'` prints counts and `StrictOk` as strings
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MISC-06 (verify item 17)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm system info --format '{{json .StrictOk}}'` prints `"false"`, which
+`jq` reads as true. `.Verbs`, `.ParityRows` and `.VerbsNone` print `"80"`,
+`"302"` and `"33"`.
+
+## Premise
+
+The fields are built as strings (`crates/podvm/src/system/df_info.rs:382`,
+`("StrictOk", strict_ok.to_string())`), and the `json` function quotes
+each string.
+
+## Approach
+
+Give the template values a type: a boolean for `StrictOk`, numbers for
+the counts. The text template prints them as now.
+
+## Decision
+
+The JSON form exists so that a program can branch on it.
+
+## Prove
+
+`cargo test -p podvm --bin podvm info_json_types` exits 0, with tests that `{{json .StrictOk}}` is `true` or `false` and `{{json .Verbs}}` is a number
+
+
+# T-1837: The refusals of `lab`, `windows fetch`, `remote ssh` and `probe-inside` do not name the value, the unit or the verb
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MISC-11 items 1 to 11
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`lab plan --loss 101` says "loss 10100 is out of its range 1 to 2000"
+(hundredths of a percent, no unit). `--tcp 70000` does not name the
+value. `--delay -5` and `--loss -1` say "not a whole number" and "not a
+percent". `--cgnat` says "cgnat needs nat44", and the shipped scenario
+`cgnat` is `--nat both --cgnat`. `--nat both extra` calls the stray word
+a flag with no value. `doctor store_exec` names `$PODVM_STORE` but not the
+action. `windows fetch --url file:///etc/hostname` prints ": : connection
+failed: the URL is not http:// or https://". A download clamped by
+`RLIMIT_FSIZE` names the ceiling and not its source. `probe-inside`
+refusals start with `podvm run:`. `remote ssh forward tcp onlyhost` and
+`connect --ready-wait 0` print the bare usage of a helper.
+
+## Premise
+
+The knob errors are in `pod-netlab` (podcrates v0.42.0,
+`src/knobs/check.rs`, `KnobError::OutOfRange`); the fetch text is in
+`crates/podvm-windows/src`; the helper usages come from the podvm-ssh
+helpers; `probe-inside` calls the parser of `run` with the verb `run`.
+
+## Approach
+
+podvm asks podcrates to name the value and the unit in each knob error,
+to say "must be positive" for a negative number, and to accept `both`
+with `cgnat` or say so (proposed COORD issue). In podvm: one text for a
+scheme refusal, the source of a clamped ceiling, the outer verb in
+`probe-inside`, the flag and the value in each helper refusal, and
+"set `$PODVM_STORE` to a directory on a file system that permits exec".
+
+## Decision
+
+Text only.
+
+## Prove
+
+`cargo test -p podvm --bin podvm misc_refusal_text` exits 0, with a test for each podvm-owned text above; the knob texts are proved in podcrates
+
+
+# T-1838: The help of `windows` and `machine ssh` does not align its columns, and 21 sentences start with a lowercase `note:`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), `findings/misc.md`, "Small prose defects"
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+In `podvm windows --help`, descriptions start at column 33, 32 and 31 in
+one block; in `podvm machine ssh --help`, at 28 and 26. 21 help sentences
+start with `note:` after a full stop.
+
+## Premise
+
+The usage texts are literal strings with spaces for alignment.
+
+## Approach
+
+Align each description column of the two texts. Keep `note:` as the
+fixed marker, and start it on a new line, so that it does not follow a
+full stop in a sentence.
+
+## Decision
+
+The marker stays lowercase: it is the marker of each help text.
+
+## Prove
+
+`cargo test -p podvm --bin podvm help_columns` exits 0, with a test that each option line of a usage text starts its description at one column for each block
+
+
+# T-1845: `profile show` writes a part of the document to stdout and then fails
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), IMG-12
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+With a profile `mine.toml` (`extends = "default"`, `limits.cpus = 3`),
+`podvm profile show mine` prints the table to stdout and then exits 125
+with "`limits.cpus` needs fs.backend = \"machine\"". The stdout document
+has no `# run flags:` section and looks complete to a parser.
+
+## Premise
+
+`show` (`crates/podvm/src/profile.rs:192`) prints the table before it
+builds the run arguments.
+
+## Approach
+
+Build the run arguments first, then print the whole document, or print
+nothing on stdout on a refusal.
+
+## Decision
+
+A refused verb writes no answer to stdout.
+
+## Prove
+
+`cargo test -p podvm --bin podvm profile_show_refusal` exits 0, with a test that a profile that cannot become a run writes 0 bytes to stdout
+
+
+# T-1850: `exec` takes 1.6 times the time of `docker exec`, and `pull` 1.4 times the time of `podman pull`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), benchmark P4 and P5 (`benchmarks/compare.md`, part A, rows A1 and A6)
+**Category:** cli
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+On one host (estimate: one network moment, medians of 5 and 3 runs),
+`podvm exec alpine:3.20 true` took 0.1428 s and `docker exec` 0.0897 s,
+while `podvm run` took 0.0673 s. `podvm pull alpine:3.20` took 4.869 s and
+`podman pull` 3.488 s for the same blob of 3 630 933 bytes through the
+same proxy. `exec` creates no record and no tree, so the time is in the
+entry path.
+
+## Premise
+
+Not measured in this repository. The setup of a pull (token, manifest,
+TLS) and the entry of `exec` (`crates/podvm/src/exec/command.rs`) are the
+two candidates the report names.
+
+## Approach
+
+Add a timed row for `exec IMG true` and for a pull of one small image to
+the performance budget, with the phases of each (resolve, enter, exec;
+token, manifest, blob). Find the largest phase and record it.
+
+## Decision
+
+A measurement first; a change only where a phase is measured.
+
+## Prove
+
+`sh experiments/443-qa-surface.sh` exits 0, with a perf row for `exec IMG true` and one for `pull` that print the time of each phase

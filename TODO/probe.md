@@ -1719,3 +1719,81 @@ the probe (60 ms). The test
 `the_findings_read_back_and_another_build_is_measured_over` holds the
 reader and the rule of the build.
 
+
+
+# T-1812: `probe --cached` reports `supervise` where `probe` reports `userland`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-13 (MISC-01; verify item 11)
+**Category:** probe
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+As uid 1000, `podvm probe` prints `userland` and `podvm probe --cached`
+prints `supervise`, measured and then served from the cache; `--cached
+--json` has `.rung = supervise`, and `--cached --strict` names
+`supervise`. As root both print `namespace`. The cache is documented to
+store "what `--json` prints, verbatim".
+
+## Premise
+
+`main` applies `crate::system::to_entered` before it renders the live
+answer (`crates/podvm/src/main.rs:389`); the writer of the cache
+(`crates/podvm-image/src/probe_cache.rs:97`, `measure`) takes the
+selection alone.
+
+## Approach
+
+Apply the entered rung before the document is written to the cache, and
+serve it as written. Add the cache key's version, so that a cache of an
+older podvm is measured again.
+
+## Decision
+
+One document for the live and the cached answer.
+
+## Prove
+
+`cargo test -p podvm --bin podvm probe_cached_rung` exits 0, with a test that `probe --json` and `probe --cached --json` give one `.rung` on a selection above the entered rung
+
+
+# T-1835: `compare --strict` passes an empty report, an unparsable one, or one that lost whole sections
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), MISC-04
+**Category:** probe
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm compare empty.txt --reference empty.txt --strict` exits 0 ("0
+same"). A file of two prose lines against a real reference exits 0 with
+"61 only in the reference". A report with its `proxy` section removed
+exits 0 with "4 only in the reference". A flipped invariant verdict
+exits 1, as it must.
+
+## Premise
+
+`Outcome::code` (`crates/podvm-probe/src/inside/compare.rs:77`) counts
+only the unexplained differences; nothing reads `only_reference`.
+`parse_report` (`crates/podvm-probe/src/inside.rs:158`) drops a line that
+does not parse.
+
+## Approach
+
+Refuse a report with no record or with a line that does not parse and is
+not a comment. Under `--strict`, count an invariant section of the
+reference that is absent here as unexplained.
+
+## Decision
+
+A strict gate fails when it measured nothing.
+
+## Prove
+
+`cargo test -p podvm-probe compare_strict` exits 0, with tests that an empty report, a prose file and a report with a missing invariant section each exit 1 under `--strict`

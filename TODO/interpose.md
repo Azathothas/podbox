@@ -4134,3 +4134,45 @@ alpine:3.20 sh -c 'id; id; id'` prints one notice (`setgid: ... this run
 says it once`) and `uid=1000 gid=1000` three times. The tests of the
 interposer pass (96); the row `run.user-deny.ul` of experiment 443 still
 finds "faking the identity".
+
+
+# T-1844: `interpose::place` writes the object through one fixed temporary name in the root
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), P-01 of `findings/code.md` (plausible, not confirmed)
+**Category:** interpose
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`place` writes `.podvm/.interpose.so.tmp` and renames it to
+`interpose.so`. Two entries into one shared root (`exec IMG` enters the
+root of the image) that place different objects (glibc and musl) can
+rename the object of the other, which gives the `invalid ELF header` that
+the module exists to prevent. A payload that can write `/.podvm` can put
+a symlink at the temporary name and have the next run write the object
+through it.
+
+## Premise
+
+`crates/podvm/src/interpose.rs:312` (`place`) builds the name
+`{dir}/.interpose.so.tmp`, writes it with `std::fs::write`, which follows
+a symlink, and renames it.
+
+## Approach
+
+Write a temporary file with a name of its own (`O_CREAT | O_EXCL`, a
+random suffix, `O_NOFOLLOW`), then rename it. Check that the object in
+place has the ABI that the entry needs before the exec.
+
+## Decision
+
+Measure first: two concurrent `exec` calls with a glibc and a musl payload
+on one image, and a planted symlink. Fix in each case, since the name is
+a constant either way.
+
+## Prove
+
+`cargo test -p podvm --bin podvm place_temp_name` exits 0, with a test that a symlink at the old temporary name is not followed and that two places with different objects leave one whole object

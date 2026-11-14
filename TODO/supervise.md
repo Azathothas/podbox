@@ -1475,3 +1475,308 @@ During a foreground run that sleeps 10 s: `ps` lists it, `system df` counts it r
 **Blocked 2026-11-14.** Blocker: `pod-supervise` has no holder for a
 payload that the caller runs itself. Clears when: a podcrates tag
 carries the holder of COORD-094 (issue 339).
+
+
+# T-1800: `ps` aborts with SIGABRT when a command has a multibyte character at byte 17
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-01 (CODE-01; verify item 3)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --name uni alpine:3.20 echo X X` exits 0 (X is U+65E5 twice,
+then three times), and then each
+`podvm ps -a` panics: "end byte index 17 is not a char boundary; it is
+inside U+65E5", exit 134. The listing stays broken until the record is
+removed. The verifier reproduced it with eleven `A`, U+00E9 and `BCDEF`.
+
+## Premise
+
+`command_of` (`crates/podvm/src/lifecycle/logs_stop.rs:3`) cuts the joined
+argv at byte 17 with `&joined[..17]` when it is longer than 20 bytes. A
+cut inside a UTF-8 character panics, and the release profile aborts on a
+panic (`Cargo.toml`, `panic = "abort"`). `main` is unchanged since the
+release.
+
+## Approach
+
+Cut on a character boundary: count characters, not bytes, for both the
+limit and the cut. Add a unit test with a multibyte character across byte
+17 and one at each byte from 15 to 20.
+
+## Decision
+
+The column keeps its width of 20 characters. No other verb slices text of
+the user by a byte index (T-1855 adds the scan).
+
+## Prove
+
+`cargo test -p podvm --bin podvm command_of` exits 0, with a test that cuts both measured commands (U+65E5 and U+00E9 across byte 17) without a panic, and `podvm ps -a` exits 0 after that run
+
+
+# T-1805: A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-05 and F-19 (CODE-05, LIFE-03; verify item 14)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`start`, `stop`, `restart`, `rm`, `logs`, `wait`, `kill` and `cp` exit 125
+for "no such container". Docker 26.1.5 exits 1 for each. The table of
+podvm (`system info --format '{{json .ExitCodes}}'`, case `cli-error`)
+names "a name that resolves to nothing" as exit 1. The same 125 comes for
+a verb that refuses after the parse: `kill` of an exited container, `rm`
+of a running one without `-f`, `wait` on a `Dead` record. `cp nosuch:/x y`
+prints two refusals, and `restart` of a missing name prints the stop half
+twice ("the stop half failed; not started"). The QA patch left `cp` at 125
+(verify V-2).
+
+## Premise
+
+`pod-supervise` already classes the error: `table::find` returns
+`Class::NotFound` and "already running" is `Class::Usage` (podcrates
+v0.42.0, `src/table.rs`). podvm drops the class:
+`impl From<pod_core::Failure> for Error` keeps only the text
+(`crates/podvm-supervise/src/lib.rs:48`), and `fail`
+(`crates/podvm/src/lifecycle.rs:91`) maps each error to 125.
+
+## Approach
+
+Keep the class in `podvm_supervise::Error`. `fail` maps `NotFound` and
+`Usage` to `EXIT_CLI_ERROR` (1) and each other class to 125. `cp` and
+`restart` take the same path and print one refusal. Measure `docker start`
+on a running container (exit 0 as recorded by the QA, not measured twice)
+and record the answer in the parity row of `start`.
+
+## Decision
+
+Docker is the contract (T-0803 and the measured table of `TODO/cli.md`);
+podman 5.4.2 exits 125 for most of these verbs (verify V-2), and the
+parity notes say so. `exec` takes an image, so its missing image stays
+the image error of `podvm-image` (exit 1 already).
+
+## Prove
+
+`cargo test -p podvm --test lifecycle_exit` exits 0, with a row for each of `start`, `stop`, `restart`, `rm`, `logs`, `wait`, `kill` and `cp` on a missing name (exit 1, one line on stderr), for `kill` of an exited container and `rm` of a running one (exit 1)
+
+
+# T-1806: A foreground run records only stdout, so `logs` loses each stderr line
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-06 (LIFE-01; verify item 1)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm run --name life-e2 alpine:3.20 sh -c 'echo O1; echo E1 >&2; echo O2; echo E2 >&2'`
+prints four lines, and `podvm logs life-e2` prints `O1` and `O2` only;
+the log file has 6 bytes. A payload that writes only to stderr leaves a
+log of 0 bytes. A detached run records both streams in write order. The
+parity row of `logs` says "the payload's stdout and stderr, interleaved
+into one file".
+
+## Premise
+
+`tee_stdout_to` (`crates/podvm/src/run/foreground/tee.rs:22`), called at
+`crates/podvm/src/run/foreground.rs:67`, tees fd 1 only. fd 2 is inherited,
+so it reaches the terminal and never the file.
+
+## Approach
+
+Tee fd 1 and fd 2 into the one log file that is opened for append, each
+whole write in order, and keep each stream on its own terminal
+descriptor. The QA patch concatenated the two streams (verify notes "ERR
+before OUT"); the order of the writes must stay.
+
+## Decision
+
+One `LogPath`, as the parity row says. T-1786 (the foreground holder) is
+a different defect and does not block this entry.
+
+## Prove
+
+`cargo test -p podvm --test foreground_log` exits 0, with a test that a foreground payload that writes O1, E1, O2, E2 leaves a log with the four lines in that order and that a stderr-only payload leaves its line
+
+
+# T-1807: A restarted container shows the exit code and end of its previous run while it runs
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-07 (LIFE-02; verify item 2 and V-3)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+After `kill -s TERM` and `restart`, `inspect` prints
+`state=running code=143 finished=2026-11-14T02:00:38Z`: a running record
+with the `ExitCode` and `FinishedAt` of the run before. It is the same on
+the namespace rung. A second case of the same class: a `Dead` record
+keeps the pid of a payload that no longer exists (`ps` shows
+`Dead ... 7226`).
+
+## Premise
+
+`pod_supervise::start` sets `state`, `launcher_pid` and `pid`, and does not
+clear `exit_code`, `finished_at`, `end` or `noticed` (podcrates v0.42.0,
+`src/lib.rs`, function `start`). `table::reconcile` writes `Dead` and
+keeps `pid` (`src/table.rs`, function `reconcile`). The wrapper is
+`crates/podvm-supervise/src/lib.rs:129`.
+
+## Approach
+
+podvm asks podcrates: `start` clears the end fields when the launcher
+reports the payload running, and `reconcile` clears `pid` when it writes
+`Dead` (proposed COORD issue in the review of this report). Until a tag
+carries it, the wrapper of `crates/podvm-supervise/src/lib.rs:129` clears
+the fields in the record that it returns and writes.
+
+## Decision
+
+The fix belongs to `pod-supervise`; podvm keeps the interim clear only
+until that tag.
+
+## Prove
+
+`cargo test -p podvm-supervise restart_clears_end` exits 0, with a test that a record after `kill` and `start` has no `exit_code`, `finished_at` or `end`, and a test that a record that `reconcile` marks `Dead` has no `pid`
+
+
+# T-1822: `cp` of a file onto a directory fails and blames the source, `cp -r` drops directory modes, and the containment refusals name the wrong operation
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), O-06 (LIFE-04), LIFE-05, LIFE-08
+**Category:** supervise
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm cp hostfile.txt life-cp:/etc` exits 125 with
+"hostfile.txt: Is a directory (os error 21)": the destination is the
+directory, and the message names the source. Docker copies into the
+directory with the basename of the source. The reverse direction fails
+the same way. `cp -r` of directories with modes 700 and 711 gives 755 in
+both directions; file modes stay. A copy that leaves the root is refused
+with "podvm refuses to delete outside its own subtree", and
+`life-cp:/etc/../etc/os-release` is refused as "climbs out of the store
+with `..`" although it stays inside.
+
+## Premise
+
+`crates/podvm/src/lifecycle/wait_rm_cp.rs:485` calls
+`std::fs::copy(&src, &dst)` with no join for a directory destination, and
+prints the error against the source. `crates/podvm/src/lifecycle/copy_tree.rs:203`
+and `:208` make each directory with `create_dir_all` and set no mode. The
+two texts are in `crates/podvm-image/src/contain.rs:53` and `:85`; the
+refusal of `..` is deliberate, the wording is not.
+
+## Approach
+
+When the destination is a directory, join the file name of the source,
+keep the containment check on the joined path, and name the path that
+failed. Set the mode of the source on each directory after its content.
+Give `contain` a verb word for its caller ("copy", "delete") and say that
+podvm refuses `..` in a path of a container, not that it climbs out.
+
+## Decision
+
+Docker's rule for a directory destination. A `..` stays refused (the
+comment of `contain.rs` gives the reason); only the text changes.
+
+## Prove
+
+`cargo test -p podvm --test cp_tree` exits 0, with tests for a file onto an existing directory in both directions, for directory modes 700 and 711 kept by `cp -r`, and for the word "copy" in a containment refusal of `cp`
+
+
+# T-1848: No verb removes the exited containers in bulk, and `container` names verbs "listed above" that it does not list
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), benchmark P3 and P8 (`benchmarks/compare.md`, part C)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+34 foreground runs left 34 records and 443 105 280 bytes of trees; each
+`podvm rm -f` released 13 123 584 bytes. docker and podman have
+`container prune`. A CI host that runs podvm once in each job grows until
+a script runs `ps -aq | xargs`. `podvm container prune` refuses with "every
+verb it holds is a top-level verb here and is listed above", and nothing
+is listed above (measured on `main`, 2026-11-14).
+
+## Premise
+
+The record of each foreground run is deliberate (`TODO/supervise.md`
+T-1421). The parity table has no row for a bulk removal of containers.
+The `container` message comes from the parity lookup for a group with no
+arm.
+
+## Approach
+
+Add `container prune` (and `podvm container prune -f`, a stub as for
+`image prune`): it removes each exited or dead record and its tree, and
+prints the reclaimed bytes as `image prune` does. Name it in the help of
+`run` beside the record of each run. Correct the group message so that it
+names the top-level verbs.
+
+## Decision
+
+`container prune` takes no running container. The spare tree of T-1781
+is not a record and stays.
+
+## Prove
+
+`cargo test -p podvm --test container_prune` exits 0, with a test that three exited records and one running record leave the running one, and that the store bytes of the three trees are freed
+
+
+# T-1851: A store that root and a user share refuses the next run of the user with a bare `Permission denied`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), `findings/runs.md`, "Not covered / blocked", first item
+**Category:** supervise
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A root run rewrites `containers.json` as root with mode 0600, and the next
+run of uid 1000 on the same store exits 125 with "the run could not be
+recorded: .../containers.json: Permission denied (os error 13)". The
+message does not name the owner of the file or the remedy.
+
+## Premise
+
+The table file of `pod-supervise` is replaced by a rename; the new file
+takes the uid of the writer. podvm documents a store for each user, but
+no check refuses a store of another uid.
+
+## Approach
+
+Before a write, compare the owner of the store root and of the table with
+the effective uid. On a difference, refuse by name: the owner uid, the
+file, and "use a store of your own (`$PODVM_STORE`)".
+
+## Decision
+
+podvm does not chown a file of another user and does not share a store
+between uids.
+
+## Prove
+
+`cargo test -p podvm store_owner_refusal` exits 0, with a test that a table owned by another uid gives a refusal that names the uid and `$PODVM_STORE`

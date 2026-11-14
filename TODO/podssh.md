@@ -409,3 +409,42 @@ podvm-ssh --test session_interactive` exits 0 (12 passed, 2026-11-11), and
 the script is gone.
 
 
+
+
+# T-1821: `remote ssh serve` runs any program named `node` on PATH
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), O-05 (MISC-02; verify item 18)
+**Category:** podssh
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+With the podvm-ssh helpers absent and Node.js at `/usr/bin/node`,
+`podvm remote ssh serve` exits 0 with no output, and with
+`--relay ... --name ... --node-token ...` it exits 9 with
+"/usr/bin/node: bad option: --relay". With no `node` on PATH it refuses
+125 by name. Nothing says that the podvm-ssh helper was not found.
+
+## Premise
+
+`resolve_helper` (`crates/podvm/src/remote/mod.rs:89`) and
+`path_lookup_in` (`crates/podvm/src/remote/mod.rs:125`) take the first
+executable named `node`.
+
+## Approach
+
+Resolve the helper beside the binary first, then on PATH under a name of
+its own (`podvm-ssh-node`); accept a program named `node` only when it
+answers a version handshake of podvm-ssh. Refuse with 125 by name
+otherwise, as the `connect` arm does.
+
+## Decision
+
+podvm runs no program that only shares a name with its helper.
+
+## Prove
+
+`cargo test -p podvm --bin podvm resolve_helper` exits 0, with a test that a fake `node` on PATH that fails the handshake gives exit 125 and a refusal that names the helper

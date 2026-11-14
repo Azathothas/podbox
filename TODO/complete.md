@@ -1827,3 +1827,86 @@ interposer object is missing. `cargo test -p podvm --test
 completion_reach` exits 0 (1 passed, 46 s, on the cloud host). The script
 and its result file are deleted; `git ls-files experiments | grep -c
 85-completion-symlink-escape` prints 0.
+
+
+# T-1818: `--no-host-cas` is ignored on an image that ships no CA bundle
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), O-02 (RUNS-01). The summary table of the report says "when the image ships a CA bundle"; its area report and its evidence say the image ships none.
+**Category:** complete
+**Milestone:** none
+**Priority:** P0
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`env SSL_CERT_FILE=$PWD/test.crt podvm run --no-host-cas debian:12-slim cat /etc/ssl/certs/ca-certificates.crt`
+prints the test bundle byte for byte; with no variable, the 148
+certificates of the host are put there. The namespace rung is the same.
+On `alpine:3.20`, which ships a bundle, the flag works. A caller who sets
+the flag so that the CA of an intercepting proxy is not trusted gets it
+trusted.
+
+## Premise
+
+In `pod-rootfs` (podcrates v0.42.0, `src/pkg/bundle.rs`, the branch
+`present.is_empty()` at line 75), the bundle of the host is written to
+each usual path with no test of `settings.host_cas`; the test exists only
+in the branch for an image with a bundle. podvm passes the settings at
+`crates/podvm-complete/src/lib.rs:291` and the host bundle at
+`crates/podvm-complete/src/lib.rs:295`.
+
+## Approach
+
+In podvm now: pass no host bundle when `host_cas` is false
+(`crates/podvm-complete/src/lib.rs:295`), so the crate takes its
+"the host gave none" branch. podvm asks podcrates to test `host_cas` in
+the branch for an image with no bundle (proposed COORD issue).
+
+## Decision
+
+`--no-host-cas` adds no certificate of the host to any image. The image
+with no bundle then has none, and the fixup row says so.
+
+## Prove
+
+`cargo test -p podvm-complete no_host_cas` exits 0, with a test that an image with no bundle gets no bundle when `host_cas` is false and that the fixup row is Skipped with a reason
+
+
+# T-1826: `--no-steps` leaves no line and no report row that says what the caller gave up
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), RUNS-17
+**Category:** complete
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On an image with two `pacman-key` steps, `podvm run --no-steps --report r.json IMG true`
+gives a report whose `degradations` has no `pacman-keyring` row, and the
+banner shows 0 steps. The help says "the fixup log then says what the
+caller gave up". The row of `pod-rootfs` exists (Skipped, degraded, with
+the command to run).
+
+## Premise
+
+`Report::degradations` drops each `Skipped` row
+(`crates/podvm-complete/src/lib.rs:247`), and the banner omits each
+`Skipped` row.
+
+## Approach
+
+Keep a `Skipped` row whose reason is a choice of the caller (`--no-steps`,
+`--no-host-cas`, `--no-source-fixup`) in `degradations` and in the banner
+under `--verbose`.
+
+## Decision
+
+A choice of the caller is a degradation that the caller made, and the
+report names it.
+
+## Prove
+
+`cargo test -p podvm-complete skipped_by_choice` exits 0, with a test that `--no-steps` on an image with steps leaves a row in `degradations`

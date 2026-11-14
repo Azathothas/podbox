@@ -775,3 +775,46 @@ pins; podvm's own `cargo test -p podvm-extract` exits 0, and `git ls-files
 experiments | grep -c 220-extract-path-safety` prints 0.
 
 
+
+
+# T-1813: Extraction drops the setuid and setgid bits of a file whose mode already has owner write
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-14 (IMG-01; verify item 13)
+**Category:** extract
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+An imported tar with `suid_rw` 4755 and `sgid_rw` 2755 extracts both as
+755, while 4555, 2555 and 6555 keep their bits. On `debian:bookworm-slim`
+each of the 11 setuid and setgid programs (`su`, `passwd`, `mount`,
+`chage`) is 0755 on disk, and `.meta.jsonl` still says `"mode":"4755"`
+with no note of the change. Measured as uid 1000; not measured as root.
+
+## Premise
+
+`pod-extract` (podcrates v0.42.0, `src/apply.rs`, lines 317 to 321) opens
+the file with `mode | 0o600` and calls `fchmod` only when that differs
+from `mode & 0o7777`. For 4755 the two are equal, and the `write` of the
+content clears S_ISUID and S_ISGID (the verifier measured the kernel
+side). T-0306 rules that each changed mode is recorded.
+
+## Approach
+
+podvm asks podcrates: call `fchmod(fd, mode & 0o7777)` after the last
+write whenever the mode has a bit of `0o7000`, and record a mode that
+could not be set (proposed COORD issue). podvm takes the tag. The QA
+patch 0005 sets the bits again in podvm after the extraction; this entry
+does not take it, because the sidecar would still disagree for a moment
+and the fix belongs to the crate.
+
+## Decision
+
+The fix is in `pod-extract`; podvm proves it with its own test.
+
+## Prove
+
+`cargo test -p podvm --test extract_modes` exits 0, with a test that a layer row of mode 4755, 2755 and 6755 ends with that mode as uid 1000 and as root

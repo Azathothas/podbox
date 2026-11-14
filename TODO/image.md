@@ -3913,3 +3913,296 @@ container and a planted extraction of 300 000 bytes: `df` printed
 1.5 MiB`, `Extractions no image names: 293.0 KiB` and `Reclaimable:
 293.0 KiB`; after `rm` and `image prune -a`, each line read 0 B, and the
 store held 21 548 bytes (its index and locks).
+
+
+# T-1814: `system df` prints the manifest digest in its IMAGE ID column
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), F-15 (IMG-02, LIFE-10; verify item 12)
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm system df` prints `d9e853e87e55` for `alpine:3.20`, which is the
+manifest digest that `pull` shows; `images` and `inspect .Id` print
+`bf8527eb54c3`, the config digest. Two platform records of one tag give
+two rows that cannot be told apart. T-1787 changed `system df` on `main`
+and kept this column.
+
+## Premise
+
+`crates/podvm/src/system/df_info.rs:131` passes `&r.digest` to `short_id`;
+`inspect` builds `.Id` from `r.config_digest`. The test of `short_id`
+checks the cut only, not the field.
+
+## Approach
+
+Pass the config digest. When one reference has more than one record, add
+the platform to the row.
+
+## Decision
+
+IMAGE ID is the id of each other verb.
+
+## Prove
+
+`cargo test -p podvm --bin podvm df_image_id` exits 0, with a test that the IMAGE ID of a row equals `images --format '{{.ID}}'` for the same record
+
+
+# T-1836: Six image messages name the wrong cause or repeat themselves
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), IMG-10, IMG-11, IMG-14, IMG-15, IMG-16, IMG-17
+**Category:** image
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A pull of a repository that does not exist reports "HTTP 401:
+UNAUTHORIZED: authentication required". `pull -a hello-world` says "It
+offers: windows/amd64, windows/amd64", and `--platform bogus` lists
+`unknown/unknown` seven times (attestation manifests). `save` prints
+"(3.2 MiB bytes)". A corrupted blob is refused with "computed absent".
+The plain-HTTP refusal says its explanation twice. `image prune` prints a
+blank line before "Total reclaimed space" also when it deleted nothing.
+
+## Premise
+
+`crates/podvm/src/images/save_load.rs:190` and `:212` print `{} bytes`
+around `space::mib`. `crates/podvm-image/src/layout.rs:284` sets
+`got: "absent"`. The specific plain-HTTP text
+(`crates/podvm-image/src/pull/run.rs:27`) and the Display of
+`PlainHttpRefused` both explain T-0201.
+`crates/podvm/src/images/login_extract.rs:257` prints `\nTotal`. The
+platform list is built at `crates/podvm-image/src/pull/run.rs:353` from
+the index entries, with no `os.version` and no filter of attestations.
+
+## Approach
+
+On a 401 after an anonymous token, say "the repository does not exist,
+or it is private: `podvm login`", then the text of the registry. Leave
+attestation manifests out of the list, add `os.version` where two entries
+share os and arch, and dedupe. Drop the word `bytes`. Name the entry and
+its computed digest. Keep one of the two plain-HTTP explanations. Print
+the blank line only after a list of deleted images.
+
+## Decision
+
+Text only; each exit code stays.
+
+## Prove
+
+`cargo test -p podvm-image messages` exits 0 and `cargo test -p podvm --bin podvm image_messages` exits 0, with a test for each of the six texts
+
+
+# T-1839: `load` takes an index with `schemaVersion` 9 and names an image with no ref-name annotation `sha256`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), IMG-03, IMG-04, `findings/img.md` coverage notes (import of escaping members, `install-names` with a missing directory)
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A `save` tarball whose `index.json` says `"schemaVersion":9` loads with
+exit 0. Without the optional annotation `org.opencontainers.image.ref.name`
+it loads as `docker.io/library/sha256:8e37848f...`: repository `sha256`,
+tag the hex. Two notes of the same area: `import` stores members
+`../escape` and `/abs-escape` that `extract` refuses later, and
+`system install-names --dir missing` makes the directory with no line.
+
+## Premise
+
+`crates/podvm-image/src/layout.rs:170` parses the index and never reads
+`schemaVersion` or `mediaType`. The name falls back to the digest at
+`crates/podvm-image/src/layout.rs:217` and goes through `Reference::parse`.
+
+## Approach
+
+Refuse an index whose `schemaVersion` is not 2 or whose `mediaType` is
+not an image index, by name. With no annotation, record the image with
+no tag (`<none>`), named by its digest, as a `Record` permits. Refuse an
+escaping member at `import`, with the reason that `extract` gives. Print
+the directory that `install-names` made.
+
+## Decision
+
+The OCI image layout requires `schemaVersion` 2. A refusal at import
+saves a store write that no run can use.
+
+## Prove
+
+`cargo test -p podvm-image layout_index` exits 0, with tests that `schemaVersion` 9 is refused, that an index with no annotation gives a record with no tag, and that `import` refuses `../escape`
+
+
+# T-1840: The `images` table cannot tell two platform records apart, `images REPO` shows only `latest`, and `inspect` has no `.Config.Labels`
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), IMG-06, IMG-07, IMG-08
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+After pulls of `alpine:3.20` for amd64, arm64 and arm64/v8, `images`
+prints three rows `alpine 3.20` with no platform, two with the same ID;
+`--digests` prints one index digest for each. `podvm images alpine`
+prints only `alpine:latest` while 3.18, 3.19 and 3.20 are in the store;
+docker reads the argument as a repository filter.
+`inspect --format '{{.Config.Labels}}'` says "there is no field", and
+`images --filter label=` reads the same labels.
+
+## Premise
+
+The table columns are built in `crates/podvm/src/images/list.rs` with no
+`Platform`. The positional goes to `store.find(f)`
+(`crates/podvm/src/images/list.rs:107`), and `Reference::parse` adds
+`:latest`. `INSPECT_FIELDS` has no `.Config.Labels`, and `labels_of`
+(`crates/podvm/src/images/list.rs:438`) already reads them.
+
+## Approach
+
+Add a PLATFORM column when a reference has more than one record. A
+positional with no tag or digest filters by repository. Add
+`.Config.Labels` (an object, `null` when absent) to `inspect` and its
+JSON.
+
+## Decision
+
+docker's rule for the positional; the column is podvm's own, because
+its store keeps a record for each platform.
+
+## Prove
+
+`cargo test -p podvm --bin podvm images_table` exits 0, with tests that two platform records give two rows that differ, that `images REPOSITORY` with no tag lists each tag of that repository, and that `{{json .Config.Labels}}` prints the labels
+
+
+# T-1841: `save` advises a `--platform` it does not have, and `pull -a` records the endpoint host, which makes a duplicate record
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), IMG-05, IMG-09
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm save docker.io/library/alpine@sha256:d9e853...` with four records
+refuses "name the platform with --platform", and `save --platform` is a
+flag error. `podvm pull -a hello-world` records
+`registry-1.docker.io/library/hello-world:{latest,linux}`; a later
+`pull hello-world:latest` records `docker.io/library/hello-world:latest`
+for the same manifest, and `rmi hello-world:latest` leaves the other two
+names.
+
+## Premise
+
+The refusal text is generic (`crates/podvm-image/src/store/records.rs:157`)
+and `save` has no platform option. `pull -a` builds
+`format!("{endpoint}/{repository}:{tag}")`
+(`crates/podvm-image/src/pull/run.rs:347`), and the endpoint stays in the
+record.
+
+## Approach
+
+Add `--platform` to `save` (and to `find_one` for it). Build the
+reference of `pull -a` from the canonical repository of the caller, not
+from the endpoint.
+
+## Decision
+
+`docker.io/library/NAME` is the one name of a Docker Hub image in the
+store.
+
+## Prove
+
+`cargo test -p podvm-image pull_all_names` exits 0, with a test that `pull -a` of a Docker Hub repository records the canonical name of the caller and not the endpoint host, and `cargo test -p podvm --bin podvm save_platform` exits 0 with a test that `save --platform linux/arm64` selects that record
+
+
+# T-1842: `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), IMG-13, IMG-19
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm save alpine:3.99` ("no such image") and `podvm import suid.tar Foo:Bar`
+("invalid reference") exit 125; `rmi` and `pull` exit 1 for the same
+classes, and `docker save` exits 1. `PODVM_INSECURE_REGISTRIES='bad host!'`
+and `--insecure-registry 'bad host!'` are taken with no line, so the
+caller believes a registry is configured.
+
+## Premise
+
+`Error::exit_code` (`crates/podvm-image/src/error.rs:101`) maps
+`NoSuchImage`, `Reference` and `Usage` to 1, and the arms of
+`crates/podvm/src/images/save_load.rs:184`, `:204`, `:222`, `:264`, `:277`
+and `:313` return `EXIT_RUNTIME_ERROR`. The host check is `normalise_host` of
+`pod-oci` (podcrates v0.42.0, `src/transport.rs`), which refuses only a
+URL and a `/`.
+
+## Approach
+
+Return `e.exit_code()` in each arm, and keep 125 for I/O and hash
+failures. Check each insecure-registry host against the host grammar
+(letters, digits, `.`, `-`, a port, a bracketed IPv6 address) in podvm
+before it reaches `pod-oci`, and ask podcrates for the same check
+(proposed COORD issue).
+
+## Decision
+
+One exit code for one class across the image verbs.
+
+## Prove
+
+`cargo test -p podvm --bin podvm image_exit_codes` exits 0, with tests that `save` of a missing image and `import` of an invalid name exit 1, and that `--insecure-registry 'bad host!'` is refused with the value named
+
+
+# T-1843: `extract --force` removes the extracted root before it takes the lock of the store
+
+**Source:** the external QA report of `v0.2.0-beta.14` (2026-11-14), CODE-11 (established by reading; not measured)
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podvm extract --force IMG` removes the root of the image, and then takes
+the hold that keeps a GC away. A `run` between its own hold and its copy
+of the tree, or a foreground `exec IMG` that enters the shared root, can
+see a root with files missing and run with exit 0.
+
+## Premise
+
+`crates/podvm/src/images/login_extract.rs:352` calls `remove_extracted`,
+and `crates/podvm/src/images/login_extract.rs:378` takes `store.hold`
+after it.
+
+## Approach
+
+Take `store.hold(&record)` before the removal, in the order that `run`
+uses, and keep it across the removal and the extraction.
+
+## Decision
+
+The lock of T-0204 covers each change of an extracted root.
+
+## Prove
+
+`cargo test -p podvm --bin podvm extract_force_lock` exits 0, with a test that `extract --force` takes the hold before it removes the root (the hold is observed held when the removal starts)
