@@ -3198,6 +3198,15 @@ T-1867 allows it. Language is a later flag with the default en-US.
 
 ## Done
 
+**Partial 2026-11-14, later.** `podvm pull windows:NAME` takes the
+medium of the catalog (`windows/pull.rs`, `pull_named`): in a fresh home,
+`pull windows:dos` fetched the zip with its progress lines, wrote the
+base and printed its path, exit 0; `pull windows:95` exits 1 with the
+list of names (`windows_pull_of_an_unknown_name_exits_1`). The clauses
+that remain: `images` and `rmi` for the Windows names, the disk of
+`validationos` (T-1863) and of a setup ISO (T-1867), and the experiment
+of the Prove.
+
 **Partial 2026-11-14.** The catalog and the name: `podvm-windows`
 `catalog.rs` holds seven names (`dos`, `validationos`/`vos`, `11`,
 `2025`, `2022`, `2019`, `10`) with URL, size, sha256, kind, store file
@@ -3227,7 +3236,6 @@ windows:11` reach the Windows driver with no tier flag. A new experiment (the
 next free number) pulls `windows:dos` end to end on the cloud host, with
 `podvm images` listing it, and runs `ver` under TCG with exit 0.
 
-
 # T-1862: The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check
 
 **Source:** the Windows guest review of 2026-11-14, section 5, item W3
@@ -3235,7 +3243,7 @@ next free number) pulls `windows:dos` end to end on the cloud host, with
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3276,6 +3284,19 @@ declared length above the ceiling is refused with no file left, and a
 `RLIMIT_FSIZE` below the size is refused by name before the first byte.
 
 ## Done
+
+**Done 2026-11-14.** `cargo test -p podvm-windows download` exits 0
+with three tests of `fetch::store` against an origin in memory that
+serves ranges (`podvm-windows/src/download_tests.rs`): a break at
+70 000 of 200 000 bytes, then a resume from that byte, gives the digest
+of a clean download and the same bytes; a wrong sha256 leaves no file;
+a ceiling of 1000 bytes refuses a declared 200 000 and leaves no file.
+The check of `RLIMIT_FSIZE` before the first byte is podvm's
+(`windows_fetch_refuses`). podvm's HTTP origin (`windows/origin.rs`)
+sends `Range: bytes=4-` on the resume to a server on the loopback and
+reads the `206` (`windows_origin_sends_a_range_on_a_resume`), and prints
+one line for each twentieth of the object: `podvm pull windows:dos` in a
+fresh home printed "8 MiB of 16 MiB" and "16 MiB of 16 MiB".
 
 **Partial 2026-11-14.** The pre-checks of podvm: before the first
 byte, `windows/pull.rs` (`room_for`) compares the size of the catalog

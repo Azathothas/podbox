@@ -39,7 +39,7 @@ mod doctor_more; // TODO/machine.md T-1871
 mod dos;
 mod origin;
 mod plan;
-mod pull; // TODO/machine.md T-1861
+pub(crate) mod pull; // TODO/machine.md T-1861
 mod run;
 mod setup;
 

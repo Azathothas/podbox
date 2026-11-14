@@ -241,6 +241,11 @@ pub fn pull(verb: &str, args: &[String]) -> i32 {
         eprint!("{PULL_USAGE}");
         return EXIT_CLI_ERROR;
     };
+    // TODO/machine.md T-1861: a Windows name of the catalog is a medium,
+    // not an image of a registry.
+    if let Some(name) = want.strip_prefix("windows:") {
+        return crate::windows::pull::pull_named(verb, name, quiet);
+    }
     // ⛔ Resolved before the store is opened, so a malformed --platform is a
     // usage error and not a runtime one. TODO/probe.md T-0110's contract.
     let platform = match podvm_image::platform::wanted(platform_flag.as_deref()) {

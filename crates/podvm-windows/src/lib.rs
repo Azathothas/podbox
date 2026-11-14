@@ -211,5 +211,7 @@ pub mod dos {
 }
 
 #[cfg(test)]
+mod download_tests;
+#[cfg(test)]
 #[allow(unsafe_code)]
-mod tests;
+mod tests; // TODO/machine.md T-1862

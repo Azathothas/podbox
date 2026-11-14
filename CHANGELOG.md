@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `podvm pull windows:NAME`, a resumable download with progress, and a test of the broker, 2026-11-14
+
+Record: T-1820, T-1861 (partial), T-1862.
+Deployed: not deployed; no version change.
+
+- `podvm pull windows:NAME` fetches and checks the medium of the catalog
+  (and makes the DOS base) instead of asking a registry; an unknown name
+  exits 1 with the list of names.
+- A Windows download prints one progress line for each twentieth, and
+  resumes with a range request after a break.
+- A fixture upstream proxy tests the broker: an allowed host gets 200,
+  and an upstream refusal gives a 502 that names its status.
+
 ### Added: the answer-file stick and the boot options of a Windows guest, 2026-11-14
 
 Record: T-1865, T-1866, T-1883.

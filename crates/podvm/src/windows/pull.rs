@@ -88,6 +88,35 @@ pub(crate) fn room_for(size: u64, free: Option<u64>, fsize: u64) -> Result<(), S
     }
 }
 
+/// TODO/machine.md T-1861: `podvm pull windows:NAME`. The medium of the
+/// catalog is fetched and checked; for `windows:dos` the base disk is made
+/// too. The line on stdout is the path that a run boots or installs from.
+/// An unknown name is refused with the list, exit 1; a medium that
+/// cannot come is 125.
+pub(crate) fn pull_named(verb: &str, name: &str, quiet: bool) -> i32 {
+    let e = match podvm_windows::catalog::resolve(name) {
+        Ok(e) => e,
+        Err(why) => {
+            eprintln!("podvm {verb}: {why}");
+            return podvm_image::error::EXIT_CLI_ERROR;
+        }
+    };
+    let path = match e.kind {
+        Kind::DosZip => dos_base(verb),
+        _ => fetched(verb, e),
+    };
+    match path {
+        Ok(p) => {
+            if !quiet {
+                eprintln!("podvm {verb}: windows:{}: ready", e.name);
+            }
+            println!("{}", p.display());
+            0
+        }
+        Err(code) => code,
+    }
+}
+
 /// The DOS base of `windows:dos`: the disk of the pinned FreeDOS zip, at the
 /// base cache of the DOS flavor, made where it is not there.
 pub(crate) fn dos_base(verb: &str) -> Result<PathBuf, i32> {
@@ -193,6 +222,13 @@ pub(crate) fn zip_member(zip: &[u8], name: &str, size: u64) -> Result<Vec<u8>, S
 
 #[cfg(test)]
 mod tests {
+    /// TODO/machine.md T-1861: `pull` of a name that the catalog does not
+    /// hold exits 1 and fetches nothing.
+    #[test]
+    fn windows_pull_of_an_unknown_name_exits_1() {
+        assert_eq!(super::pull_named("pull", "95", true), 1);
+    }
+
     /// TODO/machine.md T-1862: the pre-checks refuse a file over the free
     /// disk or over RLIMIT_FSIZE by name, and pass where the disk is not
     /// known.
