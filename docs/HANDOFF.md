@@ -1,9 +1,10 @@
 # Handoff
 
-The state on 2026-11-13, after the release `0.2.0-beta.14` (issue 320).
+The state on 2026-11-14, after the release `0.2.0-beta.15` (issue 340).
 `0.2.0-beta.8` (issue 302) is the complete release for the beta testers
 (`docs/decisions.md`, "Complete release first"); beta.9 to beta.14 serve
-podrunner's kinds and podswarm's V-2 and V-7. A fresh
+podrunner's kinds and podswarm's V-2 and V-7; beta.15 gives the spare tree
+and the fixes of the first beta reports (issues 329 to 336). A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
 file when each step below is done.

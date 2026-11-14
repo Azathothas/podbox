@@ -9,18 +9,16 @@ start.
 
 396 entries: 2 open, 5 partial, 3 blocked, 386 done.
 
-The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
+The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.14` (2026-11-13, release run
-  43512350059 on `d8443ce8`; the gate 43509205484, `arm.yml` 43510876931
-  and the nightly trial 43511436790 passed first, through issue 320): a
-  container engine in a guest of the machine tier (`--podvm-engine`,
-  T-1780, PodUtils/podrunner#92), cgroup2 and `lo` in each guest. beta.13
-  (issue 318) gave the channel of the incus tier with no proxy device,
-  the probe cache of `run` and podcrates `v0.40.0`.
-  `v0.2.0-beta.8` (release run 43399714037, issue 302) is the complete
-  beta of the QA pass. `release.yml` needs a successful gate run on its
-  commit; dispatch `nightly.yml` with `trial=true` on `main` first. A
+* The newest release is `v0.2.0-beta.15` (2026-11-14, release run
+  43560802211 on `551ba939`; the gate 43559084201, `arm.yml` 43559993532
+  and the nightly trial 43560303295 passed first, through issue 340): a
+  spare tree of each image (T-1781), podcrates `v0.42.0`, and the fixes of
+  the first beta reports (T-1782 to T-1785, T-1787; issues 329, 332, 333,
+  334, 336). beta.14 (issue 320) gave the container engine in a guest of
+  the machine tier (T-1780). `release.yml` needs a successful gate run on
+  its commit; dispatch `nightly.yml` with `trial=true` on `main` first. A
   request asks for one dispatch of the gate: two runs of it cancel each
   other (issue 301).
 * GitHub Actions is disabled for the account that a cloud session pushes
