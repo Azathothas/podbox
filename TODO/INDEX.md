@@ -472,7 +472,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1807](supervise.md) | P1 | S | none | supervise | open | A restarted container shows the exit code and end of its previous run while it runs |
 | [T-1808](machine.md) | P0 | M | none | machine | done | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
 | [T-1809](machine.md) | P1 | S | none | machine | open | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
-| [T-1810](machine.md) | P0 | S | none | machine | open | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
+| [T-1810](machine.md) | P0 | S | none | machine | done | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
 | [T-1811](cli.md) | P1 | S | none | cli | open | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
 | [T-1812](probe.md) | P1 | S | none | probe | open | `probe --cached` reports `supervise` where `probe` reports `userland` |
 | [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
@@ -525,7 +525,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-456 entries: 57 open, 5 partial, 3 blocked, 391 done.
+456 entries: 56 open, 5 partial, 3 blocked, 392 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -534,11 +534,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 3 | 0 | 0 | 70 | 73 |
+| P0 | 2 | 0 | 0 | 71 | 73 |
 | P1 | 15 | 1 | 1 | 169 | 186 |
 | P2 | 25 | 2 | 2 | 130 | 159 |
 | P3 | 14 | 2 | 0 | 22 | 38 |
-| **All** | 57 | 5 | 3 | 391 | 456 |
+| **All** | 56 | 5 | 3 | 392 | 456 |
 
 ## Work order
 

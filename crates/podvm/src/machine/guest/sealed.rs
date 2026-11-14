@@ -72,6 +72,9 @@ pub fn parse_run(bytes: &[u8]) -> Result<Run, String> {
 
 /// Check the bundle on the host: a tar stream with one [`RUN_JSON`].
 pub fn check(bundle: &[u8]) -> Result<Run, String> {
+    if bundle.is_empty() {
+        return Err("the bundle is empty: stdin gave no bytes".to_string());
+    }
     let mut run = None;
     let mut a = tar::Archive::new(bundle);
     for e in a
@@ -82,6 +85,16 @@ pub fn check(bundle: &[u8]) -> Result<Run, String> {
         let path = e
             .path()
             .map_err(|_| "a member of the bundle has no path".to_string())?;
+        // TODO/machine.md T-1810: a member lands in the guest root or the
+        // run is refused. `..`, a leading `/` and each component that is
+        // not a plain name are refused here, on the host, before the boot.
+        if !inside(&path) {
+            return Err(
+                "a member of the bundle has a path with `..` or a leading `/`, which \
+                        would leave the guest root"
+                    .to_string(),
+            );
+        }
         if path.as_os_str() == RUN_JSON || path.as_os_str() == "./.podvm-run.json" {
             let mut b = Vec::new();
             e.read_to_end(&mut b)
@@ -92,8 +105,18 @@ pub fn check(bundle: &[u8]) -> Result<Run, String> {
     run.ok_or(format!("the bundle holds no {RUN_JSON}"))
 }
 
+/// True where `path` has only plain names, with `.` allowed.
+fn inside(path: &Path) -> bool {
+    use std::path::Component;
+    path.components()
+        .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
+        && path.components().any(|c| matches!(c, Component::Normal(_)))
+}
+
 /// Unpack the bundle into `root`, the guest's root, and give the run.
-/// A member never lands outside `root` (`tar` refuses `..`). A member
+/// [`check`] refuses each member that would leave `root`, and a member that
+/// `tar` does not land is an error, never a member left out (T-1810). A
+/// member keeps the mtime of its header. A member
 /// belongs to the uid and gid of its header; a header with no number in
 /// the field (a `tar::Builder` that set none) gives root's.
 pub fn unpack(bundle: &[u8], root: &Path) -> Result<Run, String> {
@@ -113,7 +136,10 @@ pub fn unpack(bundle: &[u8], root: &Path) -> Result<Run, String> {
         let landed = e
             .unpack_in(root)
             .map_err(|_| "a member of the bundle does not unpack".to_string())?;
-        if landed && owner != (0, 0) {
+        if !landed {
+            return Err("a member of the bundle would leave the guest root".to_string());
+        }
+        if owner != (0, 0) {
             let at = root.join(&path);
             std::os::unix::fs::lchown(&at, Some(owner.0 as u32), Some(owner.1 as u32))
                 .map_err(|_| "a member of the bundle takes no owner".to_string())?;
@@ -223,5 +249,59 @@ mod tests {
         t.append_data(&mut h, "canary-file", &b"x"[..]).unwrap();
         let e = check(&t.into_inner().unwrap()).unwrap_err();
         assert!(e.contains("holds no") && !e.contains("canary"), "{e}");
+    }
+
+    /// A bundle with a member whose header name is `name`, written into the
+    /// raw field: `tar::Builder` itself refuses `..`.
+    fn raw_member(name: &str) -> Vec<u8> {
+        let mut t = tar::Builder::new(Vec::new());
+        let run = br#"{"argv":["true"]}"#;
+        let mut h = tar::Header::new_gnu();
+        h.set_size(run.len() as u64);
+        h.set_mode(0o600);
+        h.set_cksum();
+        t.append_data(&mut h, RUN_JSON, &run[..]).unwrap();
+        let mut h = tar::Header::new_gnu();
+        h.as_gnu_mut().unwrap().name[..name.len()].copy_from_slice(name.as_bytes());
+        h.set_size(1);
+        h.set_mode(0o600);
+        h.set_mtime(1_700_000_000);
+        h.set_cksum();
+        t.append(&h, &b"x"[..]).unwrap();
+        t.into_inner().unwrap()
+    }
+
+    /// TODO/machine.md T-1810: a member with `..` or a leading `/` refuses
+    /// the bundle on the host, naming no member; a plain member lands with
+    /// the mtime of its header.
+    #[test]
+    fn sealed_members_that_leave_the_root_refuse_the_bundle() {
+        for name in [
+            "../canary-escape",
+            "d/../../canary-deep",
+            "/canary-abs",
+            "..",
+        ] {
+            let e = check(&raw_member(name)).unwrap_err();
+            assert!(e.contains("leave the guest root"), "{name}: {e}");
+            assert!(!e.contains("canary"), "{name}: {e}");
+            let root = std::env::temp_dir().join(format!("podvm-t1810-{}", std::process::id()));
+            assert!(unpack(&raw_member(name), &root).is_err(), "{name}");
+        }
+        assert_eq!(
+            check(b"").unwrap_err(),
+            "the bundle is empty: stdin gave no bytes"
+        );
+        let root = std::env::temp_dir().join(format!("podvm-t1810-ok-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        for name in ["d/plain", "./dot"] {
+            unpack(&raw_member(name), &root).unwrap();
+        }
+        let m = std::fs::metadata(root.join("d/plain")).unwrap();
+        use std::os::unix::fs::MetadataExt;
+        assert_eq!(m.mtime(), 1_700_000_000);
+        assert!(root.join("dot").exists());
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

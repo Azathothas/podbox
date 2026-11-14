@@ -2920,7 +2920,7 @@ No emulator stays after the run (`AGENTS.md`, section 7).
 **Milestone:** none
 **Priority:** P0
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2956,6 +2956,25 @@ check.
 ## Prove
 
 `cargo test -p podvm --bin podvm sealed_members` exits 0, with tests that `../x`, `d/../../x` and `/x` members are refused with exit 125 and that an empty bundle names the reason
+
+## Done
+
+**Done 2026-11-14.** `machine/guest/sealed.rs`: `check` refuses, on the
+host and before the boot, each member whose path has `..`, a leading
+`/` or a component that is not a plain name (`inside`), and names no
+member; `unpack` treats a member that `tar` did not land as an error;
+an empty stream reads "the bundle is empty: stdin gave no bytes", and
+a stdin that is not a pipe or a file says so. The test
+`sealed_members_that_leave_the_root_refuse_the_bundle` refuses
+`../canary-escape`, `d/../../canary-deep`, `/canary-abs` and `..` with
+no `canary` in the message, lands `d/plain` and `./dot`, and keeps the
+mtime of the header (1 700 000 000). By hand: a bundle with
+`../mach-escape.txt` exits 125 at once, and an empty pipe exits 125 with
+the new reason. The mtime of 1970 of the report: `unpack` keeps the
+mtime of each header, and a `tarfile.TarInfo` of Python has mtime 0
+when the writer sets none, which is the likely source. Experiment 445
+passes its 6 clauses under TCG; experiment 443 has the row
+`machine.sealed-escape`.
 
 
 # T-1823: An early end of the guest init reads "the guest gave no exit marker" with the socket of QEMU

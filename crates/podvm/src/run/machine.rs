@@ -147,8 +147,9 @@ pub(super) fn machine_tier(
     let sealed = if o.sealed {
         let Some(b) = p.stdin.take() else {
             eprintln!(
-                "podvm {verb}: --podvm-sealed reads the bundle of the run from stdin, a pipe \
-                 or a file (TODO/machine.md T-1751)"
+                "podvm {verb}: --podvm-sealed reads the bundle of the run from stdin, and \
+                 stdin is not a pipe or a file (a terminal, or closed) (TODO/machine.md T-1751, \
+                 T-1810)"
             );
             return EXIT_FLAG_ERROR;
         };

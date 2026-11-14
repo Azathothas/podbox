@@ -565,6 +565,16 @@ else
 fi
 t machine.mem-elsewhere ns "rc 125: --podvm-mem without machine" '[ $rc -eq 125 ]' '$PB run --rm --podvm-mem 512M $A true'
 t machine.tier-bad ns "rc 125 flag error" '[ $rc -eq 125 ]' '$PB run --rm --podvm-tier=bogus $A true'
+cat >"$W/esc.py" <<'PY'
+import io, sys, tarfile
+t = tarfile.open(sys.argv[1], "w")
+for n, d in ((".podvm-run.json", b"{}"), ("../qa-escape", b"x")):
+    i = tarfile.TarInfo(n)
+    i.size = len(d)
+    t.addfile(i, io.BytesIO(d))
+t.close()
+PY
+t machine.sealed-escape ns "rc 125 on the host: a member with .. leaves the guest root (T-1810)" '[ $rc -eq 125 ] && has "$err" -e "leave the guest root"' "python3 -I \$W/esc.py \$W/esc.tar && \$PB run --rm --podvm-tier=machine --podvm-sealed \$A < \$W/esc.tar"
 for f in "--podvm-confine read=/tmp" "--user 1000" "--add-host a:1.2.3.4" "--read-only" "--tmpfs /mnt/x" "--ulimit nofile=512:512" "--security-opt no-new-privileges" "--cap-drop ALL" "--label a=b"; do
 	n=${f%% *}; n=${n#--}
 	t machine.refuse-$n ns "rc 125 before the boot, names the flag (T-1808)" '[ $rc -eq 125 ] && has "$err" -e "machine tier refused" && has "$err" -e "'"${f%% *}"'"' "\$PB run --rm --podvm-tier=machine $f \$A true"

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-456 entries: 57 open, 5 partial, 3 blocked, 391 done.
+456 entries: 56 open, 5 partial, 3 blocked, 392 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -58,7 +58,7 @@ status with `podvm-count` in the same commit as the work.
    next.
 2. The external QA report of `v0.2.0-beta.14` (2026-11-14): the open
    entries from T-1803 to T-1859. Take the P0 entries first:
-   [T-1810](machine.md), [T-1818](complete.md) and
+   [T-1818](complete.md) and
    [T-1819](enter.md). Then the P1 entries, each with the guard of its
    class ([T-1852](gate.md) to [T-1857](gate.md)), then P2 and P3.
 3. The scope entries that wait for a peer: [T-1662](net.md) (partial:

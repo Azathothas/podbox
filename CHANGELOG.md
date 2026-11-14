@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a sealed bundle with a member outside the guest root is refused, 2026-11-14
+
+Record: T-1810.
+Deployed: not deployed; no version change.
+
+- `run --podvm-sealed` skipped a member such as `../x` and exited 0, and
+  put a member `/x` at the root of the guest. A member with `..` or a
+  leading `/` now refuses the bundle with exit 125 before the boot, and
+  an empty stream says that the bundle is empty.
+
 ### Fixed: the machine tier refuses the flags that its guest ignored, 2026-11-14
 
 Record: T-1808.
