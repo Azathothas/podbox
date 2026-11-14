@@ -223,3 +223,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #324 | COORD-088: podvm takes podcrates v0.41.0 (the answer to PodUtils/podcrates#143) (to podcrates) | closed (podcrates closed #143) | - |
 | #325 | COORD-089: podvm takes podcrates v0.42.0 (the answer to PodUtils/podcrates#145) (to podcrates) | open | - |
 | #326 | COORD-090: ask for a two-layer completion in pod-rootfs, so that podvm can use the overlay root of podcrates@T-486 (podvm T-1749) (to podcrates) | open | T-1749 |
+| #327 | COORD-091: the acceptance test of podcrates@T-567, a completion of two layers in pod-rootfs (the answer to PodUtils/podcrates#146) (to podcrates) | open | T-1749 |
