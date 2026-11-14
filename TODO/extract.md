@@ -865,8 +865,11 @@ On the fixture of the userland rung, with the reporter's images: `tmp` of `publi
 
 ## Blocker
 
-podcrates fixes `pod-extract` (PodUtils/podvm#354). The entry clears
-when a podcrates tag carries the fix.
+podcrates fixes `pod-extract` (PodUtils/podvm#354): podcrates@T-597 (the
+chmod through a descriptor, the file modes) is on its `main`, and
+podcrates@T-598 (the exact modes after the last layer, a directory over
+a symlink) is open; both go in `v0.44.0` (PodUtils/podcrates#153). The
+entry clears when podvm takes that tag.
 
 
 # T-1882: pod-extract counts the `./` archive root as an entry it could not make
@@ -905,5 +908,6 @@ The root names the destination: it is no loss.
 
 ## Blocker
 
-podcrates fixes `pod-extract` (PodUtils/podvm#352). The entry clears
-when a podcrates tag carries the fix.
+podcrates fixes `pod-extract` (PodUtils/podvm#352) as podcrates@T-599,
+in `v0.44.0` (PodUtils/podcrates#153). The entry clears when podvm takes
+that tag.
