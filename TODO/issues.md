@@ -246,3 +246,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
 | #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | open | - |
 | #349 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.16` (AGENTS.md, section 9) |
+| #350 | COORD-103: seven asks for the Windows guest: fetch by range, pod-udf, the agent, plan options, pod-qga, provision, warm start (podvm T-1862 to T-1874) (to podcrates) | open | T-1862, T-1863, T-1864, T-1865, T-1868, T-1873, T-1874 |

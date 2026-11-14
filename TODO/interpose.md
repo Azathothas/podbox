@@ -4176,3 +4176,55 @@ a constant either way.
 ## Prove
 
 `cargo test -p podvm --bin podvm place_temp_name` exits 0, with a test that a symlink at the old temporary name is not followed and that two places with different objects leave one whole object
+
+
+# T-1880: The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none
+
+**Source:** PodUtils/podrunner#100 (COORD-040 of podrunner, 2026-11-14)
+**Category:** interpose
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podvm run busybox:1.37.0` (glibc 2.34 or later, no `libdl.so.2` in the
+image) on a host that denies chroot refuses: "the loader family declines
+the payload: libdl.so.2, which the embedded glibc object needs, is in
+none of the image's library directories (/lib)". podrunner measured it
+with podvm `0.2.0-beta.14` on a hosted `ubuntu-24.04` runner (run
+43565195597). A glibc image with no `libdl.so.2` (`busybox:1.37.0`, a
+slim image) cannot run on the userland rung.
+
+## Premise
+
+`crates/podvm-gate/src/interpose_build.rs` builds the glibc object with
+zig for `x86_64-linux-gnu.2.17` (and `aarch64-linux-gnu.2.17`), so that
+it loads into payloads back to glibc 2.17. Before glibc 2.34, `dlsym`
+is in `libdl.so.2`, so the object has `DT_NEEDED libdl.so.2`
+(`readelf -d` of `libpodvm_interpose.so`). glibc 2.34 moved `dlsym` into
+`libc.so.6`, and an image can omit the stub `libdl.so.2`. The link set
+check of `pod-enter` (`abi/closure.rs`, `find`) refuses, and glibc's own
+loader would refuse the preload too.
+
+## Approach
+
+Build a second glibc object for glibc 2.34 (`x86_64-linux-gnu.2.34`,
+`aarch64-linux-gnu.2.34`): its `dlsym` is `dlsym@GLIBC_2.34` of
+`libc.so.6`, and it needs no `libdl.so.2`. Embed both (`build.rs`,
+`interpose.rs`). The loader family takes the 2.34 object where the
+image's glibc is 2.34 or later, and the 2.17 object where it is older;
+the check of the link set then runs on the object that loads. `podvm
+version` names both objects.
+
+## Decision
+
+Two objects, not one object with its own symbol lookup: the version of
+`dlsym` is in the object, and the libc of the image chooses it. A
+`libdl.so.2` that podvm adds to the image is not done: it would change
+the image.
+
+## Prove
+
+On the fixture of the userland rung, a run of the glibc busybox 1.37.0 image of PodUtils/podrunner#100 with `busybox echo ok` exits 0 and prints `ok`; `podvm run public.ecr.aws/debian/debian:bookworm-slim true` (glibc 2.36, with the stub `libdl.so.2`) and `podvm run registry.opensuse.org/opensuse/leap:15.6 true` (glibc 2.31) still exit 0; `readelf -d` of the 2.34 object lists no `libdl.so.2`
