@@ -96,12 +96,16 @@ pub(super) fn tmpfs(verb: &str, spec: &str, o: &mut Opts) -> Result<(), i32> {
 /// One `-v`: the pair, and its guest path in the read-only list where the
 /// options hold `ro`. TODO/enter.md T-1653, TODO/cli.md T-1655.
 pub(super) fn volume(verb: &str, spec: &str, o: &mut Opts) -> std::result::Result<(), i32> {
-    let (v, ro) = crate::lifecycle::volume::parse(spec).map_err(|why| {
+    let (mut v, ro) = crate::lifecycle::volume::parse(spec).map_err(|why| {
         eprintln!("podvm {verb}: -v {spec:?}: {why}");
         EXIT_FLAG_ERROR
     })?;
+    // TODO/enter.md T-1804: one spelling of the guest path, here, for the
+    // volume and for each table built from it. `/data/` and `/data` were
+    // two entries, and the `rw:` one widened a `:ro` volume.
+    v.guest = crate::lifecycle::volume::guest_spelling(&v.guest);
     if ro {
-        o.ro_volumes.push(v.guest.trim_end_matches('/').to_string());
+        o.ro_volumes.push(v.guest.clone());
     }
     o.volumes.push(v);
     Ok(())

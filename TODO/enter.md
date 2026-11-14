@@ -3661,7 +3661,7 @@ comes with the rerun of experiment 443 before the release.
 **Milestone:** none
 **Priority:** P0
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3695,6 +3695,24 @@ duplicate safe. The interposer is podvm's own crate.
 ## Prove
 
 `cargo test -p podvm-interpose denied_in` exits 0 and `cargo test -p podvm --bin podvm read_only_table` exits 0, with tests that `ro:/,rw:/data/,ro:/data` denies `/data/f` and that `--read-only -v H:/data/:ro` gives no `rw:` entry for `/data`
+
+## Done
+
+**Done 2026-11-14.** Both causes. `run/parse/values.rs` gives the guest
+path of each `-v` one spelling (`lifecycle::volume::guest_spelling`: no
+trailing `/`, except `/`), and `read_only_table` compares each path in
+that spelling, also for a record of an older podvm. `denied_in`
+(`podvm-interpose`, `map/readonly.rs`) lets an `ro:` entry win a tie of
+length. Tests: `denied_in_lets_ro_win_a_tie` (run in
+`crates/podvm-interpose` with `cargo test --release --target
+x86_64-unknown-linux-gnu denied_in`, because the crate is outside the
+workspace), `read_only_table_has_one_spelling` and
+`read_only_table_of_a_volume_with_a_trailing_slash`. By hand: `run
+--read-only -v H:/data/:ro alpine:3.20 sh -c 'echo CHANGED > /data/f'`
+exits 1 and the host file keeps its text, on the namespace rung and on
+the fixture of the userland rung, with and without the `/`; beta.15
+exits 0 and changes the file on both. Experiment 443 has the row
+`run.readonly-ro-slash`.
 
 
 # T-1819: An `exec=` rule of `--podvm-confine` does not deny a program on the loader family

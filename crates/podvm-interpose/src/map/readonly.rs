@@ -116,8 +116,10 @@ pub fn denied_in(table: &[u8], path: &[u8]) -> bool {
         if n == 0 || prefix_bytes[0] != b'/' {
             continue;
         }
+        // TODO/enter.md T-1804: on a tie of length an `ro:` entry wins, so a
+        // duplicate of a path can never widen access.
         if prefix(prefix_bytes.as_ptr(), n, path.as_ptr(), path.len())
-            && best.is_none_or(|(b, _)| n > b)
+            && best.is_none_or(|(b, b_ro)| n > b || (n == b && ro && !b_ro))
         {
             best = Some((n, ro));
         }

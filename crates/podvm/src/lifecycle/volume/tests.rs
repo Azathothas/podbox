@@ -245,3 +245,20 @@ fn an_exec_takes_the_read_only_table_of_its_container() {
         "a caller's own table goes, also with none in the record"
     );
 }
+
+/// TODO/enter.md T-1804: `--read-only -v H:/data/:ro` gives no `rw:` entry
+/// for `/data`, also from a record that kept the trailing `/`.
+#[test]
+fn read_only_table_has_one_spelling() {
+    let old = [Volume {
+        guest: "/data/".into(),
+        host: "/h".into(),
+    }];
+    assert_eq!(
+        read_only_table(true, &["/data".into()], &old),
+        "ro:/,rw:/dev,ro:/data"
+    );
+    assert_eq!(guest_spelling("/"), "/");
+    assert_eq!(guest_spelling("//"), "/");
+    assert_eq!(guest_spelling("/a/b//"), "/a/b");
+}

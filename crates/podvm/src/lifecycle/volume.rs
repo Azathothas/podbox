@@ -327,8 +327,22 @@ pub fn container_read_only(
     Ok(())
 }
 
-/// The value of `PODVM_RO`.
+/// The one spelling of a guest path: no trailing `/`, except for `/`
+/// itself (TODO/enter.md T-1804).
+pub fn guest_spelling(guest: &str) -> String {
+    let t = guest.trim_end_matches('/');
+    if t.is_empty() {
+        "/".to_string()
+    } else {
+        t.to_string()
+    }
+}
+
+/// The value of `PODVM_RO`. Each path is compared in its one spelling, so
+/// a record of an older podvm with `/data/` gives no `rw:` entry for a
+/// `:ro` volume at `/data` (TODO/enter.md T-1804).
 pub fn read_only_table(read_only: bool, ro_guests: &[String], volumes: &[Volume]) -> String {
+    let ro: Vec<String> = ro_guests.iter().map(|g| guest_spelling(g)).collect();
     let mut entries = Vec::new();
     if read_only {
         // `/dev` stays writable, as docker's tmpfs on `/dev` is: a shell
@@ -336,11 +350,12 @@ pub fn read_only_table(read_only: bool, ro_guests: &[String], volumes: &[Volume]
         entries.push("ro:/".to_string());
         entries.push("rw:/dev".to_string());
         for v in volumes {
-            if !ro_guests.contains(&v.guest) {
-                entries.push(format!("rw:{}", v.guest));
+            let g = guest_spelling(&v.guest);
+            if !ro.contains(&g) {
+                entries.push(format!("rw:{g}"));
             }
         }
     }
-    entries.extend(ro_guests.iter().map(|g| format!("ro:{g}")));
+    entries.extend(ro.iter().map(|g| format!("ro:{g}")));
     entries.join(",")
 }

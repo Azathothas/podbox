@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `--read-only` kept a `:ro` volume with a trailing `/` writable, 2026-11-14
+
+Record: T-1804.
+Deployed: not deployed; no version change.
+
+- `run --read-only -v HOST:/data/:ro` let the payload write to the
+  volume: the table held `rw:/data/` and `ro:/data`, and the `rw:` entry
+  won. podvm now keeps one spelling of each guest path, and in the
+  interposer an `ro:` entry wins a tie.
+
 ### Fixed: a refused run writes no `-e` value into its report, 2026-11-14
 
 Record: T-1802.

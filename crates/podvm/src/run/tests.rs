@@ -122,6 +122,26 @@ fn volumes_parse_in_each_spelling() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
+/// TODO/enter.md T-1804: `--read-only -v H:/data/:ro` keeps one spelling
+/// of the guest path, so the read-only table has no `rw:` entry for it.
+#[test]
+fn read_only_table_of_a_volume_with_a_trailing_slash() {
+    let d = std::env::temp_dir().join(format!("podvm-t1804-{}", std::process::id()));
+    std::fs::create_dir_all(&d).unwrap();
+    let h = std::fs::canonicalize(&d)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string();
+    let spec = format!("{h}:/data/:ro");
+    let o = parse("run", &v(&["--read-only", "-v", &spec, "img"])).unwrap();
+    assert_eq!(o.volumes[0].guest, "/data");
+    assert_eq!(o.ro_volumes, ["/data"]);
+    let table = crate::lifecycle::volume::read_only_table(true, &o.ro_volumes, &o.volumes);
+    assert_eq!(table, "ro:/,rw:/dev,ro:/data");
+    let _ = std::fs::remove_dir_all(&d);
+}
+
 /// ⭐ TODO/supervise.md T-1421. The foreground record shape this verb
 /// relies on: `create` writes it, a table update lands it `Exited`
 /// with the code and the times, `ps -a` lists it, and `logs` reads

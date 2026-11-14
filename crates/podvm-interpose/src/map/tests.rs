@@ -465,3 +465,13 @@ fn a_nofollow_call_on_a_volume_root_takes_the_host_path() {
         .expect("resolve");
     assert_eq!(&out[..n], b"/nonexistent-rootfs-t1661/workspacex");
 }
+
+/// TODO/enter.md T-1804: `ro:` wins a tie of length, in either order, so
+/// a duplicate entry with and without a trailing `/` cannot widen access.
+#[test]
+fn denied_in_lets_ro_win_a_tie() {
+    assert!(denied_in(b"ro:/,rw:/data/,ro:/data", b"/data/f"));
+    assert!(denied_in(b"ro:/,ro:/data,rw:/data/", b"/data/f"));
+    assert!(denied_in(b"rw:/data,ro:/data/", b"/data"));
+    assert!(!denied_in(b"ro:/,rw:/data", b"/data/f"));
+}
