@@ -60,9 +60,8 @@ pub(crate) fn doctor(a: &Args) -> i32 {
         if dos.is_file() {
             "present"
         } else {
-            "absent; `experiments/369-windows-tcg-dos.sh` fetches FreeDOS \
-             and writes the base"
+            "absent; `podvm run windows:dos` fetches FreeDOS and writes it"
         }
     );
-    0
+    super::doctor_more::report()
 }

@@ -36,6 +36,7 @@
 
 mod args;
 mod doctor;
+mod doctor_more; // TODO/machine.md T-1871
 mod dos;
 mod plan;
 mod pull; // TODO/machine.md T-1861

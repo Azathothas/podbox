@@ -3683,7 +3683,7 @@ record and the pidfile start-time check.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3720,6 +3720,25 @@ The doctor refuses where `run` refuses, and shares `plan::accelerator`.
 ## Prove
 
 `cargo test -p podvm windows_doctor` exits 0, with new tests for each check
+
+## Done
+
+**Partial 2026-11-14.** `windows/doctor_more.rs`: the QEMU version
+(with a note below 11, for the warm start of T-1874), a missing emulator
+as a failure with exit 1 and the install line for apt, dnf and apk, the
+firmware pair, the free disk and the `RLIMIT_FSIZE` of the store of the
+catalog, a note where the host is itself a VM, the state of each name of
+the catalog, and a "next" line. The doctor found a defect: on the cloud
+host (Ubuntu 24.04) `plan::firmware` found no OVMF, because Debian and
+Ubuntu name it `OVMF_CODE_4M.fd`; the search is now by pairs of one
+build (`windows_doctor_firmware_is_a_pair_of_one_directory`), and the
+host's `/usr/share/OVMF/OVMF_{CODE,VARS}_4M.fd` is found. Tests:
+`windows_doctor_reads_the_version_of_an_emulator` and the pair test. By
+hand: exit 0 with each line on the cloud host, and exit 1 with the
+install line where `PODVM_QEMU` names no emulator. The clauses that
+remain: the end of the evaluation period of a golden image (T-1867
+writes its `meta.json`), and `PODVM_MACHINE_ACCEL=kvm` for `podvm
+windows`.
 and for the `kvm` refusal. A plant that breaks one check turns the gate red
 (`podvm-plant`).
 

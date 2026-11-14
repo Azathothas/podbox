@@ -51,35 +51,49 @@ pub(crate) fn share() -> PathBuf {
 /// over all of them. A host with none is refused naming every path that
 /// was looked at, not just the last one.
 pub(crate) fn firmware() -> (PathBuf, PathBuf) {
-    const CODE_CANDIDATES: &[&str] = &[
-        "/usr/share/qemu/edk2-x86_64-code.fd",
-        "/usr/share/edk2-ovmf/OVMF_CODE.fd",
-        "/usr/share/OVMF/OVMF_CODE.fd",
-        "/usr/share/edk2/x86_64/OVMF_CODE.4m.fd",
+    // TODO/machine.md T-1871: pairs, not two lists. The code and the vars
+    // of one build go together, and Debian and Ubuntu name theirs
+    // `OVMF_*_4M.fd`, which the lists did not have (the doctor of a cloud
+    // host on Ubuntu 24.04 found no firmware).
+    const PAIRS: &[(&str, &str)] = &[
+        (
+            "/usr/share/OVMF/OVMF_CODE_4M.fd",
+            "/usr/share/OVMF/OVMF_VARS_4M.fd",
+        ),
+        (
+            "/usr/share/OVMF/OVMF_CODE.fd",
+            "/usr/share/OVMF/OVMF_VARS.fd",
+        ),
+        (
+            "/usr/share/edk2/x86_64/OVMF_CODE.4m.fd",
+            "/usr/share/edk2/x86_64/OVMF_VARS.4m.fd",
+        ),
+        (
+            "/usr/share/edk2/ovmf/OVMF_CODE.fd",
+            "/usr/share/edk2/ovmf/OVMF_VARS.fd",
+        ),
+        (
+            "/usr/share/edk2-ovmf/OVMF_CODE.fd",
+            "/usr/share/edk2-ovmf/OVMF_VARS.fd",
+        ),
+        (
+            "/usr/share/qemu/edk2-x86_64-code.fd",
+            "/usr/share/qemu/edk2-i386-vars.fd",
+        ),
     ];
-    const VARS_CANDIDATES: &[&str] = &[
-        "/usr/share/edk2-ovmf/OVMF_VARS.fd",
-        "/usr/share/OVMF/OVMF_VARS.fd",
-        "/usr/share/edk2/x86_64/OVMF_VARS.4m.fd",
-    ];
+    let pair = PAIRS
+        .iter()
+        .find(|(c, v)| Path::new(c).is_file() && Path::new(v).is_file())
+        .or(PAIRS.last())
+        .map(|(c, v)| (PathBuf::from(c), PathBuf::from(v)))
+        .unwrap_or_default();
     let code = std::env::var_os("PODVM_OVMF_CODE")
         .map(PathBuf::from)
-        .unwrap_or_else(|| first_existing(CODE_CANDIDATES));
+        .unwrap_or(pair.0);
     let vars = std::env::var_os("PODVM_OVMF_VARS")
         .map(PathBuf::from)
-        .unwrap_or_else(|| first_existing(VARS_CANDIDATES));
+        .unwrap_or(pair.1);
     (code, vars)
-}
-
-/// The first candidate that is a file, or the last one so a refusal names
-/// a real path a caller can check rather than an empty answer.
-fn first_existing(candidates: &[&str]) -> PathBuf {
-    for c in candidates {
-        if Path::new(c).is_file() {
-            return PathBuf::from(c);
-        }
-    }
-    PathBuf::from(candidates.last().copied().unwrap_or(""))
 }
 
 /// The soft `RLIMIT_FSIZE`, or the refusal that says it could not be read.
@@ -203,11 +217,20 @@ mod tests {
         unsafe { std::env::remove_var("PODVM_QEMU") };
     }
 
+    /// TODO/machine.md T-1871: the firmware is a pair of one build; the
+    /// code and the vars are never taken from two directories.
     #[test]
-    fn an_absent_candidate_list_names_its_last_path() {
+    fn windows_doctor_firmware_is_a_pair_of_one_directory() {
+        if std::env::var_os("PODVM_OVMF_CODE").is_some() {
+            return;
+        }
+        let (c, v) = firmware();
         assert_eq!(
-            first_existing(&["/definitely/not/here-a.fd", "/definitely/not/here-b.fd"]),
-            PathBuf::from("/definitely/not/here-b.fd")
+            c.parent(),
+            v.parent(),
+            "{} and {}",
+            c.display(),
+            v.display()
         );
     }
 

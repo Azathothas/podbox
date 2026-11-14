@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `podvm windows doctor` checks more, and the UEFI firmware of Debian and Ubuntu is found, 2026-11-14
+
+Record: T-1871 (partial).
+Deployed: not deployed; no version change.
+
+- The doctor names the QEMU version, the firmware pair, the free disk,
+  the file-size ceiling, a host that is a VM, the state of each Windows
+  name, and the next command; it exits 1 with the install line where no
+  QEMU is found.
+- The firmware search took `OVMF_CODE.fd`, and Debian and Ubuntu ship
+  `OVMF_CODE_4M.fd`; podvm now finds the code and the vars of one build.
+
 ### Added: the answer file of an unattended Windows install, 2026-11-14
 
 Record: T-1866 (partial).
