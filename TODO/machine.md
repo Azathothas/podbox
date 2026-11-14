@@ -2767,7 +2767,7 @@ emulator stays. Experiments 444 and 445 still pass. The test
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2802,6 +2802,30 @@ The report describes the run that the caller asked for, on each tier.
 ## Prove
 
 `PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`, with rows that a machine run of `exit 7` writes `exit_code: 7`, `refused: null`, `rung` and `image`, and that a machine `--timeout 2` writes `timed_out: true`
+
+## Correction
+
+**Amended, 2026-11-14.** No third outcome of the preparation: a guest
+tier notes its run (`report::note_guest`, a slot of the thread, as the
+parse of T-1802 notes its command) just before the guest boots, and
+`run` gives it to the report after the run; a refusal before that line
+stays a refusal.
+
+## Done
+
+**Done 2026-11-14.** `Report::guest` sets the tier as `rung`, the image
+and its digest, `timeout_s`, `timed_out` (137 with a timeout, T-1809)
+and `ran`, so `end` gives the payload's exit code and signal; the CPU
+time and the resident set stay null for a guest, with `measured_by`
+naming the tier. The machine and incus tiers note their run
+(`run/machine.rs`, `note_guest_run`). By hand under TCG: `exit 7` gives
+`rung: machine`, the image and its digest, `exit_code: 7`, `refused:
+null`; `--timeout 2 sleep 30` gives `exit_code: 137`, `signal: 9`,
+`timed_out: true`, `timeout_s: 2`; an empty sealed bundle stays
+`refused: 125`; each is valid against `run-report.v1.schema.json`.
+Experiment 443, section machine: 19 pass, 0 fail, with the rows
+`machine.report` and `machine.report-timeout`, under TCG on the cloud
+host, which has no `/dev/kvm`.
 
 
 # T-1808: The machine tier accepts `--podvm-confine` and eight hardening flags and drops them

@@ -568,6 +568,8 @@ if command -v qemu-system-x86_64 >/dev/null 2>&1; then
 	TO=600 t machine.uname ns "a kernel release, rc 0" '[ $rc -eq 0 ] && [ -n "$out" ]' '$PB run --rm --podvm-tier=machine $A uname -r'
 	TO=600 t machine.exit3 ns "rc 3" '[ $rc -eq 3 ]' "\$PB run --rm --podvm-tier=machine \$A sh -c 'exit 3'"
 	TO=600 t machine.vol ns "invol through 9p" '[ "$out" = invol ]' '$PB run --rm --podvm-tier=machine -v $W/vol:/data $A cat /data/in.txt'
+	TO=600 t machine.report ns "exit_code 7, refused null, rung and image (T-1803)" '[ $rc -eq 7 ] && python3 -I -c "import json,sys; d=json.load(open(sys.argv[1])); assert d[\"exit_code\"]==7 and d[\"refused\"] is None and d[\"rung\"]==\"machine\" and d[\"image\"], d" $W/mrep.json' "rm -f \$W/mrep.json; \$PB run --rm --podvm-tier=machine --report \$W/mrep.json \$A sh -c 'exit 7'"
+	TO=60 t machine.report-timeout ns "timed_out true (T-1803)" 'python3 -I -c "import json,sys; d=json.load(open(sys.argv[1])); assert d[\"timed_out\"] is True and d[\"exit_code\"]==137, d" $W/mrept.json' "rm -f \$W/mrept.json; \$PB run --rm --podvm-tier=machine --timeout 2 --report \$W/mrept.json \$A sleep 30"
 	TO=60 t machine.timeout ns "rc 137 in under 4 s, no emulator left (T-1809, T-1884)" '[ $rc -eq 137 ] && [ $ms -lt 4000 ] && ! pgrep -x qemu-system-x86_64 >/dev/null' '$PB run --rm --podvm-tier=machine --timeout 2 $A sleep 30'
 	TO=600 t machine.uname.ul ul "a kernel release, rc 0" '[ $rc -eq 0 ] && [ -n "$out" ]' '$X $PB run --rm --podvm-tier=machine $A uname -r'
 else

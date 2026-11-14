@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the `--report` of a machine run, 2026-11-14
+
+Record: T-1803.
+Deployed: not deployed; no version change.
+
+- The report of a run on the machine or incus tier read as a refusal,
+  with no rung, image or exit code; it now names the tier, the image and
+  its digest, the payload's exit code, and the timeout.
+
 ### Fixed: `--timeout` on the machine tier, 2026-11-14
 
 Record: T-1809.

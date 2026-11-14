@@ -103,6 +103,21 @@ impl Report {
         }
     }
 
+    /// The facts of a run of a guest tier, which ran: its exit code is the
+    /// payload's (TODO/machine.md T-1803). A code of 137 with a timeout is
+    /// the timeout of T-1809. The CPU time and the resident set are of the
+    /// guest's emulator, which `rusage` of podvm's children does not read
+    /// for the payload, so they stay null.
+    pub fn guest(&mut self, g: Guest, code: i32) {
+        self.rung = Some(g.tier.to_string());
+        self.measured_by = "the tier that podvm entered, which runs the payload in a guest";
+        self.image = Some(g.image);
+        self.image_digest = Some(g.digest);
+        self.timeout_s = g.timeout_s;
+        self.timed_out = code == 137 && g.timeout_s.is_some();
+        self.ran = true;
+    }
+
     /// The facts of a prepared run.
     pub fn prepared(&mut self, p: &crate::lifecycle::Prepared) {
         self.image = Some(p.image.clone());
@@ -128,7 +143,9 @@ impl Report {
         } else if !self.detached {
             self.exit_code = Some(code);
             self.signal = (129..=192).contains(&code).then(|| code - 128);
-            if let Ok(u) = podvm_probe::sys::rusage_children() {
+            if self.measured_by.starts_with("the tier") {
+                // A guest: no rusage of the payload (T-1803).
+            } else if let Ok(u) = podvm_probe::sys::rusage_children() {
                 self.user_ms = Some(u.user_us / 1000);
                 self.system_ms = Some(u.system_us / 1000);
                 self.max_rss_kib = Some(u.max_rss_kib);
@@ -215,6 +232,31 @@ pub(crate) fn note_parsed(image: Option<String>, command: Vec<String>) {
 /// What the parse noted, once.
 pub fn take_parsed() -> Option<(Option<String>, Vec<String>)> {
     PARSED.with(|s| s.borrow_mut().take())
+}
+
+/// A run of a guest tier (machine, incus), noted when its guest starts
+/// (TODO/machine.md T-1803): the tier, the image and its digest, and the
+/// timeout in seconds.
+#[derive(Debug, Clone)]
+pub struct Guest {
+    pub tier: &'static str,
+    pub image: String,
+    pub digest: String,
+    pub timeout_s: Option<u64>,
+}
+
+thread_local! {
+    static GUEST: std::cell::RefCell<Option<Guest>> = const { std::cell::RefCell::new(None) };
+}
+
+/// A guest tier notes its run when the guest starts.
+pub(crate) fn note_guest(g: Guest) {
+    GUEST.with(|s| *s.borrow_mut() = Some(g));
+}
+
+/// What the guest tier noted, once.
+pub fn take_guest() -> Option<Guest> {
+    GUEST.with(|s| s.borrow_mut().take())
 }
 
 /// The PATH that the parser noted, once. A refusal before the parser read

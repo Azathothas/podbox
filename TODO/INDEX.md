@@ -465,7 +465,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1800](supervise.md) | P0 | S | none | supervise | done | `ps` aborts with SIGABRT when a command has a multibyte character at byte 17 |
 | [T-1801](cli.md) | P0 | S | none | cli | done | `--report` after the image is read as podvm's, so a payload argument overwrites a host file |
 | [T-1802](cli.md) | P0 | S | none | cli | done | A run refused before `prepare` writes the `-e` values into its report |
-| [T-1803](machine.md) | P1 | M | none | machine | open | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
+| [T-1803](machine.md) | P1 | M | none | machine | done | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
 | [T-1804](enter.md) | P0 | S | none | enter | done | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
 | [T-1805](supervise.md) | P1 | M | none | supervise | done | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
 | [T-1806](supervise.md) | P1 | S | none | supervise | done | A foreground run records only stdout, so `logs` loses each stderr line |
@@ -551,7 +551,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-482 entries: 65 open, 6 partial, 6 blocked, 405 done.
+482 entries: 64 open, 6 partial, 6 blocked, 406 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -561,10 +561,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 14 | 1 | 1 | 180 | 196 |
+| P1 | 13 | 1 | 1 | 181 | 196 |
 | P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 65 | 6 | 6 | 405 | 482 |
+| **All** | 64 | 6 | 6 | 406 | 482 |
 
 ## Work order
 

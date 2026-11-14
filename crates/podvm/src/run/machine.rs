@@ -219,6 +219,9 @@ pub(super) fn machine_tier(
     } else {
         None
     };
+    // T-1803: from here the guest runs the payload; a refusal before this
+    // line stays a refusal in the report.
+    note_guest_run("machine", o, &p);
     let code = crate::machine::guest::boot(&crate::machine::guest::Request {
         verb,
         store_root: store.root(),
@@ -269,6 +272,17 @@ pub(super) fn unhonoured_flags(o: &Opts) -> Vec<&'static str> {
     .collect()
 }
 
+/// TODO/machine.md T-1803: the report of `--report` learns that a guest
+/// runs the payload, with its image and digest.
+fn note_guest_run(tier: &'static str, o: &Opts, p: &Prepared) {
+    super::report::note_guest(super::report::Guest {
+        tier,
+        image: o.image.clone().unwrap_or_default(),
+        digest: p.digest.clone(),
+        timeout_s: o.timeout,
+    });
+}
+
 /// The incus tier (T-1718): `run` only; each other verb refuses by name.
 pub(super) fn incus_tier(
     verb: &str,
@@ -302,6 +316,7 @@ pub(super) fn incus_tier(
         Ok(p) => p,
         Err(c) => return c,
     };
+    note_guest_run("incus", o, &p);
     crate::incus::run::run(&crate::incus::run::Job {
         verb,
         store_root: store.root(),

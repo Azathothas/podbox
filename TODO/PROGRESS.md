@@ -7,7 +7,7 @@ start.
 
 ## State
 
-482 entries: 65 open, 6 partial, 6 blocked, 405 done.
+482 entries: 64 open, 6 partial, 6 blocked, 406 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -57,7 +57,7 @@ status with `podvm-count` in the same commit as the work.
    overlay root of the namespace rung (podcrates@T-486), which podvm takes
    next.
 2. The external QA report of `v0.2.0-beta.14` (2026-11-14): the open
-   entries from T-1803 to T-1860. Each P0 entry is done. Take the P1
+   entries of T-1807 and on, to T-1860. Each P0 entry is done. Take the P1
    entries, each with the guard of its class ([T-1852](gate.md) to
    [T-1857](gate.md)), then P2 and P3.
 2a. The Windows guest plan of the review of 2026-11-14: T-1861 to T-1879

@@ -119,8 +119,14 @@ fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
 pub fn run(args: &[String]) -> i32 {
     let _ = super::report::take_path();
     let _ = super::report::take_parsed();
+    let _ = super::report::take_guest();
     let mut r = super::report::Report::begin();
     let code = run_inner(args, &mut r);
+    // TODO/machine.md T-1803: a guest tier ran the payload; its code is the
+    // payload's, not a refusal.
+    if let Some(g) = super::report::take_guest() {
+        r.guest(g, code);
+    }
     // TODO/cli.md T-1802: a run refused after the parse and before
     // `prepare` gets the image and the command of the parse, never the
     // argv of podvm, which holds the values of `-e`.
