@@ -226,13 +226,13 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #327 | COORD-091: the acceptance test of podcrates@T-567, a completion of two layers in pod-rootfs (the answer to PodUtils/podcrates#146) (to podcrates) | open | T-1749 |
 | #329 | `system df` reports 0 B after `image prune -a` while 8.5 MB of extracted rootfs stays on disk, and no verb reclaims it | closed (T-1787 in `429ca8dc`, released in `0.2.0-beta.15`) | T-1787 |
 | #330 | A foreground run is recorded as `Created` while its payload runs, so `ps` hides it, `system df` counts 0 running, `kill` and `wait` refuse it, and `stop` exits 0 having stopped nothing | open | T-1786 (blocked on COORD-094, issue 339) |
-| #331 | COORD-091 of Nemo-010: `system abi` refusals carry their own verdict label (to podcrates) | open | none: podcrates@T-568 (PodUtils/podcrates#147) |
+| #331 | COORD-091 of Nemo-010: `system abi` refusals carry their own verdict label (to podcrates) | closed (podcrates@T-568 in podcrates `v0.43.0`, taken in `b0bb87f1`) | none: podcrates@T-568 (PodUtils/podcrates#147) |
 | #332 | The `--user` identity notice repeats once per process, where T-0711 decides the run says it once | closed (T-1785 in `a96c3a5a`, released in `0.2.0-beta.15`) | T-1785 |
 | #333 | The honest setuid refusal says the payload runs as uid 0; on this host it runs as uid 966 | closed (T-1784 in `a96c3a5a`, released in `0.2.0-beta.15`) | T-1784 |
 | #334 | Nine verbs print their usage to stdout when an argument is missing, so `podvm save > image.tar` writes a file that is not a tar | closed (T-1783 in `a96c3a5a`, released in `0.2.0-beta.15`) | T-1783 |
-| #335 | COORD-092 of Nemo-010: `store_exec` attributes an `EACCES` to the filesystem on a mount that is not noexec (to podcrates) | open | none: podcrates@T-569 (PodUtils/podcrates#147) |
+| #335 | COORD-092 of Nemo-010: `store_exec` attributes an `EACCES` to the filesystem on a mount that is not noexec (to podcrates) | closed (podcrates@T-569 in podcrates `v0.43.0`, taken in `b0bb87f1`) | none: podcrates@T-569 (PodUtils/podcrates#147) |
 | #336 | `podvm load` spools stdin to `$TMPDIR/podvm-load-in-<pid>`, so a planted symlink truncates a file the user never named | closed (T-1782 in `a96c3a5a`, released in `0.2.0-beta.15`) | T-1782 |
-| #337 | COORD-093 of Nemo-010: the machine-tier refusal runs its legs together, and `probe` prints the verdict twice (to podcrates) | open | none: podcrates@T-570 (PodUtils/podcrates#147) |
+| #337 | COORD-093 of Nemo-010: the machine-tier refusal runs its legs together, and `probe` prints the verdict twice (to podcrates) | closed (podcrates@T-570 in podcrates `v0.43.0`, taken in `b0bb87f1`) | none: podcrates@T-570 (PodUtils/podcrates#147) |
 | #328 | [gh action] requested | closed (gate 43556212876 green on 772734fa; arm 43557049704 failed: experiment 356 wrote into the image tree under a spare tree) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
 | #339 | COORD-094: ask for a foreground holder in pod-supervise, so that a foreground run is Running while its payload runs (PodUtils/podvm#330) (to podcrates) | open | T-1786 |
 | #338 | [gh action] requested | closed (the gate 43557980918 failed on 08abecca: rustfmt of crates/podvm-interpose) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
@@ -244,3 +244,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #345 | COORD-099: pod-enter applies two limits of one resource in order, so a raise after a lower fails with EPERM (podvm T-1827) (to podcrates) | open | T-1827 |
 | #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | open | T-1842, T-1836 |
 | #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
+| #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | open | - |

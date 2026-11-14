@@ -5377,3 +5377,49 @@ A promise about a future entry is checked when the entry closes.
 ## Prove
 
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 after T-1831 and T-1832, and exits 1 when `podvm-plant` plants "until TODO/cli.md T-1761" in a help text
+
+
+# T-1859: Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each
+
+**Source:** the workspace test run of 2026-11-14 (the take of podcrates `v0.43.0`)
+**Category:** gate
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The cloud host had 133 directories `/tmp/podvm-*` from earlier test runs,
+about 1.3 GB each (`podvm-detached-PID-N`, `podvm-completion-reach-PID`),
+and the disk filled: `detached_start_returns_before_the_payload_ends`
+then failed with "No space left on device". A clean run of
+`cargo test --release --workspace` still leaves 8 directories:
+`podvm-follow`, `podvm-tail`, `podvm-test-store-paths` and five
+`podvm-health-PID-*`.
+
+## Premise
+
+`crates/podvm-extract/src/lib.rs:122` opens the fixed path
+`/tmp/podvm-test-store-paths`; `crates/podvm-image/src/health.rs:197`
+and `crates/podvm/tests/completion_reach.rs:110` build a name from the
+pid and do not remove it on each path; the detached tests remove their
+store only when they pass. A fixed name in `/tmp` is also the pattern of
+T-1782.
+
+## Approach
+
+One test helper gives a private directory (`mkdtemp` under
+`CARGO_TARGET_TMPDIR` or `$TMPDIR`) that a guard removes on drop, also
+after a panic; each test that makes a store uses it. The gate counts the
+`podvm-*` directories in the temp directory before and after the test
+step of CI and fails on a new one.
+
+## Decision
+
+A test leaves nothing behind, as a run leaves no emulator (`AGENTS.md`,
+section 2). A fixed shared name is not used in a test.
+
+## Prove
+
+After `cargo test --release --workspace`, `ls -d /tmp/podvm-* $CARGO_TARGET_TMPDIR/podvm-*` lists nothing, and `grep -rn '"/tmp/podvm' crates` finds no test path

@@ -1,9 +1,12 @@
 use super::*;
 
 pub(super) fn command_of(c: &Container) -> String {
+    // TODO/supervise.md T-1800: the width counts characters, and the cut
+    // falls between two of them. A byte index cut a multibyte character in
+    // two, and the release build aborted on the panic.
     let joined = c.argv.join(" ");
-    if joined.len() > 20 {
-        format!("{}...", &joined[..17])
+    if joined.chars().count() > 20 {
+        format!("{}...", joined.chars().take(17).collect::<String>())
     } else {
         joined
     }

@@ -1484,7 +1484,7 @@ carries the holder of COORD-094 (issue 339).
 **Milestone:** none
 **Priority:** P0
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1516,6 +1516,18 @@ the user by a byte index (T-1855 adds the scan).
 ## Prove
 
 `cargo test -p podvm --bin podvm command_of` exits 0, with a test that cuts both measured commands (U+65E5 and U+00E9 across byte 17) without a panic, and `podvm ps -a` exits 0 after that run
+
+## Done
+
+**Done 2026-11-14.** `command_of` (`lifecycle/logs_stop.rs`) counts and
+cuts characters, not bytes. The test `command_of_cuts_between_characters`
+(`lifecycle/tests/command_width.rs`) cuts both commands of the report,
+and a character of two, three and four bytes at each byte from 15 to 20,
+with no panic. By hand with the built binary: after the two runs of the
+report, `podvm ps -a` printed `echo AAAAAAAAAAAé...` and `echo 日日 日日日`
+and exited 0; beta.15 aborted with 134 on the same record. A nitpick
+stays: the table pads by characters, so a row with a wide character
+(U+65E5 takes two columns) stands out of line: T-1858.
 
 
 # T-1805: A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1
@@ -1780,3 +1792,42 @@ between uids.
 ## Prove
 
 `cargo test -p podvm store_owner_refusal` exits 0, with a test that a table owned by another uid gives a refusal that names the uid and `$PODVM_STORE`
+
+
+# T-1858: The `ps` table pads by characters, so a wide character puts its row out of line
+
+**Source:** T-1800, a check by hand of 2026-11-14
+**Category:** supervise
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+After T-1800, `podvm ps -a` prints the row of `echo 日日 日日日` with the
+columns after COMMAND two places to the right of the other rows for each
+CJK character: U+65E5 takes two columns on a terminal, and the table
+pads it as one.
+
+## Premise
+
+`lifecycle.rs` (the `ps` table) pads each column with `format!("{:<N}")`,
+which counts characters. `command_of` cuts by characters too. Neither
+knows the display width of a character.
+
+## Approach
+
+Measure the display width of a cell (East Asian Wide and Fullwidth take
+two columns, a combining mark none), cut and pad by it, in `command_of`
+and in the padding of each table that prints user text (`ps`, `images`,
+`system df`). A small width table in podvm is enough; no new crate is
+needed for it.
+
+## Decision
+
+docker pads by display width. The fix is cosmetic, so it is P3.
+
+## Prove
+
+`cargo test -p podvm --bin podvm display_width` exits 0, with a test that a `ps` row with U+65E5 and a row with ASCII put the CREATED column at the same display column

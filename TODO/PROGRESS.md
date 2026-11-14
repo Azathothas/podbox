@@ -7,7 +7,7 @@ start.
 
 ## State
 
-454 entries: 60 open, 5 partial, 3 blocked, 386 done.
+456 entries: 61 open, 5 partial, 3 blocked, 387 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -56,8 +56,8 @@ status with `podvm-count` in the same commit as the work.
    takes it off each run after the first, and podcrates `v0.42.0` carries the
    overlay root of the namespace rung (podcrates@T-486), which podvm takes
    next.
-2. The external QA report of `v0.2.0-beta.14` (2026-11-14): T-1800 to
-   T-1857. Take the P0 entries first: [T-1800](supervise.md),
+2. The external QA report of `v0.2.0-beta.14` (2026-11-14): the open
+   entries from T-1801 to T-1859. Take the P0 entries first:
    [T-1801](cli.md), [T-1802](cli.md), [T-1804](enter.md),
    [T-1808](machine.md), [T-1810](machine.md), [T-1818](complete.md) and
    [T-1819](enter.md). Then the P1 entries, each with the guard of its

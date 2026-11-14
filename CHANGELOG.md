@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `ps` with a multibyte character in the command, 2026-11-14
+
+Record: T-1800.
+Deployed: not deployed; no version change.
+
+- `ps` cut the COMMAND column at byte 17 and aborted (exit 134) when
+  the cut fell inside a multibyte character; the listing stayed broken
+  until the record was removed. It now cuts between characters.
+
 ### Changed: podcrates v0.43.0, 2026-11-14
 
 Record: PodUtils/podcrates#149, PodUtils/podvm#331, #335, #337.

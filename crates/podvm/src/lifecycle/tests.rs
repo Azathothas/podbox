@@ -256,6 +256,7 @@ fn a_signal_is_taken_by_name_or_number_and_never_defaulted() {
     assert_eq!(signal_number("999"), None);
 }
 
+mod command_width;
 mod emulate;
 mod fields_and_copy;
 // TODO/image.md T-1768, TODO/cli.md T-1772.

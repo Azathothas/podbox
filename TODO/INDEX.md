@@ -462,7 +462,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1785](interpose.md) | P3 | S | none | interpose | done | The notice of `--user` repeats in each process of a run |
 | [T-1786](supervise.md) | P1 | M | none | supervise | blocked | A foreground run is recorded `Created` while its payload runs |
 | [T-1787](image.md) | P2 | S | none | image | done | `system df` misses the trees and the extractions that no image names, and no verb removes the latter |
-| [T-1800](supervise.md) | P0 | S | none | supervise | open | `ps` aborts with SIGABRT when a command has a multibyte character at byte 17 |
+| [T-1800](supervise.md) | P0 | S | none | supervise | done | `ps` aborts with SIGABRT when a command has a multibyte character at byte 17 |
 | [T-1801](cli.md) | P0 | S | none | cli | open | `--report` after the image is read as podvm's, so a payload argument overwrites a host file |
 | [T-1802](cli.md) | P0 | S | none | cli | open | A run refused before `prepare` writes the `-e` values into its report |
 | [T-1803](machine.md) | P1 | M | none | machine | open | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
@@ -520,10 +520,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1855](gate.md) | P2 | S | none | gate | open | The gate does not scan for the source patterns behind five defects |
 | [T-1856](gate.md) | P2 | S | none | gate | open | No test reads the `--report` of each path of a run against its schema and for a secret |
 | [T-1857](gate.md) | P3 | S | none | gate | open | A help text or a document can say "until T-NNNN" after that entry is done |
+| [T-1858](supervise.md) | P3 | S | none | supervise | open | The `ps` table pads by characters, so a wide character puts its row out of line |
+| [T-1859](gate.md) | P2 | S | none | gate | open | Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each |
 
 ## Counts
 
-454 entries: 60 open, 5 partial, 3 blocked, 386 done.
+456 entries: 61 open, 5 partial, 3 blocked, 387 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -532,11 +534,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 8 | 0 | 0 | 65 | 73 |
+| P0 | 7 | 0 | 0 | 66 | 73 |
 | P1 | 15 | 1 | 1 | 169 | 186 |
-| P2 | 24 | 2 | 2 | 130 | 158 |
-| P3 | 13 | 2 | 0 | 22 | 37 |
-| **All** | 60 | 5 | 3 | 386 | 454 |
+| P2 | 25 | 2 | 2 | 130 | 159 |
+| P3 | 14 | 2 | 0 | 22 | 38 |
+| **All** | 61 | 5 | 3 | 387 | 456 |
 
 ## Work order
 
