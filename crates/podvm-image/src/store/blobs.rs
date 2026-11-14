@@ -156,6 +156,35 @@ impl Store {
         lock_at(&path, sys::LOCK_SH)
     }
 
+    /// The lock of a *fill*: the spare tree a detached `podvm tree-prefill`
+    /// copies (TODO/image.md T-1781).
+    ///
+    /// ⛔ A second file, because the two holders mean opposite things to the
+    /// GC. A payload hold must refuse a removal; a fill hold must not. The
+    /// fill reads an extraction that is already on disk and writes a cache,
+    /// so losing its source costs one copy and nothing else: `fill` removes
+    /// its own partial tree when a read fails, and `sweep` removes the partial
+    /// of a process that is gone. Measured before this file existed: `rm`
+    /// starts the fill, the fill took the payload hold, and an `rmi` in the
+    /// next second was refused with "in use by a running container" while
+    /// `podvm ps -a` was empty, 4 times in 8.
+    pub(super) fn image_fill_lock_path(&self, record: &Record) -> Result<PathBuf> {
+        let d = Digest::parse(&record.digest)?;
+        Ok(self.root.join(LOCKS).join(format!("{}.fill.lock", d.hex())))
+    }
+
+    /// Hold the *fill* of this image: a shared lock on its own file, which
+    /// [`Store::in_use`] does not ask about, so a removal goes ahead and this
+    /// copy then fails and cleans up after itself.
+    pub fn hold_fill(&self, record: &Record) -> Result<Lock> {
+        let path = self.image_fill_lock_path(record)?;
+        // ⛔ I4, as in `hold`: the index lock is taken first and dropped here,
+        // so a removal cannot remove the file between its creation and this
+        // hold.
+        let _index = self.lock()?;
+        lock_at(&path, sys::LOCK_SH)
+    }
+
     /// Whether any process holds [`Store::hold`] on this image.
     ///
     /// ⚠ Tested by asking for the exclusive lock and reading `EWOULDBLOCK`,

@@ -332,6 +332,14 @@ impl Store {
                 let resolved = contain::within(&self.root, &lock)?;
                 let _ = std::fs::remove_file(resolved);
             }
+            // ⛔ The fill lock belongs to a copy that writes a cache, not to a
+            // payload, and this removal does not wait for it (`hold_fill`). Its
+            // file goes with the image so nothing of a removed image stays.
+            let fill = self.image_fill_lock_path(r)?;
+            if fill.exists() {
+                let resolved = contain::within(&self.root, &fill)?;
+                let _ = std::fs::remove_file(resolved);
+            }
         }
         self.write_index(&index)?;
         Ok(Removed {

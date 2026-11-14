@@ -9,10 +9,10 @@
 //! ⭐ The prefill starts at podvm's exit ([`spawn_pending`]), not during the
 //! run: the launcher of a rung kills each process of its tree at the end
 //! of the payload, and a prefill must not compete with the payload. It runs
-//! at the lowest CPU priority and in the idle I/O class, and holds the
-//! image (T-0204), so a `prune` does not remove it during the copy.
-//! `PODVM_SPARE_TREE=0` turns the spare off: a spare takes the disk of one
-//! more tree for each image that ran.
+//! at the lowest CPU priority and in the idle I/O class, and holds a *fill*
+//! lock of its own, which a removal ignores: a copy that loses its extraction
+//! fails and removes its partial tree. `PODVM_SPARE_TREE=0` turns the spare
+//! off: a spare takes the disk of one more tree for each image that ran.
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -98,7 +98,11 @@ pub(crate) fn main(args: &[String]) -> i32 {
     else {
         return 1;
     };
-    let Ok(_held) = store.hold(&record) else {
+    // ⛔ A fill hold, not a payload hold (T-0204 is the payload's). An `rmi`
+    // or a `prune` that lands in this copy must go ahead: this fill is a
+    // cache, and a source that went under it makes `fill` remove the partial
+    // tree it had begun rather than refuse the removal.
+    let Ok(_held) = store.hold_fill(&record) else {
         return 1;
     };
     if !podvm_extract::is_extracted(&store, digest) {

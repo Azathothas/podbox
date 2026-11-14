@@ -3773,7 +3773,8 @@ A rename in one file system is atomic and costs no copy.
 
 After a run takes its tree, podvm notes the image; at podvm's exit (not
 during the run, where a launcher kills each process of its tree) a
-detached `podvm tree-prefill STORE DIGEST` holds the image, fills the
+detached `podvm tree-prefill STORE DIGEST` holds the image's **fill
+lock** (a lock of its own, which a removal ignores), fills the
 spare (`<store>/rootfs/<digest>/spare/`), and renames it into place. The
 next run takes the spare with one rename. A removed tree goes aside to
 `<store>/trees/.trash-<id>` with one rename, and the same helper removes
@@ -3815,6 +3816,21 @@ run took a spare filled before the write. podvm never writes that tree
 after the extraction, so the spare stays its copy for podvm's own verbs;
 experiment 356 sets `PODVM_SPARE_TREE=0`, and `docs/limits.md` names the
 rule for a tool that edits the tree in place.
+
+**Correction 2026-11-14 10:12 UTC.** The helper took the payload hold
+(T-0204) for the copy, so a removal that landed in the copy's window was
+refused. Measured on the shipped `v0.2.0-beta.16` and on a debug build of
+`main` at `0f13267`: `podvm create` + `podvm rm`, then `podvm rmi` in the
+same second, was refused 4 times in 8 with "in use by a running container"
+while `podvm ps -a` was empty, `rmi --force` was refused the same way, and
+`image prune -a` printed
+`skipped: alpine:3.20 is in use by a running container`.
+The fill now holds `locks/<digest>.fill.lock` (`Store::hold_fill`), which
+`Store::in_use` does not ask about, so a removal goes ahead: the fill either
+finishes and its spare goes with the extraction, or loses its source,
+removes its partial tree and exits 1. The same sequence is then accepted 8
+times in 8, and neither a partial tree, a spare nor a fill lock stays.
+`a_fill_hold_does_not_refuse_a_removal` holds it.
 
 # T-1782: `load` spools stdin to a predictable name of `$TMPDIR`
 

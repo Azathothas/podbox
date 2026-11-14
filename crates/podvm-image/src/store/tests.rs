@@ -429,6 +429,7 @@ fn record(repo: &str, tag: Option<&str>, seed: u8) -> Record {
     }
 }
 
+mod fill_lock;
 mod locks;
 use locks::*;
 mod refs;

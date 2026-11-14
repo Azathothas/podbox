@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: an `rmi` after `rm` is no longer refused while the spare tree fills, 2026-11-14
+
+Record: T-1781 (correction), PodUtils/podvm#357.
+Deployed: not deployed; no version change.
+
+- The detached fill of the spare tree took the image's payload hold, so
+  an `rmi` or `image prune` in the seconds after `rm` was refused as "in
+  use by a running container" while `ps -a` was empty. The fill now
+  holds a lock of its own, which a removal does not wait for; a fill
+  that loses its source removes its partial tree. (A patch of the
+  tester Nemo-010.)
+
 ### Fixed: `exec`, `save`, `load` and `import` exit 1 for a missing image or an invalid name, 2026-11-14
 
 Record: T-1842 (partial), PodUtils/podvm#356.
