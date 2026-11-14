@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.16 (2026-11-14)
+
 ### Fixed: `exec=` of `--podvm-confine` on the userland rung, 2026-11-14
 
 Record: T-1819.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - On the userland rung, `--podvm-confine` did not deny a script or a
   program outside its `exec=` paths and the system directories: the
@@ -23,7 +25,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `--no-host-cas` on an image with no CA bundle, 2026-11-14
 
 Record: T-1818.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - On an image that ships no CA bundle, `--no-host-cas` still put the
   host bundle (or the file that `SSL_CERT_FILE` names) into the image.
@@ -32,7 +34,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a sealed bundle with a member outside the guest root is refused, 2026-11-14
 
 Record: T-1810.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - `run --podvm-sealed` skipped a member such as `../x` and exited 0, and
   put a member `/x` at the root of the guest. A member with `..` or a
@@ -42,7 +44,7 @@ Deployed: not deployed; no version change.
 ### Fixed: the machine tier refuses the flags that its guest ignored, 2026-11-14
 
 Record: T-1808.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - `run --podvm-tier=machine` took `--podvm-confine`, `--user`,
   `--add-host`, `--read-only`, `--tmpfs`, `--ulimit`, `--security-opt`,
@@ -53,7 +55,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `--read-only` kept a `:ro` volume with a trailing `/` writable, 2026-11-14
 
 Record: T-1804.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - `run --read-only -v HOST:/data/:ro` let the payload write to the
   volume: the table held `rw:/data/` and `ro:/data`, and the `rw:` entry
@@ -63,7 +65,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a refused run writes no `-e` value into its report, 2026-11-14
 
 Record: T-1802.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - The report of a run that podvm refused before it prepared the run held
   the argv of podvm in `argv`, with each `-e NAME=VALUE`. It now holds
@@ -73,7 +75,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `--report` after the image is the payload's, 2026-11-14
 
 Record: T-1801.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - `run` read `--report PATH` anywhere before `--`, also among the
   arguments of the payload, and replaced PATH with the report: `podvm run
@@ -85,7 +87,7 @@ Deployed: not deployed; no version change.
 ### Fixed: `ps` with a multibyte character in the command, 2026-11-14
 
 Record: T-1800.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - `ps` cut the COMMAND column at byte 17 and aborted (exit 134) when
   the cut fell inside a multibyte character; the listing stayed broken
@@ -94,7 +96,7 @@ Deployed: not deployed; no version change.
 ### Changed: podcrates v0.43.0, 2026-11-14
 
 Record: PodUtils/podcrates#149, PodUtils/podvm#331, #335, #337.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.16.
 
 - podvm takes the crates of podcrates at `v0.43.0`. It carries the
   completion of two layers of `pod-rootfs` (podcrates@T-567), and the
