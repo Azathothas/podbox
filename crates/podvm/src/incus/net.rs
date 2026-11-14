@@ -31,7 +31,7 @@ pub const PORT_FILE: &str = "/.podvm/channel.port";
 pub const READY: &str = "/.podvm/channel.ready";
 
 /// The devices of the two flags: a mask of type `none` for each name of
-/// `nics`, and the proxy device of the channel.
+/// `nics`, and the `disk` device that mounts the socket of the channel.
 pub fn devices(net_none: bool, nics: &[String], channel: Option<&(PathBuf, u16)>) -> Devices {
     let mut d = Devices::new();
     if net_none {
