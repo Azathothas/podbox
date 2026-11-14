@@ -165,9 +165,7 @@ pub(crate) fn run_windows(
         timeout: None,
         emu_args: qemu_extra.to_vec(),
         command: podvm_windows::agent::command_from_argv(argv),
-        url: None,
-        sha256: None,
-        max_bytes: None,
+        ..Default::default()
     };
     run::run(verb, &a)
 }

@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `windows:validationos` fetches only its disk, by a UDF reader, 2026-11-14
+
+Record: T-1863.
+Deployed: not deployed; no version change.
+
+- `podvm pull windows:validationos` reads the UDF directory of the ISO by
+  range requests and fetches only the VHDX (900 MiB of 2.4 GiB), checked
+  against a pinned sha256.
+- `podvm windows fetch --url URL --extent FILE` prints the byte range of
+  FILE in a UDF image and downloads nothing.
+
 ### Added: `podvm pull windows:NAME`, a resumable download with progress, and a test of the broker, 2026-11-14
 
 Record: T-1820, T-1861 (partial), T-1862.

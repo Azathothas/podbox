@@ -73,6 +73,7 @@ Separate crate: `crates/podvm-interpose`.
 | `pod-term` | `0.45.0` |
 | `pod-tls` | `0.45.0` |
 | `pod-todo` | `0.45.0` |
+| `pod-udf` | `0.45.0` |
 | `pod-ws` | `0.45.0` |
 | `rustls` | `0.23.46` |
 | `rustls-pki-types` | `1.15.1` |

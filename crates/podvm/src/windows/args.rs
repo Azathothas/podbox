@@ -27,6 +27,8 @@ options:
   --sha256 <hex>               the pinned digest for --url; without it the
                                download is bounded but unverified
   --max-bytes <n>              the download ceiling, over RLIMIT_FSIZE never
+  --extent <file>              with fetch: print the byte range of <file> in
+                               the UDF image at --url and download nothing
   --podvm-mem <size>          guest memory, for example 4G
   --podvm-cpus <n>            guest cpus
   --podvm-timeout <seconds>   how long a run may take before it is stopped
@@ -46,6 +48,7 @@ pub(crate) enum Guest {
 }
 
 /// One parsed `podvm windows` invocation.
+#[derive(Default)]
 pub(crate) struct Args {
     pub sub: String,
     pub guest: Option<Guest>,
@@ -58,6 +61,8 @@ pub(crate) struct Args {
     pub url: Option<String>,
     pub sha256: Option<String>,
     pub max_bytes: Option<u64>,
+    /// TODO/machine.md T-1863: `fetch --extent FILE`.
+    pub extent: Option<String>,
 }
 
 /// One value after a flag, or the flag error that says which one is missing.
@@ -94,6 +99,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Option<Args>, i32> {
         url: None,
         sha256: None,
         max_bytes: None,
+        extent: None,
     };
     let mut words: Vec<String> = Vec::new();
     while let Some(arg) = it.next() {
@@ -104,6 +110,7 @@ pub(crate) fn parse(args: &[String]) -> Result<Option<Args>, i32> {
             }
             "--image" => a.image = Some(PathBuf::from(value(&mut it, "--image")?)),
             "--url" => a.url = Some(value(&mut it, "--url")?.clone()),
+            "--extent" => a.extent = Some(value(&mut it, "--extent")?.clone()),
             "--sha256" => {
                 let v = value(&mut it, "--sha256")?;
                 if v.len() != 64 || !v.chars().all(|c| c.is_ascii_hexdigit()) {

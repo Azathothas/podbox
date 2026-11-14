@@ -3316,7 +3316,7 @@ progress line, and the tests of the Prove against a local Range server.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3357,6 +3357,25 @@ a missing file is refused by name. A new experiment (the next free number) does
 a live range test against the 9278 ISO and the 9818 ISO and prints extent,
 length and sha256 for each. It starts no emulator and runs on the cloud host.
 
+## Done
+
+**Done 2026-11-14.** podcrates `v0.45.0` carries `pod-udf`
+(podcrates@T-591), so nothing is vendored. `podvm-windows/src/udf.rs`
+(`extent`) gives the one byte range of a file in a UDF image; podvm reads
+the image by range requests (`windows/origin.rs`, `RangeRead`) and
+fetches the range as the whole object (`Extent`). `cargo test -p
+podvm-windows udf` exits 0 on a synthetic image of `genisoimage -udf`
+(`src/fixtures/udf.iso.gz`, 4 280 bytes): the file is found with its
+extent and length, and a missing file is refused by name. Experiment 449
+(`podvm windows fetch --extent`, then `curl` of the range): build 9278 at
+sector 1010, 910 163 968 bytes, sha256 `063442aa...fe7f`, as experiment
+371 measured; build 9818 at sector 994, 943 718 400 bytes, sha256
+`a0f7900b...3000`, which podvm's own fetch gives too; each starts with
+`vhdxfile`; no emulator; 3 minutes. The catalog pins that digest
+(`VALIDATIONOS_VHDX_SHA256`). `podvm pull windows:validationos` in a
+fresh home fetched the 900 MiB extent in 65 s, and again with the pin.
+The fixed extent of `kvm.yml` stays right for build 9278, which it
+names.
 
 # T-1864: The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out
 

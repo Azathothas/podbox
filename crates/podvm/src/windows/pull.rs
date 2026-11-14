@@ -103,6 +103,7 @@ pub(crate) fn pull_named(verb: &str, name: &str, quiet: bool) -> i32 {
     };
     let path = match e.kind {
         Kind::DosZip => dos_base(verb),
+        Kind::ValidationOs => vos_disk(verb, e),
         _ => fetched(verb, e),
     };
     match path {
@@ -114,6 +115,76 @@ pub(crate) fn pull_named(verb: &str, name: &str, quiet: bool) -> i32 {
             0
         }
         Err(code) => code,
+    }
+}
+
+/// TODO/machine.md T-1863: the VHDX of Validation OS, fetched as its one
+/// extent of the ISO: the UDF directory by range requests, then the bytes
+/// of the disk, checked against the pin of the catalog where it has one.
+pub(crate) fn vos_disk(verb: &str, e: &Entry) -> Result<PathBuf, i32> {
+    let dir = podvm_windows::catalog::store_dir();
+    let dest = dir.join(e.file.replace(".iso", ".vhdx"));
+    if dest.is_file() {
+        return Ok(dest);
+    }
+    let range = podvm_windows::udf::extent(
+        super::origin::RangeRead {
+            url: e.url.to_string(),
+        },
+        podvm_windows::udf::VHDX,
+    )
+    .map_err(|why| {
+        eprintln!("podvm {verb}: windows:{}: {why}", e.name);
+        EXIT_RUNTIME_ERROR
+    })?;
+    let len = range.end - range.start;
+    eprintln!(
+        "podvm {verb}: windows:{}: {} is bytes {}..{} of the ISO ({len} bytes)",
+        e.name,
+        podvm_windows::udf::VHDX,
+        range.start,
+        range.end
+    );
+    std::fs::create_dir_all(&dir).map_err(|err| {
+        eprintln!("podvm {verb}: {}: {err}", dir.display());
+        EXIT_RUNTIME_ERROR
+    })?;
+    let fsize = super::plan::ceiling()?;
+    let free = podvm_image::space::read(&dir.to_string_lossy())
+        .ok()
+        .map(|h| h.free.bytes);
+    if let Err(why) = room_for(len, free, fsize) {
+        eprintln!(
+            "podvm {verb}: windows:{}: {why} (TODO/machine.md T-1862)",
+            e.name
+        );
+        return Err(EXIT_RUNTIME_ERROR);
+    }
+    let pin = podvm_windows::catalog::VALIDATIONOS_VHDX_SHA256;
+    let mut origin = super::origin::Extent {
+        url: e.url.to_string(),
+        range,
+    };
+    let ceiling = podvm_windows::Ceiling {
+        max_bytes: len,
+        fsize,
+    };
+    match podvm_windows::fetch::store(&mut origin, &dest, pin, ceiling, super::origin::TRIES) {
+        Ok(got) => {
+            eprintln!("podvm {verb}: windows:{}: sha256 {got}", e.name);
+            if pin.is_none() {
+                eprintln!(
+                    "podvm {verb}: windows:{}: the catalog pins no digest of the disk yet, \
+                     so the disk is bounded but not checked (TODO/machine.md T-1863)",
+                    e.name
+                );
+            }
+            Ok(dest)
+        }
+        Err(err) => {
+            eprintln!("podvm {verb}: windows:{}: {err}", e.name);
+            Err(EXIT_RUNTIME_ERROR)
+        }
     }
 }
 

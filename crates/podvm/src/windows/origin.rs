@@ -89,6 +89,70 @@ impl<R: Read> Read for Progress<R> {
     }
 }
 
+/// TODO/machine.md T-1863: a `ReadAt` over HTTP Range requests, for the
+/// UDF directory of an ISO. Each read is one GET of the bytes it needs.
+pub(crate) struct RangeRead {
+    pub(crate) url: String,
+}
+
+impl podvm_windows::udf::ReadAt for RangeRead {
+    fn read_at(&mut self, offset: u64, buf: &mut [u8]) -> std::io::Result<()> {
+        if buf.is_empty() {
+            return Ok(());
+        }
+        let last = offset + buf.len() as u64 - 1;
+        let headers = [("Range", format!("bytes={offset}-{last}"))];
+        let mut body = super::setup::get(&self.url, &headers, super::setup::FETCH_LIMITS)
+            .map_err(std::io::Error::other)?;
+        if body.status() != 206 {
+            return Err(std::io::Error::other(format!(
+                "{}: the origin answered {} to a range request",
+                self.url,
+                body.status()
+            )));
+        }
+        body.read_exact(buf)
+    }
+}
+
+/// TODO/machine.md T-1863: one byte range of an object, served to
+/// `fetch::store` as the whole object: the first GET answers 200 with the
+/// length of the range, and each resume answers 206 inside it.
+pub(crate) struct Extent {
+    pub(crate) url: String,
+    pub(crate) range: std::ops::Range<u64>,
+}
+
+impl Origin for Extent {
+    type Body = Progress<Body>;
+
+    fn get(&mut self, from: u64) -> std::io::Result<Reply<Progress<Body>>> {
+        let len = self.range.end - self.range.start;
+        let (start, last) = (self.range.start + from, self.range.end - 1);
+        let headers = [("Range", format!("bytes={start}-{last}"))];
+        let body = super::setup::get(&self.url, &headers, super::setup::FETCH_LIMITS)
+            .map_err(std::io::Error::other)?;
+        if body.status() != 206 {
+            return Err(std::io::Error::other(format!(
+                "{}: the origin answered {} to a range request",
+                self.url,
+                body.status()
+            )));
+        }
+        let (status, range) = if from == 0 {
+            (200, None)
+        } else {
+            (206, Some(format!("bytes {from}-{}/{len}", len - 1)))
+        };
+        Ok(Reply {
+            status,
+            length: Some(len - from),
+            range,
+            body: Progress::new(body, from, Some(len)),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

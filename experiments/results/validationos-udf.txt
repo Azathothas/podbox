@@ -1,0 +1,3 @@
+build 9278: offset 2068480 (sector 1010), length 910163968, whole sectors yes, magic vhdxfile, sha256 063442aa9f71f2faeebf49cd960003ce315abd556b52c696e1b994ec5a80fe7f
+build 9818: offset 2035712 (sector 994), length 943718400, whole sectors yes, magic vhdxfile, sha256 a0f7900be9fe1172411ecd48b9598ee4b387853f9d6eb12fe5e85f7602a63000
+PASS: each clause

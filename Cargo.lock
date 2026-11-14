@@ -1346,6 +1346,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-udf"
+version = "0.45.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.45.0#ad50c7f7ac7af06315b66406f08af6a54c0f90e5"
+
+[[package]]
 name = "pod-ws"
 version = "0.45.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.45.0#ad50c7f7ac7af06315b66406f08af6a54c0f90e5"
@@ -1526,7 +1531,9 @@ dependencies = [
 name = "podvm-windows"
 version = "0.2.0-beta.18"
 dependencies = [
+ "flate2",
  "pod-guest",
+ "pod-udf",
 ]
 
 [[package]]

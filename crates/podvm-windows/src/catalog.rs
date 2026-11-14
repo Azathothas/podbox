@@ -48,6 +48,13 @@ impl Entry {
     }
 }
 
+/// TODO/machine.md T-1863: the sha256 of `ValidationOS.vhdx` in the ISO
+/// of the catalog (build 26100.9818: bytes 2 035 712 to 945 754 112),
+/// measured by podvm's fetch and by curl alike (experiment 449,
+/// 2026-11-14).
+pub const VALIDATIONOS_VHDX_SHA256: Option<&str> =
+    Some("a0f7900be9fe1172411ecd48b9598ee4b387853f9d6eb12fe5e85f7602a63000");
+
 /// The names, in the order of `podvm windows images`.
 pub const CATALOG: &[Entry] = &[
     Entry {

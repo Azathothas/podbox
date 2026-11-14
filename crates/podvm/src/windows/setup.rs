@@ -88,6 +88,21 @@ pub(crate) fn fetch(a: &Args) -> i32 {
         eprintln!("podvm windows fetch: --url is required\n{USAGE}");
         return EXIT_FLAG_ERROR;
     };
+    // TODO/machine.md T-1863: the byte range of one file of the UDF image,
+    // read by range requests; nothing is downloaded.
+    if let Some(file) = &a.extent {
+        return match podvm_windows::udf::extent(super::origin::RangeRead { url: url.clone() }, file)
+        {
+            Ok(r) => {
+                println!("{} {} {}", r.start, r.end - r.start, file);
+                0
+            }
+            Err(why) => {
+                eprintln!("podvm windows fetch: {url}: {why}");
+                EXIT_RUNTIME_ERROR
+            }
+        };
+    }
     let dest = fetch_dest(a);
     if dest.exists() {
         eprintln!(

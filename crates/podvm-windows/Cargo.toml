@@ -13,3 +13,8 @@ repository.workspace = true
 # PodUtils/podcrates. This crate gives podvm's names and places to it, and
 # keeps the base caches and docker's range of exit codes.
 pod-guest = { git = "https://github.com/PodUtils/podcrates", tag = "v0.45.0" }
+# TODO/machine.md T-1863: the UDF reader of the ISO of Validation OS.
+pod-udf = { git = "https://github.com/PodUtils/podcrates", tag = "v0.45.0" }
+
+[dev-dependencies]
+flate2.workspace = true
