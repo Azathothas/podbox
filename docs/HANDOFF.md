@@ -38,21 +38,21 @@ host's devices on the userland rung under a user namespace).
 
 ## Open COORD issues
 
-* COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
-  when podswarm or podcrates reads it.
 * COORD-071 (#294): an overlay root for T-1749 (podcrates@T-486, open).
 * COORD-041 (#260): `pod-netlab` for T-1662.
 
-COORD-001 (#194), COORD-069 (#291), COORD-076 (#299), COORD-077 (#303),
-COORD-079 (#307), COORD-080 (#309), COORD-081 (#311), COORD-082 (#316)
-COORD-083 (#317), COORD-084 (#319) and COORD-085 (#321) are closed.
+COORD-001 (#194), COORD-068 (#290), COORD-069 (#291), COORD-076 (#299),
+COORD-077 (#303), COORD-079 (#307), COORD-080 (#309), COORD-081 (#311),
+COORD-082 (#316), COORD-083 (#317), COORD-084 (#319) and COORD-085 (#321)
+are closed.
 
 ## Next steps, in order
 
 1. Start the session (`AGENTS.md`, section 8).
 2. podrunner closed each of its asks to podvm; their answers are closed.
-   Close COORD-068 (#290) when podswarm or podcrates reads it (V-2 and
-   V-7 are done).
+   podcrates read COORD-068 (#290) on PodUtils/podcrates#124, and podvm
+   closed it on 2026-11-14. The asks of podswarm that stay are T-1747,
+   T-1749 and T-1750 (`TODO/PROGRESS.md`, work order, item 4).
 3. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no

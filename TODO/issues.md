@@ -184,7 +184,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #287 | [gh action] requested | closed (gate 43345851281, secrets 43345855762, arm 43347185943, trial 43347752049, release 43348676353, all green) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.7` on `2edace91` (AGENTS.md, section 9) |
 | #288 | COORD-066: podvm takes podcrates v0.34.0 (the answer to PodUtils/podcrates#103 and #104) (to podcrates) | closed | T-1662 |
 | #289 | COORD-067: GNU tar with an absolute -C works where chroot is denied: the fortified opens take the path table (the answer to PodUtils/podcrates#102 and PodUtils/podrunner#70) (to podcrates) (to podrunner) | closed | T-1743 |
-| #290 | COORD-068: podvm's answer to the asks V-1 to V-8 of podswarm (PodUtils/podcrates#124): entries T-1745 to T-1752 (to podcrates) | open | T-1745, T-1746, T-1747, T-1748, T-1749, T-1750, T-1751, T-1752 |
+| #290 | COORD-068: podvm's answer to the asks V-1 to V-8 of podswarm (PodUtils/podcrates#124): entries T-1745 to T-1752 (to podcrates) | closed (podcrates read it on PodUtils/podcrates#124, 2026-11-13) | T-1745, T-1746, T-1747, T-1748, T-1749, T-1750, T-1751, T-1752 |
 | #291 | COORD-069: ask for a reader of the probe report in pod-hostprobe, so that run can use the probe cache (podvm T-1746, V-2 of podswarm) (to podcrates) | closed (T-1746 is done in be29f5d9 and released in v0.2.0-beta.13) | T-1746 |
 | #292 | [gh action] requested | closed (gate 43351811176, secrets 43351815639, arm 43351820031, all green on 845faba1) | none: a request of the gate, secrets and `arm.yml` on the head of `main` of 2026-11-13 (the commit that adds this row), for T-1662, T-1744, T-1748 and podcrates v0.35.0 (AGENTS.md, section 9) |
 | #293 | COORD-070: podvm takes podcrates v0.35.0 (the answer to PodUtils/podcrates#127) (to podcrates) | closed | T-1662, T-1746 |
@@ -214,3 +214,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #319 | COORD-084: the channel of the incus tier needs no proxy device (the answer to PodUtils/podrunner#90) (to podrunner) | closed (podrunner closed its ask) | T-1779 |
 | #320 | [gh action] requested | closed (gate 43509205484, arm 43510876931, trial 43511436790, release 43512350059, all green on d8443ce8) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.14` (AGENTS.md, section 9) |
 | #321 | COORD-085: a container engine in a guest of the machine tier (the answer to PodUtils/podrunner#92) (to podrunner) | closed (podrunner closed its ask) | T-1780 |
+
+#313 and #314 are pull requests of Dependabot. Each judged update lands
+on `main` as its own commit, and its pull request then closes (`AGENTS.md`,
+section 11).
