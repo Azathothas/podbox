@@ -292,11 +292,18 @@ pub fn settings(rootfs: &str, opts: &Options) -> pod_rootfs::Settings {
         steps: opts.steps,
         // ⭐ T-0407: `announced_by` names the variable, and only an announced
         // bundle is appended to the image's own trust store.
-        host_bundle: podvm_image::tls::host_bundle_bytes().map(|h| pod_rootfs::HostBundle {
-            path: h.path,
-            announced_by: h.announced_by,
-            bytes: h.bytes,
-        }),
+        // ⛔ TODO/complete.md T-1818: `--no-host-cas` gives the crate no host
+        // bundle at all. pod-rootfs v0.43.0 writes the host bundle into an
+        // image with no bundle without reading `host_cas` (COORD-095).
+        host_bundle: opts
+            .host_cas
+            .then(podvm_image::tls::host_bundle_bytes)
+            .flatten()
+            .map(|h| pod_rootfs::HostBundle {
+                path: h.path,
+                announced_by: h.announced_by,
+                bytes: h.bytes,
+            }),
         host_resolv_conf: opts.host_resolv_conf.clone().into(),
         mounts: "/proc/self/mounts".into(),
         originals: Some(
@@ -358,5 +365,43 @@ mod tests {
             s.originals.as_deref(),
             Some(Path::new("/store/rootfs/x/.complete-orig"))
         );
+    }
+
+    /// TODO/complete.md T-1818: `--no-host-cas` gives pod-rootfs no host
+    /// bundle, so an image with no bundle gets none, and the row of the
+    /// fixup is Skipped with its reason. With the flag on, a host bundle
+    /// is passed as before.
+    #[test]
+    fn no_host_cas_puts_no_host_bundle_into_an_image_with_none() {
+        let d = std::env::temp_dir().join(format!("podvm-t1818-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        let root = d.join("rootfs");
+        std::fs::create_dir_all(root.join("etc/ssl/certs")).unwrap();
+        std::fs::write(root.join("etc/os-release"), "ID=debian\n").unwrap();
+        let off = Options {
+            host_cas: false,
+            steps: false,
+            ..Options::default()
+        };
+        let mut s = settings(root.to_str().unwrap(), &off);
+        assert!(
+            s.host_bundle.is_none(),
+            "--no-host-cas passed a host bundle"
+        );
+        // The crate's own branch for an image with no bundle: a host bundle
+        // that a caller passed by mistake would be written (COORD-095), so
+        // podvm must pass none.
+        s.host_bundle = None;
+        let r = pod_rootfs::complete(&root, &s, &mut pod_rootfs::reach::Fixed(true)).unwrap();
+        assert!(!root.join("etc/ssl/certs/ca-certificates.crt").exists());
+        assert!(!root.join("etc/ssl/cert.pem").exists());
+        let row = r
+            .fixups
+            .iter()
+            .find(|f| f.id == "ca-bundle")
+            .expect("a ca-bundle row");
+        assert_eq!(row.action, pod_rootfs::Action::Skipped, "{row:?}");
+        assert!(!row.detail.is_empty(), "{row:?}");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

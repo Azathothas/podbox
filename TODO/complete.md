@@ -1836,7 +1836,7 @@ and its result file are deleted; `git ls-files experiments | grep -c
 **Milestone:** none
 **Priority:** P0
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1871,6 +1871,22 @@ with no bundle then has none, and the fixup row says so.
 ## Prove
 
 `cargo test -p podvm-complete no_host_cas` exits 0, with a test that an image with no bundle gets no bundle when `host_cas` is false and that the fixup row is Skipped with a reason
+
+## Done
+
+**Done 2026-11-14.** `podvm-complete/src/lib.rs`, `settings`: with
+`host_cas` false, podvm passes no host bundle, so pod-rootfs takes its
+branch "the host gave none". The test
+`no_host_cas_puts_no_host_bundle_into_an_image_with_none` checks that
+the settings hold no host bundle, and that a completion of a root with
+an empty `etc/ssl/certs` writes no bundle and gives a `ca-bundle` row
+Skipped with its reason. By hand with `SSL_CERT_FILE` set to a test
+certificate and `--no-host-cas`: `debian:bookworm-slim` has no bundle
+and no test certificate on the namespace rung and on the fixture of the
+userland rung; beta.15 put the test certificate there on both; with no
+flag the image still gets the host bundle. The crate's own branch is
+COORD-095 (issue 341, podcrates@T-580, in `v0.44.0`). Experiment 443 has
+the row `run.no-host-cas-nobundle`.
 
 
 # T-1826: `--no-steps` leaves no line and no report row that says what the caller gave up

@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `--no-host-cas` on an image with no CA bundle, 2026-11-14
+
+Record: T-1818.
+Deployed: not deployed; no version change.
+
+- On an image that ships no CA bundle, `--no-host-cas` still put the
+  host bundle (or the file that `SSL_CERT_FILE` names) into the image.
+  podvm now gives the completion no host bundle under the flag.
+
 ### Fixed: a sealed bundle with a member outside the guest root is refused, 2026-11-14
 
 Record: T-1810.

@@ -264,6 +264,7 @@ for r in ns ul; do
 	t run.readonly.$r $r "touch fails: Read-only file system" '[ $rc -ne 0 ] && [ $rc -ne 125 ] && has "$err" -i "read-only"' "\$X \$PB run --rm --read-only \$A touch /qa-ro"
 	t run.readonly-deb.$r $r "touch fails: Read-only file system" '[ $rc -ne 0 ] && [ $rc -ne 125 ] && has "$err" -i "read-only"' "\$X \$PB run --rm --read-only \$D touch /qa-ro"
 	t run.readonly-tmpfs.$r $r "x" '[ "$out" = x ]' "\$X \$PB run --rm --read-only --tmpfs /scratch \$A sh -c 'echo x > /scratch/f && cat /scratch/f'"
+	t run.no-host-cas-nobundle.$r $r "--no-host-cas puts no host CA into an image with no bundle (T-1818)" '[ $rc -eq 0 ] && ! has "$out" -e QACANARYCERT' "printf -- '-----BEGIN CERTIFICATE-----\\nQACANARYCERT\\n-----END CERTIFICATE-----\\n' > \$W/qa.crt; SSL_CERT_FILE=\$W/qa.crt \$X \$PB run --rm --no-host-cas \$D sh -c 'cat /etc/ssl/certs/ca-certificates.crt /etc/ssl/cert.pem 2>/dev/null; true'"
 	t run.readonly-ro-slash.$r $r "a :ro volume with a trailing / stays read-only under --read-only (T-1804)" '[ $rc -ne 0 ] && [ "$(cat $W/rovol-$RG/f)" = orig ]' "mkdir -p \$W/rovol-\$RG && echo orig > \$W/rovol-\$RG/f; \$X \$PB run --rm --read-only -v \$W/rovol-\$RG:/data/:ro \$A sh -c 'echo CHANGED > /data/f'"
 	t run.tmpfs.$r $r "0 then y" '[ "$out" = "0
 y" ]' "\$X \$PB run --rm --tmpfs /scratch \$A sh -c 'ls -A /scratch | wc -l; echo y > /scratch/y; cat /scratch/y'"
