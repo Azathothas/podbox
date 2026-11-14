@@ -236,7 +236,7 @@
 344 issue closed
 345 issue closed
 346 issue closed
-347 issue open
+347 issue closed
 348 issue closed
 349 issue closed
 350 issue open
