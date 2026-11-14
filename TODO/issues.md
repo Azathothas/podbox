@@ -262,3 +262,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #363 | [gh action] requested | closed (gate 43598389668 failed: plant case 27d did not restore `dos.rs`; fixed, a new request follows) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` (AGENTS.md, section 9) |
 | #364 | `--podvm-confine` on the no-chroot rung resolves a rule path against the host root, so an image's absolute symlink is refused as missing | closed (T-1887 and T-1888, commit 019e7dcd) | T-1887, T-1888 |
 | #365 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` at `b09df48b` (AGENTS.md, section 9) |
+| #366 | COORD-112: the answer to PodUtils/podrunner#102: no guest of another architecture yet (to podrunner) | open | T-1889, T-1890 |
