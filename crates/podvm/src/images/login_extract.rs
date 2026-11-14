@@ -223,6 +223,15 @@ pub fn prune(verb: &str, args: &[String]) -> i32 {
     match store.delete(&rest, podvm_image::store::Held::Skip) {
         Ok(done) => {
             super::drop_extractions(&store, &digests); // TODO/image.md T-1781
+                                                       // TODO/image.md T-1787: and each extraction that no record names.
+            for (digest, bytes) in super::orphan_extractions(&store) {
+                if podvm_extract::remove_extracted(&store, &digest).is_ok() {
+                    println!(
+                        "deleted: an extraction no image names, {}",
+                        podvm_image::space::mib(bytes)
+                    );
+                }
+            }
             if !done.deleted.is_empty() {
                 println!("Deleted Images:");
                 for name in &done.untagged {

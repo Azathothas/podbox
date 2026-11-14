@@ -224,8 +224,8 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #325 | COORD-089: podvm takes podcrates v0.42.0 (the answer to PodUtils/podcrates#145) (to podcrates) | open | - |
 | #326 | COORD-090: ask for a two-layer completion in pod-rootfs, so that podvm can use the overlay root of podcrates@T-486 (podvm T-1749) (to podcrates) | open | T-1749 |
 | #327 | COORD-091: the acceptance test of podcrates@T-567, a completion of two layers in pod-rootfs (the answer to PodUtils/podcrates#146) (to podcrates) | open | T-1749 |
-| #329 | `system df` reports 0 B after `image prune -a` while 8.5 MB of extracted rootfs stays on disk, and no verb reclaims it | open | T-1781 (prune removes the extraction); the count of `system df` is open |
-| #330 | A foreground run is recorded as `Created` while its payload runs, so `ps` hides it, `system df` counts 0 running, `kill` and `wait` refuse it, and `stop` exits 0 having stopped nothing | open | open |
+| #329 | `system df` reports 0 B after `image prune -a` while 8.5 MB of extracted rootfs stays on disk, and no verb reclaims it | open | T-1787 |
+| #330 | A foreground run is recorded as `Created` while its payload runs, so `ps` hides it, `system df` counts 0 running, `kill` and `wait` refuse it, and `stop` exits 0 having stopped nothing | open | T-1786 (blocked on COORD-094, issue 339) |
 | #331 | COORD-091 of Nemo-010: `system abi` refusals carry their own verdict label (to podcrates) | open | none: podcrates@T-568 (PodUtils/podcrates#147) |
 | #332 | The `--user` identity notice repeats once per process, where T-0711 decides the run says it once | open | T-1785 |
 | #333 | The honest setuid refusal says the payload runs as uid 0; on this host it runs as uid 966 | open | T-1784 |
@@ -234,3 +234,5 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #336 | `podvm load` spools stdin to `$TMPDIR/podvm-load-in-<pid>`, so a planted symlink truncates a file the user never named | open | T-1782 |
 | #337 | COORD-093 of Nemo-010: the machine-tier refusal runs its legs together, and `probe` prints the verdict twice (to podcrates) | open | none: podcrates@T-570 (PodUtils/podcrates#147) |
 | #328 | [gh action] requested | closed (gate 43556212876 green on 772734fa; arm 43557049704 failed: experiment 356 wrote into the image tree under a spare tree) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
+| #339 | COORD-094: ask for a foreground holder in pod-supervise, so that a foreground run is Running while its payload runs (PodUtils/podvm#330) (to podcrates) | open | T-1786 |
+| #338 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |

@@ -1432,3 +1432,46 @@ zombie payload within 5 s of SIGKILL to `podvm`. The release
 the payload sleeps on in both clauses. The machine tier is not on this
 path: its emulator ends with its own bound (T-1656).
 
+
+# T-1786: A foreground run is recorded `Created` while its payload runs
+
+**Source:** PodUtils/podvm#330 (a report of Nemo-010 on `v0.2.0-beta.14`)
+**Category:** supervise
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+A foreground `run` stays `Created` for the life of its payload: `ps`
+hides it, `system df` counts it as not running, `kill` and `wait`
+refuse it, and `stop` prints the name and exits 0 having stopped
+nothing.
+
+## Premise
+
+In `pod-supervise`, `Running` is a launcher: it holds the lock of the
+container for its life, which `reconcile` tests, and `kill`, `stop` and
+`wait` reach it through its socket. A foreground run has no launcher, so
+a `Running` that podvm writes would read as `Dead`.
+
+## Approach
+
+`run/foreground.rs` takes a foreground holder of `pod-supervise` once
+the payload has a pid, and finishes it with the code in `fg_end`.
+
+## Decision
+
+The holder belongs to `pod-supervise`, beside its launcher: COORD-094
+(issue 339) asks podcrates for it.
+
+## Prove
+
+During a foreground run that sleeps 10 s: `ps` lists it, `system df` counts it running, `kill` signals it, `wait` gives its code, and `stop` ends the payload within its grace
+
+## Blocker
+
+**Blocked 2026-11-14.** Blocker: `pod-supervise` has no holder for a
+payload that the caller runs itself. Clears when: a podcrates tag
+carries the holder of COORD-094 (issue 339).

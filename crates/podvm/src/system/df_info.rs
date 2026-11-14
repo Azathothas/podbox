@@ -99,8 +99,14 @@ pub fn df(verb: &str, args: &[String]) -> i32 {
             }
         }
     }
+    // TODO/image.md T-1787: `image prune` also removes each extraction that
+    // no record names.
+    let orphans: u64 = crate::images::orphan_extractions(&store)
+        .iter()
+        .map(|(_, b)| b)
+        .sum();
     let reclaimable = match store.reclaimable_bytes(&rest) {
-        Ok(b) => b,
+        Ok(b) => b.saturating_add(orphans),
         Err(e) => {
             eprintln!("podvm system df: {e}");
             return e.exit_code();
@@ -178,6 +184,32 @@ pub fn df(verb: &str, args: &[String]) -> i32 {
     println!(
         "Extracted rootfs: {}",
         podvm_image::space::mib(rootfs_total)
+    );
+    // TODO/image.md T-1787 (PodUtils/podvm#329): each byte under the store
+    // has a line: the trees of the containers (and the trash of T-1781),
+    // the spare trees, and the extractions that no image names.
+    let spares: u64 = images
+        .iter()
+        .map(|r| {
+            podvm_image::space::dir_bytes(&podvm_extract::tree::spare_dir(
+                &store,
+                &r.manifest_digest,
+            ))
+        })
+        .sum();
+    println!(
+        "Container trees: {}",
+        podvm_image::space::mib(podvm_image::space::dir_bytes(&podvm_extract::tree::trees(
+            &store
+        )))
+    );
+    println!(
+        "Spare trees: {} (T-1781; `PODVM_SPARE_TREE=0` makes none)",
+        podvm_image::space::mib(spares)
+    );
+    println!(
+        "Extractions no image names: {}",
+        podvm_image::space::mib(orphans)
     );
     println!(
         "Reclaimable: {} (what `image prune` would free)",

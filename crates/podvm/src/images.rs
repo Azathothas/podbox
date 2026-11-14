@@ -388,3 +388,24 @@ pub(crate) fn drop_extractions(store: &podvm_image::Store, before: &[String]) {
         }
     }
 }
+
+/// TODO/image.md T-1787 (PodUtils/podvm#329): each extraction of the store
+/// that no record names, with its bytes: what an `rmi` of an older podvm
+/// left. An extraction starts from a record (`extract`, `run`), and a
+/// removal skips an image that a run holds, so an extraction with no
+/// record is left over, never in work.
+pub(crate) fn orphan_extractions(store: &podvm_image::Store) -> Vec<(String, u64)> {
+    let records = store.list().unwrap_or_default();
+    let Ok(rd) = std::fs::read_dir(store.root().join("rootfs")) else {
+        return Vec::new();
+    };
+    rd.flatten()
+        .filter_map(|e| {
+            let name = e.file_name().to_str()?.to_string();
+            let digest = name.replacen('_', ":", 1);
+            let named = records.iter().any(|r| r.manifest_digest == digest);
+            (!named && e.path().is_dir())
+                .then(|| (digest, podvm_image::space::dir_bytes(&e.path())))
+        })
+        .collect()
+}

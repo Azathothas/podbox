@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `system df` counts each byte of the store, 2026-11-14
+
+Record: T-1787, PodUtils/podvm#329.
+Deployed: not deployed; the next release carries it.
+
+- `system df` prints the bytes of the container trees, of the spare
+  trees and of the extractions that no image names, and counts the last
+  in what `image prune` frees; `image prune` removes them.
+
 ## 0.2.0-beta.15 (2026-11-14)
 
 ### Fixed: two lines of the interposer about identity, 2026-11-14

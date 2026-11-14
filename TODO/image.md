@@ -3863,3 +3863,53 @@ spool from `store.stage("load-stdin")`. By hand on the cloud host with
 the load succeeds and the target of the link still reads `PRECIOUS`;
 with `TMPDIR=/nonexistent-x` the load succeeds; the staging directory is
 empty after each load, and the store is mode 0700.
+
+# T-1787: `system df` misses the trees and the extractions that no image names, and no verb removes the latter
+
+**Source:** PodUtils/podvm#329 (a report of Nemo-010 on `v0.2.0-beta.14`)
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+After `image prune -a`, `system df` said `Extracted rootfs: 0 B` while
+8.5 MB of extracted root stayed under `<store>/rootfs/`; `rm` of a
+container freed its tree while `df` printed the same lines before and
+after; and no verb removed an extraction whose image was gone.
+
+## Premise
+
+`df` counted the extracted root of each image that has a record, and
+nothing else. `rmi` and `prune` left each extraction before T-1781, so a
+store of an older podvm holds extractions with no record. An extraction
+starts from a record, and a removal skips an image that a run holds, so
+an extraction with no record is left over, never in work.
+
+## Approach
+
+`df` prints the bytes of the container trees (with the trash of T-1781),
+of the spare trees, and of the extractions that no image names, and
+counts the last in the reclaimable bytes; `image prune` removes them.
+
+## Decision
+
+The four lines of the extracted bytes stay apart, so a reader sees what
+each verb frees.
+
+## Prove
+
+`cargo test -p podvm` exits 0 with `an_extraction_that_no_record_names_is_an_orphan`; on a store with one container and an extraction that no image names, `system df` names each part, and after `rm` and `image prune -a` each line of `df` is 0 B
+
+## Done
+
+**Done 2026-11-14.** `images::orphan_extractions`, the cleanup in
+`image prune` (`images/login_extract.rs`) and four lines of
+`system/df_info.rs`. By hand on a scratch store with `busybox:musl`, one
+container and a planted extraction of 300 000 bytes: `df` printed
+`Extracted rootfs: 1.5 MiB`, `Container trees: 1.7 MiB`, `Spare trees:
+1.5 MiB`, `Extractions no image names: 293.0 KiB` and `Reclaimable:
+293.0 KiB`; after `rm` and `image prune -a`, each line read 0 B, and the
+store held 21 548 bytes (its index and locks).

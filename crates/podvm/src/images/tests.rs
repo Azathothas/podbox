@@ -459,3 +459,25 @@ fn prune_skips_a_held_image() {
     drop(held);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// TODO/image.md T-1787 (PodUtils/podvm#329): an extraction that no record
+/// names is found with its bytes; the extraction of a record is not.
+#[test]
+fn an_extraction_that_no_record_names_is_an_orphan() {
+    let root = scratch_store("orphan");
+    let store = podvm_image::store::Store::open(&root).unwrap();
+    let record = held_record();
+    store.put_record(record.clone()).unwrap();
+    let named = root
+        .join("rootfs")
+        .join(record.manifest_digest.replace(':', "_"));
+    std::fs::create_dir_all(named.join("rootfs")).unwrap();
+    let orphan = root.join("rootfs/sha256_0123abcd/rootfs");
+    std::fs::create_dir_all(&orphan).unwrap();
+    std::fs::write(orphan.join("f"), vec![0u8; 4096]).unwrap();
+    let found = super::orphan_extractions(&store);
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].0, "sha256:0123abcd");
+    assert!(found[0].1 >= 4096);
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -460,10 +460,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1783](cli.md) | P2 | S | none | cli | done | Nine verbs print a usage error to stdout |
 | [T-1784](interpose.md) | P2 | S | none | interpose | done | The honest refusal of an identity call says that the payload runs as uid 0 |
 | [T-1785](interpose.md) | P3 | S | none | interpose | done | The notice of `--user` repeats in each process of a run |
+| [T-1786](supervise.md) | P1 | M | none | supervise | blocked | A foreground run is recorded `Created` while its payload runs |
+| [T-1787](image.md) | P2 | S | none | image | done | `system df` misses the trees and the extractions that no image names, and no verb removes the latter |
 
 ## Counts
 
-394 entries: 2 open, 5 partial, 2 blocked, 385 done.
+396 entries: 2 open, 5 partial, 3 blocked, 386 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -473,10 +475,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 0 | 169 | 170 |
-| P2 | 0 | 2 | 2 | 129 | 133 |
+| P1 | 0 | 1 | 1 | 169 | 171 |
+| P2 | 0 | 2 | 2 | 130 | 134 |
 | P3 | 2 | 2 | 0 | 22 | 26 |
-| **All** | 2 | 5 | 2 | 385 | 394 |
+| **All** | 2 | 5 | 3 | 386 | 396 |
 
 ## Work order
 
