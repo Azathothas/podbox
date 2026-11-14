@@ -131,7 +131,7 @@ jobs:
     needs: guest
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -200,6 +200,28 @@ jobs:
           fi
           exit "$rc"
 
+      # TODO/machine.md T-1864, T-1863: podvm fetches the VHDX of build
+      # 26100.9818 itself (pod-udf, by range), provisions it, and runs the
+      # three exit cases of experiment 450 under KVM.
+      - name: experiment 450 under KVM
+        if: always()
+        run: |
+          export HOME="$RUNNER_TEMP/home450"
+          mkdir -p "$HOME"
+          BIN="$GITHUB_WORKSPACE/target/x86_64-unknown-linux-musl/release/podvm"
+          rc=0
+          VHDX=$(timeout 30m "$BIN" pull windows:validationos) || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            PODVM_450_BIN="$BIN" PODVM_450_VHDX="$VHDX" timeout 60m sh experiments/450-windows-agent-exit.sh || rc=$?
+          fi
+          cat experiments/results/windows-agent-exit.txt.setup 2>/dev/null | tail -20 || true
+          if pgrep -a qemu-system; then
+            echo "an emulator stayed after the run"
+            pkill -9 qemu-system || true
+            rc=1
+          fi
+          exit "$rc"
+
       - name: keep the transcript
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -207,5 +229,7 @@ jobs:
           name: kvm-windows-transcript
           path: |
             experiments/results/kvm-guest-hosted.txt
+            experiments/results/windows-agent-exit.txt
+            experiments/results/windows-agent-exit.txt.setup
             ${{ runner.temp }}/shots/
           if-no-files-found: warn
