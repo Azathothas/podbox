@@ -5143,7 +5143,7 @@ scripts/common/check-one-home.sh` (67 documents) exit 0, and
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -5181,6 +5181,20 @@ release, so that it cannot come back unseen.
 ## Prove
 
 `sh experiments/443-qa-surface.sh` exits 0 with the 22 new rows present and matched, and `PODVM_443_ONLY=machine sh experiments/443-qa-surface.sh` exits 0 on a host with `/dev/kvm`
+
+## Done
+
+**Partial 2026-11-14.** Experiment 443 has a row for each check of
+the report that podvm can serve now: `life.missing-name`,
+`life.fg-stderr`, `life.restart-end`, `life.ps-multibyte`,
+`life.full-stdout`, `life.detach-tty`, `life.tty-eof`, `sys.probe-cached`,
+`sys.df-id`, the `report-*`, `readonly-ro-slash` and `confine-exec-*`
+rows, and the machine rows (`machine.refuse-*`, `machine.timeout`,
+`machine.report*`, `machine.eq-form`). Results on this host: life 90
+pass, 0 fail; sys 128 pass, 0 fail; machine 20 pass, 0 fail, with no
+emulator left. Remaining: the row of the setuid bit after extraction,
+which waits for T-1813 (pod-extract in podcrates), and the machine
+section in `kvm.yml` before each release.
 
 
 # T-1853: No check proves that each parity row with a value takes `--flag=value`, and that each verb takes `-h` and `--help`

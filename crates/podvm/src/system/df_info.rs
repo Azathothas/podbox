@@ -117,6 +117,15 @@ pub fn df(verb: &str, args: &[String]) -> i32 {
     // every image. The totals below count each blob once, which is the
     // store's own accounting and what the drive asserts.
     let mut rows: Vec<(String, String, String, u64, u64, bool)> = Vec::new();
+    // TODO/image.md T-1814: two platform records of one reference get the
+    // platform after the tag, so that each row names its record.
+    let twice = |r: &podvm_image::Record| {
+        images
+            .iter()
+            .filter(|o| o.repository == r.repository && o.tag == r.tag)
+            .count()
+            > 1
+    };
     for r in &images {
         let mut stored = 0u64;
         for b in r.blobs() {
@@ -127,8 +136,8 @@ pub fn df(verb: &str, args: &[String]) -> i32 {
         let extracted = rootfs.is_dir();
         rows.push((
             r.display_repository(),
-            r.tag.clone().unwrap_or_else(|| "<none>".to_string()),
-            short_id(&r.digest).to_string(),
+            df_tag(r, twice(r)),
+            crate::images::short_image_id(r),
             stored,
             rootfs_bytes,
             extracted,
@@ -141,15 +150,16 @@ pub fn df(verb: &str, args: &[String]) -> i32 {
         .max()
         .unwrap_or(10)
         .max("REPOSITORY".len());
+    let tag_w = rows.iter().map(|r| r.1.len()).max().unwrap_or(0).max(16);
     println!(
-        "{:<repo_w$}  {:<16}  {:<12}  {:>12}  {:>12}",
+        "{:<repo_w$}  {:<tag_w$}  {:<12}  {:>12}  {:>12}",
         "REPOSITORY", "TAG", "IMAGE ID", "STORED", "ROOTFS"
     );
     let mut rootfs_total = 0u64;
     let mut extracted_count = 0usize;
     for (repo, tag, id, stored, rootfs_bytes, extracted) in &rows {
         println!(
-            "{repo:<repo_w$}  {tag:<16}  {id:<12}  {:>12}  {:>12}",
+            "{repo:<repo_w$}  {tag:<tag_w$}  {id:<12}  {:>12}  {:>12}",
             podvm_image::space::mib(*stored),
             podvm_image::space::mib(*rootfs_bytes)
         );
@@ -222,11 +232,15 @@ pub fn df(verb: &str, args: &[String]) -> i32 {
     0
 }
 
-/// The first twelve hex digits, docker's IMAGE ID width. A digest that
-/// does not parse is not a gate failure: the row still prints.
-pub(super) fn short_id(digest: &str) -> &str {
-    let hex = digest.split(':').next_back().unwrap_or(digest);
-    &hex[..hex.len().min(12)]
+/// The TAG column of a row: the tag, and the platform when the reference
+/// has more than one record (TODO/image.md T-1814).
+pub(crate) fn df_tag(r: &podvm_image::Record, more_than_one: bool) -> String {
+    let tag = r.tag.clone().unwrap_or_else(|| "<none>".to_string());
+    if more_than_one {
+        format!("{tag} ({})", r.platform)
+    } else {
+        tag
+    }
 }
 
 pub fn info(verb: &str, args: &[String]) -> i32 {

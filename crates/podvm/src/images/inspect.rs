@@ -209,16 +209,23 @@ pub const INSPECT_FIELDS: &[&str] = &[
 pub const EXEC_MODE: &str = "fresh-chroot";
 pub const EXEC_SHARES: &str = "filesystem";
 
+/// The IMAGE ID of a record: the first twelve hex digits of its config
+/// digest, the id of `images`, `inspect` and `system df` (TODO/image.md
+/// T-1814).
+pub(crate) fn short_image_id(r: &Record) -> String {
+    let id = &r.config_digest;
+    id.strip_prefix("sha256:")
+        .map(|h| h[..12.min(h.len())].to_string())
+        .unwrap_or_else(|| id.clone())
+}
+
 pub(super) fn image_fields(
     r: &Record,
     store: &Store,
     no_trunc: bool,
 ) -> Vec<(&'static str, String)> {
     let id = r.config_digest.clone();
-    let short_id = id
-        .strip_prefix("sha256:")
-        .map(|h| h[..12.min(h.len())].to_string())
-        .unwrap_or_else(|| id.clone());
+    let short_id = short_image_id(r);
     vec![
         ("Repository", r.display_repository()),
         ("Tag", r.tag.clone().unwrap_or_else(|| "<none>".into())),

@@ -476,7 +476,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1811](cli.md) | P1 | S | none | cli | done | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
 | [T-1812](probe.md) | P1 | S | none | probe | done | `probe --cached` reports `supervise` where `probe` reports `userland` |
 | [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
-| [T-1814](image.md) | P2 | S | none | image | open | `system df` prints the manifest digest in its IMAGE ID column |
+| [T-1814](image.md) | P2 | S | none | image | done | `system df` prints the manifest digest in its IMAGE ID column |
 | [T-1815](cli.md) | P1 | S | none | cli | done | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
 | [T-1816](cli.md) | P1 | M | none | cli | done | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
 | [T-1817](cli.md) | P1 | S | none | cli | done | `run -t` never delivers end of input, so a payload that reads to the end blocks |
@@ -514,7 +514,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1849](machine.md) | P3 | S | none | machine | open | `run` does not say that the machine tier needs `qemu-system`, and the guest sees less memory than `--podvm-mem` asks |
 | [T-1850](cli.md) | P3 | M | none | cli | open | `exec` takes 1.6 times the time of `docker exec`, and `pull` 1.4 times the time of `podman pull` |
 | [T-1851](supervise.md) | P3 | S | none | supervise | open | A store that root and a user share refuses the next run of the user with a bare `Permission denied` |
-| [T-1852](gate.md) | P1 | M | none | gate | open | The QA pass of experiment 443 has no row for the 22 defects that the external gate found |
+| [T-1852](gate.md) | P1 | M | none | gate | partial | The QA pass of experiment 443 has no row for the 22 defects that the external gate found |
 | [T-1853](gate.md) | P2 | S | none | gate | open | No check proves that each parity row with a value takes `--flag=value`, and that each verb takes `-h` and `--help` |
 | [T-1854](gate.md) | P1 | S | none | gate | done | No test proves that each option of `run` is honoured or refused on each tier |
 | [T-1855](gate.md) | P2 | S | none | gate | open | The gate does not scan for the source patterns behind five defects |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 58 open, 11 partial, 6 blocked, 408 done.
+483 entries: 56 open, 12 partial, 6 blocked, 409 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -562,10 +562,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 7 | 6 | 1 | 183 | 197 |
-| P2 | 36 | 3 | 4 | 130 | 173 |
+| P1 | 6 | 7 | 1 | 183 | 197 |
+| P2 | 35 | 3 | 4 | 131 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 58 | 11 | 6 | 408 | 483 |
+| **All** | 56 | 12 | 6 | 409 | 483 |
 
 ## Work order
 

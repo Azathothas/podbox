@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `system df` prints the IMAGE ID of `images`, 2026-11-14
+
+Record: T-1814, T-1852 (partial).
+Deployed: not deployed; no version change.
+
+- `system df` printed the manifest digest in its IMAGE ID column; it now
+  prints the config digest, as `images` and `inspect` do. Two platform
+  records of one reference show the platform after the tag.
+- Experiment 443 has rows for the checks of the external QA report.
+
 ### Fixed: `podvm windows doctor` checks more, and the UEFI firmware of Debian and Ubuntu is found, 2026-11-14
 
 Record: T-1871 (partial).

@@ -398,6 +398,15 @@ for r in ns ul; do
 	t life.logs.$r $r "start" 'has "$out" start' "\$X \$PB logs $n"
 	TO=4 t life.logs-f.$r $r "start, follows until the bound (rc 124)" 'has "$out" start && [ $rc -eq 124 ]' "\$X \$PB logs -f $n"
 	t life.logs-tail.$r $r "one line" '[ "$out" = start ]' "\$X \$PB logs --tail 1 $n"
+	# T-1852: one row for each defect of the external gate of beta.14.
+	t life.missing-name.$r $r "each lifecycle verb exits 1 for a missing name (T-1805)" '[ "$out" = bad=0 ]' "c=0; for v in start stop restart rm logs wait kill; do \$X \$PB \$v qa-nosuch-$r >/dev/null 2>&1; [ \$? -eq 1 ] || c=\$((c+1)); done; echo bad=\$c"
+	t life.fg-stderr.$r $r "logs of a foreground run hold stderr (T-1806)" 'has "$out" E1 && has "$out" O1' "\$PB rm -f qa-$r-l >/dev/null 2>&1; \$X \$PB run --name qa-$r-l \$A sh -c 'echo O1; echo E1 >&2' >/dev/null 2>&1; \$X \$PB logs qa-$r-l; \$PB rm -f qa-$r-l >/dev/null"
+	t life.restart-end.$r $r "a restarted run shows no exit code of the run before (T-1807)" '[ $rc -eq 0 ] && ! printf "%s" "$out" | grep -q "\"ExitCode\":\"143\""' "\$PB rm -f qa-$r-r >/dev/null 2>&1; \$X \$PB run -d --name qa-$r-r \$A sleep 60 >/dev/null; \$X \$PB kill -s TERM qa-$r-r >/dev/null; sleep 1; \$X \$PB restart qa-$r-r >/dev/null; \$X \$PB inspect qa-$r-r; \$PB rm -f qa-$r-r >/dev/null"
+	t life.ps-multibyte.$r $r "ps with a multibyte command exits 0 (T-1800)" '[ $rc -eq 0 ]' "\$PB rm -f qa-$r-u >/dev/null 2>&1; \$X \$PB run --name qa-$r-u \$A echo AAAAAAAAAAA\$(printf '\303\251')BCDEF >/dev/null 2>&1; \$X \$PB ps -a >/dev/null; r=\$?; \$PB rm -f qa-$r-u >/dev/null; exit \$r"
+	t life.full-stdout.$r $r "a full stdout exits 125 and names the error (T-1816)" '[ $rc -eq 125 ] && has "$err" "No space left"' "\$X \$PB version >/dev/full"
+	t life.detach-tty.$r $r "-d -t is refused by name (T-1815)" '[ $rc -eq 125 ] && has "$err" -e "-t is refused"' "\$X \$PB run -d -t \$A true"
+	TO=30 t life.tty-eof.$r $r "-t ends the input of the payload (T-1817)" '[ $rc -eq 0 ]' "\$X \$PB run --rm -t \$A cat </dev/null"
+	t life.probe-cached.$r $r "probe --cached gives the rung of probe (T-1812)" '[ "$out" = same ]' "a=\$(\$X \$PB probe 2>/dev/null); b=\$(\$X \$PB probe --cached 2>/dev/null); [ \"\$a\" = \"\$b\" ] && echo same || echo \"diff \$a \$b\""
 	t life.exec-rc.$r $r "rc 4" '[ $rc -eq 4 ]' "\$X \$PB exec $n sh -c 'exit 4'"
 	t life.exec-e-w.$r $r "1 /tmp" '[ "$out" = "1 /tmp" ]' "\$X \$PB exec -e QX=1 -w /tmp $n sh -c 'echo \$QX \$(pwd)'"
 	t life.exec-env-run.$r $r "exec sees the -e of run (docker)" '[ "$out" = runval ]' "\$PB rm -f qa-$r-e >/dev/null 2>&1; \$X \$PB run -d --name qa-$r-e -e RV=runval \$A sh -c 'while :; do sleep 1; done' >/dev/null && \$X \$PB exec qa-$r-e sh -c 'echo \$RV'; \$PB rm -f qa-$r-e >/dev/null"
@@ -445,6 +454,7 @@ done
 t sys.info-json ns "JSON" 'python3 -I -c "import json,sys; json.load(sys.stdin)" <"$of"' "\$PB system info --format '{{json .Parity}}'"
 t sys.info-consistent ns "the run row does not say chroot where the rung is namespace" '! has "$out" "enters a chroot, never a namespace"' '$PB system info'
 t sys.df ns "rc 0, rows" '[ $rc -eq 0 ] && has "$out" alpine' '$PB system df'
+t sys.df-id ns "IMAGE ID of system df is the id of images (T-1814)" '[ $rc -eq 0 ] && iid=$(printf "%s\n" "$out" | tail -1) && [ -n "$iid" ] && printf "%s\n" "$out" | grep -q "alpine .* $iid "' '$PB system df; $PB images --format "{{.ID}}" $A | head -1'
 t sys.probe ns "rc 0" '[ $rc -eq 0 ]' '$PB probe'
 t sys.probe.ul ul "rc 0, names userland" '[ $rc -eq 0 ] && has "$out$err" userland' '$X $PB probe'
 t sys.probe-json ns "JSON" '[ $rc -eq 0 ] && python3 -I -c "import json,sys; json.load(sys.stdin)" <"$of"' '$PB probe --json'
@@ -570,6 +580,7 @@ if command -v qemu-system-x86_64 >/dev/null 2>&1; then
 	TO=600 t machine.vol ns "invol through 9p" '[ "$out" = invol ]' '$PB run --rm --podvm-tier=machine -v $W/vol:/data $A cat /data/in.txt'
 	TO=600 t machine.report ns "exit_code 7, refused null, rung and image (T-1803)" '[ $rc -eq 7 ] && python3 -I -c "import json,sys; d=json.load(open(sys.argv[1])); assert d[\"exit_code\"]==7 and d[\"refused\"] is None and d[\"rung\"]==\"machine\" and d[\"image\"], d" $W/mrep.json' "rm -f \$W/mrep.json; \$PB run --rm --podvm-tier=machine --report \$W/mrep.json \$A sh -c 'exit 7'"
 	TO=60 t machine.report-timeout ns "timed_out true (T-1803)" 'python3 -I -c "import json,sys; d=json.load(open(sys.argv[1])); assert d[\"timed_out\"] is True and d[\"exit_code\"]==137, d" $W/mrept.json' "rm -f \$W/mrept.json; \$PB run --rm --podvm-tier=machine --timeout 2 --report \$W/mrept.json \$A sleep 30"
+	TO=600 t machine.eq-form ns "--podvm-net=none parses as the space form (T-1811)" '[ $rc -eq 0 ]' '$PB run --rm --podvm-tier=machine --podvm-net=none $A true'
 	TO=60 t machine.timeout ns "rc 137 in under 4 s, no emulator left (T-1809, T-1884)" '[ $rc -eq 137 ] && [ $ms -lt 4000 ] && ! pgrep -x qemu-system-x86_64 >/dev/null' '$PB run --rm --podvm-tier=machine --timeout 2 $A sleep 30'
 	TO=600 t machine.uname.ul ul "a kernel release, rc 0" '[ $rc -eq 0 ] && [ -n "$out" ]' '$X $PB run --rm --podvm-tier=machine $A uname -r'
 else

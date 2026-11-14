@@ -102,17 +102,6 @@ fn df_help_and_bad_flag_need_no_store() {
     );
 }
 
-/// TODO/cli.md T-1337: IMAGE ID is docker's twelve hex digits, and
-/// a digest that does not parse still prints its row.
-#[test]
-fn short_id_is_twelve_hex() {
-    assert_eq!(
-        short_id("sha256:833d7afe7d42e2fc552740ebdb947218770eb6f0a533927ed2a04b4d453e4f0a"),
-        "833d7afe7d42"
-    );
-    assert_eq!(short_id("bogus"), "bogus");
-}
-
 /// T-1519 (`80-interposer-abi.sh` check E). `system abi` reports three
 /// exit codes: 0 admitted, 1 refused with the reason on stderr, 2 a file
 /// podvm could not read. The unreadable and refused arms are pinned

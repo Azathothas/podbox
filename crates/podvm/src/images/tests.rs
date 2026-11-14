@@ -481,3 +481,20 @@ fn an_extraction_that_no_record_names_is_an_orphan() {
     assert!(found[0].1 >= 4096);
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// TODO/image.md T-1814: the IMAGE ID of a row of `system df` is the id of
+/// `images` for the same record (the config digest, not the manifest
+/// digest), and two records of one reference show their platforms.
+#[test]
+fn df_image_id_equals_the_id_of_images() {
+    let store =
+        Store::open(std::env::temp_dir().join(format!("podvm-df-id-{}", std::process::id())))
+            .unwrap();
+    let r = a_record();
+    let f = image_fields(&r, &store, false);
+    assert_eq!(short_image_id(&r), pick(&f, "ID"));
+    assert_eq!(short_image_id(&r), "333333333333", "the config digest");
+    assert_eq!(crate::system::df_tag(&r, false), "latest");
+    assert_eq!(crate::system::df_tag(&r, true), "latest (linux/amd64)");
+    let _ = std::fs::remove_dir_all(store.root());
+}

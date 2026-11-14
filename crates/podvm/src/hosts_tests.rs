@@ -13,7 +13,11 @@ use std::path::{Path, PathBuf};
 /// Hosts that podvm names and that `pod-services` does not list yet. Each
 /// was reported to podcrates; the test fails when the crate lists one, so
 /// this list only shrinks.
-const WAITING: &[&str] = &[];
+const WAITING: &[&str] = &["software-download.microsoft.com"];
+
+/// Hosts that only name an XML namespace: no code of podvm connects to
+/// them (TODO/machine.md T-1866, the answer file of a Windows setup).
+const NAMESPACES: &[&str] = &["schemas.microsoft.com"];
 
 /// Hosts that are podvm's own or no host of another party.
 const OWN: &[&str] = &["localhost", "example.com", "example.org"];
@@ -129,7 +133,7 @@ fn each_host_that_podvm_names_is_in_pod_services() {
     let missing: Vec<&String> = named
         .iter()
         .filter(|h| !listed.contains(*h) && !OWN.contains(&h.as_str()) && !reserved(h))
-        .filter(|h| !WAITING.contains(&h.as_str()))
+        .filter(|h| !WAITING.contains(&h.as_str()) && !NAMESPACES.contains(&h.as_str()))
         .collect();
     assert!(
         missing.is_empty(),

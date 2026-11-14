@@ -3938,7 +3938,7 @@ store held 21 548 bytes (its index and locks).
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3966,6 +3966,15 @@ IMAGE ID is the id of each other verb.
 ## Prove
 
 `cargo test -p podvm --bin podvm df_image_id` exits 0, with a test that the IMAGE ID of a row equals `images --format '{{.ID}}'` for the same record
+
+## Done
+
+**Done 2026-11-14.** `system df` takes its IMAGE ID from
+`crate::images::short_image_id`, the function behind the ID of `images`
+and `inspect` (the config digest). Two records of one reference show
+their platform after the tag, and the TAG column fits its longest value.
+`cargo test -p podvm --bin podvm df_image_id` exits 0; the row
+`sys.df-id` of experiment 443 passes (sys: 128 pass, 0 fail).
 
 
 # T-1836: Six image messages name the wrong cause or repeat themselves
