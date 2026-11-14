@@ -218,3 +218,4 @@ before #127; their text is on GitHub, and the hidden ones are in
 #313 and #314 are pull requests of Dependabot. Each judged update lands
 on `main` as its own commit, and its pull request then closes (`AGENTS.md`,
 section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
+| #322 | COORD-086: the order of podcrates@T-486, @T-107 and @T-345 to @T-347, which the open entries of podvm wait on, before its beta testers start (to podcrates) | open | T-1749, T-1714, T-1662 |
