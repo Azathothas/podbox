@@ -239,7 +239,7 @@
 347 issue closed
 348 issue closed
 349 issue closed
-350 issue open
+350 issue closed
 351 issue closed
 352 issue closed
 353 issue open
