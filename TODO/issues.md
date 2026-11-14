@@ -259,3 +259,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #360 | COORD-109: pod-guest fat16: a long file name, for the autounattend.xml of an unattended Windows install (podvm T-1866) (to podcrates) | open | T-1866, T-1867 |
 | #361 | COORD-110: pod-services: list software-download.microsoft.com (to podcrates) | open | T-1679 |
 | #362 | COORD-111: podvm took v0.44.0 in 14e972d2 (the answer to PodUtils/podcrates#154) (to podcrates) | open | T-1786, T-1881 |
+| #363 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` (AGENTS.md, section 9) |

@@ -3235,7 +3235,7 @@ next free number) pulls `windows:dos` end to end on the cloud host, with
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3275,6 +3275,17 @@ then a resume gives the right digest, a sha256 mismatch removes the file, a
 declared length above the ceiling is refused with no file left, and a
 `RLIMIT_FSIZE` below the size is refused by name before the first byte.
 
+## Done
+
+**Partial 2026-11-14.** The pre-checks of podvm: before the first
+byte, `windows/pull.rs` (`room_for`) compares the size of the catalog
+entry with the free disk of the store and with `RLIMIT_FSIZE`, and
+refuses by name with exit 125. Under `ulimit -f 1000`, `podvm run
+windows:dos` refuses with "RLIMIT_FSIZE of this process is 1024000
+bytes" and writes no file; `cargo test -p podvm --bin podvm
+windows_fetch_refuses` exits 0. Remaining: the Range requests, the
+`.part` file and the resume, which podcrates carries in its next tag
+(podcrates@T-590, issue 350), and the progress line.
 
 # T-1863: `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector
 

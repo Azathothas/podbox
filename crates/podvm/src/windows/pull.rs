@@ -25,6 +25,22 @@ pub(crate) fn fetched(verb: &str, e: &Entry) -> Result<PathBuf, i32> {
         eprintln!("podvm {verb}: {}: {err}", dir.display());
         return Err(EXIT_RUNTIME_ERROR);
     }
+    let fsize = super::plan::ceiling()?;
+    // TODO/machine.md T-1862: the disk and the file-size limit are read
+    // before the first byte, so a download of gigabytes does not fail
+    // late. A disk that cannot be read is no refusal.
+    let free = podvm_image::space::read(&dir.to_string_lossy())
+        .ok()
+        .map(|h| h.free.bytes);
+    if let Err(why) = room_for(e.size, free, fsize) {
+        eprintln!(
+            "podvm {verb}: windows:{}: {why}, so podvm fetches nothing into {} \
+             (TODO/machine.md T-1862)",
+            e.name,
+            dir.display()
+        );
+        return Err(EXIT_RUNTIME_ERROR);
+    }
     eprintln!(
         "podvm {verb}: windows:{}: fetching {} ({} bytes) into {}",
         e.name,
@@ -34,7 +50,7 @@ pub(crate) fn fetched(verb: &str, e: &Entry) -> Result<PathBuf, i32> {
     );
     let ceiling = podvm_windows::Ceiling {
         max_bytes: e.ceiling(),
-        fsize: super::plan::ceiling()?,
+        fsize,
     };
     let response = super::setup::get(e.url, super::setup::FETCH_LIMITS).map_err(|err| {
         eprintln!("podvm {verb}: {}: {err}", e.url);
@@ -49,6 +65,24 @@ pub(crate) fn fetched(verb: &str, e: &Entry) -> Result<PathBuf, i32> {
             eprintln!("podvm {verb}: windows:{}: {err}", e.name);
             Err(EXIT_RUNTIME_ERROR)
         }
+    }
+}
+
+/// TODO/machine.md T-1862: a file of `size` bytes fits the free disk
+/// `free` (None: not known) and the file-size limit `fsize` of the
+/// process (`u64::MAX`: none).
+pub(crate) fn room_for(size: u64, free: Option<u64>, fsize: u64) -> Result<(), String> {
+    if size > fsize {
+        return Err(format!(
+            "the file is {size} bytes and RLIMIT_FSIZE of this process is {fsize} bytes \
+             (`ulimit -f unlimited` lifts it)"
+        ));
+    }
+    match free {
+        Some(f) if size > f => Err(format!(
+            "the file is {size} bytes and the disk has {f} bytes free"
+        )),
+        _ => Ok(()),
     }
 }
 
@@ -157,6 +191,20 @@ pub(crate) fn zip_member(zip: &[u8], name: &str, size: u64) -> Result<Vec<u8>, S
 
 #[cfg(test)]
 mod tests {
+    /// TODO/machine.md T-1862: the pre-checks refuse a file over the free
+    /// disk or over RLIMIT_FSIZE by name, and pass where the disk is not
+    /// known.
+    #[test]
+    fn windows_fetch_refuses_a_file_over_the_disk_or_the_fsize_limit() {
+        use super::room_for;
+        assert!(room_for(10, Some(100), u64::MAX).is_ok());
+        assert!(room_for(10, None, u64::MAX).is_ok());
+        let e = room_for(200, Some(100), u64::MAX).unwrap_err();
+        assert!(e.contains("100 bytes free"), "{e}");
+        let e = room_for(200, Some(1000), 100).unwrap_err();
+        assert!(e.contains("RLIMIT_FSIZE"), "{e}");
+    }
+
     use super::*;
 
     /// A zip of one stored member, as `zip -0` writes it.

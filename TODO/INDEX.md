@@ -524,7 +524,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1859](gate.md) | P2 | S | none | gate | open | Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each |
 | [T-1860](gate.md) | P2 | S | none | gate | open | The tests of `podvm-interpose` fail when they run in parallel, and CI does not run them |
 | [T-1861](machine.md) | P1 | M | none | machine | partial | `podvm run windows:NAME` has no image name, no catalog and no `pull`, `images` or `rmi` |
-| [T-1862](machine.md) | P1 | M | none | machine | open | The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check |
+| [T-1862](machine.md) | P1 | M | none | machine | partial | The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check |
 | [T-1863](machine.md) | P1 | M | none | machine | open | `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector |
 | [T-1864](machine.md) | P1 | S | none | machine | open | The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out |
 | [T-1865](machine.md) | P1 | M | none | machine | open | The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 54 open, 13 partial, 4 blocked, 412 done.
+483 entries: 53 open, 14 partial, 4 blocked, 412 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -562,10 +562,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
-| P1 | 5 | 7 | 0 | 185 | 197 |
+| P1 | 4 | 8 | 0 | 185 | 197 |
 | P2 | 34 | 3 | 4 | 132 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 54 | 13 | 4 | 412 | 483 |
+| **All** | 53 | 14 | 4 | 412 | 483 |
 
 ## Work order
 
