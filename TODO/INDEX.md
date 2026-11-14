@@ -463,8 +463,8 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1786](supervise.md) | P1 | M | none | supervise | blocked | A foreground run is recorded `Created` while its payload runs |
 | [T-1787](image.md) | P2 | S | none | image | done | `system df` misses the trees and the extractions that no image names, and no verb removes the latter |
 | [T-1800](supervise.md) | P0 | S | none | supervise | done | `ps` aborts with SIGABRT when a command has a multibyte character at byte 17 |
-| [T-1801](cli.md) | P0 | S | none | cli | open | `--report` after the image is read as podvm's, so a payload argument overwrites a host file |
-| [T-1802](cli.md) | P0 | S | none | cli | open | A run refused before `prepare` writes the `-e` values into its report |
+| [T-1801](cli.md) | P0 | S | none | cli | done | `--report` after the image is read as podvm's, so a payload argument overwrites a host file |
+| [T-1802](cli.md) | P0 | S | none | cli | done | A run refused before `prepare` writes the `-e` values into its report |
 | [T-1803](machine.md) | P1 | M | none | machine | open | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
 | [T-1804](enter.md) | P0 | S | none | enter | open | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
 | [T-1805](supervise.md) | P1 | M | none | supervise | open | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
@@ -525,7 +525,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-456 entries: 61 open, 5 partial, 3 blocked, 387 done.
+456 entries: 59 open, 5 partial, 3 blocked, 389 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -534,11 +534,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 7 | 0 | 0 | 66 | 73 |
+| P0 | 5 | 0 | 0 | 68 | 73 |
 | P1 | 15 | 1 | 1 | 169 | 186 |
 | P2 | 25 | 2 | 2 | 130 | 159 |
 | P3 | 14 | 2 | 0 | 22 | 38 |
-| **All** | 61 | 5 | 3 | 387 | 456 |
+| **All** | 59 | 5 | 3 | 389 | 456 |
 
 ## Work order
 

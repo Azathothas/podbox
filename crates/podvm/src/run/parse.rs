@@ -37,6 +37,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             eprintln!("podvm {verb}: -s needs --profile NAME: it sets one key of a profile");
             return Err(EXIT_FLAG_ERROR);
         }
+        super::report::note_parsed(o.image.clone(), o.command.clone());
         return Ok(o);
     };
     let shape = crate::profile::run_args(verb, &name, &o.sets)?;
@@ -61,6 +62,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
     o.wrap = shape.wrap;
     o.drops = shape.drops;
     o.needs = shape.needs;
+    super::report::note_parsed(o.image.clone(), o.command.clone());
     Ok(o)
 }
 
@@ -157,8 +159,11 @@ fn parse_flags_with(
                     }
                 },
                 "--podvm-cpus" => o.cpus = Some(cpus(verb, a)?),
-                // TODO/cli.md T-1695: `run` reads the path before the parse.
-                "--report" => report(verb)?,
+                // TODO/cli.md T-1695, T-1801: the parser gives the path.
+                "--report" => {
+                    report(verb)?;
+                    super::report::note_path(a);
+                }
                 "--podvm-confine" => {
                     let c = confine(verb, a)?;
                     o.hardening.confine = Some(podvm_enter::confine::render(&c));
@@ -271,6 +276,10 @@ fn parse_flags_with(
             "--podvm-cpus" => expecting = Some("--podvm-cpus"),
             "--podvm-confine" => expecting = Some("--podvm-confine"),
             "--report" => expecting = Some("--report"),
+            other if other.starts_with("--report=") => {
+                report(verb)?;
+                super::report::note_path(&other["--report=".len()..]);
+            }
             "--profile" => expecting = Some("--profile"),
             "--network" | "--net" => expecting = Some("--network"),
             "--ports" => expecting = Some("--ports"),

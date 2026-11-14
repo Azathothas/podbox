@@ -116,10 +116,19 @@ fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
 /// `run`. With `--report PATH`, one JSON document of the run goes to PATH
 /// at its end, also where podvm refuses (TODO/cli.md T-1695).
 pub fn run(args: &[String]) -> i32 {
-    let path = super::report::path_in(args);
-    let mut r = super::report::Report::begin(args);
+    let _ = super::report::take_path();
+    let _ = super::report::take_parsed();
+    let mut r = super::report::Report::begin();
     let code = run_inner(args, &mut r);
-    if let Some(path) = path {
+    // TODO/cli.md T-1802: a run refused after the parse and before
+    // `prepare` gets the image and the command of the parse, never the
+    // argv of podvm, which holds the values of `-e`.
+    if let Some((image, command)) = super::report::take_parsed() {
+        r.parsed(image, command);
+    }
+    // TODO/cli.md T-1801: the parser noted the path; a word of the payload
+    // is never read as podvm's.
+    if let Some(path) = super::report::take_path() {
         r.end(code);
         if let Err(e) = r.write(&path) {
             eprintln!(

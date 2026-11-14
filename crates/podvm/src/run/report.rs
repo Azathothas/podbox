@@ -57,7 +57,10 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn begin(argv: &[String]) -> Report {
+    /// TODO/cli.md T-1802: the report starts with no argv. The argv of
+    /// podvm holds the values of `-e`; the report holds the command of the
+    /// payload only, from the parse or from the prepared run.
+    pub fn begin() -> Report {
         Report {
             schema: SCHEMA,
             podvm: env!("CARGO_PKG_VERSION"),
@@ -65,7 +68,7 @@ impl Report {
             image_digest: None,
             rung: None,
             measured_by: "the rung that podvm entered, as its banner names it",
-            argv: argv.to_vec(),
+            argv: Vec::new(),
             container: None,
             detached: false,
             exit_code: None,
@@ -86,6 +89,17 @@ impl Report {
             degradations: Vec::new(),
             clock: Some(Instant::now()),
             ran: false,
+        }
+    }
+
+    /// The image and the command that the parse read, for a run that a
+    /// step after the parse refuses (TODO/cli.md T-1802).
+    pub fn parsed(&mut self, image: Option<String>, command: Vec<String>) {
+        if self.image.is_none() {
+            self.image = image;
+        }
+        if self.argv.is_empty() {
+            self.argv = command;
         }
     }
 
@@ -173,19 +187,40 @@ impl Report {
     }
 }
 
-/// The PATH of `--report` in `args`, read before the parse so that a run
-/// that the parse refuses still gets its report. The scan stops at `--`.
-pub fn path_in(args: &[String]) -> Option<PathBuf> {
-    let mut it = args.iter().take_while(|a| a.as_str() != "--");
-    while let Some(a) = it.next() {
-        if a == "--report" {
-            return it.next().map(PathBuf::from);
-        }
-        if let Some(p) = a.strip_prefix("--report=") {
-            return Some(PathBuf::from(p));
-        }
-    }
-    None
+thread_local! {
+    /// The PATH of `--report`, as the parser of `run` read it.
+    static PATH: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+
+/// The parser of `run` notes the PATH of `--report` when it reads the flag,
+/// so that a run that a later word or a later step refuses still gets its
+/// report. TODO/cli.md T-1801: only the parser decides which words are
+/// podvm's; a word after the image is the payload's and is never read here.
+pub(crate) fn note_path(p: &str) {
+    PATH.with(|s| *s.borrow_mut() = Some(PathBuf::from(p)));
+}
+
+thread_local! {
+    /// The image and the command of the payload, as the parse of `run` read
+    /// them (TODO/cli.md T-1802).
+    static PARSED: std::cell::RefCell<Option<(Option<String>, Vec<String>)>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// The parse of `run` notes the image and the command of the payload.
+pub(crate) fn note_parsed(image: Option<String>, command: Vec<String>) {
+    PARSED.with(|s| *s.borrow_mut() = Some((image, command)));
+}
+
+/// What the parse noted, once.
+pub fn take_parsed() -> Option<(Option<String>, Vec<String>)> {
+    PARSED.with(|s| s.borrow_mut().take())
+}
+
+/// The PATH that the parser noted, once. A refusal before the parser read
+/// the flag has none, and writes no report.
+pub fn take_path() -> Option<PathBuf> {
+    PATH.with(|s| s.borrow_mut().take())
 }
 
 #[cfg(test)]
@@ -203,7 +238,7 @@ mod tests {
 
     #[test]
     fn report_has_every_field() {
-        let mut r = Report::begin(&v(&["img", "sh", "-c", "exit 3"]));
+        let mut r = Report::begin();
         r.labels = v(&["job=7"]);
         r.rung = Some("namespace".into());
         r.ran = true;
@@ -242,7 +277,7 @@ mod tests {
         assert_eq!(j["signal"], serde_json::Value::Null);
         assert_eq!(j["labels"][0], "job=7");
         assert!(j["wall_ms"].is_u64());
-        let mut s = Report::begin(&[]);
+        let mut s = Report::begin();
         s.ran = true;
         s.end(137);
         assert_eq!(s.signal, Some(9));
@@ -254,7 +289,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("r.json");
-        let mut r = Report::begin(&v(&["nope"]));
+        let mut r = Report::begin();
         r.end(125);
         r.write(&path).unwrap();
         let j: serde_json::Value =
@@ -304,15 +339,15 @@ mod tests {
             .iter()
             .map(|r| r.as_str().unwrap())
             .collect();
-        let mut ran = Report::begin(&v(&["img", "true"]));
+        let mut ran = Report::begin();
         ran.rung = Some("namespace".into());
         ran.labels = v(&["job=7"]);
         ran.limits = v(&["nofile=64"]);
         ran.ran = true;
         ran.end(0);
-        let mut refused = Report::begin(&v(&["nope"]));
+        let mut refused = Report::begin();
         refused.end(125);
-        let mut detached = Report::begin(&v(&["-d", "img", "sleep", "9"]));
+        let mut detached = Report::begin();
         detached.detached = true;
         detached.container = Some("abc".into());
         detached.ran = true;
@@ -332,17 +367,80 @@ mod tests {
         }
     }
 
+    /// TODO/cli.md T-1802: a run refused before `prepare` writes no value
+    /// of `-e` into its report, and its argv is the payload's command, or
+    /// empty where the parse did not reach the image.
     #[test]
-    fn the_path_is_found_before_the_parse() {
+    fn report_refusal_holds_no_value_of_e() {
+        let dir = std::env::temp_dir().join(format!("podvm-t1802-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("r.json");
+        let cases: [(&[&str], &[&str]); 2] = [
+            (
+                &[
+                    "--pull",
+                    "never",
+                    "-e",
+                    "API_TOKEN=canary-value",
+                    "nosuchimage:1",
+                    "true",
+                ],
+                &["true"],
+            ),
+            (
+                &[
+                    "-e",
+                    "API_TOKEN=canary-value",
+                    "--no-such-flag",
+                    "img",
+                    "true",
+                ],
+                &[],
+            ),
+        ];
+        for (args, want) in cases {
+            let _ = take_parsed();
+            let mut r = Report::begin();
+            let _ = crate::run::parse::parse("run", &v(args));
+            if let Some((image, command)) = take_parsed() {
+                r.parsed(image, command);
+            }
+            r.end(125);
+            r.write(&path).unwrap();
+            let text = std::fs::read_to_string(&path).unwrap();
+            assert!(!text.contains("canary-value"), "{text}");
+            let j: serde_json::Value = serde_json::from_str(&text).unwrap();
+            assert_eq!(j["argv"], serde_json::json!(want), "{text}");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// TODO/cli.md T-1801: the parser of `run` gives the path. A word after
+    /// the image is the payload's, and the value of `--name` is a name.
+    #[test]
+    fn report_path_is_the_parsers() {
+        let path = |a: &[&str]| {
+            let _ = take_path();
+            let _ = crate::run::parse::parse("run", &v(a));
+            take_path()
+        };
         assert_eq!(
-            path_in(&v(&["--report", "r.json", "img"])),
+            path(&["--report", "r.json", "img", "true"]),
             Some("r.json".into())
         );
         assert_eq!(
-            path_in(&v(&["--report=r.json", "img"])),
+            path(&["--report=r.json", "img", "true"]),
             Some("r.json".into())
         );
-        assert_eq!(path_in(&v(&["img", "--", "--report", "x"])), None);
-        assert_eq!(path_in(&v(&["img"])), None);
+        assert_eq!(path(&["img", "true", "--report", "important.txt"]), None);
+        assert_eq!(path(&["--name", "--report", "img", "cmd"]), None);
+        assert_eq!(path(&["img", "--", "--report", "x"]), None);
+        assert_eq!(path(&["img"]), None);
+        // A refusal after the flag keeps the path, so the refusal is reported.
+        assert_eq!(
+            path(&["--report", "r.json", "--no-such-flag", "img"]),
+            Some("r.json".into())
+        );
     }
 }

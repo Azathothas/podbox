@@ -8,6 +8,28 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a refused run writes no `-e` value into its report, 2026-11-14
+
+Record: T-1802.
+Deployed: not deployed; no version change.
+
+- The report of a run that podvm refused before it prepared the run held
+  the argv of podvm in `argv`, with each `-e NAME=VALUE`. It now holds
+  the command of the payload where the parse read it, and `[]` before
+  that, and it names the image of the parse.
+
+### Fixed: `--report` after the image is the payload's, 2026-11-14
+
+Record: T-1801.
+Deployed: not deployed; no version change.
+
+- `run` read `--report PATH` anywhere before `--`, also among the
+  arguments of the payload, and replaced PATH with the report: `podvm run
+  IMG true --report important.txt` overwrote the file. Only the parser
+  of `run` reads `--report` now, so each word after the image is the
+  payload's, as the help says. A refusal after the flag still writes its
+  report.
+
 ### Fixed: `ps` with a multibyte character in the command, 2026-11-14
 
 Record: T-1800.

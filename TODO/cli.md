@@ -4589,7 +4589,7 @@ usage to stdout with `--help`.
 **Milestone:** none
 **Priority:** P0
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4623,6 +4623,21 @@ not take it as is.
 
 `cargo test -p podvm --bin podvm report_path` exits 0, with tests that `run IMG true --report F` and `run --name --report IMG cmd` write no file F and no file named after the image, and that `run --report F IMG true` writes F
 
+## Done
+
+**Done 2026-11-14.** `run/report.rs` has no scan before the parse now:
+the parser of `run` notes the path when it reads `--report` or
+`--report=` (`note_path`), and `run` takes it at the end (`take_path`).
+The test `report_path_is_the_parsers` gives no path for
+`IMG true --report F`, for `--name --report IMG cmd` and after `--`,
+and the path for `--report F IMG` and for a refusal after the flag. By
+hand with the built binary: the payload got `--report PATH` as its
+argument and `important.txt` kept its text; `--name --report IMG true`
+named the container and wrote no file; `--report F IMG true` wrote F;
+`--report F --timeout abc IMG true` exited 125 and F held
+`"refused": 125`. Experiment 426 passes its 4 clauses. Experiment 443
+has the row `run.report-payload` on both rungs.
+
 
 # T-1802: A run refused before `prepare` writes the `-e` values into its report
 
@@ -4631,7 +4646,7 @@ not take it as is.
 **Milestone:** none
 **Priority:** P0
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4666,6 +4681,23 @@ that.
 ## Prove
 
 `cargo test -p podvm --bin podvm report_refusal` exits 0, with a test that a refused run with `-e K=canary-value` writes a report in which the bytes `canary-value` do not occur and `argv` is the payload command or `null`
+
+## Done
+
+**Done 2026-11-14.** `Report::begin` keeps no argv now. The parse of
+`run` notes the image and the command of the payload (`note_parsed`),
+and `run` puts them into the report of a run that a later step refused
+(`Report::parsed`); `prepared` still gives them for each run that
+prepared. A correction of the Premise: the schema
+`podvm-run-report.v1.schema.json` declares `argv` an array with no
+`null`, so a report written before the parse reached the image has
+`"argv": []`, which keeps layout 1. The test
+`report_refusal_holds_no_value_of_e` writes the report of a refused run
+with `-e API_TOKEN=canary-value`, before and after the parse reached the
+image: no `canary-value` in either, and `argv` is `["true"]` and `[]`.
+By hand, the command of the report: exit 125, no `s3cr3t` in the file,
+`argv` `["true"]`, the image named and `refused` 125. Experiment 426
+passes; experiment 443 has the row `run.report-refused-env`.
 
 
 # T-1811: `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm`
