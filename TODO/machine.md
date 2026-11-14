@@ -3984,3 +3984,80 @@ exists.
 updated to the new text. `grep -rn "No base is fetched" crates` finds nothing.
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and its plant
 for the removed sentence turns red when the sentence returns.
+
+
+# T-1884: A machine run that podvm ends on SIGTERM leaves its emulator running
+
+**Source:** the check of T-1817 (2026-11-14)
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`printf 'x\n' | timeout 400 podvm run --rm --podvm-tier=machine -t
+alpine:3.20 cat` with beta.17 hung, `timeout` sent SIGTERM to podvm at
+400 s, podvm exited 124, and a `qemu-system-x86_64` process of that run
+was still running afterwards (pid 7795 on the cloud host, ended by hand).
+`AGENTS.md`, section 2: no emulator stays after the run.
+
+## Premise
+
+The machine tier starts QEMU in a process group of its own, and only the
+normal end of the run (`drive`, its bounded wait and kill) ends it; a
+signal to podvm does not reach that group.
+
+## Approach
+
+On SIGTERM, SIGINT and SIGHUP during a machine run, kill the process
+group of the emulator, reap it within a bound, and exit 128 plus the
+signal; a supervisor of the emulator that dies with podvm (a pidfd and
+`PR_SET_PDEATHSIG` in the child) closes the case of SIGKILL.
+
+## Decision
+
+An emulator never outlives the podvm that started it.
+
+## Prove
+
+On the cloud host, `timeout 30 podvm run --rm --podvm-tier=machine mirror.gcr.io/library/alpine:3.20 sleep 300` exits 124 and `pgrep qemu-system` then finds nothing, and the same with `timeout -s KILL`
+
+
+# T-1885: Piped input to a machine run with `-t` is lost before the guest terminal opens
+
+**Source:** the check of T-1817 (2026-11-14)
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`printf 'machine-in\n' | podvm run --rm --podvm-tier=machine -t
+alpine:3.20 cat` ends in 3 s with exit 0 and prints no `machine-in`;
+without `-t` the same run prints it. beta.17 printed nothing either (it
+hung).
+
+## Premise
+
+The pump of `machine/guest/tty.rs` connects to the socket of the
+console as soon as QEMU listens and writes stdin at once, before
+`podvm guest-tty` in the guest opens `/dev/hvc0`; the bytes and the
+VEOF of T-1817 reach a console that no reader holds.
+
+## Approach
+
+Hold stdin until the guest says that its terminal is open (a marker that
+`guest-tty` writes on the console, which the pump waits for), then
+relay.
+
+## Decision
+
+A `-t` run gets each byte of its stdin, as a run without `-t` does.
+
+## Prove
+
+`printf 'machine-in\n' | podvm run --rm --podvm-tier=machine -t mirror.gcr.io/library/alpine:3.20 cat` prints `machine-in` and exits 0 under TCG on the cloud host

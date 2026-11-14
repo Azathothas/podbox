@@ -477,9 +477,9 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1812](probe.md) | P1 | S | none | probe | done | `probe --cached` reports `supervise` where `probe` reports `userland` |
 | [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
 | [T-1814](image.md) | P2 | S | none | image | open | `system df` prints the manifest digest in its IMAGE ID column |
-| [T-1815](cli.md) | P1 | S | none | cli | open | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
+| [T-1815](cli.md) | P1 | S | none | cli | done | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
 | [T-1816](cli.md) | P1 | M | none | cli | done | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
-| [T-1817](cli.md) | P1 | S | none | cli | open | `run -t` never delivers end of input, so a payload that reads to the end blocks |
+| [T-1817](cli.md) | P1 | S | none | cli | done | `run -t` never delivers end of input, so a payload that reads to the end blocks |
 | [T-1818](complete.md) | P0 | S | none | complete | done | `--no-host-cas` is ignored on an image that ships no CA bundle |
 | [T-1819](enter.md) | P0 | M | none | enter | done | An `exec=` rule of `--podvm-confine` does not deny a program on the loader family |
 | [T-1820](net.md) | P1 | M | none | net | open | An allowed host through `--network broker` answers 502 "the far end failed" |
@@ -546,10 +546,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1881](extract.md) | P0 | M | none | extract | blocked | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
 | [T-1882](extract.md) | P2 | S | none | extract | blocked | pod-extract counts the `./` archive root as an entry it could not make |
 | [T-1883](image.md) | P2 | S | none | image | blocked | `create` and `run` do not report the entries that the extraction could not make |
+| [T-1884](machine.md) | P1 | S | none | machine | open | A machine run that podvm ends on SIGTERM leaves its emulator running |
+| [T-1885](machine.md) | P2 | S | none | machine | open | Piped input to a machine run with `-t` is lost before the guest terminal opens |
 
 ## Counts
 
-480 entries: 67 open, 6 partial, 6 blocked, 401 done.
+482 entries: 67 open, 6 partial, 6 blocked, 403 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -559,10 +561,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 17 | 1 | 1 | 176 | 195 |
-| P2 | 35 | 3 | 4 | 130 | 172 |
+| P1 | 16 | 1 | 1 | 178 | 196 |
+| P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 67 | 6 | 6 | 401 | 480 |
+| **All** | 67 | 6 | 6 | 403 | 482 |
 
 ## Work order
 

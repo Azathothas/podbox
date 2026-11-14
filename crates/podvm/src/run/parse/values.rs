@@ -256,3 +256,18 @@ pub(super) fn ports(verb: &str, a: &str) -> Result<Vec<u16>, i32> {
         })
         .collect()
 }
+
+/// TODO/cli.md T-1815: `-t` with `-d`, or on `create`, is refused by name.
+/// A detached terminal needs a launcher that holds the master, which podvm
+/// has not; the run took the flag and gave the payload no terminal.
+pub(super) fn detached_tty(verb: &str, o: &Opts) -> std::result::Result<(), i32> {
+    if o.tty && (o.detach || verb == "create") {
+        eprintln!(
+            "podvm {verb}: -t is refused for a detached container: podvm gives a \
+             terminal to a foreground run only, and a detached payload would get none \
+             (TODO/cli.md T-1815)"
+        );
+        return Err(EXIT_FLAG_ERROR);
+    }
+    Ok(())
+}

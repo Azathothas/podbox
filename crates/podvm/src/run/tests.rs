@@ -427,3 +427,22 @@ fn eq_form_of_the_machine_flags_parses_as_the_space_form() {
         EXIT_FLAG_ERROR
     );
 }
+
+/// TODO/cli.md T-1815: `run -d -t` and `create -t` are refused by name;
+/// `run -t` stays a foreground terminal.
+#[test]
+fn detach_tty_is_refused_by_name() {
+    assert_eq!(
+        parse("run", &v(&["-d", "-t", "img", "true"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert_eq!(
+        parse("run", &v(&["-dt", "img", "true"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert_eq!(
+        parse("create", &v(&["-t", "img", "true"])).unwrap_err(),
+        EXIT_FLAG_ERROR
+    );
+    assert!(parse("run", &v(&["-t", "img", "true"])).unwrap().tty);
+}

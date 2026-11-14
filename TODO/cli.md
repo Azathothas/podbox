@@ -4763,7 +4763,7 @@ hand: `run --podvm-tier=machine --podvm-net=none` goes past the flag;
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4792,6 +4792,14 @@ never does nothing (T-1421).
 ## Prove
 
 `cargo test -p podvm --bin podvm detach_tty` exits 0, with tests that `run -d -t` and `create -t` exit 125 and name `-t`
+
+## Done
+
+**Done 2026-11-14.** `detached_tty` (`run/parse/values.rs`), called
+by `parse` after each parse, refuses `-t` with `-d` and on `create` by
+name with 125, before any check of `/dev/ptmx`. The test
+`detach_tty_is_refused_by_name` refuses `run -d -t`, `run -dt` and
+`create -t`, and keeps `run -t` a terminal. No experiment uses the pair.
 
 
 # T-1816: A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing
@@ -4860,7 +4868,7 @@ the code of the verb is lost there. T-1855 adds the scan of the source.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4895,6 +4903,27 @@ A pty has no half-close; VEOF is the terminal's own end of input.
 ## Prove
 
 `cargo test -p podvm --test pty_eof` exits 0, with a test that `run -t IMG cat` ends with stdin from `/dev/null` and from a closed pipe, and that the output of `run -t IMG echo hi` is exactly `hi` and CR LF
+
+## Correction
+
+**Amended, 2026-11-14.** The test target `pty_eof` of the Prove was not
+made: the test is the unit test `veof_ends_the_input_of_the_slave` of
+`run/pty.rs`, on a real pty.
+
+## Done
+
+**Done 2026-11-14.** At the end of podvm's stdin, the relay of `-t`
+(`run/pty.rs`) writes VEOF to the master, and one more after a partial
+line; the relay of the machine tier (`machine/guest/tty.rs`) does the
+same on its socket. The test `veof_ends_the_input_of_the_slave` checks
+both cases on a real pty. By hand on the namespace rung: `run -t cat
+</dev/null` ends at once with exit 0 (beta.17: the outer timeout, 124),
+`printf 'input\n' | run -t cat` prints the line and ends, and a partial
+line ends after `cat` prints it. The NUL claim: `run -t cat </dev/null`
+writes 0 bytes, and `run -t echo hi` writes exactly `h i \r \n`; no NUL
+on this rung. On the machine tier, `-t` with piped input ends in 3 s
+(beta.17: 400 s, the outer timeout); the line itself does not come
+back, which beta.17 did not do either: T-1885.
 
 
 # T-1824: The machine notice ignores `-q`, and the banner is said to print "on every run" where runs are quiet by default

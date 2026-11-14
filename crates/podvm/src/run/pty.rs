@@ -103,10 +103,26 @@ impl Pty {
         std::thread::spawn(move || {
             let mut buf = [0u8; 4096];
             let mut input = std::io::stdin().lock();
+            let mut last: Option<u8> = None;
             while let Ok(n) = input.read(&mut buf) {
-                if n == 0 || to.write_all(&buf[..n]).is_err() {
+                if n == 0 {
+                    // TODO/cli.md T-1817: a pty has no half-close, and the
+                    // reader keeps a clone of the master, so the payload
+                    // never read 0. The end of input of a terminal is VEOF:
+                    // one at the start of a line, and one more after a
+                    // partial line, which the first only delivers. A fresh
+                    // pty's VEOF is 0x04.
+                    let eof: &[u8] = match last {
+                        Some(b'\n') | None => &[VEOF],
+                        Some(_) => &[VEOF, VEOF],
+                    };
+                    let _ = to.write_all(eof);
                     break;
                 }
+                if to.write_all(&buf[..n]).is_err() {
+                    break;
+                }
+                last = Some(buf[n - 1]);
             }
         });
         Ok(Relay {
@@ -116,6 +132,9 @@ impl Pty {
         })
     }
 }
+
+/// The VEOF character of a fresh pty (`^D`).
+const VEOF: u8 = 0x04;
 
 /// The relay of a running payload.
 pub struct Relay {
@@ -165,5 +184,33 @@ mod tests {
         let mut buf = [0u8; 16];
         let n = m.read(&mut buf).unwrap();
         assert_eq!(&buf[..n], b"hi\r\n", "the line discipline maps NL to CR NL");
+    }
+
+    /// TODO/cli.md T-1817: VEOF written to the master is the end of input
+    /// of the slave: after a full line one gives a read of 0, and after a
+    /// partial line the first delivers the line and the second gives 0.
+    #[test]
+    fn veof_ends_the_input_of_the_slave() {
+        let Ok(p) = Pty::open() else {
+            eprintln!("T-1760: /dev/ptmx does not open here; skipped");
+            return;
+        };
+        let [a, _b, _c] = p.slaves().unwrap();
+        let mut slave =
+            unsafe { std::fs::File::from_raw_fd(std::os::fd::IntoRawFd::into_raw_fd(a)) };
+        let mut m = p.master.try_clone().unwrap();
+        let mut buf = [0u8; 64];
+        m.write_all(b"line\n").unwrap();
+        m.write_all(&[VEOF]).unwrap();
+        assert_eq!(slave.read(&mut buf).unwrap(), 5, "the line");
+        assert_eq!(
+            slave.read(&mut buf).unwrap(),
+            0,
+            "VEOF at the start of a line"
+        );
+        m.write_all(b"part").unwrap();
+        m.write_all(&[VEOF, VEOF]).unwrap();
+        assert_eq!(slave.read(&mut buf).unwrap(), 4, "the partial line");
+        assert_eq!(slave.read(&mut buf).unwrap(), 0, "the second VEOF");
     }
 }

@@ -134,10 +134,23 @@ pub fn pump(sock: PathBuf, deadline: std::time::Instant) -> std::thread::JoinHan
             std::thread::spawn(move || {
                 let mut buf = [0u8; 4096];
                 let mut stdin = std::io::stdin();
+                let mut last: Option<u8> = None;
                 while let Ok(n) = stdin.read(&mut buf) {
-                    if n == 0 || w.write_all(&buf[..n]).is_err() {
+                    if n == 0 {
+                        // TODO/cli.md T-1817: the end of input of the guest's
+                        // terminal is VEOF (`^D`), as in the pty relay of the
+                        // rootfs rungs: the socket stays open for the output.
+                        let eof: &[u8] = match last {
+                            Some(b'\n') | None => &[0x04],
+                            Some(_) => &[0x04, 0x04],
+                        };
+                        let _ = w.write_all(eof);
                         break;
                     }
+                    if w.write_all(&buf[..n]).is_err() {
+                        break;
+                    }
+                    last = Some(buf[n - 1]);
                 }
             });
         }

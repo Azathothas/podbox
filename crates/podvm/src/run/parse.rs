@@ -38,6 +38,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
             return Err(EXIT_FLAG_ERROR);
         }
         super::report::note_parsed(o.image.clone(), o.command.clone());
+        detached_tty(verb, &o)?;
         return Ok(o);
     };
     let shape = crate::profile::run_args(verb, &name, &o.sets)?;
@@ -63,6 +64,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
     o.drops = shape.drops;
     o.needs = shape.needs;
     super::report::note_parsed(o.image.clone(), o.command.clone());
+    detached_tty(verb, &o)?;
     Ok(o)
 }
 

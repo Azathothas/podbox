@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `-t` ends the input of the payload, and `-d -t` is refused, 2026-11-14
+
+Record: T-1815, T-1817.
+Deployed: not deployed; no version change.
+
+- `run -t` never gave the payload the end of its input, so `cat
+  </dev/null` hung; podvm now sends the terminal's end of input (VEOF)
+  when its stdin ends, on the rootfs rungs and on the machine tier.
+- `run -d -t` and `create -t` took `-t` and gave the payload no
+  terminal; they are refused by name now.
+
 ### Fixed: `logs` of a foreground run, `probe --cached`, and the `=` forms of two machine flags, 2026-11-14
 
 Record: T-1806, T-1811, T-1812.
