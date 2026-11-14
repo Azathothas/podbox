@@ -11,16 +11,16 @@ start.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.16` (2026-11-14, release run
-  43571818694 on `53c48d34`; the gate 43569997386, `arm.yml` 43570892970
-  and the nightly trial 43571247092 passed first, through issue 349): the
-  eight P0 findings of the external QA report (T-1800, T-1801, T-1802,
-  T-1804, T-1808, T-1810, T-1818, T-1819) and podcrates `v0.43.0`.
-  beta.15 (issue 340) gave the spare tree and the fixes of the first beta
-  reports. `release.yml` needs a successful gate run on its commit;
-  dispatch `nightly.yml` with `trial=true` on `main` first. A request
-  asks for one dispatch of the gate: two runs of it cancel each other
-  (issue 301).
+* The newest release is `v0.2.0-beta.17` (2026-11-14, release run
+  43580765158 on `0f13267c`; the gate 43576720202, `arm.yml` 43577573447
+  and the nightly trial 43578086980 passed first, through issue 355): a
+  second glibc object for glibc 2.34 images with no `libdl.so.2`
+  (T-1880, PodUtils/podrunner#100), a full stdout exits 125 (T-1816),
+  and a missing container name exits 1 (T-1805). beta.16 (issue 349)
+  gave the eight P0 findings of the external QA report. `release.yml`
+  needs a successful gate run on its commit; dispatch `nightly.yml` with
+  `trial=true` on `main` first. A request asks for one dispatch of the
+  gate: two runs of it cancel each other (issue 301).
 * GitHub Actions is disabled for the account that a cloud session pushes
   and dispatches with (2026-11-13): a push starts no run, and
   `actions_run_trigger` answers "Actions has been disabled for this user".
