@@ -482,7 +482,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1817](cli.md) | P1 | S | none | cli | done | `run -t` never delivers end of input, so a payload that reads to the end blocks |
 | [T-1818](complete.md) | P0 | S | none | complete | done | `--no-host-cas` is ignored on an image that ships no CA bundle |
 | [T-1819](enter.md) | P0 | M | none | enter | done | An `exec=` rule of `--podvm-confine` does not deny a program on the loader family |
-| [T-1820](net.md) | P1 | M | none | net | partial | An allowed host through `--network broker` answers 502 "the far end failed" |
+| [T-1820](net.md) | P1 | M | none | net | done | An allowed host through `--network broker` answers 502 "the far end failed" |
 | [T-1821](podssh.md) | P1 | S | none | podssh | done | `remote ssh serve` runs any program named `node` on PATH |
 | [T-1822](supervise.md) | P2 | S | none | supervise | open | `cp` of a file onto a directory fails and blames the source, `cp -r` drops directory modes, and the containment refusals name the wrong operation |
 | [T-1823](machine.md) | P2 | M | none | machine | open | An early end of the guest init reads "the guest gave no exit marker" with the socket of QEMU |
@@ -558,7 +558,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-489 entries: 49 open, 11 partial, 2 blocked, 427 done.
+489 entries: 49 open, 10 partial, 2 blocked, 428 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -568,10 +568,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 74 | 74 |
-| P1 | 3 | 7 | 0 | 190 | 200 |
+| P1 | 3 | 6 | 0 | 191 | 200 |
 | P2 | 30 | 2 | 2 | 141 | 175 |
 | P3 | 16 | 2 | 0 | 22 | 40 |
-| **All** | 49 | 11 | 2 | 427 | 489 |
+| **All** | 49 | 10 | 2 | 428 | 489 |
 
 ## Work order
 

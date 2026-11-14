@@ -186,9 +186,19 @@ fn token() -> Result<String, String> {
 
 /// Start the broker of a run. Err names what failed, never the token.
 pub fn start(allow: &[String], ports: &[u16]) -> Result<Started, String> {
-    let token = token()?;
     let proxy = pod_proxy::env::proxy_from_vars("example.com", &|n| std::env::var_os(n))
         .map_err(|e| format!("the host's proxy variable: {e}"))?;
+    start_with(allow, ports, proxy)
+}
+
+/// [`start`] with the upstream proxy given, not read from the
+/// environment: a test gives a fixture (TODO/net.md T-1820).
+pub(crate) fn start_with(
+    allow: &[String],
+    ports: &[u16],
+    proxy: Option<pod_proxy::Proxy>,
+) -> Result<Started, String> {
+    let token = token()?;
     let settings = Settings {
         // The host's proxy resolves the name; an allowlist of a proxy-only
         // host takes names, not addresses (pod-broker, `names_upstream`).
@@ -235,6 +245,10 @@ pub fn start(allow: &[String], ports: &[u16]) -> Result<Started, String> {
         names: fake_names(allow),
     })
 }
+
+#[cfg(test)]
+#[path = "broker/upstream_tests.rs"]
+mod upstream_tests; // TODO/net.md T-1820
 
 #[cfg(test)]
 mod tests {

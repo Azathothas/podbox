@@ -553,7 +553,7 @@ nat44, nat66, both`.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -587,7 +587,25 @@ A 502 names its cause.
 
 `cargo test -p podvm --test broker_upstream` exits 0, with a test that an allowed host behind a fixture proxy answers 200, and that a refused upstream prints its status line
 
+
+## Correction
+
+**2026-11-14.** The Prove names `cargo test -p podvm --test
+broker_upstream`. The broker of podvm is a module of the binary, so the
+test is a test of the binary: `cargo test -p podvm --bin podvm
+broker_upstream`.
 ## Done
+
+**Done 2026-11-14.** `broker::start_with` takes the upstream proxy as a
+value (`start` reads it from the environment as before), and
+`broker/upstream_tests.rs` runs the broker against a fixture upstream on
+the loopback. `cargo test -p podvm --bin podvm broker_upstream` exits 0:
+with an upstream that answers 200, a `CONNECT example.com:443` with the
+broker's credential gets `HTTP/1.1 200`, and the upstream saw `CONNECT
+example.com:443 HTTP/1.1`; with an upstream that answers 403, the client
+gets `HTTP/1.1 502` and the text holds `403` (podcrates `v0.45.0`,
+podcrates@T-609). The 502 of the QA host stays a cause of that host's
+proxy, which this text now names.
 
 **Partial 2026-11-14.** Measured on the cloud host, which egresses
 through its own proxy: a machine guest with `--network broker --allow
@@ -602,7 +620,6 @@ broker; that is the client's form, and a client that sends `CONNECT`
 works. The clause that remains: the texts, which podcrates `v0.45.0`
 carries (COORD-108, issue 359, podcrates@T-609), and the test
 `broker_upstream` of the Prove with them.
-
 
 # T-1847: The scenarios and knobs of `lab` differ from the surface that sand-net documents
 
