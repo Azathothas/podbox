@@ -264,3 +264,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #365 | [gh action] requested | closed (gate 43603709240 failed: the check of T-1859 found nine stores of `podvm-extract` left by a user who is not root; fixed, a new request follows) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` at `b09df48b` (AGENTS.md, section 9) |
 | #366 | COORD-112: the answer to PodUtils/podrunner#102: no guest of another architecture yet (to podrunner) | open | T-1889, T-1890 |
 | #367 | COORD-113: pod-extract remove_tree cannot remove a file in a directory of mode 0555 as a user who is not root (podvm T-1891) (to podcrates) | open | T-1891 |
+| #368 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` at `aaea18eb` (AGENTS.md, section 9) |
