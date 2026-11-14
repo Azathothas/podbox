@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `exec`, `save`, `load` and `import` exit 1 for a missing image or an invalid name, 2026-11-14
+
+Record: T-1842 (partial), PodUtils/podvm#356.
+Deployed: not deployed; no version change.
+
+- `exec` of an image that the store does not have, `save` of a missing
+  image and `import` of an invalid name exited 125; they exit 1 now, as
+  `inspect`, `rmi` and docker do. An I/O failure stays 125.
+
 ## 0.2.0-beta.17 (2026-11-14)
 
 ### Fixed: a missing container name exits 1, 2026-11-14

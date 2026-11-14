@@ -26,6 +26,11 @@ fn lifecycle_exit_of_a_missing_name_is_1_with_one_line() {
         &["wait", "nosuch"],
         &["kill", "nosuch"],
         &["cp", "nosuch:/x", "/tmp/podvm-lcexit-y"],
+        // PodUtils/podvm#356: the two verbs that take an image and never
+        // pull, as docker 29.9.2 answers `save` (measured 2026-11-14).
+        &["exec", "nosuch", "/bin/true"],
+        &["save", "-o", "/tmp/podvm-lcexit.tar", "nosuch"],
+        &["save", "nosuch"],
     ] {
         let o = podvm(args, &store);
         let err = String::from_utf8_lossy(&o.stderr);

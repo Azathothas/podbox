@@ -504,7 +504,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1839](image.md) | P2 | S | none | image | open | `load` takes an index with `schemaVersion` 9 and names an image with no ref-name annotation `sha256` |
 | [T-1840](image.md) | P2 | S | none | image | open | The `images` table cannot tell two platform records apart, `images REPO` shows only `latest`, and `inspect` has no `.Config.Labels` |
 | [T-1841](image.md) | P2 | S | none | image | open | `save` advises a `--platform` it does not have, and `pull -a` records the endpoint host, which makes a duplicate record |
-| [T-1842](image.md) | P2 | S | none | image | open | `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken |
+| [T-1842](image.md) | P2 | S | none | image | partial | `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken |
 | [T-1843](image.md) | P2 | S | none | image | open | `extract --force` removes the extracted root before it takes the lock of the store |
 | [T-1844](interpose.md) | P2 | S | none | interpose | open | `interpose::place` writes the object through one fixed temporary name in the root |
 | [T-1845](cli.md) | P3 | S | none | cli | open | `profile show` writes a part of the document to stdout and then fails |
@@ -549,7 +549,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-480 entries: 72 open, 5 partial, 6 blocked, 397 done.
+480 entries: 71 open, 6 partial, 6 blocked, 397 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -560,9 +560,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
 | P1 | 21 | 1 | 1 | 172 | 195 |
-| P2 | 36 | 2 | 4 | 130 | 172 |
+| P2 | 35 | 3 | 4 | 130 | 172 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 72 | 5 | 6 | 397 | 480 |
+| **All** | 71 | 6 | 6 | 397 | 480 |
 
 ## Work order
 

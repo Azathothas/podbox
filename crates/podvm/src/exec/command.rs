@@ -92,6 +92,9 @@ pub fn exec(args: &[String]) -> i32 {
                 "podvm exec: {image} is not in the store. `podvm exec` never pulls: \
                  `podvm run {image} ...` is what puts it there"
             );
+            // TODO/supervise.md T-1805, PodUtils/podvm#356: a name that
+            // resolves to nothing is the caller's error, exit 1.
+            return podvm_image::error::EXIT_CLI_ERROR;
         } else {
             eprintln!(
                 "podvm exec: the store holds {image} for {}, and {platform} was asked \

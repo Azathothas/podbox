@@ -201,7 +201,7 @@ pub fn save(verb: &str, args: &[String]) -> i32 {
                 // ⚠ A half-written tarball is a trap for the next load, so a
                 // failed save removes what it started.
                 let _ = std::fs::remove_file(&path);
-                EXIT_RUNTIME_ERROR
+                e.exit_code() // T-1842, issue 356: a missing image is 1
             }
         }
     } else {
@@ -219,7 +219,7 @@ pub fn save(verb: &str, args: &[String]) -> i32 {
             }
             Err(e) => {
                 eprintln!("podvm save: {e}");
-                EXIT_RUNTIME_ERROR
+                e.exit_code() // T-1842, issue 356: a missing image is 1
             }
         }
     }
@@ -274,7 +274,7 @@ pub fn load(verb: &str, args: &[String]) -> i32 {
         }
         Err(e) => {
             eprintln!("podvm load: {e}");
-            EXIT_RUNTIME_ERROR
+            e.exit_code() // TODO/image.md T-1842
         }
     };
     if let Some((path, file)) = spool {
@@ -310,7 +310,7 @@ pub fn import(verb: &str, args: &[String]) -> i32 {
         }
         Err(e) => {
             eprintln!("podvm import: {e}");
-            EXIT_RUNTIME_ERROR
+            e.exit_code() // TODO/image.md T-1842: an invalid name is 1
         }
     }
 }

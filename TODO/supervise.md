@@ -1579,6 +1579,15 @@ the image error of `podvm-image` (exit 1 already).
 
 `cargo test -p podvm --test lifecycle_exit` exits 0, with a row for each of `start`, `stop`, `restart`, `rm`, `logs`, `wait`, `kill` and `cp` on a missing name (exit 1, one line on stderr), for `kill` of an exited container and `rm` of a running one (exit 1)
 
+## Correction
+
+**Amended, 2026-11-14 (PodUtils/podvm#356).** The Decision said that
+`exec` of a missing image "stays the image error of `podvm-image` (exit
+1 already)". It was 125: `exec/command.rs` returned
+`EXIT_RUNTIME_ERROR` where the store has no record. It exits 1 now, with
+`save`, `load` and `import` of T-1842, and `lifecycle_exit` has the
+rows.
+
 ## Done
 
 **Done 2026-11-14.** `podvm_supervise::Error` keeps the class of

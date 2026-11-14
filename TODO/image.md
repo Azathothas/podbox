@@ -4136,7 +4136,7 @@ store.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4170,6 +4170,21 @@ One exit code for one class across the image verbs.
 ## Prove
 
 `cargo test -p podvm --bin podvm image_exit_codes` exits 0, with tests that `save` of a missing image and `import` of an invalid name exit 1, and that `--insecure-registry 'bad host!'` is refused with the value named
+
+## Done
+
+**Partial 2026-11-14.** The exit codes: each arm of `save`, `load` and
+`import` (`images/save_load.rs`) returns `e.exit_code()` of the image
+error, so a missing image and an invalid name exit 1 and an I/O or hash
+failure stays 125; `exec` of an image that the store does not have exits
+1 too (PodUtils/podvm#356). docker 29.9.2 exits 1 for `save` of a missing
+image and `import` of an invalid name (measured on the cloud host,
+2026-11-14), as podvm now does. `lifecycle_exit_of_a_missing_name_is_1_with_one_line`
+runs `exec nosuch`, `save -o F nosuch` and `save nosuch` (exit 1, one
+line, and no file F). The clause that remains: the check of an
+insecure-registry host (`'bad host!'`), in podvm and in `pod-oci`
+(COORD-100, issue 346, podcrates@T-585), and the test
+`image_exit_codes` of the Prove, which comes with it.
 
 
 # T-1843: `extract --force` removes the extracted root before it takes the lock of the store
