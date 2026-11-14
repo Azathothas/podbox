@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a restarted container shows no exit code of the run before, 2026-11-14
+
+Record: T-1807 (partial).
+Deployed: not deployed; no version change.
+
+- After `restart` or `start`, `inspect` showed `running` with the exit
+  code and the end time of the run before; they are cleared now while
+  the new run runs.
+
 ### Fixed: concurrent `create` of an image that was never extracted, 2026-11-14
 
 Record: T-1886, PodUtils/podvm#358.

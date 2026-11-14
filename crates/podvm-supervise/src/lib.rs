@@ -144,12 +144,39 @@ pub fn create(
 }
 
 /// Start a created container, returning once its payload is running.
+///
+/// TODO/supervise.md T-1807: `pod_supervise::start` keeps the end fields of
+/// the run before (`inspect` read `running` with `ExitCode 143`). Until a
+/// tag of podcrates clears them (podcrates@T-582, issue 343), the wrapper
+/// clears each field that still holds the old run's value; a field that the
+/// new run already wrote (a payload that ended at once) stays.
 pub fn start(store: &Store, want: &str, record: &podvm_image::Record) -> Result<Container> {
-    Ok(pod_supervise::start(
-        &settings(store),
-        want,
-        launcher::enter(store, record),
-    )?)
+    let before = table::read(store)
+        .and_then(|t| table::find(store, &t, want))
+        .ok();
+    let mut c = pod_supervise::start(&settings(store), want, launcher::enter(store, record))?;
+    if let Some(old) = before.filter(|o| o.finished_at.is_some()) {
+        let id = c.id.clone();
+        let stale = |n: &Container| n.finished_at == old.finished_at;
+        table::update(store, |t| {
+            if let Some(n) = t.containers.iter_mut().find(|n| n.id == id)
+                && stale(n)
+            {
+                n.exit_code = None;
+                n.finished_at = None;
+                n.end = None;
+                n.noticed = None;
+            }
+            Ok(())
+        })?;
+        if stale(&c) {
+            c.exit_code = None;
+            c.finished_at = None;
+            c.end = None;
+            c.noticed = None;
+        }
+    }
+    Ok(c)
 }
 
 /// Send a signal to a running container's payload.

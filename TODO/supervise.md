@@ -1679,7 +1679,7 @@ stream. Experiment 443, sections run and life: 313 pass, 0 fail.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1714,6 +1714,23 @@ until that tag.
 ## Prove
 
 `cargo test -p podvm-supervise restart_clears_end` exits 0, with a test that a record after `kill` and `start` has no `exit_code`, `finished_at` or `end`, and a test that a record that `reconcile` marks `Dead` has no `pid`
+
+## Done
+
+**Partial 2026-11-14.** The `start` half, in podvm's wrapper
+(`podvm-supervise/src/lib.rs`, `start`): it reads the end fields before
+`pod_supervise::start` and clears `exit_code`, `finished_at`, `end` and
+`noticed` where they still hold the run before, in the table and in the
+record it returns; a field that the new run wrote stays. By hand on the
+namespace rung: after `run -d sleep 60`, `kill -s TERM` and `restart`,
+beta.17 gave `running` with `ExitCode 143` and the old `FinishedAt`, and
+this build gives `running` with `-` for both; a payload `exit 5` started
+again keeps its new exit and time. The clause that remains: a `Dead`
+record keeps its pid (`reconcile`), which podcrates@T-582 fixes in
+`v0.44.0` (issue 343, PodUtils/podcrates#150); a tag that clears the end
+fields itself makes the wrapper's step a no-op. A run that ends in the
+same second as the run before would read as the old one; the end time
+has a resolution of one second.
 
 
 # T-1822: `cp` of a file onto a directory fails and blames the source, `cp -r` drops directory modes, and the containment refusals name the wrong operation

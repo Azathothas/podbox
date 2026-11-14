@@ -469,7 +469,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1804](enter.md) | P0 | S | none | enter | done | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
 | [T-1805](supervise.md) | P1 | M | none | supervise | done | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
 | [T-1806](supervise.md) | P1 | S | none | supervise | done | A foreground run records only stdout, so `logs` loses each stderr line |
-| [T-1807](supervise.md) | P1 | S | none | supervise | open | A restarted container shows the exit code and end of its previous run while it runs |
+| [T-1807](supervise.md) | P1 | S | none | supervise | partial | A restarted container shows the exit code and end of its previous run while it runs |
 | [T-1808](machine.md) | P0 | M | none | machine | done | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
 | [T-1809](machine.md) | P1 | S | none | machine | done | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
 | [T-1810](machine.md) | P0 | S | none | machine | done | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 64 open, 6 partial, 6 blocked, 407 done.
+483 entries: 63 open, 7 partial, 6 blocked, 407 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -562,10 +562,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 13 | 1 | 1 | 182 | 197 |
+| P1 | 12 | 2 | 1 | 182 | 197 |
 | P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 64 | 6 | 6 | 407 | 483 |
+| **All** | 63 | 7 | 6 | 407 | 483 |
 
 ## Work order
 
