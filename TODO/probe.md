@@ -1568,7 +1568,7 @@ the machine tier runs TCG".
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -1597,19 +1597,36 @@ against it and keeps no copy.
 
 ## Prove
 
-`cargo test -p podvm` exits 0 with a test that the output of
-`probe --json` validates against the schema of the taken tag.
-
-## Blocker
-
-**Blocked 2026-11-10.** Blocker: podcrates podcrates@T-107 has no release.
-Clears when: a podcrates tag carries the schema of `pod-hostprobe`.
+`cargo test -p podvm-probe` exits 0 with a test that the report object of `probe --json` validates against the schema of the taken tag, and a test that the schema refuses a report of another version or rung
 
 ## Correction
 
 **Filed 2026-11-10.** From issue 239, the amendment of T-1670 and the
 podrunner design review (the ruling "podrunner", 2026-11-10): the podvm
 driver of podrunner reads `probe --json`.
+
+**2026-11-14.** The Blocker cleared: podcrates `v0.42.0` (`b6983fc`,
+PodUtils/podcrates#145) carries podcrates@T-107, `report::schema()` and
+`SCHEMA_ID` behind the feature `schema` of `pod-hostprobe`. The Blocker
+was: "podcrates podcrates@T-107 has no release; clears when a podcrates
+tag carries the schema of `pod-hostprobe`". The Prove named `cargo test
+-p podvm`; the report is written in `podvm-probe`, so its test is there.
+The schema states the report object of `pod-hostprobe`, which `probe
+--json` holds under the key `hostprobe` since T-1746; the other keys of
+`probe --json` are podvm's own and are not in the schema. The saved
+sample of T-1670 predates the key, so the test validates a fresh probe.
+
+## Done
+
+**Done 2026-11-14.** `crates/podvm-probe/src/report/schema_tests.rs`:
+`the_report_of_probe_json_validates_against_the_published_schema`
+compiles `report::schema()` of the taken tag with `boon` (JSON Schema
+2020-12, the validator of podcrates' own test) and validates the
+`hostprobe` object of a fresh `probe --json` on the cloud host; and
+`the_schema_refuses_a_report_of_another_version_or_rung` shows that the
+check is not a pass of each object. `boon` and the feature `schema` are
+dev-dependencies only: the binary links neither.
+
 
 # T-1746: `run` reads the cached probe, and probes again only when its key changes
 

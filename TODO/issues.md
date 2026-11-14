@@ -133,7 +133,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 | #236 | [podrunner] cli: drive the podvm calls of the four container-hook commands on the userland rung, with the runner's mount table | closed | T-1711; T-1653 and T-1655 (amended) |
 | #237 | [podrunner] cli: --podvm-tier=chroot does nothing; it runs the ladder, and on a chroot-denied host it enters the userland rung with exit 0 | closed | T-1712 |
 | #238 | [podrunner] system: .EnteredRung reads chroot where the probe selects supervise and chroot is denied, while run enters the userland rung | closed | T-1713 |
-| #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates podcrates@T-107) | open | T-1714; T-1670 (amended) |
+| #239 | [podrunner] probe: podvm probe --json validates against the published schema of pod-hostprobe (blocked on podcrates podcrates@T-107) | closed (T-1714 is done) | T-1714; T-1670 (amended) |
 | #240 | [podrunner] supervise: the container table keeps -e values in a file that the umask leaves readable to other users | closed | T-1715; T-1696 (amended, then dropped 2026-11-11) |
 | #241 | COORD-023: podvm resumes; fuzz targets for pod-oci, pod-extract and pod-enter; T-1696 is dropped (to podcrates) | closed (podcrates#56: podcrates@T-173) | T-1684 (amended), T-1696 |
 | #242 | COORD-024: podvm took v0.15.0 and the pod-enter change of podcrates@T-155 (to podcrates) | closed (podcrates#52 and #54) | T-1716 |
@@ -218,6 +218,7 @@ before #127; their text is on GitHub, and the hidden ones are in
 #313 and #314 are pull requests of Dependabot. Each judged update lands
 on `main` as its own commit, and its pull request then closes (`AGENTS.md`,
 section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
-| #322 | COORD-086: the order of podcrates@T-486, @T-107 and @T-345 to @T-347, which the open entries of podvm wait on, before its beta testers start (to podcrates) | open | T-1749, T-1714, T-1662 |
+| #322 | COORD-086: the order of podcrates@T-486, @T-107 and @T-345 to @T-347, which the open entries of podvm wait on, before its beta testers start (to podcrates) | closed (podcrates answered in #142, and v0.42.0 carries podcrates@T-486 and podcrates@T-107) | T-1749, T-1714, T-1662 |
 | #323 | COORD-087: the acceptance test of podcrates@T-486, an overlay root in the namespace rung (the answer to PodUtils/podcrates#142, item 2) (to podcrates) | open | T-1749 |
 | #324 | COORD-088: podvm takes podcrates v0.41.0 (the answer to PodUtils/podcrates#143) (to podcrates) | closed (podcrates closed #143) | - |
+| #325 | COORD-089: podvm takes podcrates v0.42.0 (the answer to PodUtils/podcrates#145) (to podcrates) | open | - |

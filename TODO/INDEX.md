@@ -388,7 +388,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1711](cli.md) | P2 | L | none | cli | done | The calls of the four container-hook commands run through podvm verbs on the userland rung |
 | [T-1712](cli.md) | P1 | S | none | cli | done | `--podvm-tier=chroot` does nothing: it runs the ladder |
 | [T-1713](cli.md) | P1 | S | none | cli | done | `.EnteredRung` reads `chroot` where the probe selects `supervise` and chroot is denied |
-| [T-1714](probe.md) | P2 | S | none | probe | blocked | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
+| [T-1714](probe.md) | P2 | S | none | probe | done | `podvm probe --json` validates against the published schema of `pod-hostprobe` |
 | [T-1715](supervise.md) | P2 | S | none | supervise | done | The container table keeps `-e` values in a file that other users can read |
 | [T-1716](enter.md) | P2 | S | none | enter | done | Take the `pod-enter` change of podcrates podcrates@T-155: `Maps::new` takes `&Names` and names the volume of a missing `-w` |
 | [T-1717](machine.md) | P2 | L | none | machine | done | Study incus without root and without heavy overhead, with errand-box, before an incus back end |
@@ -459,7 +459,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-390 entries: 2 open, 5 partial, 3 blocked, 380 done.
+390 entries: 2 open, 5 partial, 2 blocked, 381 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -470,9 +470,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
 | P1 | 0 | 1 | 0 | 168 | 169 |
-| P2 | 0 | 2 | 3 | 126 | 131 |
+| P2 | 0 | 2 | 2 | 127 | 131 |
 | P3 | 2 | 2 | 0 | 21 | 25 |
-| **All** | 2 | 5 | 3 | 380 | 390 |
+| **All** | 2 | 5 | 2 | 381 | 390 |
 
 ## Work order
 

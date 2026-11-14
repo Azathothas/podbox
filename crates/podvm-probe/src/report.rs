@@ -446,4 +446,6 @@ pub fn word(rung: Rung) -> &'static str {
 }
 
 #[cfg(test)]
+mod schema_tests;
+#[cfg(test)]
 mod tests;

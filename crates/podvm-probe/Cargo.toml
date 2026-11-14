@@ -17,3 +17,12 @@ pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0"
 # TODO/enter.md T-1652: `measured_by.user_dispatch`, whether the
 # native-static rung can arm on this host.
 podvm-dispatch = { path = "../podvm-dispatch" }
+
+[dev-dependencies]
+# TODO/probe.md T-1714: the tests validate the report of `probe --json`
+# against the published schema of `pod-hostprobe` (feature `schema`) with
+# the validator of podcrates' own test. Dev-dependencies only: the binary
+# links neither.
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0", features = ["report", "schema"] }
+boon = "0.6"
+serde_json.workspace = true

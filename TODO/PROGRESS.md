@@ -7,7 +7,7 @@ start.
 
 ## State
 
-390 entries: 2 open, 5 partial, 3 blocked, 380 done.
+390 entries: 2 open, 5 partial, 2 blocked, 381 done.
 
 The state on 2026-11-13 (`docs/HANDOFF.md` has the detail):
 
@@ -53,14 +53,17 @@ status with `podvm-count` in the same commit as the work.
 1. A new ask of a peer session comes first (the watcher of `AGENTS.md`,
    section 9). The QA pass of
    experiment 443 is worked, and each of its entries is done. The copy
-   of the rootfs on each run (11 s for golang) is T-1749.
+   of the rootfs on each run is T-1749: since 2026-11-14 a spare tree
+   takes it off each run after the first, and podcrates `v0.42.0` carries the
+   overlay root of the namespace rung (podcrates@T-486), which podvm takes
+   next.
 2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)
    (partial: its check of labs comes with T-1662), [T-1663](net.md) and
    [T-1664](net.md) (blocked: they run in the lab guest of T-1662).
-   [T-1714](probe.md) waits for the published schema of podcrates@T-107;
-   podcrates `v0.36.0` holds its first part, the report with its reader.
+   podcrates names them after podcrates@T-486 and @T-107, which `v0.42.0`
+   carries (PodUtils/podcrates#142).
 3. [T-1740](enter.md) (partial: a cheaper syscall tier) and
    [T-1350](gate.md) (partial: the wrapper of the parked Windows lane).
 4. Low priority, the asks of podswarm (PodUtils/podcrates#124):
