@@ -5159,7 +5159,7 @@ matches docker 26.1.5.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5190,6 +5190,19 @@ tree of the image.
 
 `cargo test -p podvm --test tmpfs_exec` exits 0, with a test that `exec` after a named `run --tmpfs /tmp` lists `/tmp` of the tree
 
+## Done
+
+**Done 2026-11-14.** `exec` drops from the volumes of the record each
+`--tmpfs` directory of the store that no longer exists (it ended with
+its run) and each device pair of T-1774, which `maps` adds again
+(`exec/enter.rs`, `lifecycle/volume.rs` `is_device_pair`). During a
+foreground run, which `exec` reaches since T-1786, the directory exists
+and `exec` sees it. `cargo test -p podvm --test tmpfs_exec` exits 0:
+after `run --name tx --tmpfs /tmp IMG tee /tmp/x`, `exec tx cat
+/tmp/keep` prints the file of the tree and `exec tx cat /tmp/x` exits 1;
+without the change the first `exec` refused at 125. By hand on the
+namespace rung and on the userland fixture with `alpine:3.20`, `exec tt
+ls -ld /tmp` lists the directory of the tree and `/dev/zero` reads.
 
 # T-1831: The help of `run` and `create` promises what the verbs do not do
 

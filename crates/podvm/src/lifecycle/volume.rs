@@ -196,11 +196,21 @@ pub fn maps(
 /// the path to the host's device, so a read of `/dev/urandom` does not end
 /// at 1 MiB. Only where the host's node is a character device, and not
 /// where a volume of the caller covers the path.
+/// The devices of [`device_pairs`].
+const DEVICES: [&str; 4] = ["/dev/null", "/dev/zero", "/dev/random", "/dev/urandom"];
+
+/// TODO/cli.md T-1830: a pair of [`device_pairs`] (a device to itself),
+/// which a record keeps beside the caller's volumes and [`maps`] adds
+/// again by itself.
+pub fn is_device_pair(v: &Volume) -> bool {
+    v.guest == v.host && DEVICES.contains(&v.guest.as_str())
+}
+
 pub fn device_pairs(rootfs: &str, volumes: &[Volume]) -> Vec<Volume> {
     use std::os::unix::fs::FileTypeExt;
     let chr =
         |p: &std::path::Path| std::fs::metadata(p).is_ok_and(|m| m.file_type().is_char_device());
-    ["/dev/null", "/dev/zero", "/dev/random", "/dev/urandom"]
+    DEVICES
         .into_iter()
         .filter(|d| !volumes.iter().any(|v| v.guest.trim_end_matches('/') == *d))
         .filter(|d| {

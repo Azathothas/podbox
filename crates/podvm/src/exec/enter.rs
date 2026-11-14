@@ -93,7 +93,16 @@ pub(super) fn enter(
     // too: docker's `exec` sees the mounts of the container, so the pairs
     // come from the table in the record, and the table is built again. The
     // payload and the working directory resolve through it.
-    let volumes = podvm_enter::userland::volumes_of(&container.env);
+    let mut volumes = podvm_enter::userland::volumes_of(&container.env);
+    // TODO/cli.md T-1830: a `--tmpfs` directory ends with its run. After
+    // that end the record still names it, and `exec` sees the tree of the
+    // image there; during the run it sees the directory. The device pairs
+    // of the record are not the caller's volumes: `maps` adds them again.
+    let tmpfs = store.root().join("tmpfs");
+    volumes.retain(|v| !crate::lifecycle::volume::is_device_pair(v));
+    volumes.retain(|v| {
+        !std::path::Path::new(&v.host).starts_with(&tmpfs) || std::path::Path::new(&v.host).is_dir()
+    });
     let maps = match crate::lifecycle::volume::maps("exec", rootfs, &volumes) {
         Ok(m) => m,
         Err(code) => return code,

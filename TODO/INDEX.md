@@ -492,7 +492,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1827](cli.md) | P2 | S | none | cli | open | A repeated `--ulimit` that raises a hard limit, `--ulimit nofile=-1` and a hard value over podvm's own all fail with a bare EPERM |
 | [T-1828](cli.md) | P2 | S | none | cli | open | `--add-host` takes a non-address, `-e =V` is dropped, `--env-file` removes quotes, and a repeated `--label` key keeps both values |
 | [T-1829](cli.md) | P3 | S | none | cli | open | Refusals of `run` lead with the wrong cause or name the wrong spelling |
-| [T-1830](cli.md) | P2 | S | none | cli | open | A `--tmpfs` run leaves its map in the record, so a later `exec` cannot see the path |
+| [T-1830](cli.md) | P2 | S | none | cli | done | A `--tmpfs` run leaves its map in the record, so a later `exec` cannot see the path |
 | [T-1831](cli.md) | P2 | S | none | cli | open | The help of `run` and `create` promises what the verbs do not do |
 | [T-1832](cli.md) | P3 | S | none | cli | open | The manual, `--help` and `docs/limits.md` disagree with the binary in six places |
 | [T-1833](cli.md) | P2 | S | none | cli | open | Twelve commands refuse `-h` and `--help`, and `system df --help` prints the usage of `system info` |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 51 open, 14 partial, 4 blocked, 414 done.
+483 entries: 50 open, 14 partial, 4 blocked, 415 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -563,9 +563,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
 | P1 | 4 | 8 | 0 | 185 | 197 |
-| P2 | 32 | 3 | 4 | 134 | 173 |
+| P2 | 31 | 3 | 4 | 135 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 51 | 14 | 4 | 414 | 483 |
+| **All** | 50 | 14 | 4 | 415 | 483 |
 
 ## Work order
 
