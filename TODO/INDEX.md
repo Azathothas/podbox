@@ -523,10 +523,29 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1858](supervise.md) | P3 | S | none | supervise | open | The `ps` table pads by characters, so a wide character puts its row out of line |
 | [T-1859](gate.md) | P2 | S | none | gate | open | Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each |
 | [T-1860](gate.md) | P2 | S | none | gate | open | The tests of `podvm-interpose` fail when they run in parallel, and CI does not run them |
+| [T-1861](machine.md) | P1 | M | none | machine | open | `podvm run windows:NAME` has no image name, no catalog and no `pull`, `images` or `rmi` |
+| [T-1862](machine.md) | P1 | M | none | machine | open | The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check |
+| [T-1863](machine.md) | P1 | M | none | machine | open | `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector |
+| [T-1864](machine.md) | P1 | S | none | machine | open | The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out |
+| [T-1865](machine.md) | P1 | M | none | machine | open | The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel |
+| [T-1866](machine.md) | P1 | M | none | machine | open | There is no generator of the unattended answer file or of the USB FAT media |
+| [T-1867](machine.md) | P1 | L | none | machine | open | `podvm pull windows:11` cannot install a full Windows guest |
+| [T-1868](machine.md) | P2 | M | none | machine | open | A full Windows guest has no `exec`, `cp`, graceful `stop` or readiness probe |
+| [T-1869](machine.md) | P2 | M | none | machine | open | A Windows guest has no `-p`, no RDP check, no VNC, no screenshot and no `creds` |
+| [T-1870](machine.md) | P2 | L | none | machine | open | A Windows guest has no lifecycle: no `run -d`, `ps`, `stop`, `start`, `rm`, `logs` or `--name` |
+| [T-1871](machine.md) | P1 | M | none | machine | open | `podvm windows doctor` is thin |
+| [T-1872](machine.md) | P2 | M | none | machine | open | A Windows guest has no `-v`: no way to bring a folder in or out |
+| [T-1873](machine.md) | P2 | L | none | machine | open | `windows setup` sleeps the whole wait with no readiness check |
+| [T-1874](machine.md) | P2 | L | none | machine | open | Each Windows run is a full boot: there is no warm start |
+| [T-1875](machine.md) | P2 | L | none | machine | open | podvm needs `qemu-system-x86_64`, `qemu-img` and OVMF on the host |
+| [T-1876](machine.md) | P2 | S | none | machine | open | Nothing checks the catalog pins for drift |
+| [T-1877](machine.md) | P2 | M | none | machine | open | A Windows desktop has no Hyper-V enlightenments, and no one measured its boot time |
+| [T-1878](machine.md) | P3 | L | none | machine | open | `podvm run -it windows:11 -- powershell`, streamed logs, a web viewer and Windows ARM64 are not planned in detail |
+| [T-1879](machine.md) | P2 | S | none | machine | open | The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image |
 
 ## Counts
 
-457 entries: 54 open, 5 partial, 3 blocked, 395 done.
+476 entries: 73 open, 5 partial, 3 blocked, 395 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -536,10 +555,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 73 | 73 |
-| P1 | 14 | 1 | 1 | 170 | 186 |
-| P2 | 26 | 2 | 2 | 130 | 160 |
-| P3 | 14 | 2 | 0 | 22 | 38 |
-| **All** | 54 | 5 | 3 | 395 | 457 |
+| P1 | 22 | 1 | 1 | 170 | 194 |
+| P2 | 36 | 2 | 2 | 130 | 170 |
+| P3 | 15 | 2 | 0 | 22 | 39 |
+| **All** | 73 | 5 | 3 | 395 | 476 |
 
 ## Work order
 

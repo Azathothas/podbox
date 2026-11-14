@@ -3105,3 +3105,882 @@ The value stays the size of the virtual machine, as QEMU's `-m` is.
 ## Prove
 
 `cargo test -p podvm --bin podvm machine_help` exits 0, with a test that `run --help` names `qemu-system` and `doctor` beside `--podvm-tier` and says what `--podvm-mem` sizes
+
+
+# T-1861: `podvm run windows:NAME` has no image name, no catalog and no `pull`, `images` or `rmi`
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W2
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A Windows guest takes a path, not a name. `crates/podvm/src/windows/mod.rs`
+has `resolve_image` (:76) and `is_disk_request` (:179); the positional
+argument is a path, a disk suffix, or an OCI-shaped token that only names a
+banner (:136-139). `windows fetch --url` takes a raw disk URL, and the
+DOS base comes from `experiments/369-windows-tcg-dos.sh`. No pin table is in
+the binary. A user cannot type `windows:11`.
+
+## Premise
+
+The owner accepts the vendor terms (`docs/decisions.md`, 2026-11-14, "Windows
+media"), so podvm can fetch, verify and keep the media itself. The Microsoft
+evaluation ISOs have static CDN URLs with a fixed size and sha256. The review
+checked on 2026-11-14 that the URLs of Windows 11 Enterprise Evaluation and of
+Windows Server 2025 Evaluation answer `HEAD` with the pinned length. The pins
+come from dockur/windows `src/define.sh`. The sha256 of each entry is taken
+again from the download, not from the review.
+
+## Approach
+
+Add a catalog to `crates/podvm-windows`: one row for each of `validationos`
+(alias `vos`), `11`, `2025`, `2022`, `2019`, `10` and `dos`, with URL, size,
+sha256, build, kind (disk, ISO or zip) and a ceiling of size plus 1 percent.
+Add the store layout `store/windows/{iso,images,virtio}` of the review (4.3).
+Add the verbs `podvm pull NAME`, `podvm images` and `podvm rmi NAME` for the
+Windows names. Make `podvm run windows:NAME` route to the Windows driver with
+no `--platform` and no `--podvm-tier`. An unknown name is refused by name with
+the list of known names. `windows:dos` fetches the pinned FreeDOS 1.4 LiteUSB
+zip itself and writes the 32 MiB base (sha256 pins from experiment 369), so
+`dos.rs` no longer needs a script. The download uses the verified fetch of
+T-1862.
+
+## Decision
+
+A tag is the Windows release, as a docker tag is. `windows:validationos` and
+`windows:dos` work under TCG. A full Windows image installs only where
+T-1867 allows it. Language is a later flag with the default en-US.
+
+## Prove
+
+`cargo test -p podvm-windows catalog` exits 0, with new tests: the pin table
+parses, each name resolves, an unknown name is refused with the list, and the
+refusal text names the store path. `cargo test -p podvm --bin podvm
+windows_name` exits 0, with new tests that `run windows:dos` and `run
+windows:11` reach the Windows driver with no tier flag. A new experiment (the
+next free number) pulls `windows:dos` end to end on the cloud host, with
+`podvm images` listing it, and runs `ver` under TCG with exit 0.
+
+
+# T-1862: The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W3
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`windows fetch` is one HTTPS GET (`crates/podvm/src/windows/setup.rs:86-141`,
+`DEFAULT_MAX_BYTES` 8 GiB at :17). It has no Range request and no resume. A
+download of 2 to 8 GB that breaks starts again. Without `--sha256` the file is
+bounded but not verified. The ceiling is one value for each image. The shared
+`pod_guest::fetch::store` of podcrates v0.42.0 holds the bounded store.
+
+## Premise
+
+The static CDN answers `Accept-Ranges: bytes` (the review checked it on
+2026-11-14 for the Windows 11 and Server 2025 ISOs and for the ValidationOS
+ISO with `206`). A 64 GiB sparse qcow2 can hit `RLIMIT_FSIZE` late.
+
+## Approach
+
+Add Range requests with a `.part` file, resume after a break, a check of the
+size against `Content-Length`, a sha256 check at the end, and a ceiling for
+each catalog entry. Before the first byte, check the free disk and
+`RLIMIT_FSIZE` and refuse by name. Print one progress line (bytes and rate).
+The shared `fetch` belongs to podcrates. podvm asks podcrates by a COORD issue
+for Range and resume in `pod_guest::fetch::store`, and writes a thin podvm
+wrapper for the progress line and the pre-checks. Until the tag arrives, the
+wrapper keeps the present behavior.
+
+## Decision
+
+The Range and resume logic is shared code, so it lives in podcrates. The
+progress line and the pre-checks live in podvm.
+
+## Prove
+
+`cargo test -p podvm-windows download` exits 0, with new tests against a local
+Range server (the pattern of experiment 370, clause 4): a break in the middle
+then a resume gives the right digest, a sha256 mismatch removes the file, a
+declared length above the ceiling is refused with no file left, and a
+`RLIMIT_FSIZE` below the size is refused by name before the first byte.
+
+
+# T-1863: `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W4
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`experiments/371-validationos-stream.sh` reads the UDF structure of the
+Microsoft ISO and fetches only the VHDX extent. `.github/workflows/kvm.yml`
+(job `windows`) fixes the extent: sector 1010, 910163968 bytes, for build
+26100.9278. The review checked on 2026-11-14 that `aka.ms/DownloadValidationOS`
+now redirects to build 26100.9818 (2,509,025,280 bytes; the 9278 ISO is
+2,460,880,896 bytes). A new ISO moves the extent. podvm has no UDF reader in
+Rust.
+
+## Premise
+
+winquick `src/udf.rs` (470 lines, Apache-2.0) reads the UDF directory. The
+captured copy is in the references (issue 149, `references/README.md`). The
+UDF layout of the ISO can change in each build, so a fixed sector is wrong.
+
+## Approach
+
+Add a UDF reader in Rust and use it for `windows:validationos`: read the
+directory by Range requests, find `ValidationOS.vhdx`, fetch only the extent
+(about 0.9 GB, not 2.5 GB), verify the sha256, store it. Resolve the build
+from the pin in the catalog or from the `Location` of the `aka.ms` redirect.
+Prefer a crate `pod-udf` in podcrates: podvm asks podcrates by a COORD issue.
+If podcrates declines, vendor `udf.rs` under `vendor/` with its notice in
+`THIRD_PARTY.md` (Vendoring rules, `docs/methodology/vendoring.md`).
+
+## Decision
+
+The reader belongs to podcrates first, as it is generic. Vendoring is the
+fallback and needs the notice.
+
+## Prove
+
+`cargo test -p podvm-windows udf` exits 0, with new tests on a small
+synthetic UDF image: the file is found, the extent and length are right, and
+a missing file is refused by name. A new experiment (the next free number) does
+a live range test against the 9278 ISO and the 9818 ISO and prints extent,
+length and sha256 for each. It starts no emulator and runs on the cloud host.
+
+
+# T-1864: The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W6
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`pod-guest` `agent.rs` (`AGENT_CMD`, podcrates v0.42.0) runs the command
+through `call`. A payload that ends in `exit` ends the agent, and the run
+runs to the timeout. The run on 2026-09 measured it and kept it as intended
+behavior (`experiments/results/windows-guest.txt`: a payload that ends in
+`exit` runs to the 300 s timeout and is refused). winquick runs a child
+`cmd /c`, so `exit` cannot kill the agent.
+
+## Premise
+
+A user expects `cmd /c exit 42` and a payload with `exit` to return their
+code, as in CI. A timeout is a wrong answer for a correct command.
+
+## Approach
+
+Ask podcrates by a COORD issue to run the command in a child `cmd /c`, to add
+a `WQREADY` marker, and to add a keep-alive mode with no shutdown for the
+later warm and `exec` use. podvm takes the new tag and updates the result
+file. The stdin of the command stays NUL.
+
+## Decision
+
+The change is in `pod-guest`, so podcrates owns it. podvm owns the
+experiment and the record.
+
+## Prove
+
+A new experiment (the next free number) runs the case "payload ends in `exit`"
+on the ValidationOS image under TCG on the cloud host, and it returns the code
+of the payload and not a timeout. `cmd /c exit 42` still gives 42. The result
+goes under `experiments/results/`.
+
+
+# T-1865: The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W9
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The boot line of `pod-guest` `plan.rs` (podcrates v0.42.0) is fixed: `-M q35`,
+two OVMF pflash drives, a qcow2 overlay on NVMe, a mailbox disk on NVMe,
+`-vga std -display none -nic none`, QMP on a socket. It has no option for a
+user-mode NIC with host forwards, virtio devices, an install ISO as CD-ROM,
+USB mass storage, a VNC socket, a serial channel for a guest agent or Hyper-V
+enlightenments. `--podvm-qemu-arg` is the only way in.
+
+## Premise
+
+The install builder (T-1867) needs a NIC, a CD-ROM, USB media and USB input.
+The guest agent (T-1868) needs a virtio-serial channel. ValidationOS has no
+network driver, so its run keeps `-nic none`.
+
+## Approach
+
+Ask podcrates by a COORD issue for plan options: NIC (`user` with `hostfwd`),
+virtio devices, CD-ROM and USB media, a VNC socket, a serial channel and the
+Hyper-V flags of T-1877. `-nic none` stays the default of the mailbox run. In
+podvm, pass the options from the flags. T-1867 may use `--podvm-qemu-arg` until
+the tag arrives.
+
+## Decision
+
+The plan is in `pod-guest`, so podcrates owns it.
+
+## Prove
+
+`cargo test -p podvm-windows plan_options` exits 0, with new tests of the
+argv for each option and a test that fails when a NIC device appears in the
+argv of a ValidationOS run (the check that winquick has). `podvm windows run`
+of ValidationOS keeps `-nic none`.
+
+
+# T-1866: There is no generator of the unattended answer file or of the USB FAT media
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W8a
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A full Windows install needs an `autounattend.xml` and media on which
+Setup finds it. podvm has neither. `pod-guest/src/fat16.rs` builds a FAT16
+volume in Rust (16 MiB behind an MBR) and needs no host tool.
+
+## Premise
+
+Setup finds the answer file at the root of a removable drive or a CD. The
+plan is a USB mass storage FAT image (`-device usb-storage`). The review did
+not run this; T-1867 proves it. The LabConfig bypass for Windows 11
+(`BypassTPMCheck`, `BypassSecureBootCheck`, `BypassRAMCheck`) is taken from
+dockur/windows `assets/win11x64.xml` lines 93-106 and is not tested here.
+
+## Approach
+
+Write pure functions in `crates/podvm-windows` that build the answer file
+from a template for 11, 2025 and 10: GPT layout for UEFI, edition by name,
+locale, a local account `podvm` with AutoLogon for the first logon, OOBE
+skipped, the LabConfig bypass for 11, RDP on (`fDenyTSConnections=0` and the
+firewall group), no sleep, and a `FirstLogonCommands` chain that ends with a
+`READY` marker and a shutdown. The password is random for each machine, and is
+never placed in argv or a log (`docs/decisions.md` and AGENTS.md section 7).
+Write the XML into a FAT image with the writer of `fat16`.
+
+## Decision
+
+The template is in the binary and the user does not edit it. The password
+goes to the machine record with mode 0600 (T-1869 prints it on request).
+
+## Prove
+
+`cargo test -p podvm-windows answer_file` exits 0, with new tests: golden
+files for 11, 2025 and 10, XML well-formedness, a round trip of the FAT image
+through the reader of `fat16`, a test that the password is not in any argv, and
+a test that pins the `-device usb-storage` line.
+
+
+# T-1867: `podvm pull windows:11` cannot install a full Windows guest
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W8b
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** L
+**Status:** open
+
+## Problem
+
+There is no route for a full Windows 10, 11 or Server install
+(`crates/podvm/src/windows/mod.rs:57-69` and `:121-130` refuse what it
+does not route). The setup of today (`pod_guest::provision`) only prepares
+the ValidationOS image and sleeps the whole wait with no readiness check.
+
+## Premise
+
+The install uses devices with inbox Windows drivers: q35, OVMF, NVMe root
+disk, the ISO as `ide-cd`, an `e1000e` NIC on slirp, `-vga std`, and
+`qemu-xhci` with `usb-kbd` and `usb-tablet`. The stock ISO asks "Press any key
+to boot from CD or DVD" under UEFI; the plan sends keys through QMP every 500 ms
+for the first 20 s (`qmp::Monitor::keys` exists). Install time under KVM is
+15 to 40 min (estimate). Under TCG it is hours (estimate). The review ran none
+of this. The "press any key", the answer-file discovery on USB and the
+LabConfig bypass on the current 25H2 build are taken from other tools and may
+need an ISO repack.
+
+## Approach
+
+Build the installer on T-1865 (or `--podvm-qemu-arg` until then) and T-1866:
+boot the ISO with the answer media, send the keys, watch the guest from
+outside (QMP `screendump` every 30 s and the `READY` marker), print the
+phases `copying files`, `installing` and `first logon` with elapsed time,
+apply a hard timeout, then `qemu-img convert` the disk into `golden.qcow2`
+with no backing file. The ISO stays in the cache. Refuse TCG by default and
+name `--accel tcg` and the expected time in the refusal. Check the disk and
+`RLIMIT_FSIZE` before the first write (T-1862). Disk 64 GiB sparse, 4 GiB
+and 2 CPUs by default, all overridable.
+
+## Decision
+
+`podvm pull windows:2025` is the first proof (it has no TPM check), then
+`windows:11`. ValidationOS and DOS stay allowed under TCG.
+
+## Prove
+
+A new experiment (the next free number) on `kvm.yml` (T-1682) runs `podvm pull
+windows:2025` and then `windows:11`. It records the wall clock of each, checks
+that `golden.qcow2` has no backing file, that the digest of the vendor ISO is
+unchanged, that no emulator is left, and that a refusal under TCG names
+`--accel tcg`. Record the first real install time; until then it is a dash.
+The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`. `cargo test -p podvm-windows install_plan` exits 0, with new tests
+of the phase lines and of the TCG refusal.
+
+
+# T-1868: A full Windows guest has no `exec`, `cp`, graceful `stop` or readiness probe
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W10
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The mailbox runs one command for each boot. A running full Windows guest has
+no way to run a command, copy a file or stop in a graceful way.
+
+## Premise
+
+The QEMU Guest Agent offers `guest-ping`, `guest-exec`, `guest-exec-status`,
+`guest-file-open`, `guest-file-read`, `guest-file-write`, `guest-file-close`,
+`guest-get-osinfo` and `guest-shutdown`. The virtio-win tools install it as a
+service, and it talks over virtio-serial. ValidationOS cannot run it (no
+Windows Installer service, no PnP service), so ValidationOS keeps the
+mailbox. `pod-guest/src/qmp.rs` is a client of the same style.
+
+## Approach
+
+Add the virtio-win guest tools to the install chain of T-1867 (a pinned
+virtio-win ISO in the catalog, as a third CD). Write a JSON client of the agent
+over a Unix socket (a crate `pod-qga` in podcrates, or in podvm). Add `podvm
+exec NAME -- CMD` (exit code passes through, 0 to 124), `podvm cp` in both
+directions, a graceful `stop` and the `guest-ping` readiness probe. The first
+version needs the socket of T-1865.
+
+## Decision
+
+The client is generic, so podvm asks podcrates by a COORD issue first. If
+podcrates declines, podvm owns it.
+
+## Prove
+
+`cargo test -p podvm-windows qga` exits 0, with new tests against a fake
+socket. On the golden image of T-1867: `exec -- ver` returns the exit code,
+a `cp` round trip keeps the sha256, and `stop` is graceful. The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`.
+
+
+# T-1869: A Windows guest has no `-p`, no RDP check, no VNC, no screenshot and no `creds`
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W11
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A guest started by `podvm windows run` has `-nic none` and `-display none`.
+It publishes no port and offers no desktop.
+
+## Premise
+
+QEMU user-mode networking needs no root and no tun. `-p HOST:GUEST` becomes
+`hostfwd=tcp:127.0.0.1:HOST-:GUEST`. The review (6, item 14) notes that the
+guest reaches the host loopback at 10.0.2.2 as in the Linux machine tier
+(experiment 421); whether that stays on for Windows is open. Slirp gives no
+ICMP echo to the internet, so `ping` fails while `curl` works. This is not
+measured here.
+
+## Approach
+
+Add `-p` (loopback by default, `0.0.0.0:` only if written, a free port when no
+host port is named), `podvm port NAME PORT`, the readiness chain (agent
+answers, TCP 3389 accepts, X.224 confirm that podvm sends itself), `podvm
+windows rdp`, `vnc` (a Unix socket), `screenshot` (QMP `screendump`) and
+`creds`. The run prints a hint line and never the password. Full Windows gets
+a user-mode NIC and `--podvm-net none` turns it off, as for the Linux machine
+tier. Document the `ping` oddity in `docs/limits.md`. Decide the policy for
+10.0.2.2 in this entry and record it in `docs/decisions.md`.
+
+## Decision
+
+The default is no published port and no host folder.
+
+## Prove
+
+After `run -d -p 3389:3389 windows:2025` the host sees the RDP confirm,
+`podvm port` prints the host port, and `--podvm-net none` makes an outbound
+`curl` in the guest fail. `cargo test -p podvm windows_ports` exits 0, with new
+tests of the `hostfwd` line and of the loopback default. The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`. It needs
+T-1865, T-1867 and T-1870.
+
+
+# T-1870: A Windows guest has no lifecycle: no `run -d`, `ps`, `stop`, `start`, `rm`, `logs` or `--name`
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W7
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
+
+## Problem
+
+Detached `run` and `create` are refused for a Windows guest
+(`crates/podvm/src/windows/mod.rs:57-69`, `:121-130`). The guest has no
+record, no pidfile and no lifetime. Each run is one boot, one command and
+one removal (`RunGuard`).
+
+## Premise
+
+A detached machine without a lifetime is a leak. The emulator runs in its own
+process group today, and the stop sequence is QMP `quit`, SIGKILL to the group
+and a bounded reap, with the report `Confirmed` or `Attempted`. A pidfile
+needs the start time, because a pid can be reused. DOS and ValidationOS can
+prove the lifecycle under TCG on a cloud session, so this item can start
+before T-1867.
+
+## Approach
+
+Add machine records under `store/machines/NAME/{machine.json,disk.qcow2,
+vars.fd,qmp.sock,log}`. Add `run -d`, `--name`, `ps [-a]`, `stop`, `start`,
+`rm [-f]` and `logs [-f]`. A launcher owns the process group and writes a
+pidfile with the start time. `--podvm-timeout` on a `run -d` is the maximum
+lifetime (0 is refused, the default is 24 h, estimate). `stop` and `rm -f` end
+the group, and `rm` checks that no process of the machine stays. Reuse the
+ideas of `pod-supervise`.
+
+## Decision
+
+Podvm owns the lifecycle. A machine is an overlay on the golden image, as a
+container is on an image.
+
+## Prove
+
+A new experiment (the next free number): `run -d` a DOS or ValidationOS guest
+under TCG on the cloud host, `ps` shows it, `stop` ends it, `rm` removes it,
+then `pgrep qemu-system` is empty and the run directory is gone. A plant that
+leaves the emulator makes the check fail (`podvm-plant`).
+`cargo test -p podvm windows_lifecycle` exits 0, with new tests of the
+record and the pidfile start-time check.
+
+
+# T-1871: `podvm windows doctor` is thin
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W14
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`doctor` (`crates/podvm/src/windows/doctor.rs`) prints the profile, the
+accelerator, the tool and firmware paths and the base image state. It has no
+QEMU version check, no firmware-pair check, no free-disk check, no
+`RLIMIT_FSIZE` check, no nested-virtualization note, no store state, no image
+age check and no "next command" line. The first failure of a new user is "qemu
+is not on this machine".
+
+## Premise
+
+winquick `doctor` checks the host architecture, the accelerator, the QEMU
+version (it flags QEMU below 11, for NVMe state migration), the UEFI firmware
+pair ("firmware from the wrong host is worse than none"), the free disk and
+whether the host is a VM. The 2026-09-30 and 2026-10-02 KVM runs under WSL
+failed or hung. The Microsoft evaluation media run for 90 days (client) or
+180 days (Server): a vendor statement, not checked here.
+
+## Approach
+
+Add the checks above, each with its own exit code and a line that names the
+next command (for example the apt, dnf or apk line for QEMU). Say "this host is
+itself a VM" as a note. Warn when a golden image nears the end of the
+evaluation period (the date is in `meta.json`). Make `PODVM_MACHINE_ACCEL=kvm`
+work for `podvm windows` as for the Linux guest (C16): `kvm` with no
+`/dev/kvm` refuses by name and names the `kvm` group, and it never falls back
+to TCG without a word. The verb stays reachable as `podvm doctor`.
+
+## Decision
+
+The doctor refuses where `run` refuses, and shares `plan::accelerator`.
+
+## Prove
+
+`cargo test -p podvm windows_doctor` exits 0, with new tests for each check
+and for the `kvm` refusal. A plant that breaks one check turns the gate red
+(`podvm-plant`).
+
+
+# T-1872: A Windows guest has no `-v`: no way to bring a folder in or out
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W12
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+There is no shared folder, and no copy-in or copy-out for a Windows guest.
+winquick `-w` copies a directory into a fresh filesystem image that becomes
+`C:\workspace`, and `-a` collects named files. The machine tier does the same
+for Linux and the run says that it is a copy.
+
+## Premise
+
+A live share has three candidates and none is proven: slirp `smb=DIR` needs
+a host `smbd` (not static); virtiofs needs `virtiofsd` and the WinFsp driver,
+and `virtiofsd` needs namespaces that the target hosts deny; an in-process
+WebDAV server on the slirp gateway needs the guest `WebClient` service and has
+a Windows file size limit that the review did not check. 9p does not work on
+Windows.
+
+## Approach
+
+First, add `-v HOST:C:/path[:ro]` as a one-way copy disk. The run says that it
+is a copy, and `:ro` is honest. Second, run an experiment to choose a live
+share (WebDAV in podvm, virtiofs or smb) with a write-back test. Do not
+promise live sync before that proof. `podvm cp` of T-1868 covers both
+directions with no share.
+
+## Decision
+
+The copy comes first. The live share waits for the experiment.
+
+## Prove
+
+`cargo test -p podvm windows_volume` exits 0, with new tests of the flag parse
+and of the refusal of a path that escapes. Copy, on a guest of the cloud host:
+a file appears in the guest, a write in the guest does not appear on the host,
+and the run says that it is a copy. Live share: a new experiment (the next free number) shows that a guest
+write lands on the host with the right owner. The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`.
+
+
+# T-1873: `windows setup` sleeps the whole wait with no readiness check
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W5
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
+
+## Problem
+
+`pod_guest::provision` sleeps the whole `wait` (default 240 s,
+`crates/podvm/src/windows/setup.rs:190`) with no readiness check, then types
+a drive-scan line through QMP `send-key` (8 ms a key, US layout). Setup takes
+at least `wait` seconds even when Windows is ready in 20 s. The record flags the
+same ambiguity (`TODO/gate.md`, T-1641 Correction); the hosted run 43148947380
+took about 10 minutes.
+
+## Premise
+
+winquick sets up offline in about a minute: it writes `wqagent.cmd` into
+`System32` with `ntfscp` at a byte offset and sets `Command Processor\AutoRun`
+with `hivexsh`, with no boot. The review found a conflict: winquick says
+`AutoRun` works on ValidationOS ARM64, and `pod-guest/src/agent.rs` says that on
+the x64 image `AutoRun`, `Run` and `RunOnce` do not fire and an `onstart` task
+as SYSTEM does. An x64 measurement is needed first. `ntfscp` and `hivexsh` are C
+and can build static with zig; a small Rust NTFS overwrite of the same size is
+the other way.
+
+## Approach
+
+Part (a): replace the sleep by a readiness poll (mailbox marker, serial text
+or a change of the screen) and cut the time of `setup`. Part (b): measure whether
+`AutoRun` fires on the x64 image, then evaluate the offline write. The
+provision code is in `pod-guest`, so podvm asks podcrates by a COORD issue; the
+NTFS and hive writer is a new shared crate.
+
+## Decision
+
+Part (b) starts only after the x64 `AutoRun` proof.
+
+## Prove
+
+`cargo test -p podvm-windows provision_ready` exits 0, with new tests of the readiness poll (a fake console and a fake mailbox). `sh experiments/392-kvm-guest.sh` records, for (a), a setup time under 90 s on KVM (estimate of the
+target). (b) A new experiment shows that `AutoRun` fires or does not fire on the
+x64 image. If it fires, setup takes under 60 s with no boot, and then `ver` and
+exit 42 pass; the offline write has a unit test on an image from the hosted
+runner. The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`.
+
+
+# T-1874: Each Windows run is a full boot: there is no warm start
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W13
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
+
+## Problem
+
+Every run boots Windows: 29 s under TCG (measured 2026-09 with a harness);
+under KVM the time is a dash. winquick restores a frozen guest in 0.23 to
+0.31 s (Apple M4 Pro, HVF, QEMU 11.1).
+
+## Premise
+
+winquick freezes a prepared guest with `migrate` to a file, and each run
+restores it with `-incoming file:` over a clone of the overlay. It keeps a
+fingerprint of version, base, agent, QEMU, firmware, RAM and CPU, and it
+remounts the mailbox volume by GUID to defeat the FAT cache. It needs QEMU 11
+for the NVMe device state. The hosted runner has QEMU 10.2.1. x86 KVM is not
+measured.
+
+## Approach
+
+Ask podcrates by a COORD issue for the mechanism: freeze, restore, the
+fingerprint and the fallback to a cold boot. Start with ValidationOS. podvm
+adds the flags and the doctor note about QEMU 11. Depends on T-1864 (keep-alive
+mode).
+
+## Decision
+
+A wrong or stale state always falls back to a cold boot, never to a wrong
+answer.
+
+## Prove
+
+A new experiment (the next free number) on `kvm.yml` runs 50 `cmd /c ver` runs
+and records the p95. A changed QEMU or base invalidates the state, and a
+wrong state falls back to a cold boot. The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`. It needs QEMU 11.
+
+
+# T-1875: podvm needs `qemu-system-x86_64`, `qemu-img` and OVMF on the host
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W15
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
+
+## Problem
+
+`crates/podvm/src/windows/plan.rs:137-165` refuses by name when QEMU, `qemu-img`
+or an OVMF pair is missing. This is the first failure of a new user, and it
+breaks "download and use". The rule of the owner is that each released
+binary is static.
+
+## Premise
+
+No pinned static `qemu-system-x86_64` source is in the record. A build with zig
+is large. A vendor static build may exist; the review did not verify one. Until
+a source is found, `podvm windows doctor` (T-1871) prints the install line.
+
+## Approach
+
+Find and pin a source of static `qemu-system-x86_64`, `qemu-img` and edk2
+firmware. Fetch them into the store when the host has none, with a sha256
+check. Record the source in `THIRD_PARTY.md`. If the answer is a build, write
+the build as a tracked script. If a shared crate is the right home, ask
+podcrates by a COORD issue.
+
+## Decision
+
+The host QEMU wins when it is present and passes the doctor checks.
+
+## Prove
+
+A clean container with no QEMU: `podvm run windows:dos` works under TCG, and
+`podvm windows doctor` names the store copy. A new experiment (the next free
+number) runs it and prints the sha256 of each fetched tool.
+
+
+# T-1876: Nothing checks the catalog pins for drift
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W16
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The pins (T-1861) point at Microsoft URLs that rot. `aka.ms/DownloadValidationOS`
+moved from build 9278 to 9818 between the record and 2026-11-14. Old ISO URLs
+can disappear.
+
+## Premise
+
+A `HEAD` request tells the size and the redirect target. A scheduled job can
+compare them with the pins and open an issue on drift. How podvm refreshes a
+catalog without a release (a signature, a pin in the binary or a git tag) is not
+decided.
+
+## Approach
+
+Add a scheduled workflow that sends `HEAD` to each pinned URL, compares the
+size and the `aka.ms` target, and opens an issue on a difference. Write a
+proposal for the refresh path as a question for the owner in
+`docs/decisions.md`, with a recommendation (AGENTS.md section 10).
+
+## Decision
+
+The job reads only. It never changes a pin.
+
+## Prove
+
+`sh scripts/common/check-catalog-drift.sh --plant` exits 1 for a planted URL
+and `sh scripts/common/check-catalog-drift.sh` exits 0 on the live catalog. The
+script is new and this entry adds it. The workflow runs it on a schedule.
+
+
+# T-1877: A Windows desktop has no Hyper-V enlightenments, and no one measured its boot time
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W17
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The CPU flag is `-cpu host` under KVM and nothing else. The boot to RDP time is
+a dash.
+
+## Premise
+
+The review proposes `-cpu host,hv_relaxed,hv_vapic,hv_spinlocks=0x1fff,hv_time`.
+It is not tested. Other timer and `-rtc` settings may also help. Under TCG
+`-cpu host` is never used (this part is done).
+
+## Approach
+
+Add the flags through the plan options of T-1865. Measure the boot to RDP time
+with and without them on the hosted runner. Keep the flags only if the time
+drops.
+
+## Decision
+
+The decision follows the measurement.
+
+## Prove
+
+`sh experiments/NNN-windows-hyperv.sh` (new; this entry adds it with the next
+free number) does an A/B run of the boot to RDP time with and without the flags
+and prints both. The proof runs on `kvm.yml` (T-1682), because a cloud session has no `/dev/kvm`. It needs T-1867 and
+T-1869.
+
+
+# T-1878: `podvm run -it windows:11 -- powershell`, streamed logs, a web viewer and Windows ARM64 are not planned in detail
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W18
+**Category:** machine
+**Milestone:** none
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+`run` returns the output at the end. There is no PTY, no streaming, no web
+viewer. A Windows guest follows the host architecture (`windows/mod.rs:121`),
+so an arm64 host has no media.
+
+## Premise
+
+A PTY needs an own guest agent: a small Windows executable cross-built with
+`x86_64-pc-windows-gnu` through zig and embedded with `include_bytes!`. A web
+viewer is a separate crate (HTTP and noVNC). Windows 11 ARM64 media is another
+project for dockur. `arm.yml` exists for an arm64 runner.
+
+## Approach
+
+Split this entry into its own entries when T-1867 and T-1868 are done: one for
+the PTY and the streamed logs (podcrates for the agent), one for the web
+viewer, one for ARM64. Each has its own proof.
+
+## Decision
+
+This entry is a holder. It closes when each part has an entry.
+
+## Prove
+
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0 and the record
+holds one entry for each part, each with a Prove that a session can run.
+
+
+# T-1879: The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image
+
+**Source:** the Windows guest review of 2026-11-14, section 5, item W1
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The ruling of 2026-11-14 ("Windows media", `docs/decisions.md`), the paragraph
+of `docs/limits.md` and the header of `experiments/370-windows-guest.sh` are
+corrected on `main`. These texts stay. `crates/podvm/src/windows/dos.rs:58-66`
+prints "No base is fetched or committed here" and sends the user to
+`experiments/369-windows-tcg-dos.sh`. `crates/podvm/src/windows/doctor.rs:63`
+prints that the script "fetches FreeDOS". The Premise of T-1112
+(`TODO/milestones.md`) says that the licensed input "is supplied explicitly".
+T-1112 is `done`, but its acceptance command needs a user who holds a VHDX, so
+the goal for a user is not met.
+
+## Premise
+
+podvm fetches the FreeDOS base itself after T-1861. Until then, the messages
+must not say that podvm cannot fetch. They must not tell a user to bring an
+image for a reason of license.
+
+## Approach
+
+Rewrite the two messages so that they name the command that creates the base
+(`podvm pull windows:dos` after T-1861, and the script before). Add a
+`## Correction` section below the Premise of T-1112 that says that the owner
+accepts the vendor terms and that the user goal is the work of T-1861 to
+T-1878. Keep the title and the status of T-1112.
+
+## Decision
+
+Do the text now. Do not wait for T-1861: name the script until the verb
+exists.
+
+## Prove
+
+`cargo test -p podvm --test dos_refusal` exits 0, with the test of T-1736
+updated to the new text. `grep -rn "No base is fetched" crates` finds nothing.
+`./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and its plant
+for the removed sentence turns red when the sentence returns.
