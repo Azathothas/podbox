@@ -183,7 +183,7 @@
 291 issue closed
 292 issue closed
 293 issue closed
-294 issue open
+294 issue closed
 295 issue closed
 296 issue closed
 297 issue closed
@@ -212,6 +212,6 @@
 320 issue closed
 321 issue closed
 322 issue closed
-323 issue open
+323 issue closed
 324 issue closed
 325 issue open
