@@ -10,6 +10,16 @@ They describe their recorded revision, not the current build.
 
 ## 0.2.0-beta.18 (2026-11-14)
 
+### Fixed: the machine tier refuses an image of another architecture by name, 2026-11-14
+
+Record: T-1889 (PodUtils/podrunner#102).
+Deployed: version 0.2.0-beta.18.
+
+- `run --podvm-tier=machine --platform linux/arm64` booted the x86_64
+  guest and ended with "the guest gave no exit marker". It now refuses
+  before the boot, exit 125, and names the entry that plans a guest of
+  another architecture (T-1890).
+
 ### Fixed: `--podvm-confine` on the userland rung resolves the links of the image inside it, 2026-11-14
 
 Record: T-1887, T-1888 (PodUtils/podvm#364, a patch of Nemo-010).
