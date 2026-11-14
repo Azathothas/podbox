@@ -55,16 +55,22 @@ status with `podvm-count` in the same commit as the work.
    takes it off each run after the first, and podcrates `v0.42.0` carries the
    overlay root of the namespace rung (podcrates@T-486), which podvm takes
    next.
-2. The scope entries that wait for a peer: [T-1662](net.md) (partial:
+2. The external QA report of `v0.2.0-beta.14` (2026-11-14): T-1800 to
+   T-1857. Take the P0 entries first: [T-1800](supervise.md),
+   [T-1801](cli.md), [T-1802](cli.md), [T-1804](enter.md),
+   [T-1808](machine.md), [T-1810](machine.md), [T-1818](complete.md) and
+   [T-1819](enter.md). Then the P1 entries, each with the guard of its
+   class ([T-1852](gate.md) to [T-1857](gate.md)), then P2 and P3.
+3. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)
    (partial: its check of labs comes with T-1662), [T-1663](net.md) and
    [T-1664](net.md) (blocked: they run in the lab guest of T-1662).
    podcrates names them after podcrates@T-486 and @T-107, which `v0.42.0`
    carries (PodUtils/podcrates#142).
-3. [T-1740](enter.md) (partial: a cheaper syscall tier) and
+4. [T-1740](enter.md) (partial: a cheaper syscall tier) and
    [T-1350](gate.md) (partial: the wrapper of the parked Windows lane).
-4. Low priority, the asks of podswarm (PodUtils/podcrates#124):
+5. Low priority, the asks of podswarm (PodUtils/podcrates#124):
    [T-1749](enter.md) (partial; COORD-071: the overlay root is
    podcrates@T-486, open), [T-1747](cli.md) and [T-1750](machine.md).
    V-1, V-2 (the probe cache of `run`), V-4, V-7 (`--podvm-sealed`) and
