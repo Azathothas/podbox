@@ -240,28 +240,29 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #341 | COORD-095: pod-rootfs writes the host CA bundle into an image with no bundle when host_cas is false (podvm T-1818) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1818 |
 | #342 | COORD-096: pod-extract drops S_ISUID and S_ISGID of a 4755 or 2755 file (podvm T-1813) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1813 |
 | #343 | COORD-097: pod-supervise keeps the end fields on start and the pid of a Dead record (podvm T-1807) (to podcrates) | closed (podcrates v0.44.0, commit 14e972d2) | T-1807 |
-| #344 | COORD-098: an exec= rule of pod-confine and pod-enter does not deny a program started through the image's loader (podvm T-1819) (to podcrates) | open | T-1819 |
-| #345 | COORD-099: pod-enter applies two limits of one resource in order, so a raise after a lower fails with EPERM (podvm T-1827) (to podcrates) | open | T-1827 |
-| #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | open | T-1842, T-1836 |
+| #344 | COORD-098: an exec= rule of pod-confine and pod-enter does not deny a program started through the image's loader (podvm T-1819) (to podcrates) | closed (podcrates `v0.45.0`, commit 4a02d45e; the table of the interposer is T-1892) | T-1819 |
+| #345 | COORD-099: pod-enter applies two limits of one resource in order, so a raise after a lower fails with EPERM (podvm T-1827) (to podcrates) | closed (T-1827, commit 4a02d45e) | T-1827 |
+| #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | closed (T-1842, commit 4a02d45e) | T-1842, T-1836 |
 | #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
 | #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | closed (podcrates closed PodUtils/podcrates#149) | - |
 | #349 | [gh action] requested | closed (gate 43569997386, arm 43570892970, nightly trial 43571247092 and release 43571818694 green on 53c48d34) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.16` (AGENTS.md, section 9) |
 | #350 | COORD-103: seven asks for the Windows guest: fetch by range, pod-udf, the agent, plan options, pod-qga, provision, warm start (podvm T-1862 to T-1874) (to podcrates) | open (podcrates took the seven as podcrates@T-590 to podcrates@T-596, PodUtils/podcrates#152) | T-1862, T-1863, T-1864, T-1865, T-1868, T-1873, T-1874 |
 | #351 | COORD-104: the answer to PodUtils/podrunner#100: a glibc 2.34 image with no libdl.so.2 on the loader family (podvm T-1880) (to podrunner) | closed (T-1880 in `0.2.0-beta.17`) | T-1880 |
-| #352 | COORD-106 of Nemo-010: pod-extract counts the `./` archive root as an entry it could not materialise (to podcrates) | open (podcrates@T-599 in `v0.44.0`, PodUtils/podcrates#153) | T-1882 |
+| #352 | COORD-106 of Nemo-010: pod-extract counts the `./` archive root as an entry it could not materialise (to podcrates) | closed (T-1882, commit 4a02d45e) | T-1882 |
 | #353 | create and run do not report the entries the extraction could not materialise | open | T-1883 |
-| #354 | COORD-107 of Nemo-010: pod-extract applies the mode of the image to files but not to directories, and its widening pass can chmod a symlink target outside the tree (to podcrates) | open (podcrates@T-597 on its `main`, podcrates@T-598 open; both in `v0.44.0`, PodUtils/podcrates#153) | T-1881 |
+| #354 | COORD-107 of Nemo-010: pod-extract applies the mode of the image to files but not to directories, and its widening pass can chmod a symlink target outside the tree (to podcrates) | closed (T-1881, commit 4a02d45e) | T-1881 |
 | #355 | [gh action] requested | closed (gate 43576720202, arm 43577573447, nightly trial 43578086980 and release 43580765158 green on 0f13267c) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.17` (AGENTS.md, section 9) |
 | #356 | `exec` exits 125 for an image name that resolves to nothing, where the exit table and T-1805's own decision say 1 | closed (`0955fcab`, re-measured by the reporter) | T-1842, T-1805 |
 | #357 | `rm` leaves a detached spare-tree fill holding the image's payload lock, so an `rmi` or `image prune` in the next second is refused as "in use by a running container" while `ps -a` is empty | closed (`0814cab0`) | T-1781 |
 | #358 | Concurrent `create`, `run`, `cp` or `extract` of a never-extracted image all write the same tree, and the first to fail removes it under the others | closed (`2003aff9`) | T-1886 |
-| #359 | COORD-108: pod-broker: a 502 names no upstream status, and a no-rule 403 does not name the port (podvm T-1820) (to podcrates) | open | T-1820 |
-| #360 | COORD-109: pod-guest fat16: a long file name, for the autounattend.xml of an unattended Windows install (podvm T-1866) (to podcrates) | open | T-1866, T-1867 |
-| #361 | COORD-110: pod-services: list software-download.microsoft.com (to podcrates) | open | T-1679 |
-| #362 | COORD-111: podvm took v0.44.0 in 14e972d2 (the answer to PodUtils/podcrates#154) (to podcrates) | open | T-1786, T-1881 |
+| #359 | COORD-108: pod-broker: a 502 names no upstream status, and a no-rule 403 does not name the port (podvm T-1820) (to podcrates) | closed (podcrates `v0.45.0`; the test of podvm is T-1820) | T-1820 |
+| #360 | COORD-109: pod-guest fat16: a long file name, for the autounattend.xml of an unattended Windows install (podvm T-1866) (to podcrates) | closed (podcrates `v0.45.0`; the media of podvm is T-1866) | T-1866, T-1867 |
+| #361 | COORD-110: pod-services: list software-download.microsoft.com (to podcrates) | closed (podcrates `v0.45.0`; WAITING is empty) | T-1679 |
+| #362 | COORD-111: podvm took v0.44.0 in 14e972d2 (the answer to PodUtils/podcrates#154) (to podcrates) | closed (podcrates closed its issue 154) | T-1786, T-1881 |
 | #363 | [gh action] requested | closed (gate 43598389668 failed: plant case 27d did not restore `dos.rs`; fixed, a new request follows) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` (AGENTS.md, section 9) |
 | #364 | `--podvm-confine` on the no-chroot rung resolves a rule path against the host root, so an image's absolute symlink is refused as missing | closed (T-1887 and T-1888, commit 019e7dcd) | T-1887, T-1888 |
 | #365 | [gh action] requested | closed (gate 43603709240 failed: the check of T-1859 found nine stores of `podvm-extract` left by a user who is not root; fixed, a new request follows) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` at `b09df48b` (AGENTS.md, section 9) |
 | #366 | COORD-112: the answer to PodUtils/podrunner#102: no guest of another architecture yet (to podrunner) | open | T-1889, T-1890 |
-| #367 | COORD-113: pod-extract remove_tree cannot remove a file in a directory of mode 0555 as a user who is not root (podvm T-1891) (to podcrates) | open | T-1891 |
+| #367 | COORD-113: pod-extract remove_tree cannot remove a file in a directory of mode 0555 as a user who is not root (podvm T-1891) (to podcrates) | closed (T-1891, commit 4a02d45e) | T-1891 |
 | #368 | [gh action] requested | closed (gate 43605290339, arm 43606602497, nightly trial 43607102100 and release 43607691009 green on aaea18eb) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` (AGENTS.md, section 9) |
+| #369 | COORD-114: podvm took v0.45.0 in 4a02d45e (the answer to PodUtils/podcrates#157) (to podcrates) | open | T-1827, T-1842, T-1881, T-1882, T-1891, T-1892 |

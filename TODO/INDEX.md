@@ -554,10 +554,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1889](machine.md) | P1 | S | none | machine | done | The machine tier boots an image of another architecture and ends with "no exit marker" |
 | [T-1890](machine.md) | P2 | L | none | machine | open | The machine tier has no guest of another architecture |
 | [T-1891](extract.md) | P1 | S | none | extract | done | A tree with a directory of mode 0555 cannot be removed by a user who is not root |
+| [T-1892](enter.md) | P3 | S | none | enter | open | Two exec tables reach the payload: podvm's guest paths and the crate's host paths |
 
 ## Counts
 
-488 entries: 50 open, 12 partial, 2 blocked, 424 done.
+489 entries: 51 open, 12 partial, 2 blocked, 424 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -569,8 +570,8 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | P0 | 0 | 0 | 0 | 74 | 74 |
 | P1 | 4 | 8 | 0 | 188 | 200 |
 | P2 | 31 | 2 | 2 | 140 | 175 |
-| P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 50 | 12 | 2 | 424 | 488 |
+| P3 | 16 | 2 | 0 | 22 | 40 |
+| **All** | 51 | 12 | 2 | 424 | 489 |
 
 ## Work order
 

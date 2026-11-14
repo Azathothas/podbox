@@ -3912,3 +3912,41 @@ the tree (a path of the host only), and `start` refuses at 125 with
 leaves the tree"; a link to `/bin/busybox` starts and exits 0; `run
 --podvm-confine read=/nosuch` refuses at 125 with "is not in the image",
 and `read=?/nosuch` runs.
+
+# T-1892: Two exec tables reach the payload: podvm's guest paths and the crate's host paths
+
+**Source:** the take of podcrates `v0.45.0` (2026-11-14), podcrates@T-583
+**Category:** enter
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Since podcrates `v0.45.0`, `pod-enter` writes the exec table of the
+confine layer into the environment of a payload with no chroot, as host
+paths, under `Names::exec_table`. podvm's interposer reads its own table
+of guest paths in `PODVM_EXEC` (T-1819). podvm names the crate's table
+`PODVM_EXEC_HOST`, so a confined payload gets two variables, and the
+interposer reads one of them.
+
+## Premise
+
+`pod_confine::ExecTable::allows_in` checks a resolved host path against
+the table; the interposer of podvm resolves each program through the
+table of the rootfs and can check the host path too.
+
+## Approach
+
+Move the check of the interposer to the crate's table of host paths
+(`PODVM_EXEC_HOST`, the format of `ExecTable::encode`), remove
+`exec_table` of `lifecycle/confine.rs`, and keep one variable.
+
+## Decision
+
+One table of each layer reaches the payload.
+
+## Prove
+
+`cargo test -p podvm --bin podvm exec_table` exits 0, and a run on the userland fixture with `--podvm-confine exec=/vol` has `PODVM_EXEC_HOST` and no `PODVM_EXEC` in its environment, and still gives 126 for a program outside the table
