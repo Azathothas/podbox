@@ -350,5 +350,19 @@ pub(super) fn continue_run(
         },
     );
 
+    // TODO/machine.md T-1879: the retired sentence of the DOS refusal.
+    plant.case_plant(
+        "27d a message that says podvm fetches no base",
+        "a retired sentence",
+        scratch,
+        &|| {
+            let file = "crates/podvm/src/windows/dos.rs";
+            let text = read_file(root, file);
+            let planted = concat!("No base is ", "fetched");
+            write_file(root, file, &format!("{text}// {planted} here.\n"));
+            true
+        },
+    );
+
     finish_run(plant, root, scratch)
 }

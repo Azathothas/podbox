@@ -4046,7 +4046,7 @@ holds one entry for each part, each with a Prove that a session can run.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4085,6 +4085,18 @@ exists.
 updated to the new text. `grep -rn "No base is fetched" crates` finds nothing.
 `./target/x86_64-unknown-linux-musl/release/podvm-gate` exits 0, and its plant
 for the removed sentence turns red when the sentence returns.
+
+## Done
+
+**Done 2026-11-14.** The message of `dos.rs` is gone: a DOS run fetches
+the FreeDOS base of the catalog (T-1861), and the doctor says that
+`podvm run windows:dos` fetches it. T-1112 has a `## Correction` that
+names the ruling and T-1861 to T-1878. `podvm-gate` refuses the retired
+sentence in a Rust source of `crates/` (`gate/retired.rs`); the plant
+case 27d appends it to `dos.rs`, and the gate exits 1 with "a retired
+sentence" (run by hand on this host), and 0 after the restore.
+`cargo test -p podvm --test dos_refusal` exits 0, and `grep -rn "No base
+is fetched" crates` finds only the check in `podvm-gate`.
 
 
 # T-1884: A machine run that podvm ends on SIGTERM leaves its emulator running

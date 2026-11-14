@@ -225,6 +225,10 @@ use prove_parse::*;
 mod tree_checks;
 use tree_checks::*;
 
+#[path = "gate/retired.rs"]
+mod retired;
+use retired::*;
+
 #[path = "gate/record_checks.rs"]
 mod record_checks;
 use record_checks::*;

@@ -239,6 +239,7 @@ pub(super) fn run_gate(root: &Path) -> i32 {
 
     check_size_ceiling(&mut gate, root, &files);
     check_rust_file_lines(&mut gate, root, &files);
+    check_retired_sentences(&mut gate, root, &files);
     check_experiment_numbers(&mut gate, root, &files);
     check_ci_components(&mut gate, root, &files);
     check_exit_codes(&mut gate, root, &files);

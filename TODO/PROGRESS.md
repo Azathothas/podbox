@@ -7,7 +7,7 @@ start.
 
 ## State
 
-483 entries: 56 open, 12 partial, 6 blocked, 409 done.
+483 entries: 55 open, 12 partial, 6 blocked, 410 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -60,14 +60,14 @@ status with `podvm-count` in the same commit as the work.
    entries of T-1807 and on, to T-1860. Each P0 entry is done. Take the P1
    entries, each with the guard of its class ([T-1852](gate.md) to
    [T-1857](gate.md)), then P2 and P3.
-2a. The Windows guest plan of the review of 2026-11-14: T-1861 to T-1879
+2a. The Windows guest plan of the review of 2026-11-14: T-1861 to T-1878
    (`podvm run windows:NAME`). The owner accepts the vendor terms
    (`docs/decisions.md`, "Windows media"). Take the P1 entries first:
    [T-1861](machine.md), [T-1862](machine.md), [T-1863](machine.md),
    [T-1864](machine.md), [T-1865](machine.md), [T-1866](machine.md),
    [T-1867](machine.md) (the first KVM proof, on `kvm.yml`) and
    [T-1871](machine.md); then the P2 entries and T-1878 (P3). T-1862 to
-   T-1865 wait for podcrates tags; T-1879 is a text fix that needs no tag.
+   T-1865 wait for podcrates tags.
 3. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)

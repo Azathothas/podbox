@@ -541,7 +541,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1876](machine.md) | P2 | S | none | machine | open | Nothing checks the catalog pins for drift |
 | [T-1877](machine.md) | P2 | M | none | machine | open | A Windows desktop has no Hyper-V enlightenments, and no one measured its boot time |
 | [T-1878](machine.md) | P3 | L | none | machine | open | `podvm run -it windows:11 -- powershell`, streamed logs, a web viewer and Windows ARM64 are not planned in detail |
-| [T-1879](machine.md) | P2 | S | none | machine | open | The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image |
+| [T-1879](machine.md) | P2 | S | none | machine | done | The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image |
 | [T-1880](interpose.md) | P1 | M | none | interpose | done | The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none |
 | [T-1881](extract.md) | P0 | M | none | extract | blocked | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
 | [T-1882](extract.md) | P2 | S | none | extract | blocked | pod-extract counts the `./` archive root as an entry it could not make |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 56 open, 12 partial, 6 blocked, 409 done.
+483 entries: 55 open, 12 partial, 6 blocked, 410 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -563,9 +563,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
 | P1 | 6 | 7 | 1 | 183 | 197 |
-| P2 | 35 | 3 | 4 | 131 | 173 |
+| P2 | 34 | 3 | 4 | 132 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 56 | 12 | 6 | 409 | 483 |
+| **All** | 55 | 12 | 6 | 410 | 483 |
 
 ## Work order
 

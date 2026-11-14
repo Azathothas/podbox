@@ -1079,6 +1079,15 @@ their stated hosts. The ReactOS clause is descoped by the
 operator on 2026-10-02 and is not part of this entry's
 acceptance; see the Decision.
 
+## Correction
+
+**2026-11-14.** The Premise says that the licensed input "is supplied
+explicitly". The owner accepts the vendor terms (`docs/decisions.md`,
+"Windows media"), so podvm fetches the media itself: the FreeDOS base and
+the ValidationOS image of the catalog (T-1861). The user goal, `podvm run
+windows:NAME` with no image at hand, is the work of T-1861 to T-1878.
+The title and the status of this entry stay (TODO/machine.md T-1879).
+
 ## Done
 
 **Done 2026-11-12.** The KVM leg, the remaining acceptance, passes in
