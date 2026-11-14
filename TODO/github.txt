@@ -257,4 +257,4 @@
 365 issue closed
 366 issue open
 367 issue open
-368 issue open
+368 issue closed

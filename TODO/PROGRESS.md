@@ -11,13 +11,15 @@ start.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
-* The newest release is `v0.2.0-beta.17` (2026-11-14, release run
-  43580765158 on `0f13267c`; the gate 43576720202, `arm.yml` 43577573447
-  and the nightly trial 43578086980 passed first, through issue 355): a
-  second glibc object for glibc 2.34 images with no `libdl.so.2`
-  (T-1880, PodUtils/podrunner#100), a full stdout exits 125 (T-1816),
-  and a missing container name exits 1 (T-1805). beta.16 (issue 349)
-  gave the eight P0 findings of the external QA report. `release.yml`
+* The newest release is `v0.2.0-beta.18` (2026-11-14, release run
+  43607691009 on `aaea18eb`; the gate 43605290339, `arm.yml` 43606602497
+  and the nightly trial 43607102100 passed first, through issue 368):
+  podcrates `v0.44.0` (a fix of security in extraction, a foreground run
+  that is live in its record, the setuid bits), the confine paths of the
+  userland rung (T-1887, T-1888, issue 364), `exec` after `--tmpfs`, and
+  the machine tier's refusal of another architecture (T-1889).
+  Requests 363 and 365 stopped at the gate on the plant harness and on
+  test stores; both causes are fixed. `release.yml`
   needs a successful gate run on its commit; dispatch `nightly.yml` with
   `trial=true` on `main` first. A request asks for one dispatch of the
   gate: two runs of it cancel each other (issue 301).

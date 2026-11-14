@@ -1,13 +1,14 @@
 # Handoff
 
-The state on 2026-11-14, after the release `0.2.0-beta.17` (issue 355).
+The state on 2026-11-14, after the release `0.2.0-beta.18` (issue 368).
 `0.2.0-beta.8` (issue 302) is the complete release for the beta testers
 (`docs/decisions.md`, "Complete release first"); beta.9 to beta.14 serve
 podrunner's kinds and podswarm's V-2 and V-7; beta.15 gives the spare tree
 and the fixes of the first beta reports (issues 329 to 336); beta.16 the
 eight P0 findings of the external QA report (T-1800 to T-1819); beta.17
 the glibc 2.34 object of PodUtils/podrunner#100 (T-1880), T-1816 and
-T-1805.
+T-1805; beta.18 podcrates `v0.44.0` and the fixes of issues 364 and
+PodUtils/podrunner#102.
 A fresh
 session with no memory reads this file first, then `AGENTS.md`,
 `TODO/PROGRESS.md`, `TODO/RESUME.md` and `docs/decisions.md`. Remove this
