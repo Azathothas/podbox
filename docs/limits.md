@@ -203,6 +203,11 @@ states:
   because they add time to each boot. podvm adds no `iptables`: the
   image of the engine brings it.
 
+The guest does not honour `--podvm-confine`, `--user`, `--add-host`,
+`--read-only`, `--tmpfs`, `--ulimit`, `--security-opt`, `--cap-drop` or
+`--label`, so the machine tier refuses each by name with exit 125,
+before the boot (T-1808).
+
 `run --podvm-tier=emulate IMAGE CMD` runs the command under a static
 qemu-user of `PATH` (`qemu-ARCH-static`, else `qemu-ARCH`), and the
 emulator itself runs on the native-static rung (T-1651). So each path of

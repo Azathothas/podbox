@@ -565,6 +565,10 @@ else
 fi
 t machine.mem-elsewhere ns "rc 125: --podvm-mem without machine" '[ $rc -eq 125 ]' '$PB run --rm --podvm-mem 512M $A true'
 t machine.tier-bad ns "rc 125 flag error" '[ $rc -eq 125 ]' '$PB run --rm --podvm-tier=bogus $A true'
+for f in "--podvm-confine read=/tmp" "--user 1000" "--add-host a:1.2.3.4" "--read-only" "--tmpfs /mnt/x" "--ulimit nofile=512:512" "--security-opt no-new-privileges" "--cap-drop ALL" "--label a=b"; do
+	n=${f%% *}; n=${n#--}
+	t machine.refuse-$n ns "rc 125 before the boot, names the flag (T-1808)" '[ $rc -eq 125 ] && has "$err" -e "machine tier refused" && has "$err" -e "'"${f%% *}"'"' "\$PB run --rm --podvm-tier=machine $f \$A true"
+done
 note ""
 fi
 

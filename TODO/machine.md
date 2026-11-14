@@ -2811,7 +2811,7 @@ The report describes the run that the caller asked for, on each tier.
 **Milestone:** none
 **Priority:** P0
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2853,6 +2853,24 @@ no-new-privs) is a separate entry when a caller asks. The QA patch
 ## Prove
 
 `cargo test -p podvm --bin podvm machine_refuses` exits 0, with a test that each of the nine flags with `--podvm-tier=machine` exits 125 and names the flag before any boot
+
+## Done
+
+**Done 2026-11-14.** `run/machine.rs`: `unhonoured_flags` names each of
+the nine flags that a run gives, and `machine_tier` refuses them by name
+with exit 125 before `prepare_image`, so before any pull or boot.
+`--security-opt no-new-privileges` and `--cap-drop ALL` set one field
+of the record, so the message names both. The test
+`machine_refuses_each_unhonoured_flag` parses each flag with
+`--podvm-tier=machine` and checks the name, and that a run with none of
+them names nothing. By hand with the built binary and an image that the
+store does not have: each of the nine exits 125 and its first line says
+`machine tier refused: the guest does not honour FLAG yet`.
+`docs/limits.md` states the rule; the help of `--podvm-confine` already
+said that the machine tier refuses it. Experiment 443, section machine,
+has the rows `machine.refuse-*`; the section gave 15 pass, 0 fail, with
+four guests under TCG, and no emulator stayed. The incus tier is not changed here:
+T-1854 tests each option on each tier.
 
 
 # T-1809: `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137

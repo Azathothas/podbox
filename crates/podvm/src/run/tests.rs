@@ -379,3 +379,34 @@ fn the_mem_flag_parses_to_bytes_in_both_forms() {
         EXIT_FLAG_ERROR
     );
 }
+
+/// TODO/machine.md T-1808: the machine tier names each flag that its guest
+/// does not honour, so that `run` refuses it before the boot; a run with
+/// none of them names nothing.
+#[test]
+fn machine_refuses_each_unhonoured_flag() {
+    let cases: [(&[&str], &str); 9] = [
+        (&["--podvm-confine", "read=/tmp"], "--podvm-confine"),
+        (&["--user", "1000"], "--user"),
+        (&["--add-host", "a:1.2.3.4"], "--add-host"),
+        (&["--read-only"], "--read-only"),
+        (&["--tmpfs", "/mnt/x"], "--tmpfs"),
+        (&["--ulimit", "nofile=512:512"], "--ulimit"),
+        (&["--security-opt", "no-new-privileges"], "--security-opt"),
+        (&["--cap-drop", "ALL"], "--cap-drop"),
+        (&["--label", "a=b"], "--label"),
+    ];
+    for (flags, name) in cases {
+        let mut a = vec!["--podvm-tier=machine"];
+        a.extend_from_slice(flags);
+        a.extend_from_slice(&["img", "true"]);
+        let o = parse("run", &v(&a)).unwrap();
+        let named = super::machine::unhonoured_flags(&o);
+        assert!(
+            named.iter().any(|f| f.contains(name)),
+            "{flags:?}: {named:?}"
+        );
+    }
+    let o = parse("run", &v(&["--podvm-tier=machine", "img", "true"])).unwrap();
+    assert!(super::machine::unhonoured_flags(&o).is_empty());
+}

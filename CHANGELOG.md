@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: the machine tier refuses the flags that its guest ignored, 2026-11-14
+
+Record: T-1808.
+Deployed: not deployed; no version change.
+
+- `run --podvm-tier=machine` took `--podvm-confine`, `--user`,
+  `--add-host`, `--read-only`, `--tmpfs`, `--ulimit`, `--security-opt`,
+  `--cap-drop` and `--label` and dropped them: the payload ran as root
+  with each capability. It now refuses each by name with exit 125 before
+  the boot.
+
 ### Fixed: `--read-only` kept a `:ro` volume with a trailing `/` writable, 2026-11-14
 
 Record: T-1804.

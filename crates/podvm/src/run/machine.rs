@@ -111,6 +111,18 @@ pub(super) fn machine_tier(
         );
         return podvm_image::error::EXIT_RUNTIME_ERROR;
     }
+    // TODO/machine.md T-1808: a flag that the guest does not honour is
+    // refused by name before the boot, as the incus tier does. The payload
+    // ran as root with each capability where the caller asked otherwise.
+    let unhonoured = unhonoured_flags(o);
+    if !unhonoured.is_empty() {
+        eprintln!(
+            "podvm {verb}: machine tier refused: the guest does not honour {} yet; podvm \
+             refuses each by name and does not drop it (TODO/machine.md T-1808)",
+            unhonoured.join(", ")
+        );
+        return EXIT_FLAG_ERROR;
+    }
     // TODO/machine.md T-1751: a sealed run takes each value of the run
     // from the bundle; a flag would put it in the argv of podvm.
     if o.sealed
@@ -232,6 +244,28 @@ pub(super) fn machine_tier(
         let _ = std::fs::remove_dir_all(d);
     }
     code
+}
+
+/// The flags of `o` that the guest of the machine tier does not honour
+/// (TODO/machine.md T-1808), in the order of the help.
+pub(super) fn unhonoured_flags(o: &Opts) -> Vec<&'static str> {
+    let h = &o.hardening;
+    [
+        (o.confine.is_some(), "--podvm-confine"),
+        (o.user.is_some(), "--user"),
+        (!o.ask.add_hosts.is_empty(), "--add-host"),
+        (o.read_only, "--read-only"),
+        (!o.tmpfs.is_empty(), "--tmpfs"),
+        (!h.ulimits.is_empty(), "--ulimit"),
+        (
+            h.no_new_privs,
+            "--security-opt no-new-privileges or --cap-drop ALL",
+        ),
+        (!h.labels.is_empty(), "--label"),
+    ]
+    .into_iter()
+    .filter_map(|(given, flag)| given.then_some(flag))
+    .collect()
 }
 
 /// The incus tier (T-1718): `run` only; each other verb refuses by name.
