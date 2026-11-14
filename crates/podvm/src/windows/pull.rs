@@ -52,14 +52,16 @@ pub(crate) fn fetched(verb: &str, e: &Entry) -> Result<PathBuf, i32> {
         max_bytes: e.ceiling(),
         fsize,
     };
-    let response = super::setup::get(e.url, super::setup::FETCH_LIMITS).map_err(|err| {
-        eprintln!("podvm {verb}: {}: {err}", e.url);
-        EXIT_RUNTIME_ERROR
-    })?;
-    let declared = response
-        .header("Content-Length")
-        .and_then(|v| v.trim().parse::<u64>().ok());
-    match podvm_windows::fetch::store(response, declared, &dest, Some(e.sha256), ceiling) {
+    let mut origin = super::origin::Http {
+        url: e.url.to_string(),
+    };
+    match podvm_windows::fetch::store(
+        &mut origin,
+        &dest,
+        Some(e.sha256),
+        ceiling,
+        super::origin::TRIES,
+    ) {
         Ok(_) => Ok(dest),
         Err(err) => {
             eprintln!("podvm {verb}: windows:{}: {err}", e.name);

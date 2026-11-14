@@ -34,10 +34,10 @@ pub(crate) const FETCH_LIMITS: Limits = Limits {
 /// One GET of `url` with `limits`, through the proxy of the environment
 /// (`podvm_image::net`), with the redirects followed. A black-holed origin
 /// fails loud instead of hanging a caller that cannot prompt.
-pub(crate) fn get(url: &str, limits: Limits) -> Result<Body, String> {
+pub(crate) fn get(url: &str, headers: &[(&str, String)], limits: Limits) -> Result<Body, String> {
     let (config, _roots) = podvm_image::tls::client_config();
     let mut net = Net::from_environment(config)?;
-    net.send("GET", url, &[], true, limits)
+    net.send("GET", url, headers, true, limits)
         .map_err(|e| e.to_string())
 }
 
@@ -110,17 +110,14 @@ pub(crate) fn fetch(a: &Args) -> i32 {
         max_bytes: a.max_bytes.unwrap_or(DEFAULT_MAX_BYTES),
         fsize,
     };
-    let response = match get(&url, FETCH_LIMITS) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("podvm windows fetch: {url}: {e}");
-            return EXIT_RUNTIME_ERROR;
-        }
-    };
-    let declared = response
-        .header("Content-Length")
-        .and_then(|v| v.trim().parse::<u64>().ok());
-    match podvm_windows::fetch::store(response, declared, &dest, a.sha256.as_deref(), ceiling) {
+    let mut origin = super::origin::Http { url: url.clone() };
+    match podvm_windows::fetch::store(
+        &mut origin,
+        &dest,
+        a.sha256.as_deref(),
+        ceiling,
+        super::origin::TRIES,
+    ) {
         Ok(got) => {
             println!("{got}  {}", dest.display());
             if a.sha256.is_none() {
@@ -258,6 +255,7 @@ mod tests {
                 memory_mib: 4096,
                 cpus: 2,
                 emu_args: Vec::new(),
+                options: Default::default(),
             })
             .as_deref(),
             Some(scratch.as_path()),
@@ -286,7 +284,7 @@ mod tests {
             head: Duration::from_millis(200),
             idle: Duration::from_millis(200),
         };
-        let err = match get(&format!("http://127.0.0.1:{port}/hangs"), limits) {
+        let err = match get(&format!("http://127.0.0.1:{port}/hangs"), &[], limits) {
             Ok(_) => panic!("a hung origin gives no answer"),
             Err(e) => e,
         };

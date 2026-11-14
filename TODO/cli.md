@@ -5019,7 +5019,7 @@ its end; a start record is not a report.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5058,6 +5058,17 @@ the payload can have.
 
 `cargo test -p podvm --bin podvm ulimit_plan` exits 0, with tests that two `nofile` values leave the last, that `-1` resolves to the inherited hard limit, and that a hard value over it is refused with both numbers
 
+## Done
+
+**Done 2026-11-14.** `run/parse/values.rs` (`ulimit_plan`, `ulimits_of`)
+keeps the last value of each resource before the plan (podcrates
+`v0.45.0` refuses two limits of one resource), gives `-1` the hard limit
+that podvm has where it is finite, and refuses a hard value over it as a
+flag error with both numbers. `cargo test -p podvm --bin podvm
+ulimit_plan` exits 0. By hand with `ulimit -Hn` 20000:
+`--ulimit nofile=64 --ulimit nofile=128` gives 128 and the reverse 64;
+`nofile=-1` gives 20000; `nofile=64:99999999` exits 125 with "the hard
+value 99999999 is over the hard limit 20000 of RLIMIT_NOFILE".
 
 # T-1828: `--add-host` takes a non-address, `-e =V` is dropped, `--env-file` removes quotes, and a repeated `--label` key keeps both values
 

@@ -85,3 +85,21 @@ fn the_limits_of_the_hardening_line_parse() {
         );
     }
 }
+
+/// TODO/cli.md T-1827: the last value of a resource wins, `-1` takes the
+/// hard limit that podvm has, and a hard value over it is refused with
+/// both numbers.
+#[test]
+fn ulimit_plan_keeps_the_last_value_and_resolves_minus_one() {
+    use super::parse::values::ulimit_plan;
+    let own = |_: u64| Some(1_048_576);
+    let got = ulimit_plan(&v(&["nofile=64", "nproc=10", "nofile=128"]), &own).unwrap();
+    assert_eq!(got, v(&["nproc=10", "nofile=128"]));
+    let got = ulimit_plan(&v(&["nofile=-1"]), &own).unwrap();
+    assert_eq!(got, v(&["nofile=1048576"]));
+    let e = ulimit_plan(&v(&["nofile=64:1048577"]), &own).unwrap_err();
+    assert!(e.contains("1048577") && e.contains("1048576"), "{e}");
+    let unlimited = |_: u64| None;
+    let got = ulimit_plan(&v(&["core=-1"]), &unlimited).unwrap();
+    assert_eq!(got, v(&["core=-1"]));
+}

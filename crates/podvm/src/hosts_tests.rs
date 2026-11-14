@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 /// Hosts that podvm names and that `pod-services` does not list yet. Each
 /// was reported to podcrates; the test fails when the crate lists one, so
 /// this list only shrinks.
-const WAITING: &[&str] = &["software-download.microsoft.com"];
+const WAITING: &[&str] = &[];
 
 /// Hosts that only name an XML namespace: no code of podvm connects to
 /// them (TODO/machine.md T-1866, the answer file of a Windows setup).

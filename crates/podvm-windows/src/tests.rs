@@ -27,6 +27,7 @@ fn podvm_gives_its_names_to_the_guest() {
             command: "ver".into(),
             token: "tok".into(),
             timeout: Duration::from_secs(1),
+            mode: Default::default(),
         },
     )
     .expect("a mailbox");
@@ -53,6 +54,7 @@ fn podvm_windows_keep_keeps_the_run() {
         memory_mib: 512,
         cpus: 1,
         emu_args: Vec::new(),
+        options: Default::default(),
     };
     // SAFETY: only a test changes this variable; edition 2024 marks the change unsafe because another thread can read the environment at the same time.
     unsafe { std::env::set_var("PODVM_WINDOWS_KEEP", "1") };

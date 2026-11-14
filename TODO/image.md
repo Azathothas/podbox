@@ -4161,7 +4161,7 @@ store.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4198,6 +4198,13 @@ One exit code for one class across the image verbs.
 
 ## Done
 
+**Done 2026-11-14.** podcrates `v0.45.0` refuses a bad host
+(`Refusal::Host`, podcrates@T-585), and `error.rs` keeps its class, so
+`pull --insecure-registry 'bad host!'` exits 1 and names the value.
+`cargo test -p podvm --bin podvm image_exit_codes` exits 0
+(`images/exit_tests.rs`: a missing image and an invalid name exit 1, the
+bad host exits 1 with the value named, a good host passes).
+
 **Partial 2026-11-14.** The exit codes: each arm of `save`, `load` and
 `import` (`images/save_load.rs`) returns `e.exit_code()` of the image
 error, so a missing image and an invalid name exit 1 and an I/O or hash
@@ -4210,7 +4217,6 @@ line, and no file F). The clause that remains: the check of an
 insecure-registry host (`'bad host!'`), in podvm and in `pod-oci`
 (COORD-100, issue 346, podcrates@T-585), and the test
 `image_exit_codes` of the Prove, which comes with it.
-
 
 # T-1843: `extract --force` removes the extracted root before it takes the lock of the store
 
@@ -4272,7 +4278,7 @@ while the image lock was held".
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -4301,12 +4307,6 @@ Land it with or after T-1882, as the reporter asks, so that `create` and
 ## Prove
 
 `cargo test -p podvm --bin podvm diagnose::` exits 0 with the test of the text and the silence; `create` of an image with a fifo prints the line, and `create` of `public.ecr.aws/docker/library/alpine:3.20` prints none
-
-## Blocker
-
-T-1882 (podcrates fixes the count of the archive root). The entry
-clears when podvm takes that tag.
-
 
 # T-1886: Concurrent extractions of one image write one tree, and the first to fail removes it under the others
 

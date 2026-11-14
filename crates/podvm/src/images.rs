@@ -336,7 +336,9 @@ mod inspect;
 pub use inspect::*;
 
 #[cfg(test)]
-mod tests;
+mod exit_tests;
+#[cfg(test)]
+mod tests; // TODO/image.md T-1842
 
 /// docker's `image` sub-command group.
 pub fn group(args: &[String]) -> i32 {

@@ -7,7 +7,7 @@ start.
 
 ## State
 
-488 entries: 50 open, 14 partial, 5 blocked, 419 done.
+488 entries: 50 open, 12 partial, 2 blocked, 424 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -28,10 +28,13 @@ The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
   `actions_run_trigger` answers "Actions has been disabled for this user".
   Each run of a cloud session is an issue `[gh action] requested`
   (`docs/decisions.md`, 2026-11-13, "Workflow fallback").
-* podvm takes the crates of PodUtils/podcrates at `v0.44.0` (`f6479c7`,
-  PodUtils/podcrates#154): it carries the foreground hold
-  (podcrates@T-573), podcrates@T-580 to podcrates@T-582 and the chmod
-  through a descriptor of pod-extract (podcrates@T-597).
+* podvm takes the crates of PodUtils/podcrates at `v0.45.0` (`ad50c7f`,
+  PodUtils/podcrates#157): exact directory modes and a removal that
+  opens a closed directory (podcrates@T-598, podcrates@T-599,
+  podcrates@T-604 to podcrates@T-606), the Windows crates (`pod-udf`,
+  `pod-qga`, the resume of `pod-guest`), and the defects of the QA report
+  (podcrates@T-583 to podcrates@T-586, podcrates@T-609 to podcrates@T-611,
+  podcrates@T-616).
   A change of moved code goes to podcrates as a COORD issue.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a

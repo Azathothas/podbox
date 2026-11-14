@@ -27,7 +27,7 @@ pub fn usage(verb: &str) -> String {
 /// the profile where a flag takes one value. TODO/cli.md T-1654.
 pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i32> {
     // A profile can name the image, so this first read needs none.
-    let o = parse_flags_with(verb, args, false)?;
+    let mut o = parse_flags_with(verb, args, false)?;
     let Some(name) = o.profile.clone() else {
         if o.image.is_none() {
             eprint!("{}", usage(verb));
@@ -39,6 +39,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
         }
         super::report::note_parsed(o.image.clone(), o.command.clone());
         detached_tty(verb, &o)?;
+        o.hardening.ulimits = ulimits_of(verb, &o.hardening.ulimits)?; // T-1827
         return Ok(o);
     };
     let shape = crate::profile::run_args(verb, &name, &o.sets)?;
@@ -65,6 +66,7 @@ pub(super) fn parse(verb: &str, args: &[String]) -> std::result::Result<Opts, i3
     o.needs = shape.needs;
     super::report::note_parsed(o.image.clone(), o.command.clone());
     detached_tty(verb, &o)?;
+    o.hardening.ulimits = ulimits_of(verb, &o.hardening.ulimits)?; // T-1827
     Ok(o)
 }
 
@@ -481,7 +483,7 @@ fn parse_flags_with(
     Ok(o)
 }
 
-mod values;
+pub(super) mod values;
 pub(crate) use values::from_host;
 use values::*;
 

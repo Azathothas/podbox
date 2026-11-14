@@ -26,6 +26,83 @@ pub(super) fn ulimit(verb: &str, a: &str) -> Result<String, i32> {
     }
 }
 
+/// TODO/cli.md T-1827: the `--ulimit` values of a run as the plan takes
+/// them. The last value of each resource wins, as docker and podman keep
+/// it (podcrates `v0.45.0` refuses two limits of one resource). `own`
+/// gives the hard limit that podvm has for a resource number: `-1` takes
+/// it where it is finite, and a hard value over it is refused with both
+/// numbers, before anything runs.
+pub(crate) fn ulimit_plan(
+    specs: &[String],
+    own: &dyn Fn(u64) -> Option<u64>,
+) -> Result<Vec<String>, String> {
+    let mut last: Vec<podvm_enter::Limit> = Vec::new();
+    for spec in specs {
+        let l = podvm_enter::ulimit(spec)?;
+        last.retain(|e| e.resource != l.resource);
+        last.push(l);
+    }
+    let inf = pod_enter_infinity();
+    let mut out = Vec::new();
+    for mut l in last {
+        if let Some(h) = own(l.resource.number()).filter(|h| *h != inf) {
+            if l.soft == inf {
+                l.soft = h;
+            }
+            if l.hard == inf {
+                l.hard = h;
+            }
+            if l.hard > h {
+                return Err(format!(
+                    "{}: the hard value {} is over the hard limit {h} of {} that podvm \
+                     has, and podvm cannot raise it",
+                    l.resource.word(),
+                    l.hard,
+                    l.resource.name()
+                ));
+            }
+        }
+        out.push(if l.soft == l.hard {
+            format!("{}={}", l.resource.word(), render(l.soft))
+        } else {
+            format!(
+                "{}={}:{}",
+                l.resource.word(),
+                render(l.soft),
+                render(l.hard)
+            )
+        });
+    }
+    Ok(out)
+}
+
+fn pod_enter_infinity() -> u64 {
+    podvm_enter::ulimit("nofile=-1")
+        .map(|l| l.hard)
+        .unwrap_or(u64::MAX)
+}
+
+fn render(v: u64) -> String {
+    if v == pod_enter_infinity() {
+        "-1".to_string()
+    } else {
+        v.to_string()
+    }
+}
+
+/// [`ulimit_plan`] with the hard limits of this process, refused as a
+/// flag error.
+pub(super) fn ulimits_of(verb: &str, specs: &[String]) -> Result<Vec<String>, i32> {
+    if specs.is_empty() {
+        return Ok(Vec::new());
+    }
+    let own = |n: u64| podvm_probe::sys::prlimit(n).ok().map(|(_, hard)| hard);
+    ulimit_plan(specs, &own).map_err(|why| {
+        eprintln!("podvm {verb}: --ulimit {why} (TODO/cli.md T-1827)");
+        EXIT_FLAG_ERROR
+    })
+}
+
 /// One `--security-opt`: `no-new-privileges` (also `:true`, `=true`) sets
 /// the bit in the child; each other option is refused by name, because no
 /// security backend of podvm takes it. TODO/cli.md T-1655.

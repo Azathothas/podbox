@@ -62,6 +62,8 @@ pub(crate) fn run(verb: &str, a: &Args) -> i32 {
         // 0 is refused at the flag surface; the default still applies where
         // the flag is absent.
         timeout: super::request_timeout(a.timeout, DEFAULT_TIMEOUT),
+        // One command, then the guest shuts down (podcrates `v0.45.0`).
+        mode: Default::default(),
     };
     report(&plan, &request, &image);
     // ⭐ The per-run directory is about a hundred megabytes and is not the

@@ -79,7 +79,9 @@ impl From<pod_core::Failure> for Error {
                 want: want.clone(),
                 got: got.clone(),
             },
-            None => Error::Image(f),
+            // TODO/image.md T-1842: a bad host of the caller (podcrates
+            // `v0.45.0`) keeps its class, so a usage error exits 1.
+            Some(pod_oci::Refusal::Host { .. }) | None => Error::Image(f),
         }
     }
 }

@@ -195,6 +195,9 @@ pub(crate) fn build(a: &Args) -> Result<Plan, i32> {
         memory_mib: a.mem.map(|m| m / (1 << 20)).unwrap_or(4096),
         cpus: a.cpus.unwrap_or(2),
         emu_args: a.emu_args.clone(),
+        // The mailbox run (podcrates `v0.45.0`): the NIC and the media of
+        // TODO/machine.md T-1865 are not chosen here yet.
+        options: Default::default(),
     })
 }
 

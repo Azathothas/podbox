@@ -29,15 +29,15 @@
 //! | [`setup`] | acquisition and the one provisioning boot |
 //! | [`run`] | one boot, one command, and the guest's own exit code |
 //!
-//! ⚠ This was one file. It was split when it passed 400 lines and the four
-//! questions it answered started sharing locals: the paths, the flags, the
-//! acquisition and the run had grown into each other, and a reader could no
+//! ⚠ This was one file. It was split past 400 lines, when the paths, the
+//! flags, the acquisition and the run shared locals and a reader could no
 //! longer tell which of them created the per-run directory.
 
 mod args;
 mod doctor;
 mod doctor_more; // TODO/machine.md T-1871
 mod dos;
+mod origin;
 mod plan;
 mod pull; // TODO/machine.md T-1861
 mod run;

@@ -81,8 +81,16 @@ pub fn provision(
     out: &Path,
     wait: Duration,
 ) -> Result<Vec<u8>> {
-    pod_guest::provision(&settings(), qemu_img, base, plan, out, wait)
+    // podcrates `v0.45.0`: the keys go to the console once the screen of
+    // the boot settles (`Ready::screen`), within this bound (an estimate
+    // of a slow boot under TCG), and not after a fixed sleep (TODO/machine.md
+    // T-1873).
+    let ready = pod_guest::ready::Ready::screen(PROVISION_READY);
+    pod_guest::provision(&settings(), qemu_img, base, plan, out, &ready, wait)
 }
+
+/// The bound of the wait for a provision boot to be ready for the keys.
+pub const PROVISION_READY: Duration = Duration::from_secs(600);
 
 /// Remove a per-run directory unless `PODVM_WINDOWS_KEEP` is set.
 pub fn cleanup(plan: &Plan) {

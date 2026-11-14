@@ -833,7 +833,7 @@ this process (root here) and as uid 1000 through `setpriv`.
 **Milestone:** none
 **Priority:** P0
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -871,6 +871,11 @@ On the fixture of the userland rung, with the reporter's images: `tmp` of `publi
 
 ## Done
 
+**Done 2026-11-14.** podvm takes podcrates `v0.45.0` (podcrates@T-598).
+The layer of the Partial above, extracted again: `tmp` 1777, `again`
+0700, `evil` a directory of mode 0555 where the earlier entry was a
+link, `ro` 0555, and the directory outside the tree keeps 0700.
+
 **Partial 2026-11-14.** podvm takes podcrates `v0.44.0`
 (podcrates@T-597). A layer, imported and extracted at umask 022 on this
 host, with `tmp` at 1777, `again` at 0755 then 0700, a symlink `evil` to
@@ -887,7 +892,7 @@ the tag after `v0.44.0`.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -914,11 +919,12 @@ The root names the destination: it is no loss.
 
 `podvm extract` of the reporter's one-file image prints no "not materialised" line, and an image with a fifo still prints one
 
-## Blocker
+## Done
 
-podcrates fixes `pod-extract` (PodUtils/podvm#352) as podcrates@T-599,
-in `v0.44.0` (PodUtils/podcrates#153). The entry clears when podvm takes
-that tag.
+**Done 2026-11-14.** podvm takes podcrates `v0.45.0` (podcrates@T-599).
+`podvm extract` of a one-layer tar with a `./` member prints "8 entries"
+and no "not materialised" line; the count of a fifo is the subject of
+T-1883.
 
 # T-1891: A tree with a directory of mode 0555 cannot be removed by a user who is not root
 
@@ -927,7 +933,7 @@ that tag.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -960,8 +966,10 @@ A tree that podvm made, podvm can remove, as root or not.
 
 As uid 1000, `podvm rmi` of an image whose layer holds a directory of mode 0555 with a file in it exits 0 and leaves no tree under the store
 
-## Blocker
+## Done
 
-**Blocked 2026-11-14.** Blocker: `pod_extract::remove_tree` does not
-widen a directory before it removes the entries. Clears when: a
-podcrates tag carries the ask of COORD-113 (issue 367).
+**Done 2026-11-14.** podcrates `v0.45.0` opens a closed directory
+through its descriptor before its entries go (COORD-113, issue 367). As
+uid 1000 with `setpriv`: `import` and `extract` of a layer with `ro/` at
+0555 holding a file and `closed/` at 0000, then `rmi`, exit 0, and
+nothing is left under the store.

@@ -365,6 +365,8 @@ mod tests {
             sidecar_rows: 0,
             ownership_dropped: dropped,
             first_dropped: first,
+            dir_modes: 0,
+            dirs_opened: 0,
         }
     }
 

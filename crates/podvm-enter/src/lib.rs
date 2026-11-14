@@ -37,6 +37,11 @@ pub const NAMES: Names = Names {
     // The guest prefixes that `podvm-interpose` never rewrites
     // (`map::longest`): `Maps::new` refuses a volume under one by name.
     reserved: &["/proc", "/.podvm"],
+    // podcrates `v0.45.0` (podcrates@T-583): the exec table of the crate,
+    // host paths. The interposer of podvm reads its own table of guest
+    // paths in `PODVM_EXEC` (TODO/enter.md T-1819), so the crate's table
+    // takes a name of its own (TODO/enter.md T-1892).
+    exec_table: "PODVM_EXEC_HOST",
 };
 
 pub use pod_enter::{Limit, Resource};

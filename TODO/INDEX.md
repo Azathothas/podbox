@@ -489,7 +489,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1824](cli.md) | P2 | S | none | cli | open | The machine notice ignores `-q`, and the banner is said to print "on every run" where runs are quiet by default |
 | [T-1825](cli.md) | P2 | M | none | cli | open | A `--report` that cannot be written exits 0, and the report of a detached run is never finished |
 | [T-1826](complete.md) | P2 | S | none | complete | open | `--no-steps` leaves no line and no report row that says what the caller gave up |
-| [T-1827](cli.md) | P2 | S | none | cli | open | A repeated `--ulimit` that raises a hard limit, `--ulimit nofile=-1` and a hard value over podvm's own all fail with a bare EPERM |
+| [T-1827](cli.md) | P2 | S | none | cli | done | A repeated `--ulimit` that raises a hard limit, `--ulimit nofile=-1` and a hard value over podvm's own all fail with a bare EPERM |
 | [T-1828](cli.md) | P2 | S | none | cli | open | `--add-host` takes a non-address, `-e =V` is dropped, `--env-file` removes quotes, and a repeated `--label` key keeps both values |
 | [T-1829](cli.md) | P3 | S | none | cli | open | Refusals of `run` lead with the wrong cause or name the wrong spelling |
 | [T-1830](cli.md) | P2 | S | none | cli | done | A `--tmpfs` run leaves its map in the record, so a later `exec` cannot see the path |
@@ -504,7 +504,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1839](image.md) | P2 | S | none | image | open | `load` takes an index with `schemaVersion` 9 and names an image with no ref-name annotation `sha256` |
 | [T-1840](image.md) | P2 | S | none | image | open | The `images` table cannot tell two platform records apart, `images REPO` shows only `latest`, and `inspect` has no `.Config.Labels` |
 | [T-1841](image.md) | P2 | S | none | image | open | `save` advises a `--platform` it does not have, and `pull -a` records the endpoint host, which makes a duplicate record |
-| [T-1842](image.md) | P2 | S | none | image | partial | `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken |
+| [T-1842](image.md) | P2 | S | none | image | done | `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken |
 | [T-1843](image.md) | P2 | S | none | image | done | `extract --force` removes the extracted root before it takes the lock of the store |
 | [T-1844](interpose.md) | P2 | S | none | interpose | done | `interpose::place` writes the object through one fixed temporary name in the root |
 | [T-1845](cli.md) | P3 | S | none | cli | open | `profile show` writes a part of the document to stdout and then fails |
@@ -543,9 +543,9 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1878](machine.md) | P3 | L | none | machine | open | `podvm run -it windows:11 -- powershell`, streamed logs, a web viewer and Windows ARM64 are not planned in detail |
 | [T-1879](machine.md) | P2 | S | none | machine | done | The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image |
 | [T-1880](interpose.md) | P1 | M | none | interpose | done | The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none |
-| [T-1881](extract.md) | P0 | M | none | extract | partial | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
-| [T-1882](extract.md) | P2 | S | none | extract | blocked | pod-extract counts the `./` archive root as an entry it could not make |
-| [T-1883](image.md) | P2 | S | none | image | blocked | `create` and `run` do not report the entries that the extraction could not make |
+| [T-1881](extract.md) | P0 | M | none | extract | done | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
+| [T-1882](extract.md) | P2 | S | none | extract | done | pod-extract counts the `./` archive root as an entry it could not make |
+| [T-1883](image.md) | P2 | S | none | image | open | `create` and `run` do not report the entries that the extraction could not make |
 | [T-1884](machine.md) | P1 | S | none | machine | done | A machine run that podvm ends on SIGTERM leaves its emulator running |
 | [T-1885](machine.md) | P2 | S | none | machine | open | Piped input to a machine run with `-t` is lost before the guest terminal opens |
 | [T-1886](image.md) | P1 | S | none | image | done | Concurrent extractions of one image write one tree, and the first to fail removes it under the others |
@@ -553,11 +553,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1888](enter.md) | P2 | S | none | enter | done | A required confine path whose link leaves the tree still grants a host inode |
 | [T-1889](machine.md) | P1 | S | none | machine | done | The machine tier boots an image of another architecture and ends with "no exit marker" |
 | [T-1890](machine.md) | P2 | L | none | machine | open | The machine tier has no guest of another architecture |
-| [T-1891](extract.md) | P1 | S | none | extract | blocked | A tree with a directory of mode 0555 cannot be removed by a user who is not root |
+| [T-1891](extract.md) | P1 | S | none | extract | done | A tree with a directory of mode 0555 cannot be removed by a user who is not root |
 
 ## Counts
 
-488 entries: 50 open, 14 partial, 5 blocked, 419 done.
+488 entries: 50 open, 12 partial, 2 blocked, 424 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -566,11 +566,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 1 | 0 | 73 | 74 |
-| P1 | 4 | 8 | 1 | 187 | 200 |
-| P2 | 31 | 3 | 4 | 137 | 175 |
+| P0 | 0 | 0 | 0 | 74 | 74 |
+| P1 | 4 | 8 | 0 | 188 | 200 |
+| P2 | 31 | 2 | 2 | 140 | 175 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 50 | 14 | 5 | 419 | 488 |
+| **All** | 50 | 12 | 2 | 424 | 488 |
 
 ## Work order
 

@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates `v0.45.0`, 2026-11-14
+
+Record: T-1827, T-1842, T-1881, T-1882, T-1891, T-1862 (partial).
+Deployed: not deployed; no version change.
+
+- Extraction keeps the exact mode of each directory of the image, also
+  0555, and makes a directory where an earlier layer had a link.
+  A user who is not root can remove such a tree.
+- `--ulimit` keeps the last value of each resource; `-1` takes the hard
+  limit podvm has; a hard value over it is refused with both numbers.
+- `--insecure-registry` with a bad host exits 1 and names the value.
+- A Windows download resumes with a range request where it broke.
+
 ## 0.2.0-beta.18 (2026-11-14)
 
 ### Fixed: the machine tier refuses an image of another architecture by name, 2026-11-14
