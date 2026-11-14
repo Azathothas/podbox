@@ -145,38 +145,38 @@ pub fn create(
 
 /// Start a created container, returning once its payload is running.
 ///
-/// TODO/supervise.md T-1807: `pod_supervise::start` keeps the end fields of
-/// the run before (`inspect` read `running` with `ExitCode 143`). Until a
-/// tag of podcrates clears them (podcrates@T-582, issue 343), the wrapper
-/// clears each field that still holds the old run's value; a field that the
-/// new run already wrote (a payload that ended at once) stays.
+/// TODO/supervise.md T-1807: since podcrates `v0.44.0` (podcrates@T-582)
+/// `pod_supervise::start` clears the end fields of the run before itself.
 pub fn start(store: &Store, want: &str, record: &podvm_image::Record) -> Result<Container> {
-    let before = table::read(store)
-        .and_then(|t| table::find(store, &t, want))
-        .ok();
-    let mut c = pod_supervise::start(&settings(store), want, launcher::enter(store, record))?;
-    if let Some(old) = before.filter(|o| o.finished_at.is_some()) {
-        let id = c.id.clone();
-        let stale = |n: &Container| n.finished_at == old.finished_at;
-        table::update(store, |t| {
-            if let Some(n) = t.containers.iter_mut().find(|n| n.id == id)
-                && stale(n)
-            {
-                n.exit_code = None;
-                n.finished_at = None;
-                n.end = None;
-                n.noticed = None;
-            }
-            Ok(())
-        })?;
-        if stale(&c) {
-            c.exit_code = None;
-            c.finished_at = None;
-            c.end = None;
-            c.noticed = None;
-        }
+    Ok(pod_supervise::start(
+        &settings(store),
+        want,
+        launcher::enter(store, record),
+    )?)
+}
+
+/// The hold of a foreground payload: the record reads `Running` while it
+/// runs, and `kill`, `stop`, `wait` and `ps` reach it.
+pub type Hold = pod_supervise::Foreground<table::Detail>;
+
+/// TODO/supervise.md T-1786: take the hold of the foreground payload
+/// `payload_pid` of the container `want` (podcrates@T-573). The caller
+/// reaps the payload and gives its code to [`Hold::finish`].
+///
+/// ⛔ TODO/supervise.md T-1708: a new thread takes the signal mask of its
+/// creator, and the thread of the hold leaves SIGINT and SIGTERM
+/// unblocked. Such a thread takes a signal with the default action, and
+/// podvm ends 143 with the payload still running. So the shutdown signals
+/// are blocked while the hold starts its thread, and the old mask comes
+/// back after.
+pub fn foreground(store: &Store, want: &str, payload_pid: i64) -> Result<Hold> {
+    let mut old = 0u64;
+    let blocked = podvm_probe::sys::sigblock_shutdown(&mut old).is_ok();
+    let hold = pod_supervise::foreground(&settings(store), want, payload_pid);
+    if blocked {
+        let _ = podvm_probe::sys::sigrestore(old);
     }
-    Ok(c)
+    Ok(hold?)
 }
 
 /// Send a signal to a running container's payload.

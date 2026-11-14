@@ -8,6 +8,23 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates `v0.44.0`; a foreground run is live in its record, 2026-11-14
+
+Record: T-1786 (partial), T-1807, T-1813, T-1881 (partial), T-1879.
+Deployed: not deployed; no version change.
+
+- A foreground `run` reads `Up` in `ps` while its payload runs, on the
+  chroot, namespace and userland rungs: `kill`, `stop`, `wait` and `exec`
+  reach it, and `system df` counts it running.
+- Extraction keeps the setuid and setgid bits of a file of mode 4755,
+  2755 or 6755.
+- Security: extraction changes the mode of a directory through a
+  descriptor that does not follow a symlink, so a layer cannot change
+  the mode of a directory outside the tree. `tmp` keeps 1777, and a
+  directory that a later layer declares again takes its new mode.
+- A restarted container shows no exit code of the run before, and a
+  `Dead` record names no pid.
+
 ### Fixed: `system df` prints the IMAGE ID of `images`, 2026-11-14
 
 Record: T-1814, T-1852 (partial).

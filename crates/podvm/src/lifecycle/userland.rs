@@ -146,6 +146,20 @@ pub fn enter_userland(
     userland: &Userland,
     err: &mut dyn Write,
 ) -> UserlandOutcome {
+    enter_userland_with(verb, root, plan, userland, err, &mut |_, _| {})
+}
+
+/// [`enter_userland`], with `on_spawn` called with the pid of the payload
+/// after the spawn and before the wait (TODO/supervise.md T-1786: the
+/// hold of a foreground run). The native-static rung calls it not.
+pub fn enter_userland_with(
+    verb: &str,
+    root: &podvm_enter::RootDir,
+    plan: &podvm_enter::Plan,
+    userland: &Userland,
+    err: &mut dyn Write,
+    on_spawn: &mut dyn FnMut(i64, &mut dyn Write),
+) -> UserlandOutcome {
     let failed = |code: i32| UserlandOutcome {
         code,
         entered: false,
@@ -192,7 +206,12 @@ pub fn enter_userland(
     };
     // ⭐ TODO/enter.md T-1653: the child enters the working directory that
     // the walk through the table resolved, also one in a volume.
-    match podvm_enter::run_userland(root, plan, &userland.maps, exec_argv, active, fd, err) {
+    let ran = podvm_enter::spawn_userland(root, plan, &userland.maps, exec_argv, active, fd, err)
+        .and_then(|c| {
+            on_spawn(c.pid, err);
+            c.wait_forwarding(err)
+        });
+    match ran {
         Ok(c) => UserlandOutcome {
             code: c,
             entered: true,

@@ -784,7 +784,7 @@ experiments | grep -c 220-extract-path-safety` prints 0.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -819,6 +819,12 @@ The fix is in `pod-extract`; podvm proves it with its own test.
 
 `cargo test -p podvm --test extract_modes` exits 0, with a test that a layer row of mode 4755, 2755 and 6755 ends with that mode as uid 1000 and as root
 
+## Done
+
+**Done 2026-11-14.** podcrates `v0.44.0` keeps `S_ISUID` and
+`S_ISGID` (podcrates@T-581). `cargo test -p podvm --test extract_modes`
+exits 0: a layer of 4755, 2755 and 6755 extracts with those modes in
+this process (root here) and as uid 1000 through `setpriv`.
 
 # T-1881: pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink
 
@@ -827,7 +833,7 @@ The fix is in `pod-extract`; podvm proves it with its own test.
 **Milestone:** none
 **Priority:** P0
 **Effort:** M
-**Status:** blocked
+**Status:** partial
 
 ## Problem
 
@@ -863,14 +869,16 @@ COORD-096 (issue 342, podcrates@T-581).
 
 On the fixture of the userland rung, with the reporter's images: `tmp` of `public.ecr.aws/docker/library/alpine:3.20` is `1777` in the tree, the directory declared again at `0700` is `0700`, `evil` is a directory `0555`, and a directory outside the tree that the symlink names keeps its mode
 
-## Blocker
+## Done
 
-podcrates fixes `pod-extract` (PodUtils/podvm#354): podcrates@T-597 (the
-chmod through a descriptor, the file modes) is on its `main`, and
-podcrates@T-598 (the exact modes after the last layer, a directory over
-a symlink) is open; both go in `v0.44.0` (PodUtils/podcrates#153). The
-entry clears when podvm takes that tag.
-
+**Partial 2026-11-14.** podvm takes podcrates `v0.44.0`
+(podcrates@T-597). A layer, imported and extracted at umask 022 on this
+host, with `tmp` at 1777, `again` at 0755 then 0700, a symlink `evil` to
+a directory outside the tree at 0700, then `evil` at 0555: `tmp` is
+1777, `again` is 0700, and the directory outside the tree keeps 0700.
+Remaining: `evil` stays a symlink where the layer makes a directory,
+and the owner bits after the last layer, which podcrates@T-598 fixes in
+the tag after `v0.44.0`.
 
 # T-1882: pod-extract counts the `./` archive root as an entry it could not make
 

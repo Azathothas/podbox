@@ -7,7 +7,7 @@ start.
 
 ## State
 
-483 entries: 55 open, 12 partial, 6 blocked, 410 done.
+483 entries: 54 open, 13 partial, 4 blocked, 412 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -26,9 +26,10 @@ The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
   `actions_run_trigger` answers "Actions has been disabled for this user".
   Each run of a cloud session is an issue `[gh action] requested`
   (`docs/decisions.md`, 2026-11-13, "Workflow fallback").
-* podvm takes the crates of PodUtils/podcrates at `v0.43.0` (`ccbea49`,
-  PodUtils/podcrates#149): it carries podcrates@T-567 (the completion of
-  two layers) and podcrates@T-568 to podcrates@T-570.
+* podvm takes the crates of PodUtils/podcrates at `v0.44.0` (`f6479c7`,
+  PodUtils/podcrates#154): it carries the foreground hold
+  (podcrates@T-573), podcrates@T-580 to podcrates@T-582 and the chmod
+  through a descriptor of pod-extract (podcrates@T-597).
   A change of moved code goes to podcrates as a COORD issue.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a
@@ -57,7 +58,7 @@ status with `podvm-count` in the same commit as the work.
    overlay root of the namespace rung (podcrates@T-486), which podvm takes
    next.
 2. The external QA report of `v0.2.0-beta.14` (2026-11-14): the open
-   entries of T-1807 and on, to T-1860. Each P0 entry is done. Take the P1
+   entries that it gave, to T-1860. Each P0 entry is done. Take the P1
    entries, each with the guard of its class ([T-1852](gate.md) to
    [T-1857](gate.md)), then P2 and P3.
 2a. The Windows guest plan of the review of 2026-11-14: T-1861 to T-1878

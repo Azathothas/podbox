@@ -1,118 +1,10 @@
 use super::*;
 use podvm_enter::ExitCode as _;
 
-/// One foreground run's record-in-progress.
-///
-/// TODO/supervise.md T-1421. docker always records a foreground run as
-/// `Exited`, so `ps -a` lists it and `logs` reads it. podvm does the
-/// same: the record is created before the entry (so a duplicate `--name`
-/// refuses before anything runs), the payload's stdout is teed to the
-/// container log while it runs, and the record lands `Exited` with the
-/// code and the times when it ends. `--rm` deletes the record on exit
-/// instead of finalizing it.
-struct Foreground {
-    id: String,
-    rm: bool,
-    started: String,
-    tee: Vec<Tee>,
-}
-
 mod tee;
-use tee::*;
 
-/// Create the foreground record and start the stdout tee, before the
-/// entry. A `--name` that cannot be recorded refuses here naming it,
-/// instead of running and dropping the name: an accepted flag is never
-/// silently dropped (T-1421's decision).
-fn fg_begin(
-    store: &podvm_image::Store,
-    p: &crate::lifecycle::Prepared,
-) -> std::result::Result<Foreground, i32> {
-    let c = match podvm_supervise::create(
-        store,
-        p.name.as_deref(),
-        &p.image,
-        &p.record.manifest_digest,
-        &p.rootfs,
-        p.argv.clone(),
-        p.env.clone(),
-        p.working_dir.clone(),
-        &p.rung,
-        p.completion.clone(),
-        p.completion_degraded,
-        crate::lifecycle::detached_drive(p.userland.as_ref()),
-    ) {
-        // TODO/cli.md T-1695: the labels and the options of the run join
-        // the record, as for `run -d`.
-        Ok(c) => match podvm_supervise::set_hardening(store, &c.id, p.hardening.clone()) {
-            Ok(()) => c,
-            Err(e) => {
-                let _ = podvm_supervise::remove(store, &c.id, true);
-                eprintln!("podvm run: the run could not be recorded: {e}");
-                return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
-            }
-        },
-        Err(e) => {
-            super::drop_unrecorded(store, &p.rootfs); // T-1709
-            match &p.name {
-                Some(n) => {
-                    eprintln!("podvm run: --name {n:?}: the run could not be recorded: {e}")
-                }
-                None => eprintln!("podvm run: the run could not be recorded: {e}"),
-            }
-            return Err(podvm_image::error::EXIT_RUNTIME_ERROR);
-        }
-    };
-    let log_path = podvm_supervise::table::log_path(store, &c.id);
-    match tee_output_to(&log_path) {
-        Ok(tee) => Ok(Foreground {
-            id: c.id,
-            rm: p.rm,
-            started: clock::now(),
-            tee,
-        }),
-        Err(why) => {
-            eprintln!("podvm run: the run's output could not be captured for its record: {why}");
-            let _ = podvm_supervise::remove(store, &c.id, true);
-            Err(podvm_image::error::EXIT_RUNTIME_ERROR)
-        }
-    }
-}
-
-/// Finalize the foreground record: stdout restored first (no byte still
-/// in flight), then `Exited` with the code and the times, or the
-/// record's removal under `--rm`.
-fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
-    // stderr first, then stdout: the reverse of the order they were taken.
-    for tee in fg.tee.into_iter().rev() {
-        untee(tee);
-    }
-    // TODO/cli.md T-1655: the `--tmpfs` directories go with the run.
-    let _ = std::fs::remove_dir_all(super::tmpfs_base(store));
-    if fg.rm {
-        let _ = podvm_supervise::remove(store, &fg.id, true);
-        return;
-    }
-    let finished = clock::now();
-    let started = fg.started.clone();
-    let id = fg.id.clone();
-    let _ = podvm_supervise::table::update(store, |t| {
-        match t.containers.iter_mut().find(|c| c.id == id) {
-            Some(c) => {
-                c.state = podvm_supervise::table::State::Exited;
-                c.exit_code = Some(code);
-                if c.started_at.is_none() {
-                    c.started_at = Some(started.clone());
-                }
-                c.finished_at = Some(finished.clone());
-                Ok(())
-            }
-            None => Err(podvm_supervise::Error::new(format!(
-                "the foreground record {id} is gone"
-            ))),
-        }
-    });
-}
+mod record;
+use record::*;
 
 /// `run`. With `--report PATH`, one JSON document of the run goes to PATH
 /// at its end, also where podvm refuses (TODO/cli.md T-1695).
@@ -320,7 +212,7 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
     // ⭐ TODO/supervise.md T-1421. The foreground record is created
     // before the entry, and the payload's stdout is teed to its log:
     // every foreground run leaves a record `ps -a` lists as `Exited`.
-    let fg = match fg_begin(&store, &p) {
+    let mut fg = match fg_begin(&store, &p) {
         Ok(f) => f,
         Err(code) => {
             drop(memo);
@@ -382,7 +274,16 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
             // enter through the one shared drive beside the chroot
             // sequence below, so `run` and `exec` cannot diverge on it.
             if let Some(u) = &p.userland {
-                let outcome = crate::lifecycle::enter_userland("run", &root, &plan, u, &mut err);
+                let hold = &mut fg.hold;
+                let (st, id) = (&store, fg.id.clone());
+                let outcome = crate::lifecycle::enter_userland_with(
+                    "run",
+                    &root,
+                    &plan,
+                    u,
+                    &mut err,
+                    &mut |pid, err| take_hold(st, &id, pid, hold, err),
+                );
                 if !outcome.entered {
                     r.ran = false;
                     fg_end(&store, fg, outcome.code);
@@ -396,11 +297,18 @@ fn run_inner(args: &[String], r: &mut super::report::Report) -> i32 {
                 // `prepare` selected it (`p.rung` is the entered word it
                 // set beside the banner), with the chroot fallback named
                 // on the banner; the chroot sequence everywhere else.
-                let code = if p.rung.as_str() == podvm_probe::select::Rung::Namespace.word() {
-                    podvm_enter::run_namespace(&root, &plan, &mut err)
+                let child = if p.rung.as_str() == podvm_probe::select::Rung::Namespace.word() {
+                    podvm_enter::spawn_namespace(&root, &plan, &mut err)
                 } else {
-                    podvm_enter::run(&root, &plan, &mut err)
+                    podvm_enter::spawn(&root, &plan, &mut err)
                 };
+                // TODO/supervise.md T-1786: the record reads `Running`
+                // while the payload runs. A hold that cannot start leaves
+                // the run as it was: the record lands at the end.
+                let code = child.and_then(|c| {
+                    take_hold(&store, &fg.id, c.pid, &mut fg.hold, &mut err);
+                    c.wait_forwarding(&mut err)
+                });
                 match code {
                     Ok(c) => c,
                     Err(e) => {

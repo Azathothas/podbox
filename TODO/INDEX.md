@@ -460,7 +460,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1783](cli.md) | P2 | S | none | cli | done | Nine verbs print a usage error to stdout |
 | [T-1784](interpose.md) | P2 | S | none | interpose | done | The honest refusal of an identity call says that the payload runs as uid 0 |
 | [T-1785](interpose.md) | P3 | S | none | interpose | done | The notice of `--user` repeats in each process of a run |
-| [T-1786](supervise.md) | P1 | M | none | supervise | blocked | A foreground run is recorded `Created` while its payload runs |
+| [T-1786](supervise.md) | P1 | M | none | supervise | partial | A foreground run is recorded `Created` while its payload runs |
 | [T-1787](image.md) | P2 | S | none | image | done | `system df` misses the trees and the extractions that no image names, and no verb removes the latter |
 | [T-1800](supervise.md) | P0 | S | none | supervise | done | `ps` aborts with SIGABRT when a command has a multibyte character at byte 17 |
 | [T-1801](cli.md) | P0 | S | none | cli | done | `--report` after the image is read as podvm's, so a payload argument overwrites a host file |
@@ -469,13 +469,13 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1804](enter.md) | P0 | S | none | enter | done | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
 | [T-1805](supervise.md) | P1 | M | none | supervise | done | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
 | [T-1806](supervise.md) | P1 | S | none | supervise | done | A foreground run records only stdout, so `logs` loses each stderr line |
-| [T-1807](supervise.md) | P1 | S | none | supervise | partial | A restarted container shows the exit code and end of its previous run while it runs |
+| [T-1807](supervise.md) | P1 | S | none | supervise | done | A restarted container shows the exit code and end of its previous run while it runs |
 | [T-1808](machine.md) | P0 | M | none | machine | done | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
 | [T-1809](machine.md) | P1 | S | none | machine | done | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
 | [T-1810](machine.md) | P0 | S | none | machine | done | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
 | [T-1811](cli.md) | P1 | S | none | cli | done | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
 | [T-1812](probe.md) | P1 | S | none | probe | done | `probe --cached` reports `supervise` where `probe` reports `userland` |
-| [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
+| [T-1813](extract.md) | P1 | S | none | extract | done | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
 | [T-1814](image.md) | P2 | S | none | image | done | `system df` prints the manifest digest in its IMAGE ID column |
 | [T-1815](cli.md) | P1 | S | none | cli | done | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
 | [T-1816](cli.md) | P1 | M | none | cli | done | A failed write to stdout aborts with SIGABRT, `images` exits 0 with its table lost, and `logs` exits 0 having written nothing |
@@ -543,7 +543,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1878](machine.md) | P3 | L | none | machine | open | `podvm run -it windows:11 -- powershell`, streamed logs, a web viewer and Windows ARM64 are not planned in detail |
 | [T-1879](machine.md) | P2 | S | none | machine | done | The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image |
 | [T-1880](interpose.md) | P1 | M | none | interpose | done | The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none |
-| [T-1881](extract.md) | P0 | M | none | extract | blocked | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
+| [T-1881](extract.md) | P0 | M | none | extract | partial | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
 | [T-1882](extract.md) | P2 | S | none | extract | blocked | pod-extract counts the `./` archive root as an entry it could not make |
 | [T-1883](image.md) | P2 | S | none | image | blocked | `create` and `run` do not report the entries that the extraction could not make |
 | [T-1884](machine.md) | P1 | S | none | machine | done | A machine run that podvm ends on SIGTERM leaves its emulator running |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 55 open, 12 partial, 6 blocked, 410 done.
+483 entries: 54 open, 13 partial, 4 blocked, 412 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -561,11 +561,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 6 | 7 | 1 | 183 | 197 |
+| P0 | 0 | 1 | 0 | 73 | 74 |
+| P1 | 5 | 7 | 0 | 185 | 197 |
 | P2 | 34 | 3 | 4 | 132 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 55 | 12 | 6 | 410 | 483 |
+| **All** | 54 | 13 | 4 | 412 | 483 |
 
 ## Work order
 

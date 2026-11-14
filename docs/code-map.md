@@ -2,7 +2,7 @@
 
 ## Crates of this tree
 
-podvm takes 20 shared crates from PodUtils/podcrates at the tag `v0.43.0`
+podvm takes 20 shared crates from PodUtils/podcrates at the tag `v0.44.0`
 (podcrates commit `1335e9a`; COORD-083, issue 317).
 A local crate gives podvm's names, paths and settings to its `pod-*` crate
 and keeps the parts that only podvm needs.

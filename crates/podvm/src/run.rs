@@ -13,7 +13,6 @@
 use std::io::Write;
 
 use podvm_enter::{binfmt, Fds, Plan, RootDir};
-use podvm_image::clock;
 use podvm_image::error::{EXIT_CLI_ERROR, EXIT_FLAG_ERROR};
 use podvm_image::platform::Platform;
 use podvm_image::transport::Policy;

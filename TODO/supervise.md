@@ -1440,7 +1440,7 @@ path: its emulator ends with its own bound (T-1656).
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** blocked
+**Status:** partial
 
 ## Problem
 
@@ -1470,12 +1470,23 @@ The holder belongs to `pod-supervise`, beside its launcher: COORD-094
 
 During a foreground run that sleeps 10 s: `ps` lists it, `system df` counts it running, `kill` signals it, `wait` gives its code, and `stop` ends the payload within its grace
 
-## Blocker
+## Done
 
-**Blocked 2026-11-14.** Blocker: `pod-supervise` has no holder for a
-payload that the caller runs itself. Clears when: a podcrates tag
-carries the holder of COORD-094 (issue 339).
-
+**Partial 2026-11-14.** podvm takes podcrates `v0.44.0`, whose
+`pod_supervise::foreground` holds the record of a payload that the caller
+runs (podcrates@T-573). A foreground run on the chroot, namespace and
+userland rungs spawns the payload, takes the hold
+(`podvm_supervise::foreground`, `run/foreground/record.rs`), waits, and
+gives the code to `finish`. The wrapper blocks SIGINT and SIGTERM while
+the hold starts its thread (T-1708). By hand on the namespace rung: during
+`run --name fg1 sleep 4`, `ps` lists it `Up`, `system df` says "2 (1
+running)", and `wait` gives 0; `kill` of a `sleep 10` ends it 137 and the
+record reads `exited` 137; `stop -t 3` of a payload that traps TERM ends
+it in 0.03 s with code 7; SIGTERM to podvm gives 143 with no payload
+left; `exec` reads the `/tmp` of the running payload; on the userland
+fixture `ps` lists the run `Up`. Remaining: the native-static rung and a
+run that `PODVM_MODE` forces through the ladder have no pid before the
+wait, so their record still reads `Created` while they run.
 
 # T-1800: `ps` aborts with SIGABRT when a command has a multibyte character at byte 17
 
@@ -1679,7 +1690,7 @@ stream. Experiment 443, sections run and life: 313 pass, 0 fail.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1717,6 +1728,14 @@ until that tag.
 
 ## Done
 
+**Done 2026-11-14.** podcrates `v0.44.0` clears the end fields on a
+new run and names no pid in a `Dead` record (podcrates@T-582). podvm's
+own clearing in `start` is removed. `cargo test -p podvm-supervise
+restart_clears_end` exits 0: a `sleep` started through
+`pod_supervise::start`, killed (143), and started again holds no
+`exit_code`, `finished_at` or `end`; after a SIGKILL of its launcher and
+payload, the record is `Dead` with no `pid` and no `launcher_pid`.
+
 **Partial 2026-11-14.** The `start` half, in podvm's wrapper
 (`podvm-supervise/src/lib.rs`, `start`): it reads the end fields before
 `pod_supervise::start` and clears `exit_code`, `finished_at`, `end` and
@@ -1731,7 +1750,6 @@ record keeps its pid (`reconcile`), which podcrates@T-582 fixes in
 fields itself makes the wrapper's step a no-op. A run that ends in the
 same second as the run before would read as the old one; the end time
 has a resolution of one second.
-
 
 # T-1822: `cp` of a file onto a directory fails and blames the source, `cp -r` drops directory modes, and the containment refusals name the wrong operation
 

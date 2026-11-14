@@ -1,7 +1,7 @@
 //! TODO/enter.md T-1700. The stdout tee of a foreground run delivers
 //! each byte that the payload wrote before the restore.
 
-use super::*;
+use super::tee::*;
 
 /// The bytes that the drain reads from the target pipe until EOF.
 fn drain(reader: i64) -> usize {
