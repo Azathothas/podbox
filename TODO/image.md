@@ -4206,3 +4206,46 @@ The lock of T-0204 covers each change of an extracted root.
 ## Prove
 
 `cargo test -p podvm --bin podvm extract_force_lock` exits 0, with a test that `extract --force` takes the hold before it removes the root (the hold is observed held when the removal starts)
+
+
+# T-1883: `create` and `run` do not report the entries that the extraction could not make
+
+**Source:** PodUtils/podvm#353 (the tester Nemo-010, 2026-11-14)
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+On an image whose layer holds a fifo, `podvm extract` prints "1 entries
+were not materialised (Fifo)", and `podvm create` and `podvm run`, which
+extract the same tree, print nothing. The sidecar has no row for the
+entry either.
+
+## Premise
+
+`extract_now` (`crates/podvm/src/run/acquire.rs`) calls
+`diagnose::report_dropped` and not the line of the skipped entries,
+which only `images/login_extract.rs` writes.
+
+## Approach
+
+The reporter's patch: `diagnose::report_skipped` beside
+`report_dropped`, called by `extract` and by `extract_now`, with a test
+of the text and of the silence.
+
+## Decision
+
+Land it with or after T-1882, as the reporter asks, so that `create` and
+`run` print no false ArchiveRoot line.
+
+## Prove
+
+`cargo test -p podvm --bin podvm diagnose::` exits 0 with the test of the text and the silence; `create` of an image with a fifo prints the line, and `create` of `public.ecr.aws/docker/library/alpine:3.20` prints none
+
+## Blocker
+
+T-1882 (podcrates fixes the count of the archive root). The entry
+clears when podvm takes that tag.

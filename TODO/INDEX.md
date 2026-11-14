@@ -543,10 +543,13 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1878](machine.md) | P3 | L | none | machine | open | `podvm run -it windows:11 -- powershell`, streamed logs, a web viewer and Windows ARM64 are not planned in detail |
 | [T-1879](machine.md) | P2 | S | none | machine | open | The messages of `dos.rs` and `doctor.rs` and the premise of T-1112 still say that podvm fetches no image |
 | [T-1880](interpose.md) | P1 | M | none | interpose | done | The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none |
+| [T-1881](extract.md) | P0 | M | none | extract | blocked | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
+| [T-1882](extract.md) | P2 | S | none | extract | blocked | pod-extract counts the `./` archive root as an entry it could not make |
+| [T-1883](image.md) | P2 | S | none | image | blocked | `create` and `run` do not report the entries that the extraction could not make |
 
 ## Counts
 
-477 entries: 72 open, 5 partial, 3 blocked, 397 done.
+480 entries: 72 open, 5 partial, 6 blocked, 397 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -555,11 +558,11 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
-| P0 | 0 | 0 | 0 | 73 | 73 |
+| P0 | 0 | 0 | 1 | 73 | 74 |
 | P1 | 21 | 1 | 1 | 172 | 195 |
-| P2 | 36 | 2 | 2 | 130 | 170 |
+| P2 | 36 | 2 | 4 | 130 | 172 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 72 | 5 | 3 | 397 | 477 |
+| **All** | 72 | 5 | 6 | 397 | 480 |
 
 ## Work order
 

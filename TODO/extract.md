@@ -818,3 +818,92 @@ The fix is in `pod-extract`; podvm proves it with its own test.
 ## Prove
 
 `cargo test -p podvm --test extract_modes` exits 0, with a test that a layer row of mode 4755, 2755 and 6755 ends with that mode as uid 1000 and as root
+
+
+# T-1881: pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink
+
+**Source:** PodUtils/podvm#354 (COORD-107 of the tester Nemo-010, to podcrates, 2026-11-14)
+**Category:** extract
+**Milestone:** none
+**Priority:** P0
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+On `v0.2.0-beta.14`, measured by the reporter on btrfs, uid 966, umask
+022: `alpine:latest` extracts `tmp` and `var/tmp` as `1755` where the
+layer says `1777`, and `.meta.jsonl` records `1777`; a directory that a
+later layer declares again at `0700` keeps `0755`; and a layer that puts
+a directory `evil` at `0555` over a symlink `evil -> /tmp/outtarget` of
+an earlier layer leaves the symlink, and the widening pass chmods
+`/tmp/outtarget` from `0700` to `0755`, outside the tree.
+
+## Premise
+
+`pod-extract` (podcrates `v0.43.0`, `src/apply.rs`): `make_dir` creates
+with `mode | 0o700`, which the umask masks, and returns `Ok(())` on
+`EEXIST` with no check that the name is a directory; `repermission`
+calls `fchmodat` on the name, which follows a symlink; nothing puts the
+mode of the image back after the last layer. The reporter gives a patch
+(`openat` with `O_NOFOLLOW|O_DIRECTORY` and `fchmod`, a replace of a
+non-directory, and `restore_dir_modes` after the last layer) and a test.
+
+## Approach
+
+podcrates fixes the crate (the reporter's COORD-107 is addressed to it);
+podvm takes the tag and checks the measured table on its fixture.
+
+## Decision
+
+A write outside the tree is P0. The file half (setuid bits) is
+COORD-096 (issue 342, podcrates@T-581).
+
+## Prove
+
+On the fixture of the userland rung, with the reporter's images: `tmp` of `public.ecr.aws/docker/library/alpine:3.20` is `1777` in the tree, the directory declared again at `0700` is `0700`, `evil` is a directory `0555`, and a directory outside the tree that the symlink names keeps its mode
+
+## Blocker
+
+podcrates fixes `pod-extract` (PodUtils/podvm#354). The entry clears
+when a podcrates tag carries the fix.
+
+
+# T-1882: pod-extract counts the `./` archive root as an entry it could not make
+
+**Source:** PodUtils/podvm#352 (COORD-106 of the tester Nemo-010, to podcrates, 2026-11-14)
+**Category:** extract
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`podvm extract` of an image whose layer holds `./` and `./a.txt` prints
+"podvm: 1 entries were not materialised (ArchiveRoot). podvm cannot mknod
+on this class of runtime"; the tree has its one file, and nothing was
+lost.
+
+## Premise
+
+`pod-extract` (`src/apply.rs`, the root branch of `apply_layer`) adds
+the root entry to `skipped` and names it `ArchiveRoot`. The reporter
+gives a patch and a test.
+
+## Approach
+
+podcrates removes the counter; podvm takes the tag. T-1883 waits for it.
+
+## Decision
+
+The root names the destination: it is no loss.
+
+## Prove
+
+`podvm extract` of the reporter's one-file image prints no "not materialised" line, and an image with a fifo still prints one
+
+## Blocker
+
+podcrates fixes `pod-extract` (PodUtils/podvm#352). The entry clears
+when a podcrates tag carries the fix.
