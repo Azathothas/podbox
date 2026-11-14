@@ -1,7 +1,7 @@
 == conditions
-date              2026-11-11T22:50:20Z
-host kernel       Linux 6.18.44-fc-v378
-podvm             podvm 0.2.0-beta.4
+date              2026-11-14T06:36:23Z
+host kernel       Linux 6.18.44-fc-v470
+podvm             podvm 0.2.0-beta.15
 image             mirror.gcr.io/library/busybox:musl
 
 == clause 1  the report of a run
@@ -9,10 +9,10 @@ image             mirror.gcr.io/library/busybox:musl
   rung: "namespace"
   exit_code: 3
   signal: null
-  max_rss_kib: 26972
-  wall_ms: 148
+  max_rss_kib: 4196
+  wall_ms: 54
   labels: ["job=7"]
-  user_ms: 57
+  user_ms: 1
 
 == clause 2  ps finds the run by its label
   label=job=7: 1 record(s); label=job=8: 0
