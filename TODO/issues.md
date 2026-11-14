@@ -237,3 +237,10 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #339 | COORD-094: ask for a foreground holder in pod-supervise, so that a foreground run is Running while its payload runs (PodUtils/podvm#330) (to podcrates) | open | T-1786 |
 | #338 | [gh action] requested | closed (the gate 43557980918 failed on 08abecca: rustfmt of crates/podvm-interpose) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
 | #340 | [gh action] requested | closed (gate 43559084201, arm 43559993532, nightly trial 43560303295 and release 43560802211 green on 551ba939) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
+| #341 | COORD-095: pod-rootfs writes the host CA bundle into an image with no bundle when host_cas is false (podvm T-1818) (to podcrates) | open | T-1818 |
+| #342 | COORD-096: pod-extract drops S_ISUID and S_ISGID of a 4755 or 2755 file (podvm T-1813) (to podcrates) | open | T-1813 |
+| #343 | COORD-097: pod-supervise keeps the end fields on start and the pid of a Dead record (podvm T-1807) (to podcrates) | open | T-1807 |
+| #344 | COORD-098: an exec= rule of pod-confine and pod-enter does not deny a program started through the image's loader (podvm T-1819) (to podcrates) | open | T-1819 |
+| #345 | COORD-099: pod-enter applies two limits of one resource in order, so a raise after a lower fails with EPERM (podvm T-1827) (to podcrates) | open | T-1827 |
+| #346 | COORD-100: pod-oci takes an insecure-registry host with a space or "!", and its platform list repeats entries and shows attestations (podvm T-1842, T-1836) (to podcrates) | open | T-1842, T-1836 |
+| #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
