@@ -4280,3 +4280,60 @@ Land it with or after T-1882, as the reporter asks, so that `create` and
 
 T-1882 (podcrates fixes the count of the archive root). The entry
 clears when podvm takes that tag.
+
+
+# T-1886: Concurrent extractions of one image write one tree, and the first to fail removes it under the others
+
+**Source:** PodUtils/podvm#358 (the tester Nemo-010, 2026-11-14)
+**Category:** image
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Eight `podvm create` at once of a pulled, never-extracted image lose
+containers: on the tester's host 57 of 112 over 14 rounds, five rounds
+with all eight lost, with messages that blame an entry of the image
+("cannot create the symlink "bin/echo": EEXIST", "cannot create the
+directory "lib": ENOENT", "/bin/true names no file in the image"). With
+the image extracted first, eight of eight.
+
+## Premise
+
+`run`, `create`, `cp`, the machine tier and `extract` take the shared
+payload hold (T-0204), read `is_extracted` and extract: a shared lock
+excludes no other shared holder, so each writes the one tree and
+sidecar of the manifest, and `pod-extract` removes the whole place when
+one of them fails (`place.remove`).
+
+## Approach
+
+The tester's patch: `Store::hold_extract`, an exclusive lock for each
+manifest digest with a bounded wait (`try_lock_at` each 100 ms for
+600 s), taken by `extract_now` (which reads `is_extracted` again under
+it) and by the `extract` verb (before its `--force` removal); `delete`
+unlinks the lock with the image.
+
+## Decision
+
+One extraction of one manifest at a time; the others wait and then find
+the tree.
+
+## Prove
+
+`cargo test -p podvm-image --lib an_extraction_lock` exits 0, and eight `podvm create` at once of a never-extracted `mirror.gcr.io/library/alpine:3.20` on the fixture of the userland rung create eight containers in each of three rounds
+
+## Done
+
+**Done 2026-11-14.** The tester's patch, applied as written, with its
+test moved to `store/tests/extract_lock.rs` (the 500-line limit of
+`locks.rs`). Measured on the cloud host, on the fixture of the userland
+rung, three rounds of eight `create` at once of a never-extracted
+`mirror.gcr.io/library/alpine:3.20`, each on a fresh store: the build
+before it created 7, 3 and 5 (15 of 24, exits 125 and 126); with it, 8,
+8 and 8 (24 of 24), one tree each. Eight `extract` at once: eight exit
+0, and one `.extract.lock` beside the payload lock. The store tests
+pass, 33 of 33. T-1843 (`extract --force` before the store lock) is not
+closed by this: its order against a running container stays to test.

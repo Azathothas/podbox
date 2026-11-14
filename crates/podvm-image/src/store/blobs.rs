@@ -185,6 +185,58 @@ impl Store {
         lock_at(&path, sys::LOCK_SH)
     }
 
+    /// The lock file of an image's **first extraction**, keyed by the manifest
+    /// digest: that digest names the tree, and two tags that resolve to one
+    /// manifest share the tree and must share the lock.
+    pub(super) fn image_extract_lock_path(&self, record: &Record) -> Result<PathBuf> {
+        let d = Digest::parse(&record.manifest_digest)?;
+        Ok(self
+            .root
+            .join(LOCKS)
+            .join(format!("{}.extract.lock", d.hex())))
+    }
+
+    /// ⭐ The **exclusive** lock of one image's extraction.
+    ///
+    /// ⛔ Two callers that both read [`Store::hold`]'s image as unextracted
+    /// both write the same tree. Measured 2026-11-14, eight `podvm create` at
+    /// once of an image that had never been extracted: `v0.2.0-beta.16`
+    /// created 12 of 48 containers over six rounds and lost all eight in four
+    /// of them. The failures were `EEXIST` of a symlink of a layer, a copy of
+    /// a tree another process had removed, or a payload that "names no file
+    /// in the image". A caller takes this lock, asks
+    /// [`podvm_extract::is_extracted`] again, and extracts only when the tree
+    /// is still absent.
+    ///
+    /// ⚠ The wait is bounded and it does not block: `LOCK_NB` in a loop, as
+    /// `RULES.md` section 8 requires. The bound is longer than `lock_at`'s
+    /// five seconds, because an extraction of a large image runs for minutes.
+    ///
+    /// ⛔ The index lock is **not** taken here. It would be held across the
+    /// wait, and the process that holds this lock needs the index to record
+    /// the container that its extraction is for: both would wait on the other.
+    /// The file cannot be unlinked under the holder either, because every
+    /// caller takes [`Store::hold`] first and a removal asks for that lock
+    /// exclusively.
+    pub fn hold_extract(&self, record: &Record) -> Result<Lock> {
+        let path = self.image_extract_lock_path(record)?;
+        let started = std::time::Instant::now();
+        loop {
+            if let Some(l) = try_lock_at(&path, sys::LOCK_EX)? {
+                return Ok(l);
+            }
+            if started.elapsed() >= EXTRACT_WAIT {
+                return Err(Error::Store(format!(
+                    "{} is being extracted by another process after {:?}. The wait has a \
+                     bound and does not block: try again when that process ends",
+                    record.name(),
+                    EXTRACT_WAIT
+                )));
+            }
+            std::thread::sleep(EXTRACT_PAUSE);
+        }
+    }
+
     /// Whether any process holds [`Store::hold`] on this image.
     ///
     /// ⚠ Tested by asking for the exclusive lock and reading `EWOULDBLOCK`,

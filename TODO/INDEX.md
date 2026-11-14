@@ -548,10 +548,11 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1883](image.md) | P2 | S | none | image | blocked | `create` and `run` do not report the entries that the extraction could not make |
 | [T-1884](machine.md) | P1 | S | none | machine | done | A machine run that podvm ends on SIGTERM leaves its emulator running |
 | [T-1885](machine.md) | P2 | S | none | machine | open | Piped input to a machine run with `-t` is lost before the guest terminal opens |
+| [T-1886](image.md) | P1 | S | none | image | done | Concurrent extractions of one image write one tree, and the first to fail removes it under the others |
 
 ## Counts
 
-482 entries: 64 open, 6 partial, 6 blocked, 406 done.
+483 entries: 64 open, 6 partial, 6 blocked, 407 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -561,10 +562,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 13 | 1 | 1 | 181 | 196 |
+| P1 | 13 | 1 | 1 | 182 | 197 |
 | P2 | 36 | 3 | 4 | 130 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 64 | 6 | 6 | 406 | 482 |
+| **All** | 64 | 6 | 6 | 407 | 483 |
 
 ## Work order
 

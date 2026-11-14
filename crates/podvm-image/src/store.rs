@@ -99,6 +99,13 @@ const LOCKS: &str = "locks";
 const STAGING: &str = "staging";
 const STORE_LOCK: &str = "lock";
 
+/// How long [`Store::hold_extract`] waits for another process's extraction of
+/// the same image before it refuses. Bounded, as `RULES.md` section 8 requires
+/// of every wait, and long enough for the extraction of a large image.
+const EXTRACT_WAIT: std::time::Duration = std::time::Duration::from_secs(600);
+/// The pause between two attempts of [`Store::hold_extract`].
+const EXTRACT_PAUSE: std::time::Duration = std::time::Duration::from_millis(100);
+
 /// ⛔ Invariant I6. What makes a staging name unique per CALL rather than per
 /// process, which is the difference `TODO/probe.md` T-0113 cost one crate over.
 static STAGE_SEQUENCE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);

@@ -341,6 +341,27 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
         }
     };
 
+    // ⛔ The extraction lock comes before the question, not after it, and the
+    // payload hold comes before the removal: `extract --force` used to remove
+    // the root before it held the image (TODO/image.md T-1843), and two
+    // `podvm extract` of one unextracted image used to write one tree. The
+    // order is index (none here) then image, then this lock, as `hold` itself
+    // takes them.
+    let _extracting = match store.hold_extract(&record) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("podvm extract: {e}");
+            return e.exit_code();
+        }
+    };
+    let _held = match store.hold(&record) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("podvm extract: {e}");
+            return podvm_image::error::EXIT_RUNTIME_ERROR;
+        }
+    };
+
     if podvm_extract::is_extracted(&store, &record.manifest_digest) && !force {
         // ⚠ Already done is not an error, and the path is still printed: a
         // caller pipes this into `run`, and a second invocation must answer the
@@ -374,14 +395,8 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
     };
 
     // ⛔ A GC must not delete the blobs out from under an extraction in flight,
-    // and T-0204's lock is what stops it.
-    let _held = match store.hold(&record) {
-        Ok(l) => Some(l),
-        Err(e) => {
-            eprintln!("podvm extract: {e}");
-            return podvm_image::error::EXIT_RUNTIME_ERROR;
-        }
-    };
+    // and T-0204's lock is what stops it. It was taken above, before the
+    // question and the removal.
 
     let mut out = std::io::stderr().lock();
     match podvm_extract::extract(&store, &manifest, &record.manifest_digest, &mut out) {

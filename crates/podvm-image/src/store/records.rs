@@ -340,6 +340,14 @@ impl Store {
                 let resolved = contain::within(&self.root, &fill)?;
                 let _ = std::fs::remove_file(resolved);
             }
+            // ⭐ The extraction lock goes with the image, as the payload lock
+            // does: an extraction of this digest that starts after the removal
+            // would otherwise wait on a file of an image that is gone.
+            let extract = self.image_extract_lock_path(r)?;
+            if extract.exists() {
+                let resolved = contain::within(&self.root, &extract)?;
+                let _ = std::fs::remove_file(resolved);
+            }
         }
         self.write_index(&index)?;
         Ok(Removed {

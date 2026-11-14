@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: concurrent `create` of an image that was never extracted, 2026-11-14
+
+Record: T-1886, PodUtils/podvm#358.
+Deployed: not deployed; no version change.
+
+- Several `create`, `run`, `cp` or `extract` at once of a pulled image
+  that was never extracted wrote one tree together, and the first to
+  fail removed it under the others: about half of eight containers were
+  lost. One extraction of an image runs at a time now; the others wait
+  and use its tree. (A patch of the tester Nemo-010.)
+
 ### Fixed: the `--report` of a machine run, 2026-11-14
 
 Record: T-1803.

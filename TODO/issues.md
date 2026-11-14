@@ -254,3 +254,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #355 | [gh action] requested | closed (gate 43576720202, arm 43577573447, nightly trial 43578086980 and release 43580765158 green on 0f13267c) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.17` (AGENTS.md, section 9) |
 | #356 | `exec` exits 125 for an image name that resolves to nothing, where the exit table and T-1805's own decision say 1 | open | T-1842, T-1805 |
 | #357 | `rm` leaves a detached spare-tree fill holding the image's payload lock, so an `rmi` or `image prune` in the next second is refused as "in use by a running container" while `ps -a` is empty | closed (`0814cab0`) | T-1781 |
+| #358 | Concurrent `create`, `run`, `cp` or `extract` of a never-extracted image all write the same tree, and the first to fail removes it under the others | open | T-1886 |

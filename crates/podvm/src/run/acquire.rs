@@ -257,6 +257,19 @@ pub(crate) fn extract_now(
     store: &podvm_image::Store,
     record: &podvm_image::Record,
 ) -> std::result::Result<(), i32> {
+    // ⛔ Every caller reads `is_extracted` before it calls this, and two of
+    // them that read it together both extract the same tree. Measured
+    // 2026-11-14: eight `podvm create` at once of a never-extracted image,
+    // `v0.2.0-beta.16` created 12 of 48 containers over six rounds. The lock is
+    // taken here, and the question is asked again under it, so the second
+    // caller finds the tree of the first and does nothing.
+    let _extracting = store.hold_extract(record).map_err(|e| {
+        eprintln!("podvm {verb}: {e}");
+        e.exit_code()
+    })?;
+    if podvm_extract::is_extracted(store, &record.manifest_digest) {
+        return Ok(());
+    }
     let d = podvm_image::digest::Digest::parse(&record.manifest_digest).map_err(|e| {
         eprintln!("podvm {verb}: {e}");
         podvm_image::Error::from(e).exit_code()
