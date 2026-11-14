@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.17 (2026-11-14)
+
 ### Fixed: a missing container name exits 1, 2026-11-14
 
 Record: T-1805.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.17.
 
 - `start`, `stop`, `restart`, `rm`, `logs`, `wait`, `kill` and `cp` on a
   name that resolves to nothing exited 125; they now exit 1 with one
@@ -21,7 +23,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a glibc 2.34 image with no `libdl.so.2` on the userland rung, 2026-11-14
 
 Record: T-1880, PodUtils/podrunner#100.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.17.
 
 - Where chroot is denied, `podvm run busybox:1.37.0` refused: the glibc
   object of the interposer needed `libdl.so.2`, which a glibc 2.34 image
@@ -32,7 +34,7 @@ Deployed: not deployed; no version change.
 ### Fixed: a full stdout, 2026-11-14
 
 Record: T-1816.
-Deployed: not deployed; no version change.
+Deployed: version 0.2.0-beta.17.
 
 - With stdout on a full disk (`/dev/full`), `version`, `ps`, `probe`,
   `doctor` and `inspect` aborted with exit 134, and `images` and `logs`
