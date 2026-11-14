@@ -32,9 +32,8 @@ file when each step below is done.
 Experiment 443 (`experiments/443-qa-surface.sh`) drives the CLI on the
 namespace rung and on the chroot-denied fixture (`ul`). The first pass
 gave 518 PASS and 64 FAIL, and T-1753 to T-1771; the reruns found T-1772
-to T-1775. The merged capture gives 583 PASS and 0 FAIL: the reruns
-took the fixes of podcrates `v0.38.0` (T-1760, T-1770) and of T-1774 (the
-host's devices on the userland rung under a user namespace).
+to T-1775. One full run on the published `v0.2.0-beta.14` (2026-11-14) gives 583
+PASS, 0 FAIL and 13 INFO, with no merge of earlier runs.
 
 ## Open COORD issues
 
