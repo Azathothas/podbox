@@ -12,4 +12,4 @@ repository.workspace = true
 # stop and the bounded store of a base image with its digest, shared through
 # PodUtils/podcrates. This crate gives podvm's names and places to it, and
 # keeps the base caches and docker's range of exit codes.
-pod-guest = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0" }
+pod-guest = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }

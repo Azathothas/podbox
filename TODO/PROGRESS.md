@@ -26,8 +26,9 @@ The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
   `actions_run_trigger` answers "Actions has been disabled for this user".
   Each run of a cloud session is an issue `[gh action] requested`
   (`docs/decisions.md`, 2026-11-13, "Workflow fallback").
-* podvm takes the crates of PodUtils/podcrates at `v0.42.0` (`b6983fc`,
-  PodUtils/podcrates#145): it carries podcrates@T-486 and podcrates@T-107.
+* podvm takes the crates of PodUtils/podcrates at `v0.43.0` (`ccbea49`,
+  PodUtils/podcrates#149): it carries podcrates@T-567 (the completion of
+  two layers) and podcrates@T-568 to podcrates@T-570.
   A change of moved code goes to podcrates as a COORD issue.
 * KVM is free (the owner, 2026-11-09). The cloud host has no `/dev/kvm`;
   `kvm.yml` (T-1682) gives a hosted runner with it, and `arm.yml` a

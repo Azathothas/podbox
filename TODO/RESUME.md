@@ -49,7 +49,7 @@ clauses in its own record:
   cloud session does not need it.
 * The files that podcrates imported are frozen until podvm takes the
   crate (`AGENTS.md`, section 9, item 4). The hand-over is done (T-1681),
-  and the manifests of podvm name each `pod-*` crate at `v0.42.0`
+  and the manifests of podvm name each `pod-*` crate at `v0.43.0`
   (COORD-083, issue 317). A fix of moved code goes to podcrates as a
   COORD issue.
 * `refactor/` is not on `main`. It is on the branch

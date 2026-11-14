@@ -254,9 +254,11 @@ fn machine_block(f: &Findings) -> String {
                 "  profile: tcg (the emulator process is the boundary, not hardware isolation; {net})\n"
             ));
         }
+        // The refusal of pod-hostprobe holds its verdict ("machine tier
+        // refused: LEG; LEG"), so the row adds no word before it (C337).
         None => match mach.refusal() {
-            Some(r) => out.push_str(&format!("  refused: {r}\n")),
-            None => out.push_str("  refused: machine tier refused\n"),
+            Some(r) => out.push_str(&format!("  {r}\n")),
+            None => out.push_str("  machine tier refused\n"),
         },
     }
     out
@@ -276,8 +278,9 @@ fn supervise_block(f: &Findings) -> String {
             None => out.push_str(&format!("  {name:<34} (not probed)\n", name = leg.name)),
         }
     }
+    // As in the machine block: the refusal holds its verdict (C337).
     match sup.refusal() {
-        Some(r) => out.push_str(&format!("  refused: {r}\n")),
+        Some(r) => out.push_str(&format!("  {r}\n")),
         None => out.push_str("  the tier holds: every leg ok\n"),
     }
     // TODO/supervise.md T-0606. Supervision beside mediation, one writer
@@ -292,7 +295,7 @@ fn supervise_block(f: &Findings) -> String {
         }
     }
     match vis.refusal() {
-        Some(r) => out.push_str(&format!("  refused: {r}\n")),
+        Some(r) => out.push_str(&format!("  {r}\n")),
         None => out.push_str("  supervision holds: every leg ok\n"),
     }
     out

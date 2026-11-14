@@ -180,3 +180,26 @@ fn probe_names_the_entered_rung() {
     to_entered(&denied, &mut s);
     assert_eq!(s.rung, Rung::Userland);
 }
+
+/// podcrates C338: podvm wraps a reason of pod-enter in its printer. Each
+/// line holds at most 76 columns, the lines after the first are indented,
+/// and no word is lost or cut.
+#[test]
+fn a_refusal_wraps_at_76_columns() {
+    let text = format!(
+        "refused: {}",
+        "the object imports a symbol that the libc does not define ".repeat(5)
+    );
+    let out = wrap(&text, 76, "  ");
+    for (i, l) in out.lines().enumerate() {
+        assert!(
+            l.chars().count() <= 76,
+            "line {i} is {} columns: {l}",
+            l.chars().count()
+        );
+        assert_eq!(l.starts_with("  "), i > 0, "{out}");
+    }
+    let words = |s: &str| s.split_whitespace().map(str::to_string).collect::<Vec<_>>();
+    assert_eq!(words(&out), words(&text));
+    assert_eq!(wrap("short", 76, "  "), "short\n");
+}

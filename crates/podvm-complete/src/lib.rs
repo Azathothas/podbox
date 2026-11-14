@@ -305,6 +305,9 @@ pub fn settings(rootfs: &str, opts: &Options) -> pod_rootfs::Settings {
                 .unwrap_or_else(|| Path::new("/"))
                 .join(BACKUP_DIR),
         ),
+        // One root: the tree of a run is a full copy (T-1749 takes the two
+        // layers of podcrates@T-567 next).
+        upper: None,
     }
 }
 

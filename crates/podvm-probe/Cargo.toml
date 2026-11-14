@@ -13,7 +13,7 @@ repository.workspace = true
 # (TODO/deps.md T-0911, T-0912) come with it.
 # TODO/probe.md T-1746: the feature `report` gives the reader of the
 # findings, so `run` takes them from the cache of T-0111.
-pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0", features = ["report"] }
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0", features = ["report"] }
 # TODO/enter.md T-1652: `measured_by.user_dispatch`, whether the
 # native-static rung can arm on this host.
 podvm-dispatch = { path = "../podvm-dispatch" }
@@ -23,6 +23,6 @@ podvm-dispatch = { path = "../podvm-dispatch" }
 # against the published schema of `pod-hostprobe` (feature `schema`) with
 # the validator of podcrates' own test. Dev-dependencies only: the binary
 # links neither.
-pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0", features = ["report", "schema"] }
+pod-hostprobe = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0", features = ["report", "schema"] }
 boon = "0.6"
 serde_json.workspace = true

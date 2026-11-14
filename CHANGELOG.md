@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.43.0, 2026-11-14
+
+Record: PodUtils/podcrates#149, PodUtils/podvm#331, #335, #337.
+Deployed: not deployed; no version change.
+
+- podvm takes the crates of podcrates at `v0.43.0`. It carries the
+  completion of two layers of `pod-rootfs` (podcrates@T-567), and the
+  text fixes podcrates@T-568 to podcrates@T-570: an ABI reason with no
+  verdict word, the `noexec` remedy only on a `noexec` mount, and the
+  legs of a refusal joined with `; `.
+- `probe` prints the refusal of the machine and supervise tiers once,
+  with no second `refused:` before it, and `system abi` wraps a refusal
+  at 76 columns.
+
 ## 0.2.0-beta.15 (2026-11-14)
 
 ### Fixed: `system df` counts each byte of the store, 2026-11-14

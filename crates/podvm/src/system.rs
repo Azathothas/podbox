@@ -211,10 +211,38 @@ pub fn abi(verb: &str, args: &[String]) -> i32 {
             0
         }
         podvm_enter::abi::Verdict::Refused(why) => {
-            eprintln!("refused: {why}");
+            // The reason of pod-enter is one sentence with no verdict word
+            // (podcrates C335); podvm adds the label and wraps it (C338).
+            eprint!("{}", wrap(&format!("refused: {why}"), 76, "  "));
             1
         }
     }
+}
+
+/// `text` in lines of at most `width` columns, cut at spaces, each line
+/// after the first under `indent`. A word longer than the width stays whole.
+pub(crate) fn wrap(text: &str, width: usize, indent: &str) -> String {
+    let mut out = String::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        let lead = if out.is_empty() { "" } else { indent };
+        if !line.is_empty() && lead.len() + line.len() + 1 + word.chars().count() > width {
+            out.push_str(lead);
+            out.push_str(&line);
+            out.push('\n');
+            line.clear();
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
+    }
+    if !line.is_empty() {
+        out.push_str(if out.is_empty() { "" } else { indent });
+        out.push_str(&line);
+        out.push('\n');
+    }
+    out
 }
 
 mod df_info;
