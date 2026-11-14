@@ -202,8 +202,8 @@
 310 issue closed
 311 issue closed
 312 issue closed
-313 pull open
-314 pull open
+313 pull closed
+314 pull closed
 315 issue closed
 316 issue closed
 317 issue closed
