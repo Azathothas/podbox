@@ -8,6 +8,15 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.41.0, 2026-11-14
+
+Record: PodUtils/podcrates#143.
+Deployed: not deployed; the next release carries it.
+
+- podvm takes the crates of podcrates at `v0.41.0` (the termios mode of
+  `pod-term`, relays of `pod-link`); podvm builds and tests with no
+  change of code.
+
 ## 0.2.0-beta.14 (2026-11-13)
 
 ### Added: a container engine in a guest of the machine tier, 2026-11-13
