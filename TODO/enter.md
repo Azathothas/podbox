@@ -3802,3 +3802,113 @@ static program run. The ask of COORD-098 (issue 344, podcrates@T-583)
 stays for the check of the crate. ⚠ The interposer is not a boundary:
 a raw `execve` system call passes it, as the module doc of
 `map/readonly.rs` says of each check of the table.
+
+# T-1887: `--podvm-confine` on the userland rung resolves an absolute link of the image against the host root
+
+**Source:** PodUtils/podvm#364 (Nemo-010, 2026-11-14), with a patch
+**Category:** enter
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+On the userland rung, `host_spec` (`crates/podvm-enter/src/confine.rs`)
+maps each guest path of the spec to a host path by a lexical join onto
+the rootfs. A link of the image whose target starts with `/` is then
+opened from the host root. `podvm run --podvm-confine exec=/bin/sh
+alpine:3.20 /bin/sh -c 'echo hi'` exits 125 with "does not exist":
+`bin/sh` links to `/bin/busybox`, which the image has and the host does
+not. 81 of the 82 names in `/bin` of the image are such links. A link to
+a path that only the host has compiles a rule on the host inode.
+
+## Premise
+
+On a rung with a chroot, `compile_in` opens each rule with
+`RESOLVE_IN_ROOT`, so a link resolves inside the image. The loader
+family has no root descriptor, so podvm must resolve the links itself,
+as the interposer resolves them for the payload.
+
+## Approach
+
+Take the patch of the report: `host_resolved` walks the guest path one
+component at a time inside the tree that serves it (the rootfs or a
+volume), restarts at that tree on an absolute target, stops `..` at its
+root, and bounds the walk at 40 links. `host_spec` uses the result for
+the existence test and for the rule. Leave out the debug print of the
+patch.
+
+## Decision
+
+A guest path resolves inside the tree that serves it, on every rung.
+The host decides no verdict of the spec. A required path whose walk
+leaves the tree is T-1888.
+
+## Prove
+
+`cargo test -p podvm-enter confine` exits 0 with the three tests of the report, and on the userland fixture `podvm run --rm --podvm-confine exec=/bin/sh` of `mirror.gcr.io/library/alpine:3.20` with `/bin/sh -c 'echo hi'` prints `hi` and exits 0
+
+## Done
+
+**Done 2026-11-14.** The patch of PodUtils/podvm#364 (Nemo-010) is in
+`crates/podvm-enter/src/confine.rs` (`host_resolved`), without its debug
+print. `cargo test -p podvm-enter confine` exits 0 with the three tests
+of the report. On the userland fixture with
+`mirror.gcr.io/library/alpine:3.20` and `/bin/sh -c 'echo hi'`:
+`exec=/bin/sh`, `read=/bin/cat`, `exec=?/bin/sh`, `read=/bin`,
+`read=/etc/mtab` and `exec=/bin/busybox` each print `hi` and exit 0;
+beta.17 on the same fixture refused `exec=/bin/sh` at 125 with ENOENT on
+the host path of the tree.
+
+# T-1888: A required confine path whose link leaves the tree still grants a host inode
+
+**Source:** PodUtils/podvm#364, "What the patch does not change"
+**Category:** enter
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+After T-1887, a required path (no `?`) whose walk finds nothing inside
+the tree falls back to the lexical host path. A link of the image to a
+path that only the host has (`etc/abs-host -> /bin/sh`) then compiles a
+rule on the host's inode, and the run exits 0.
+
+## Premise
+
+A rule that names a host inode is the class of surprise that T-0405
+refuses for `etc/mtab`. The payload's own path calls go through the
+interposer and see the tree, so the rule grants more than the tree
+holds.
+
+## Approach
+
+Make `host_spec` fallible: a required path that does not resolve inside
+the tree refuses by name, with the guest path the caller wrote, and an
+optional path takes no rule.
+
+## Decision
+
+A required path that the image lacks refuses, wherever the host has it.
+
+## Prove
+
+`cargo test -p podvm-enter confine_required_link` exits 0, with a test that a required rule on a link to a host-only path refuses with the guest path in the message
+
+## Done
+
+**Done 2026-11-14.** `host_spec` returns a `Result`: a required path
+that does not resolve inside its tree refuses with the guest path, and
+the message says whether the image lacks the path or holds a link out
+of the tree. `create` keeps the SPEC and leaves the check to `start`,
+as before. `cargo test -p podvm-enter confine_required_link` exits 0.
+By hand on the userland fixture: `create --podvm-confine
+read=/etc/abs-host`, then a link `etc/abs-host -> /usr/bin/python3` in
+the tree (a path of the host only), and `start` refuses at 125 with
+"the path \"/etc/abs-host\" of the spec is a link of the image that
+leaves the tree"; a link to `/bin/busybox` starts and exits 0; `run
+--podvm-confine read=/nosuch` refuses at 125 with "is not in the image",
+and `read=?/nosuch` runs.

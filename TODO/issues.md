@@ -260,3 +260,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #361 | COORD-110: pod-services: list software-download.microsoft.com (to podcrates) | open | T-1679 |
 | #362 | COORD-111: podvm took v0.44.0 in 14e972d2 (the answer to PodUtils/podcrates#154) (to podcrates) | open | T-1786, T-1881 |
 | #363 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.18` (AGENTS.md, section 9) |
+| #364 | `--podvm-confine` on the no-chroot rung resolves a rule path against the host root, so an image's absolute symlink is refused as missing | open | T-1887, T-1888 |

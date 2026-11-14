@@ -10,6 +10,19 @@ They describe their recorded revision, not the current build.
 
 ## 0.2.0-beta.18 (2026-11-14)
 
+### Fixed: `--podvm-confine` on the userland rung resolves the links of the image inside it, 2026-11-14
+
+Record: T-1887, T-1888 (PodUtils/podvm#364, a patch of Nemo-010).
+Deployed: version 0.2.0-beta.18.
+
+- A path of the spec that is an absolute link of the image (`/bin/sh`
+  of alpine links to `/bin/busybox`) was opened from the host root and
+  refused at 125 where the host lacked the target. Each path now
+  resolves inside the tree that serves it.
+- A required path that the image lacks, or whose link leaves the tree,
+  refuses with the guest path the caller wrote; it took a rule on a
+  host file before.
+
 ### Fixed: `exec` after a `--tmpfs` run, the object of the interposer, and a fetch that cannot fit, 2026-11-14
 
 Record: T-1830, T-1843, T-1844, T-1862 (partial), T-1786 (partial).

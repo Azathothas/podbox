@@ -549,10 +549,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1884](machine.md) | P1 | S | none | machine | done | A machine run that podvm ends on SIGTERM leaves its emulator running |
 | [T-1885](machine.md) | P2 | S | none | machine | open | Piped input to a machine run with `-t` is lost before the guest terminal opens |
 | [T-1886](image.md) | P1 | S | none | image | done | Concurrent extractions of one image write one tree, and the first to fail removes it under the others |
+| [T-1887](enter.md) | P1 | S | none | enter | done | `--podvm-confine` on the userland rung resolves an absolute link of the image against the host root |
+| [T-1888](enter.md) | P2 | S | none | enter | done | A required confine path whose link leaves the tree still grants a host inode |
 
 ## Counts
 
-483 entries: 49 open, 14 partial, 4 blocked, 416 done.
+485 entries: 49 open, 14 partial, 4 blocked, 418 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -562,10 +564,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
-| P1 | 4 | 8 | 0 | 185 | 197 |
-| P2 | 30 | 3 | 4 | 136 | 173 |
+| P1 | 4 | 8 | 0 | 186 | 198 |
+| P2 | 30 | 3 | 4 | 137 | 174 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 49 | 14 | 4 | 416 | 483 |
+| **All** | 49 | 14 | 4 | 418 | 485 |
 
 ## Work order
 

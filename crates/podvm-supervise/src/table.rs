@@ -103,7 +103,7 @@ impl Hardening {
         };
         let ask = podvm_enter::confine::parse(s)
             .map_err(|e| format!("the confine layer of the record ({s:?}): {e}"))?;
-        Ok(Some(podvm_enter::confine::host_spec(&ask, maps)))
+        podvm_enter::confine::host_spec(&ask, maps).map(Some)
     }
 
     /// The confine layer of the record for the tree at `rootfs`, or None.

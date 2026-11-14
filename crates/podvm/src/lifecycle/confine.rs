@@ -49,7 +49,14 @@ pub fn decide(
     // program against this table of guest paths before it starts it.
     env.push(exec_table(ask));
     let rx = confine::Access::READ | confine::Access::EXECUTE;
-    let mut spec = confine::host_spec(ask, &u.maps);
+    let mut spec = match confine::host_spec(ask, &u.maps) {
+        Ok(s) => s,
+        // TODO/enter.md T-1888: `create` keeps the SPEC in the record, and
+        // `start` resolves the paths on the tree that it starts, which can
+        // hold a path by then. `start` refuses where it still does not.
+        Err(_) if verb == "create" => return Ok(Some(Spec::new())),
+        Err(why) => return Err(refuse(verb, why)),
+    };
     // TODO/enter.md T-1819: the loader family too: a static child enters
     // the native-static rung through podvm itself (T-1724), so podvm's own
     // binary gets read and execute on each family. A static program that
