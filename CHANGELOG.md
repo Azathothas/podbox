@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: a spare tree of each image, 2026-11-14
+
+Record: T-1781.
+Deployed: not deployed; the next release carries it.
+
+- After a run, podvm fills the next tree of the same image in the
+  background, and the next run takes it with one rename; the tree of a
+  `--rm` run is removed after podvm exits. A repeated `run --rm
+  golang true` takes 181 ms in place of 8.5 s on the cloud host.
+  `PODVM_SPARE_TREE=0` turns it off.
+- `rmi` and `image prune` remove the extracted root of an image that no
+  tag names; before, it stayed on disk.
+
 ### Changed: podcrates v0.41.0, 2026-11-14
 
 Record: PodUtils/podcrates#143.

@@ -31,6 +31,8 @@ rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
 OUT="$REPO/experiments/results/run-copy-cost.txt"
 PB="${PODVM_BIN:-$REPO/target/x86_64-unknown-linux-musl/release/podvm}"
 export PODVM_STORE="$WORK/store"
+# TODO/image.md T-1781: the copy is what this measures, so no spare tree.
+export PODVM_SPARE_TREE=0
 : >"$OUT"
 note() { echo "$*" | tee -a "$OUT"; }
 fail=0

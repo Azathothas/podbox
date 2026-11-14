@@ -24,7 +24,18 @@ impl<'a> Tree<'a> {
         store: &'a podvm_image::Store,
         digest: &str,
     ) -> Result<Self, i32> {
-        match podvm_extract::tree::fill(store, digest) {
+        // TODO/image.md T-1781: the spare of the image where there is one,
+        // and the next spare at podvm's exit.
+        let spare = super::spare::enabled();
+        let got = spare
+            .then(|| podvm_extract::tree::take_spare(store, digest))
+            .flatten()
+            .map(Ok)
+            .unwrap_or_else(|| podvm_extract::tree::fill(store, digest));
+        if spare {
+            super::spare::note(store, digest);
+        }
+        match got {
             Ok(fill) => Ok(Tree {
                 store,
                 fill,
@@ -63,7 +74,8 @@ impl Drop for Tree<'_> {
 /// Remove the tree of a prepared run that no record took (a refused
 /// `create` or foreground record).
 pub(crate) fn drop_unrecorded(store: &podvm_image::Store, rootfs: &str) {
-    let _ = podvm_extract::tree::remove(store, rootfs);
+    // TODO/image.md T-1781: put aside now, removed after podvm's exit.
+    let _ = podvm_extract::tree::discard(store, rootfs);
 }
 
 #[cfg(test)]

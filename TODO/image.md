@@ -3743,3 +3743,67 @@ directory; on that rung the tree's node serves, as before T-1774. Under
 `unshare -Urm` and the deny-chroot fixture of experiment 443, the test
 fails without the change and passes with it.
 
+
+# T-1781: A spare tree of each image, and the removal of a `--rm` tree after podvm's exit
+
+**Source:** the open part of T-1749 (the copy of the rootfs on each run), PodUtils/podvm#322
+**Category:** image
+**Milestone:** none
+**Priority:** P2
+**Effort:** M
+**Status:** done
+
+## Problem
+
+Each run copies the extracted image into its own tree (T-1709), and a
+`--rm` run removes it before podvm exits. For golang 1.24 (811 MiB,
+29 061 files) the fill and the removal are most of a run: 66 % by the
+fill alone (experiment 442), and the removal of 37 405 entries took some
+7 s under `strace`. The root with no copy of the namespace rung is
+podcrates@T-486, which is in work; the loader family's copy-up through
+the path table is a union file system in the interposer.
+
+## Premise
+
+A tree that no record names is a cache: it can be filled before a run
+needs it, and a tree that a run no longer needs can be removed after.
+A rename in one file system is atomic and costs no copy.
+
+## Approach
+
+After a run takes its tree, podvm notes the image; at podvm's exit (not
+during the run, where a launcher kills each process of its tree) a
+detached `podvm tree-prefill STORE DIGEST` holds the image, fills the
+spare (`<store>/rootfs/<digest>/spare/`), and renames it into place. The
+next run takes the spare with one rename. A removed tree goes aside to
+`<store>/trees/.trash-<id>` with one rename, and the same helper removes
+it. `PODVM_SPARE_TREE=0` turns both off.
+
+## Decision
+
+The spare lives in the image's directory, so the removal of the image
+removes it. The helper runs at the lowest CPU priority and in the idle
+I/O class. It is not T-1749: each tree is still a full copy, and the
+first run of an image still pays it.
+
+## Prove
+
+`sh experiments/448-spare-tree.sh` exits 0: with the spare, the median of 5 runs of `run --rm golang true` is lower than with `PODVM_SPARE_TREE=0` by at least half of the median fill, and each run names the spare; a write of one run is not in the next run's root; `rmi` of a second tag keeps the extraction and `rmi` of the last tag removes it with the spare; no helper and no trash stay
+
+## Done
+
+**Done 2026-11-14.** `take_spare`, `prefill`, `discard` and
+`empty_trash` of `crates/podvm-extract/src/tree.rs`; `run/spare.rs`
+notes the image and starts the helper from `exit()` of `main.rs`;
+`drop_unrecorded` and `podvm_supervise::remove` discard. Experiment 448
+on the cloud host: the median of 5 runs is 181 ms with the spare and
+8493 ms without (the runs without slow from 1.9 s to 14.5 s as the
+writeback of the host grows), the next run holds no write of the run
+before, and no helper and no trash stay. The first run of 448 found two
+defects. Its clause 1 compared one run: a loop variable that a helper
+of the script also used. Its clause 3 found that `rmi` and `image prune`
+deleted the blobs of an image and left its extracted root (8.2 MiB for
+alpine, 811 MiB for golang); `images::drop_extractions` removes the
+extraction of each manifest digest that no record names after a
+removal. The tests `a_spare_is_taken_once_and_holds_no_write_of_a_run`
+and `a_discarded_tree_goes_aside_and_the_trash_empties` hold the parts.

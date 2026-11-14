@@ -52,6 +52,8 @@ if [ "${PODVM_430_MIRROR:-0}" = 1 ]; then
 fi
 STORE="$WORK/store"
 export PODVM_STORE="$STORE"
+# TODO/image.md T-1781: each run fills its own tree here, so no spare tree.
+export PODVM_SPARE_TREE=0
 : >"$OUT"
 note() { echo "$*" | tee -a "$OUT"; }
 fail=0

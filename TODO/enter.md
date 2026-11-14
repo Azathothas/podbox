@@ -3509,6 +3509,13 @@ mounts; else a copy-up of the path table on the loader family), and the
 Prove. The overlay mount belongs to `pod-enter`'s namespace rung: COORD-071
 (issue 294) asks podcrates for it. The loader family is podvm's part.
 
+**Partial 2026-11-14.** T-1781 takes the copy off each run after the
+first: a spare tree of the image, filled after the run before, and the
+removal of a `--rm` tree after podvm's exit (golang: 181 ms with the
+spare against 8.5 s, experiment 448). The root with no copy stays the
+goal of this entry: the first run of an image and each `create` still
+copy, and a spare uses the disk of one more tree.
+
 
 # T-1758: The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing
 

@@ -101,6 +101,16 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   The image's own tree is the source. `exec` with an image reference,
   `cp` with an image reference, `extract`, and the machine and incus
   tiers use the image's own tree.
+- The spare tree (T-1781): after a run takes its tree, a detached `podvm
+  tree-prefill` fills the next tree of the same image beside the image's
+  own tree, at the lowest CPU priority and in the idle I/O class, and the
+  next run of the image takes it with one rename. The tree of a `--rm`
+  run goes aside with one rename, and the same helper removes it after
+  podvm's exit. golang 1.24, 811 MiB, on the cloud host (experiment
+  448): a median `run --rm golang true` of 181 ms with the spare, 8.5 s
+  without. A spare uses the disk of one more tree for each image that
+  ran; `rmi` and `image prune` remove it with the extraction.
+  `PODVM_SPARE_TREE=0` turns the spare and the deferred removal off.
 
 Forced FUSE mode enters through a rung-complete read-only server; its live
 entry arm and the permitted-tmpfs entry arm prove automatically where a

@@ -372,3 +372,19 @@ pub fn group(args: &[String]) -> i32 {
         }
     }
 }
+
+/// TODO/image.md T-1781: remove the extraction of each manifest digest of
+/// `before` that no record of the store names after a removal. The delete
+/// of the store unlinks the blobs only, so the extracted root of a removed
+/// image stayed (8.2 MiB for alpine, 811 MiB for golang), and with it the
+/// spare tree. A digest that another tag still names keeps its extraction.
+pub(crate) fn drop_extractions(store: &podvm_image::Store, before: &[String]) {
+    let Ok(now) = store.list() else {
+        return;
+    };
+    for d in before {
+        if !now.iter().any(|r| &r.manifest_digest == d) {
+            let _ = podvm_extract::remove_extracted(store, d);
+        }
+    }
+}

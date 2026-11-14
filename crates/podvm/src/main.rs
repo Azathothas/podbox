@@ -178,13 +178,11 @@ fn main() -> std::process::ExitCode {
         Some("start") => exit(lifecycle::start(rest)),
         Some("create") => exit(lifecycle::create(rest)),
         Some("probe") => exit(probe(rest)),
-        // ⭐ `podvm remote ssh`, decided 2026-09-27 and recorded in
-        // docs/decisions/remote-verb.md. `remote` is a NAMESPACE and not a
-        // synonym for `ssh`: `remote fetch`, `remote download` and
-        // `remote wget` are all "reach a machine that is not this one" and
-        // each would otherwise want its own top-level verb. `local` is its
-        // counterpart so the axis is visible, and `machine ssh` is a
-        // DIFFERENT axis (a guest podvm itself runs) and stays separate.
+        // ⭐ `podvm remote ssh`, decided 2026-09-27 (docs/decisions/remote-verb.md).
+        // `remote` is a NAMESPACE, not a synonym for `ssh`: `remote fetch`,
+        // `remote download` and `remote wget` all reach another machine.
+        // `local` is its counterpart; `machine ssh` (a guest podvm runs) is
+        // a DIFFERENT axis and stays separate.
         Some("remote") => exit(remote::remote(rest)),
         Some("ssh") => ssh_refusal(),
         Some("doctor") => exit(doctor::doctor("doctor", rest)),
@@ -194,6 +192,7 @@ fn main() -> std::process::ExitCode {
         Some("guest-hold") => exit(incus::hold(rest)),              // an incus init, T-1718
         Some("guest-9p") => exit(machine::guest::vol::main(rest)),  // in a guest, T-1723
         Some("guest-tty") => exit(machine::guest::tty::guest_main(rest)), // in a guest, T-1723
+        Some("tree-prefill") => exit(run::spare::main(rest)),       // TODO/image.md T-1781
         Some("windows") => exit(windows::windows(rest)),
         Some("man") => exit(man::man(rest)),
         Some("profile") => exit(profile::main(rest)), // TODO/cli.md T-1654
@@ -483,9 +482,10 @@ fn cached_probe(json: bool, strictness: Strictness) -> i32 {
 }
 
 fn exit(code: i32) -> std::process::ExitCode {
-    // ⚠ An exit status carries eight bits. Anything wider would be truncated
-    // into a different code, so it is clamped to one that cannot be confused
-    // with a verdict.
+    run::spare::spawn_pending(); // TODO/image.md T-1781
+                                 // ⚠ An exit status carries eight bits. Anything wider would be truncated
+                                 // into a different code, so it is clamped to one that cannot be confused
+                                 // with a verdict.
     std::process::ExitCode::from(u8::try_from(code).unwrap_or(EXIT_RUNTIME_ERROR as u8))
 }
 

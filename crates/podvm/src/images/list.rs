@@ -262,8 +262,13 @@ pub fn rmi(verb: &str, args: &[String]) -> i32 {
                 continue;
             }
         }
+        let digests: Vec<String> = store
+            .find(want)
+            .map(|v| v.iter().map(|r| r.manifest_digest.clone()).collect())
+            .unwrap_or_default();
         match store.remove(want) {
             Ok(done) => {
+                super::drop_extractions(&store, &digests);
                 for name in &done.untagged {
                     println!("Untagged: {name}");
                 }

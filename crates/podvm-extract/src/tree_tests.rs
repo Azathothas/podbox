@@ -195,3 +195,55 @@ fn a_partial_tree_of_a_dead_process_is_swept() {
     assert_eq!(f.dir.parent().unwrap(), trees(&s));
     clean(&s);
 }
+
+/// TODO/image.md T-1781: a spare is taken with one rename, keeps the counts
+/// of its fill and the sidecar, holds no write of a tree taken before, and
+/// a second prefill leaves a spare as it is.
+#[test]
+fn a_spare_is_taken_once_and_holds_no_write_of_a_run() {
+    let s = store("spare");
+    assert!(take_spare(&s, DIGEST).is_none(), "no spare yet");
+    assert!(prefill(&s, DIGEST).unwrap(), "the first prefill makes it");
+    assert!(!prefill(&s, DIGEST).unwrap(), "a second prefill keeps it");
+    assert!(spare_dir(&s, DIGEST).join("rootfs").is_dir());
+    let a = take_spare(&s, DIGEST).unwrap();
+    assert!(a.spare && a.form() == "the spare tree");
+    assert_eq!(a.copied + a.cloned, 2, "the counts of the fill");
+    assert!(a.dir.join(".meta.jsonl").is_file());
+    assert!(!a.dir.join(".counts").exists());
+    assert!(tree_of(&s, a.rootfs.to_str().unwrap()).is_some());
+    assert!(
+        !spare_dir(&s, DIGEST).exists(),
+        "the spare went to the tree"
+    );
+    fs::write(a.rootfs.join("etc/hosts"), "10.0.0.1 svc\n").unwrap();
+    assert!(prefill(&s, DIGEST).unwrap());
+    let b = take_spare(&s, DIGEST).unwrap();
+    assert_eq!(
+        fs::read_to_string(b.rootfs.join("etc/hosts")).unwrap(),
+        "127.0.0.1 localhost\n",
+        "the spare holds a write of the tree before it"
+    );
+    clean(&s);
+}
+
+/// TODO/image.md T-1781: a discarded tree goes aside with one rename and
+/// the trash empties after; a path that is no container tree stays.
+#[test]
+fn a_discarded_tree_goes_aside_and_the_trash_empties() {
+    let s = store("trash");
+    let f = fill(&s, DIGEST).unwrap();
+    assert!(discard(&s, f.rootfs.to_str().unwrap()).unwrap());
+    assert!(!f.dir.exists(), "the tree is still in place");
+    assert_eq!(trashed().as_deref(), Some(s.root()));
+    assert_eq!(trashed(), None, "taken once");
+    let (src, _) = crate::paths(&s, DIGEST);
+    assert!(
+        !discard(&s, src.to_str().unwrap()).unwrap(),
+        "the image's own tree stays"
+    );
+    assert_eq!(empty_trash(&s), 1);
+    assert_eq!(empty_trash(&s), 0);
+    assert!(src.join("etc/hosts").is_file());
+    clean(&s);
+}

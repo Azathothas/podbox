@@ -219,8 +219,10 @@ pub fn prune(verb: &str, args: &[String]) -> i32 {
             }
         }
     }
+    let digests: Vec<String> = rest.iter().map(|r| r.manifest_digest.clone()).collect();
     match store.delete(&rest, podvm_image::store::Held::Skip) {
         Ok(done) => {
+            super::drop_extractions(&store, &digests); // TODO/image.md T-1781
             if !done.deleted.is_empty() {
                 println!("Deleted Images:");
                 for name in &done.untagged {

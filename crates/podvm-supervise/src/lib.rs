@@ -179,7 +179,8 @@ pub fn wait(store: &Store, want: &str, timeout_ms: u64) -> Result<(Container, Op
 /// an older podvm) leaves that tree to the image verbs.
 pub fn remove(store: &Store, want: &str, force: bool) -> Result<Container> {
     let c: Container = pod_supervise::remove(&settings(store), want, force)?;
-    if let Err(e) = podvm_extract::tree::remove(store, &c.of.rootfs) {
+    // TODO/image.md T-1781: put aside now, removed after podvm's exit.
+    if let Err(e) = podvm_extract::tree::discard(store, &c.of.rootfs) {
         return Err(Error(format!(
             "{} is removed, and its rootfs {} stays: {e}",
             c.name, c.of.rootfs

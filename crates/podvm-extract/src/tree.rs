@@ -52,6 +52,9 @@ pub struct Fill {
     pub linked: u64,
     /// The wall time of the fill.
     pub ms: u128,
+    /// TODO/image.md T-1781: the tree is the spare of the image, renamed
+    /// into place; the counts are those of its fill.
+    pub spare: bool,
     /// The first copy of each `(dev, ino)` of the image with more than one
     /// link.
     links: std::collections::HashMap<(u64, u64), PathBuf>,
@@ -60,6 +63,9 @@ pub struct Fill {
 impl Fill {
     /// The form of the fill, as the banner names it.
     pub fn form(&self) -> &'static str {
+        if self.spare {
+            return "the spare tree";
+        }
         match (self.cloned, self.copied) {
             (0, 0) => "empty",
             (_, 0) => "FICLONE",
@@ -329,3 +335,127 @@ fn clone(dst: &fs::File, src: &fs::File) -> bool {
 #[cfg(test)]
 #[path = "tree_tests.rs"]
 mod tests;
+
+/// TODO/image.md T-1781: the spare tree of an image, beside its own tree
+/// (`<store>/rootfs/<digest>/spare/`), so that the removal of the image
+/// removes it too. A run takes it with one rename in place of a copy, and
+/// a detached `podvm tree-prefill` fills the next one.
+pub const SPARE: &str = "spare";
+/// The counts of the fill of a spare: `files bytes`, in the spare.
+const SPARE_COUNTS: &str = ".counts";
+
+/// The spare tree of the image `digest`.
+pub fn spare_dir(store: &Store, digest: &str) -> PathBuf {
+    let (src, _) = crate::paths(store, digest);
+    src.parent().map(|p| p.join(SPARE)).unwrap_or(src)
+}
+
+/// Take the spare of `digest` as a new container tree, where there is one.
+pub fn take_spare(store: &Store, digest: &str) -> Option<Fill> {
+    let spare = spare_dir(store, digest);
+    if !spare.join("rootfs").is_dir() {
+        return None;
+    }
+    let started = Instant::now();
+    let counts = fs::read_to_string(spare.join(SPARE_COUNTS)).unwrap_or_default();
+    let mut it = counts
+        .split_whitespace()
+        .map(|n| n.parse::<u64>().unwrap_or(0));
+    let (files, bytes) = (it.next().unwrap_or(0), it.next().unwrap_or(0));
+    fs::create_dir_all(trees(store)).ok()?;
+    let dir = trees(store).join(new_id().ok()?);
+    fs::rename(&spare, &dir).ok()?;
+    let _ = fs::remove_file(dir.join(SPARE_COUNTS));
+    Some(Fill {
+        rootfs: dir.join("rootfs"),
+        dir,
+        copied: files,
+        bytes,
+        ms: started.elapsed().as_millis(),
+        spare: true,
+        ..Fill::default()
+    })
+}
+
+/// Fill the spare of `digest` where it has none: `true` where this call
+/// made it. The caller holds the image (T-0204), as for [`fill`].
+pub fn prefill(store: &Store, digest: &str) -> io::Result<bool> {
+    let spare = spare_dir(store, digest);
+    if spare.exists() {
+        return Ok(false);
+    }
+    let f = fill(store, digest)?;
+    let counts = format!("{} {}\n", f.cloned + f.copied, f.bytes);
+    let made =
+        fs::write(f.dir.join(SPARE_COUNTS), counts).and_then(|()| fs::rename(&f.dir, &spare));
+    match made {
+        Ok(()) => Ok(true),
+        Err(e) => {
+            // Another process made the spare first, or the store went.
+            let _ = open_dirs(&f.dir);
+            let _ = pod_extract::remove_tree(&f.dir);
+            if spare.exists() {
+                Ok(false)
+            } else {
+                Err(e)
+            }
+        }
+    }
+}
+
+/// TODO/image.md T-1781: the prefix of a tree that a removal put aside.
+pub const TRASH: &str = ".trash-";
+
+/// The store whose trash podvm empties at its exit, once [`discard`] put a
+/// tree there.
+static TRASHED: std::sync::Mutex<Option<PathBuf>> = std::sync::Mutex::new(None);
+
+/// Whether the removal of a tree goes to the background
+/// (`PODVM_SPARE_TREE` is not `0`).
+fn deferred() -> bool {
+    std::env::var_os("PODVM_SPARE_TREE").is_none_or(|v| v != "0")
+}
+
+/// Put the container tree of `rootfs` aside with one rename, for a later
+/// [`empty_trash`]: the removal of a large tree (37 405 entries of golang)
+/// took seconds of each `run --rm`. With `PODVM_SPARE_TREE=0`, the same as
+/// [`remove`].
+pub fn discard(store: &Store, rootfs: &str) -> io::Result<bool> {
+    let Some(dir) = tree_of(store, rootfs) else {
+        return Ok(false);
+    };
+    if !deferred() {
+        return remove(store, rootfs);
+    }
+    let aside = trees(store).join(format!("{TRASH}{}", new_id()?));
+    match fs::rename(&dir, &aside) {
+        Ok(()) => {
+            if let Ok(mut t) = TRASHED.lock() {
+                *t = Some(store.root().to_path_buf());
+            }
+            Ok(true)
+        }
+        Err(_) => remove(store, rootfs),
+    }
+}
+
+/// The store whose trash this process filled, taken once.
+pub fn trashed() -> Option<PathBuf> {
+    TRASHED.lock().ok().and_then(|mut t| t.take())
+}
+
+/// Remove each tree of the trash; the count removed.
+pub fn empty_trash(store: &Store) -> usize {
+    let Ok(rd) = fs::read_dir(trees(store)) else {
+        return 0;
+    };
+    let mut n = 0;
+    for e in rd.flatten() {
+        let named = e.file_name().to_str().is_some_and(|s| s.starts_with(TRASH));
+        let p = e.path();
+        if named && open_dirs(&p).is_ok() && pod_extract::remove_tree(&p).is_ok() {
+            n += 1;
+        }
+    }
+    n
+}

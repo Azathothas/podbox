@@ -211,6 +211,8 @@ mod report;
 pub use foreground::*;
 
 mod prepare;
+// TODO/image.md T-1781: the spare tree of an image.
+pub(crate) mod spare;
 // TODO/probe.md T-1746: the findings from the cache of T-0111.
 mod probe_cache;
 pub(crate) use prepare::*;
