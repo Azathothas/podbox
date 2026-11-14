@@ -238,6 +238,6 @@
 346 issue open
 347 issue open
 348 issue open
-349 issue open
+349 issue closed
 350 issue open
 351 issue open
