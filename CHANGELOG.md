@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Changed: podcrates v0.42.0, 2026-11-14
+
+Record: PodUtils/podcrates#145.
+Deployed: not deployed; the next release carries it.
+
+- podvm takes the crates of podcrates at `v0.42.0`, which carries the
+  overlay root of `pod-enter` (podcrates@T-486) and the published schema
+  of the report of `pod-hostprobe` (podcrates@T-107); podvm builds and
+  tests with no change of code.
+
 ### Changed: a spare tree of each image, 2026-11-14
 
 Record: T-1781.
