@@ -38,7 +38,6 @@ host's devices on the userland rung under a user namespace).
 
 ## Open COORD issues
 
-* COORD-083 (#317): podcrates records the take of `v0.40.0`.
 * COORD-068 (#290): the asks of podswarm are T-1745 to T-1752. Close it
   when podswarm or podcrates reads it.
 * COORD-071 (#294): an overlay root for T-1749 (podcrates@T-486, open).
@@ -46,7 +45,7 @@ host's devices on the userland rung under a user namespace).
 
 COORD-001 (#194), COORD-069 (#291), COORD-076 (#299), COORD-077 (#303),
 COORD-079 (#307), COORD-080 (#309), COORD-081 (#311), COORD-082 (#316)
-COORD-084 (#319) and COORD-085 (#321) are closed.
+COORD-083 (#317), COORD-084 (#319) and COORD-085 (#321) are closed.
 
 ## Next steps, in order
 
@@ -54,11 +53,10 @@ COORD-084 (#319) and COORD-085 (#321) are closed.
 2. podrunner closed each of its asks to podvm; their answers are closed.
    Close COORD-068 (#290) when podswarm or podcrates reads it (V-2 and
    V-7 are done).
-3. Close COORD-083 (#317) when podcrates records the take of `v0.40.0`.
-4. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
+3. A tool of the record (`podvm-gate`, `podvm-count`) finds the repository
    from its own path: in a worktree, build it in the worktree's own
    `target/`, or it reads and writes the main checkout. Commit no
    symbolic link: issue 305 stopped on one.
-5. Before an entry is set done, run `cargo test -p podvm`. Do not edit
+4. Before an entry is set done, run `cargo test -p podvm`. Do not edit
    `TODO/` while `cargo test --workspace` runs, and do not edit
    `experiments/443-qa-surface.sh` while it runs.

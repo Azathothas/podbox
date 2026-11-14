@@ -204,7 +204,7 @@
 312 issue closed
 315 issue closed
 316 issue closed
-317 issue open
+317 issue closed
 318 issue closed
 319 issue closed
 320 issue closed
