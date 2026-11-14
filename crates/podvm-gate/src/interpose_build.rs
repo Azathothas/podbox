@@ -56,6 +56,11 @@ const DL_STUB_SRC_A64: &str = "dl-stub-aarch64.S";
 // above it may enter. A new import the build host stamps higher fails here
 // with the version named, rather than refusing somebody's container.
 const GLIBC_CEILING: &str = "GLIBC_2.27";
+// TODO/interpose.md T-1880: the glibc object for glibc 2.34 and later, its
+// suffix in TARGETS, its target directory and its ceiling.
+const MODERN_SUFFIX: &str = "+glibc2.34";
+const MODERN_DIR: &str = "target-glibc234";
+const MODERN_CEILING: &str = "GLIBC_2.34";
 // The numbers `crates/podvm-interpose/src/lib.rs` carries, asserted by
 // check B rather than believed. They agree on x86_64 and that is this
 // architecture's property, not a general one.
@@ -366,8 +371,10 @@ fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    let targets = env::var("TARGETS")
-        .unwrap_or_else(|_| "x86_64-unknown-linux-musl x86_64-unknown-linux-gnu".to_string());
+    let targets = env::var("TARGETS").unwrap_or_else(|_| {
+        "x86_64-unknown-linux-musl x86_64-unknown-linux-gnu x86_64-unknown-linux-gnu+glibc2.34"
+            .to_string()
+    });
     let tmp = env::temp_dir().join(format!("podvm-interpose-{}", std::process::id()));
     if fs::create_dir_all(&tmp).is_err() {
         eprintln!("SKIP: no temp dir");

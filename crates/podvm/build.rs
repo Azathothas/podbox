@@ -56,7 +56,14 @@ fn machine_of(bytes: &[u8]) -> String {
 /// ⚠ The triples are the ones `scripts/build-interpose.sh` builds by default.
 /// A tree that overrides its `TARGETS` gets placeholders here, which is the
 /// same honest outcome as a tree that never ran it.
-const OBJECTS: &[(&str, &str)] = &[("gnu", "unknown-linux-gnu"), ("musl", "unknown-linux-musl")];
+/// TODO/interpose.md T-1880: `gnu234` is the glibc object built for glibc
+/// 2.34, whose `dlsym` is in `libc.so.6`, so it needs no `libdl.so.2`. It
+/// has its own target directory beside the 2.17 one.
+const OBJECTS: &[(&str, &str, &str)] = &[
+    ("gnu", "unknown-linux-gnu", "target"),
+    ("gnu234", "unknown-linux-gnu", "target-glibc234"),
+    ("musl", "unknown-linux-musl", "target"),
+];
 
 /// The ELF machine of an interposer object for the target `arch`, or None
 /// where podvm builds no interposer for it (TODO/interpose.md T-1721).
@@ -81,10 +88,11 @@ fn main() {
     let mut embedded = 0;
     // TODO/interpose.md T-1721: the objects of this binary's own machine.
     let target = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
-    for (name, rest) in OBJECTS {
+    for (name, rest, dir) in OBJECTS {
         let triple = format!("{target}-{rest}");
         let from = root
-            .join("crates/podvm-interpose/target")
+            .join("crates/podvm-interpose")
+            .join(dir)
             .join(&triple)
             .join("release/libpodvm_interpose.so");
         // ⛔ Declared whether or not it exists. Cargo reruns this script when a

@@ -40,10 +40,13 @@ use core::sync::atomic::{AtomicPtr, Ordering};
 // ⛔ glibc ONLY: musl defines no symbol versions, so a versioned undefined
 // reference fails its link. The musl object needs no pin: its loader
 // ignores versions entirely.
-#[cfg(all(target_env = "gnu", target_arch = "x86_64"))]
+// TODO/interpose.md T-1880: the object for glibc 2.34 and later takes no
+// pin: its `dlsym` binds `dlsym@GLIBC_2.34` of `libc.so.6`, so it needs no
+// `libdl.so.2`, which an image of glibc 2.34 or later can omit.
+#[cfg(all(target_env = "gnu", target_arch = "x86_64", not(podvm_glibc234)))]
 core::arch::global_asm!(".symver dlsym,dlsym@GLIBC_2.2.5");
 // aarch64's first glibc version is 2.17 (T-1721).
-#[cfg(all(target_env = "gnu", target_arch = "aarch64"))]
+#[cfg(all(target_env = "gnu", target_arch = "aarch64", not(podvm_glibc234)))]
 core::arch::global_asm!(".symver dlsym,dlsym@GLIBC_2.17");
 
 unsafe extern "C" {

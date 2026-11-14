@@ -7,20 +7,40 @@ pub(super) fn set_skip(rc: &mut i32) {
     }
 }
 
-pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, tmp: &Path) -> i32 {
+pub(super) fn build_one(root: &Path, krate: &Path, spec: &str, ceiling: &str, tmp: &Path) -> i32 {
     let mut rc = 0;
+    // TODO/interpose.md T-1880: `TRIPLE+glibc2.34` is the glibc object for
+    // glibc 2.34 and later: linked by zig for that glibc, with no `libdl`
+    // stub, so `dlsym` binds `libc.so.6` and `libdl.so.2` is not needed. It
+    // builds into its own target directory.
+    let (target, modern) = match spec.strip_suffix(MODERN_SUFFIX) {
+        Some(t) => (t, true),
+        None => (spec, false),
+    };
     if !target_installed(target, root) {
-        eprintln!("SKIP {target}: target not installed");
+        eprintln!("SKIP {spec}: target not installed");
         return 2;
     }
-    println!("== {target}");
+    println!("== {spec}");
     let zig_linker = root.join("scripts/zig-cc.sh");
     let mut rustflags = "-C target-feature=-crt-static".to_string();
     let mut stub_env: Vec<(String, String)> = Vec::new();
     // TODO/interpose.md T-1721: an aarch64 object is linked across, through
     // zig, for the first glibc of aarch64 (2.17) or for musl.
     let aarch64 = target.starts_with("aarch64-");
-    if aarch64 {
+    if modern {
+        if !(target.contains("gnu") && command_present("zig") && zig_linker.is_file()) {
+            eprintln!("SKIP {spec}: the glibc 2.34 object needs a gnu target and zig");
+            return 2;
+        }
+        let arch = target.split('-').next().unwrap_or("x86_64");
+        stub_env.push(("ZIG_TARGET".to_string(), format!("{arch}-linux-gnu.2.34")));
+        rustflags.push_str(&format!(
+            " -C linker={} --cfg podvm_glibc234",
+            zig_linker.display()
+        ));
+        println!("   linker: scripts/zig-cc.sh for {arch}-linux-gnu.2.34, no libdl stub");
+    } else if aarch64 {
         let zig_target = if target.contains("musl") {
             "aarch64-linux-musl"
         } else {
@@ -44,7 +64,7 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
             eprintln!("      ./scripts/common/bootstrap-env.sh zig");
             return 2;
         }
-    } else if target.contains("gnu") {
+    } else if target.contains("gnu") && !modern {
         // THE `libdl` IMPORT LIBRARY. The `dlsym` reference must bind the
         // library that defines it on old systems, and on a modern host that
         // is not `libc.so.6`. The stub carries SONAME libdl.so.2 with no
@@ -128,13 +148,14 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
         " -C link-arg=-Wl,--version-script={}",
         krate.join(MAP).display()
     ));
-    let so = krate
-        .join("target")
+    let target_dir = krate.join(if modern { MODERN_DIR } else { "target" });
+    let so = target_dir
         .join(target)
         .join("release")
         .join("libpodvm_interpose.so");
     let build_rc = Command::new("cargo")
-        .args(["build", "--release", "--target", target])
+        .args(["build", "--release", "--target", target, "--target-dir"])
+        .arg(&target_dir)
         .env("RUSTFLAGS", &rustflags)
         .envs(stub_env.iter().cloned())
         .current_dir(krate)
@@ -163,14 +184,20 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
         );
         rc = 1;
     }
-    // THE GLIBC CEILING. No needed version above it may enter.
+    // THE GLIBC CEILING. No needed version above it may enter. The object
+    // of glibc 2.34 has its own (T-1880).
+    let glibc_ceiling = if modern {
+        MODERN_CEILING
+    } else {
+        GLIBC_CEILING
+    };
     let newest = newest_need(&glibc_needs(&so, root));
     match newest {
         Some(top) => {
-            if version_at_or_below(&top, GLIBC_CEILING) {
-                println!("   ok: newest need {top}, within {GLIBC_CEILING}");
+            if version_at_or_below(&top, glibc_ceiling) {
+                println!("   ok: newest need {top}, within {glibc_ceiling}");
             } else {
-                eprintln!("FAIL {target}: needs {top}, above the {GLIBC_CEILING} ceiling");
+                eprintln!("FAIL {spec}: needs {top}, above the {glibc_ceiling} ceiling");
                 rc = 1;
             }
         }
@@ -192,7 +219,15 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
     }
     // `libdl` MUST BE NEEDED on glibc. The SONAME carries its own version,
     // which has nothing to do with the `libc.so.6` beside it.
-    if target.contains("gnu") {
+    // The object of glibc 2.34 must NOT name it: that is its reason (T-1880).
+    if modern {
+        if needed.iter().any(|name| name == "libdl.so.2") {
+            eprintln!("FAIL {spec}: DT_NEEDED names libdl.so.2");
+            rc = 1;
+        } else {
+            println!("   ok: libdl.so.2 is not needed");
+        }
+    } else if target.contains("gnu") {
         if needed.iter().any(|name| name == "libdl.so.2") {
             println!("   ok: libdl.so.2 is needed");
         } else {
@@ -211,7 +246,7 @@ pub(super) fn build_one(root: &Path, krate: &Path, target: &str, ceiling: &str, 
     // link that stopped applying the version script produces a working
     // object exporting hundreds of names and exits 0.
     let declared = declared_exports(&krate.join(MAP));
-    let safe_target = target.replace(|ch: char| !ch.is_ascii_alphanumeric(), "_");
+    let safe_target = spec.replace(|ch: char| !ch.is_ascii_alphanumeric(), "_");
     let declared_file = tmp.join(format!("podvm-declared-{safe_target}.txt"));
     let exported_file = tmp.join(format!("podvm-exported-{safe_target}.txt"));
     let _ = fs::write(&declared_file, declared.join("\n") + "\n");

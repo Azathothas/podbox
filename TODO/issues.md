@@ -222,8 +222,8 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #323 | COORD-087: the acceptance test of podcrates@T-486, an overlay root in the namespace rung (the answer to PodUtils/podcrates#142, item 2) (to podcrates) | closed (podcrates v0.42.0 carries the test with podcrates@T-486) | T-1749 |
 | #324 | COORD-088: podvm takes podcrates v0.41.0 (the answer to PodUtils/podcrates#143) (to podcrates) | closed (podcrates closed #143) | - |
 | #325 | COORD-089: podvm takes podcrates v0.42.0 (the answer to PodUtils/podcrates#145) (to podcrates) | closed (podcrates closed PodUtils/podcrates#145) | - |
-| #326 | COORD-090: ask for a two-layer completion in pod-rootfs, so that podvm can use the overlay root of podcrates@T-486 (podvm T-1749) (to podcrates) | open | T-1749 |
-| #327 | COORD-091: the acceptance test of podcrates@T-567, a completion of two layers in pod-rootfs (the answer to PodUtils/podcrates#146) (to podcrates) | open | T-1749 |
+| #326 | COORD-090: ask for a two-layer completion in pod-rootfs, so that podvm can use the overlay root of podcrates@T-486 (podvm T-1749) (to podcrates) | closed (podcrates@T-567 in `v0.43.0`, taken in `b0bb87f1`) | T-1749 |
+| #327 | COORD-091: the acceptance test of podcrates@T-567, a completion of two layers in pod-rootfs (the answer to PodUtils/podcrates#146) (to podcrates) | closed (podcrates `v0.43.0` carries the test, two_layers of pod-rootfs) | T-1749 |
 | #329 | `system df` reports 0 B after `image prune -a` while 8.5 MB of extracted rootfs stays on disk, and no verb reclaims it | closed (T-1787 in `429ca8dc`, released in `0.2.0-beta.15`) | T-1787 |
 | #330 | A foreground run is recorded as `Created` while its payload runs, so `ps` hides it, `system df` counts 0 running, `kill` and `wait` refuse it, and `stop` exits 0 having stopped nothing | open | T-1786 (blocked on COORD-094, issue 339) |
 | #331 | COORD-091 of Nemo-010: `system abi` refusals carry their own verdict label (to podcrates) | closed (podcrates@T-568 in podcrates `v0.43.0`, taken in `b0bb87f1`) | none: podcrates@T-568 (PodUtils/podcrates#147) |
@@ -246,4 +246,5 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #347 | COORD-101: pod-netlab knob errors lack the value and the unit, and its surface differs from sand-net (podvm T-1837, T-1847) (to podcrates) | open | T-1837, T-1847 |
 | #348 | COORD-102: podvm takes podcrates v0.43.0 (the answer to PodUtils/podcrates#149) (to podcrates) | open | - |
 | #349 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.16` (AGENTS.md, section 9) |
-| #350 | COORD-103: seven asks for the Windows guest: fetch by range, pod-udf, the agent, plan options, pod-qga, provision, warm start (podvm T-1862 to T-1874) (to podcrates) | open | T-1862, T-1863, T-1864, T-1865, T-1868, T-1873, T-1874 |
+| #350 | COORD-103: seven asks for the Windows guest: fetch by range, pod-udf, the agent, plan options, pod-qga, provision, warm start (podvm T-1862 to T-1874) (to podcrates) | open (podcrates took the seven as podcrates@T-590 to podcrates@T-596, PodUtils/podcrates#152) | T-1862, T-1863, T-1864, T-1865, T-1868, T-1873, T-1874 |
+| #351 | COORD-104: the answer to PodUtils/podrunner#100: a glibc 2.34 image with no libdl.so.2 on the loader family (podvm T-1880) (to podrunner) | open | T-1880 |

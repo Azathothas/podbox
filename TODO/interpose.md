@@ -4185,7 +4185,7 @@ a constant either way.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4227,4 +4227,30 @@ the image.
 
 ## Prove
 
-On the fixture of the userland rung, a run of the glibc busybox 1.37.0 image of PodUtils/podrunner#100 with `busybox echo ok` exits 0 and prints `ok`; `podvm run public.ecr.aws/debian/debian:bookworm-slim true` (glibc 2.36, with the stub `libdl.so.2`) and `podvm run registry.opensuse.org/opensuse/leap:15.6 true` (glibc 2.31) still exit 0; `readelf -d` of the 2.34 object lists no `libdl.so.2`
+On the fixture of the userland rung, a run of the glibc busybox 1.37.0 image of PodUtils/podrunner#100 with `busybox echo ok` exits 0 and prints `ok`; `podvm run public.ecr.aws/debian/debian:bookworm-slim true` (glibc 2.36, with the stub `libdl.so.2`), `podvm run registry.opensuse.org/opensuse/leap:15.6 true` (glibc 2.38) and a run of the slim image of Debian 11 (glibc 2.31) still exit 0; `readelf -d` of the 2.34 object lists no `libdl.so.2`
+
+## Done
+
+**Done 2026-11-14.** A third object: `podvm-interpose-build` builds the
+target `TRIPLE+glibc2.34` with zig for `x86_64-linux-gnu.2.34` (and
+`aarch64-linux-gnu.2.34` in `arm.yml` and `nightly.yml`), with no
+`libdl` stub and `--cfg podvm_glibc234`, which drops the `.symver` pin of
+`dlsym` (`podvm-interpose/src/real.rs`), into
+its own target directory, `target-glibc234` of the crate; it checks a ceiling of
+`GLIBC_2.34` and that `libdl.so.2` is not needed. `build.rs` embeds it
+as `interpose-gnu234.so`; `version --verbose` names it
+(`interpose-gnu234`). `classify_elf` (`interpose.rs`, with the check of
+one object moved to `interpose/admit.rs`) tries the 2.17 object first
+and the 2.34 object where the 2.17 one is declined, so each image that
+ran before takes the same object. `readelf -d` of the 2.34 object:
+`libc.so.6` and `ld-linux-x86-64.so.2` only. On the fixture of the
+userland rung: `busybox:1.37.0` with `busybox echo ok` printed `ok`
+(beta.15 declined it with the line of the report); the slim images of
+Debian 12 and Debian 11 (glibc 2.31), `ubuntu:24.04`,
+`python:3.12-slim`, `golang:1.24-bookworm` and
+`registry.opensuse.org/opensuse/leap:15.6` (glibc 2.38) ran. Debian 12
+was the image of `mirror.gcr.io`, because public.ecr.aws answers this
+host with HTTP 429. Experiment 443 has the row
+`run.glibc234-nolibdl` on both rungs; the section run gave 237 pass and
+2 fail, the two rows of this entry, which named an image variable that
+the row's shell does not get; with the fix both rows give `ok`.

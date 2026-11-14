@@ -8,6 +8,17 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a glibc 2.34 image with no `libdl.so.2` on the userland rung, 2026-11-14
+
+Record: T-1880, PodUtils/podrunner#100.
+Deployed: not deployed; no version change.
+
+- Where chroot is denied, `podvm run busybox:1.37.0` refused: the glibc
+  object of the interposer needed `libdl.so.2`, which a glibc 2.34 image
+  can omit. podvm now carries a second glibc object for glibc 2.34 and
+  later, which needs no `libdl.so.2`, and takes it where the first is
+  declined.
+
 ### Fixed: a full stdout, 2026-11-14
 
 Record: T-1816.

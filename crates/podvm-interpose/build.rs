@@ -8,4 +8,7 @@
 
 fn main() {
     println!("cargo:rerun-if-changed=interpose.map");
+    // TODO/interpose.md T-1880: the glibc object for glibc 2.34 sets this
+    // cfg (`podvm-interpose-build`, a target with `+glibc2.34`).
+    println!("cargo::rustc-check-cfg=cfg(podvm_glibc234)");
 }

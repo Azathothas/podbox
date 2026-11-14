@@ -88,6 +88,7 @@ fn no_objects() -> Parsed {
     };
     Parsed {
         gnu: empty(),
+        gnu234: empty(),
         musl: empty(),
     }
 }
@@ -171,6 +172,10 @@ fn another_architecture_is_declined() {
             bytes: Some(b"present but unparsed"),
             elf: Some(elf(None, &[], AARCH64)),
         },
+        gnu234: Slot {
+            bytes: None,
+            elf: None,
+        },
         musl: Slot {
             bytes: None,
             elf: None,
@@ -192,6 +197,10 @@ fn an_unparsable_object_is_refused_as_unparsable() {
     let objs = Parsed {
         gnu: Slot {
             bytes: Some(b"present but unparsed"),
+            elf: None,
+        },
+        gnu234: Slot {
+            bytes: None,
             elf: None,
         },
         musl: Slot {

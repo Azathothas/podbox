@@ -47,7 +47,7 @@ jobs:
           cargo build --release --target aarch64-unknown-linux-musl -p podvm-gate --bin podvm-interpose-build
           mkdir -p target/release
           cp target/aarch64-unknown-linux-musl/release/podvm-interpose-build target/release/
-          TARGETS="aarch64-unknown-linux-gnu aarch64-unknown-linux-musl" ./target/release/podvm-interpose-build
+          TARGETS="aarch64-unknown-linux-gnu aarch64-unknown-linux-gnu+glibc2.34 aarch64-unknown-linux-musl" ./target/release/podvm-interpose-build
 
       - name: build podvm (aarch64)
         run: |
