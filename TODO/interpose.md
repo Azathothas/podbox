@@ -4143,7 +4143,7 @@ finds "faking the identity".
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4177,6 +4177,19 @@ a constant either way.
 
 `cargo test -p podvm --bin podvm place_temp_name` exits 0, with a test that a symlink at the old temporary name is not followed and that two places with different objects leave one whole object
 
+## Done
+
+**Done 2026-11-14.** `place` writes the object through a name of its
+own (the pid, the time and a counter), opened with `O_CREAT | O_EXCL`
+and `O_NOFOLLOW`, syncs it, and renames it to `interpose.so`; a failure
+removes the temporary file. `cargo test -p podvm --bin podvm
+place_temp_name` exits 0: a symlink at the old name `.interpose.so.tmp`
+leaves its target unchanged, and two threads that place a 1 MiB object
+of `a` and one of `b` 20 times each leave one whole object and no
+temporary file. The check of the ABI of the object in place before the
+exec is not part of this change: the rename is atomic, so an entry reads
+one whole object, and the ABI of each family is checked at admission
+(`interpose/admit.rs`).
 
 # T-1880: The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none
 

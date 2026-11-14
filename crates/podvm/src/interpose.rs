@@ -266,12 +266,36 @@ fn classify_elf(name: &str, elf: &podvm_enter::abi::Elf, rootfs: &str, objs: &Pa
 /// object. An absolute path from outside the chroot does not resolve inside
 /// it, which is why the write happens here rather than at run time.
 pub fn place(rootfs: &str, object_bytes: &[u8]) -> Result<(), String> {
+    use std::io::Write as _;
+    use std::os::unix::fs::OpenOptionsExt as _;
     let dir = format!("{}/.podvm", rootfs.trim_end_matches('/'));
     std::fs::create_dir_all(&dir).map_err(|e| format!("{dir}: {e}"))?;
-    let tmp = format!("{dir}/.interpose.so.tmp");
-    std::fs::write(&tmp, object_bytes).map_err(|e| format!("{tmp}: {e}"))?;
-    std::fs::rename(&tmp, format!("{dir}/interpose.so"))
-        .map_err(|e| format!("{dir}/interpose.so: {e}"))?;
+    // ⛔ TODO/interpose.md T-1844: a name of this call only, made with
+    // O_EXCL and O_NOFOLLOW. One fixed name let two entries into one root
+    // rename each other's half-written object, and a symlink at that name
+    // took the write of the next run.
+    static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    let seq = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = format!("{dir}/.interpose.so.{}.{nanos}.{seq}", std::process::id());
+    let written = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o644)
+        .custom_flags(podvm_probe::sys::O_NOFOLLOW as i32)
+        .open(&tmp)
+        .and_then(|mut f| f.write_all(object_bytes).and_then(|_| f.sync_all()));
+    if let Err(e) = written {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(format!("{tmp}: {e}"));
+    }
+    std::fs::rename(&tmp, format!("{dir}/interpose.so")).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("{dir}/interpose.so: {e}")
+    })?;
     Ok(())
 }
 
@@ -445,6 +469,8 @@ pub fn apply<G: GuestRoot + ?Sized>(
 
 mod admit;
 use admit::admit_slot;
+#[cfg(test)]
+mod place_tests;
 mod shebang;
 #[cfg(test)]
 mod tests;
