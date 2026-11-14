@@ -5422,7 +5422,7 @@ A promise about a future entry is checked when the entry closes.
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5460,6 +5460,24 @@ section 2). A fixed shared name is not used in a test.
 
 After `cargo test --release --workspace`, `ls -d /tmp/podvm-* $CARGO_TARGET_TMPDIR/podvm-*` lists nothing, and `grep -rn '"/tmp/podvm' crates` finds no test path
 
+## Done
+
+**Done 2026-11-14.** Each test that left a directory in the temporary
+directory removes it at the drop, also after a panic: the stores of
+`detached_stdio.rs` (`Fresh`, `tests/detached_stdio/fresh.rs`), the work
+directory of `completion_reach.rs`, the stores of `health.rs`
+(`Scratch`), the store of `lifecycle_exit.rs`, and the lock test of
+`extract_lock.rs`; `podvm-extract` uses a name of its process. The
+tests that start containers set `PODVM_SPARE_TREE=0`: the detached fill
+of the spare tree (T-1781) wrote into a store after its test removed
+it. `gate.yml` lists `podvm-*` in the temporary directory before and
+after `cargo test --workspace` and fails on a new one. On this host,
+`cargo test --workspace --no-fail-fast` gave 79 suites ok and left
+one directory, `podvm-store-*-extracthold`, which the next change
+removes; the touched tests then leave nothing. `grep -rn '"/tmp/podvm'
+crates` finds only `podvm-ssh/src/server.rs`, the socket directory of
+the product and no test path. The run was the debug profile, not
+`--release`.
 
 # T-1860: The tests of `podvm-interpose` fail when they run in parallel, and CI does not run them
 

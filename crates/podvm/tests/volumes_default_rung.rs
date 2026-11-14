@@ -76,6 +76,9 @@ struct Lane {
 impl Lane {
     fn run(&self, args: &[&str], stdin: &[u8]) -> Output {
         let mut c = Command::new(podvm())
+            // TODO/gate.md T-1859: no detached spare-tree fill writes into the
+            // store after the test removed it.
+            .env("PODVM_SPARE_TREE", "0")
             .args(args)
             .env("PODVM_STORE", &self.store)
             .stdin(Stdio::piped())

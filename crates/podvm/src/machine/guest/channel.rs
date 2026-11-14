@@ -280,8 +280,8 @@ mod tests {
         ] {
             assert!(parse("run", bad).is_err(), "{bad}");
         }
-        let sock = socket_path(Path::new("/tmp/podvm-guest-n.err"));
-        assert_eq!(sock, Path::new("/tmp/podvm-guest-n.chd/s"));
+        let sock = socket_path(Path::new("/run/test/podvm-guest-n.err"));
+        assert_eq!(sock, Path::new("/run/test/podvm-guest-n.chd/s"));
         let a = argv(&sock);
         assert!(a
             .iter()

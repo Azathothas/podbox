@@ -521,7 +521,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1856](gate.md) | P2 | S | none | gate | open | No test reads the `--report` of each path of a run against its schema and for a secret |
 | [T-1857](gate.md) | P3 | S | none | gate | open | A help text or a document can say "until T-NNNN" after that entry is done |
 | [T-1858](supervise.md) | P3 | S | none | supervise | open | The `ps` table pads by characters, so a wide character puts its row out of line |
-| [T-1859](gate.md) | P2 | S | none | gate | open | Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each |
+| [T-1859](gate.md) | P2 | S | none | gate | done | Tests leave their stores under `/tmp`, and an interrupted run leaves 1.3 GB each |
 | [T-1860](gate.md) | P2 | S | none | gate | open | The tests of `podvm-interpose` fail when they run in parallel, and CI does not run them |
 | [T-1861](machine.md) | P1 | M | none | machine | partial | `podvm run windows:NAME` has no image name, no catalog and no `pull`, `images` or `rmi` |
 | [T-1862](machine.md) | P1 | M | none | machine | partial | The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 50 open, 14 partial, 4 blocked, 415 done.
+483 entries: 49 open, 14 partial, 4 blocked, 416 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -563,9 +563,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
 | P1 | 4 | 8 | 0 | 185 | 197 |
-| P2 | 31 | 3 | 4 | 135 | 173 |
+| P2 | 30 | 3 | 4 | 136 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 50 | 14 | 4 | 415 | 483 |
+| **All** | 49 | 14 | 4 | 416 | 483 |
 
 ## Work order
 

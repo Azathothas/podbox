@@ -241,8 +241,20 @@ jobs:
           cp target/x86_64-unknown-linux-musl/release/podvm-interpose-build target/release/
           ./target/release/podvm-interpose-build
 
+      # TODO/gate.md T-1859: a test leaves no `podvm-*` directory in the
+      # temporary directory, also after a failure of its own.
       - name: workspace tests
-        run: cargo test --workspace
+        run: |
+          tmp="${TMPDIR:-/tmp}"
+          ls -d "$tmp"/podvm-* 2>/dev/null | sort > "$RUNNER_TEMP/podvm-before.txt" || true
+          cargo test --workspace
+          ls -d "$tmp"/podvm-* 2>/dev/null | sort > "$RUNNER_TEMP/podvm-after.txt" || true
+          left=$(comm -13 "$RUNNER_TEMP/podvm-before.txt" "$RUNNER_TEMP/podvm-after.txt")
+          if [ -n "$left" ]; then
+            echo "the tests left these directories (TODO/gate.md T-1859):"
+            echo "$left"
+            exit 1
+          fi
 
       - name: build freshness guards
         run: |

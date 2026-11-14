@@ -56,6 +56,9 @@ fn cleanup(store: &Path) {
 /// is killed and fails the test by name instead of hanging the suite.
 fn run_podvm(args: &[&str], store: &Path, deadline: Duration) -> Output {
     let mut child = Command::new(PODVM)
+        // TODO/gate.md T-1859: no detached spare-tree fill writes into the
+        // store after the test removed it.
+        .env("PODVM_SPARE_TREE", "0")
         .args(args)
         .env("PODVM_STORE", store)
         .stdin(Stdio::null())

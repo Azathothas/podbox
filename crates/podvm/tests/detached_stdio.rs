@@ -20,7 +20,7 @@
 //! where a host refuses namespaces. Where the tier IS available the clause
 //! is unchanged and still requires every start.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, Instant};
 
@@ -77,19 +77,9 @@ const PAYLOAD_SECONDS: &str = "60";
 /// that fails sometimes, cheap enough for a suite.
 const ITERATIONS: u32 = 3;
 
-/// A fresh store directory, unique across the parallel tests in this file.
-fn fresh_store(tag: &str) -> PathBuf {
-    let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    let dir = std::env::temp_dir().join(format!("podvm-{}-{}-{n}", tag, std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir)
-        .unwrap_or_else(|e| panic!("could not create store dir {}: {e}", dir.display()));
-    dir
-}
-
-fn cleanup(store: &Path) {
-    let _ = std::fs::remove_dir_all(store);
-}
+#[path = "detached_stdio/fresh.rs"]
+mod fresh;
+use fresh::*;
 
 /// ⭐ T-1604. The refusal the no-chroot family emits when this binary carries
 /// no interposer object for the payload's libc: `lifecycle.rs` `decide_entry`
@@ -137,6 +127,9 @@ fn tier_skip_reason(code: Option<i32>, stderr: &str) -> Option<String> {
 /// is killed and fails the test by name instead of hanging the suite.
 fn run_podvm(args: &[&str], store: &Path, deadline: Duration) -> Output {
     let mut child = Command::new(PODVM)
+        // TODO/gate.md T-1859: no detached spare-tree fill writes into the
+        // store after the test removed it.
+        .env("PODVM_SPARE_TREE", "0")
         .args(args)
         .env("PODVM_STORE", store)
         .stdin(Stdio::null())

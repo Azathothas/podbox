@@ -40,4 +40,5 @@ fn an_extraction_lock_holds_out_a_second_extraction() {
         "the second extraction failed after the first released the lock"
     );
     t.join().unwrap();
+    let _ = std::fs::remove_dir_all(s.root()); // TODO/gate.md T-1859
 }

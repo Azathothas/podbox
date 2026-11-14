@@ -86,7 +86,7 @@ fn bad_targets_are_usage_errors() {
 fn dial_unix_reports_the_missing_path() {
     let dialer = Dialer::new(Duration::from_secs(2));
     let target = Target::Unix {
-        path: PathBuf::from("/tmp/podvm-ssh-test-no-such-socket-xyz"),
+        path: PathBuf::from("/nonexistent/podvm-ssh-test-no-such-socket-xyz"),
     };
     let e = dialer.dial(&target).unwrap_err();
     assert_eq!(e.kind(), Kind::Dial);

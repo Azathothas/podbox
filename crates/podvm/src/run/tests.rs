@@ -417,7 +417,7 @@ fn machine_refuses_each_unhonoured_flag() {
 fn eq_form_of_the_machine_flags_parses_as_the_space_form() {
     let o = parse("run", &v(&["--podvm-net=none", "img", "true"])).unwrap();
     assert!(o.net_none);
-    let c = "/tmp/podvm.sock:127.0.0.1:8080";
+    let c = "/run/test/podvm.sock:127.0.0.1:8080";
     let a = parse("run", &v(&["--podvm-channel", c, "img"])).unwrap();
     let b = parse("run", &v(&[&format!("--podvm-channel={c}"), "img"])).unwrap();
     assert_eq!(a.channel, b.channel);

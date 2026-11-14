@@ -10,6 +10,21 @@ They describe their recorded revision, not the current build.
 
 ## 0.2.0-beta.18 (2026-11-14)
 
+### Fixed: `exec` after a `--tmpfs` run, the object of the interposer, and a fetch that cannot fit, 2026-11-14
+
+Record: T-1830, T-1843, T-1844, T-1862 (partial), T-1786 (partial).
+Deployed: version 0.2.0-beta.18.
+
+- `exec` into a container whose run had `--tmpfs` refused at 125 or saw
+  a removed directory; it now sees the tree of the image at that path.
+- The object of the interposer is written through a file name of its own
+  with `O_EXCL` and `O_NOFOLLOW`, so a symlink in the root of the image
+  cannot redirect the write, and two entries into one root cannot mix
+  two objects.
+- A fetch of a Windows catalog name refuses before the first byte when
+  the disk or `RLIMIT_FSIZE` cannot hold the file.
+- The native-static rung also shows a foreground run as `Up`.
+
 ### Changed: podcrates `v0.44.0`; a foreground run is live in its record, 2026-11-14
 
 Record: T-1786 (partial), T-1807, T-1813, T-1881 (partial), T-1879.

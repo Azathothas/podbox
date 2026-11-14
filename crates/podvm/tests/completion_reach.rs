@@ -35,6 +35,9 @@ const PODVM: &str = env!("CARGO_BIN_EXE_podvm");
 
 fn run_podvm(args: &[&str], store: &Path, deadline: Duration) -> Output {
     let mut child = Command::new(PODVM)
+        // TODO/gate.md T-1859: no detached spare-tree fill writes into the
+        // store after the test removed it.
+        .env("PODVM_SPARE_TREE", "0")
         .args(args)
         .env("PODVM_STORE", store)
         .stdin(Stdio::null())
@@ -93,6 +96,16 @@ fn container_rootfs(store: &Path) -> PathBuf {
     found.remove(0)
 }
 
+/// TODO/gate.md T-1859: the work directory goes at the drop, also after a
+/// panic (a failed run left 773 MiB).
+struct Gone(std::path::PathBuf);
+
+impl Drop for Gone {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
 fn rm_link(path: &Path) {
     if path.is_dir() && !path.is_symlink() {
         let _ = fs::remove_dir_all(path);
@@ -109,6 +122,7 @@ fn completion_writes_stay_in_the_rootfs_and_follow_an_inside_link() {
     }
     let work = std::env::temp_dir().join(format!("podvm-completion-reach-{}", std::process::id()));
     let _ = fs::remove_dir_all(&work);
+    let _gone = Gone(work.clone());
     let store = work.join("store");
     let canary = work.join("canary");
     fs::create_dir_all(canary.join("dir")).unwrap();

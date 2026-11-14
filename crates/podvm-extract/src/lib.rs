@@ -119,8 +119,11 @@ mod tests {
 
     #[test]
     fn the_sidecar_sits_beside_the_rootfs_not_inside_it() {
-        let s = Store::open("/tmp/podvm-test-store-paths").unwrap();
+        // TODO/gate.md T-1859: a name of this process, removed at the end.
+        let d = std::env::temp_dir().join(format!("podvm-store-paths-{}", std::process::id()));
+        let s = Store::open(&d).unwrap();
         let (rootfs, side) = paths(&s, "sha256:abc123");
+        let _ = std::fs::remove_dir_all(&d);
         // T-0302's Prove reads `<rootfs>/../.meta.jsonl`.
         assert_eq!(rootfs.parent().unwrap().join(".meta.jsonl"), side);
         // ⛔ A colon is not a portable path character and the digest carries

@@ -9,6 +9,9 @@ use std::process::Command;
 
 fn podvm(store: &Path, args: &[&str]) -> (i32, String, String) {
     let out = Command::new(env!("CARGO_BIN_EXE_podvm"))
+        // TODO/gate.md T-1859: no detached spare-tree fill writes into the
+        // store after the test removed it.
+        .env("PODVM_SPARE_TREE", "0")
         .args(args)
         .env("PODVM_STORE", store)
         .output()

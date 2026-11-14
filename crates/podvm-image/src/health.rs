@@ -193,10 +193,26 @@ mod tests {
 
     /// A store only this test names: the suite runs threads in one process,
     /// and two tests sharing a directory share a store.
-    fn scratch(name: &str) -> Store {
+    fn scratch(name: &str) -> Scratch {
         let d = std::env::temp_dir().join(format!("podvm-health-{}-{name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&d);
-        Store::open(d).unwrap()
+        Scratch(Store::open(d).unwrap())
+    }
+
+    /// TODO/gate.md T-1859: the store goes at the drop, also after a panic.
+    struct Scratch(Store);
+
+    impl std::ops::Deref for Scratch {
+        type Target = Store;
+        fn deref(&self) -> &Store {
+            &self.0
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(self.0.root());
+        }
     }
 
     fn plant(store: &Store, bytes: &[u8]) -> String {
