@@ -4278,7 +4278,7 @@ while the image lock was held".
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4307,6 +4307,16 @@ Land it with or after T-1882, as the reporter asks, so that `create` and
 ## Prove
 
 `cargo test -p podvm --bin podvm diagnose::` exits 0 with the test of the text and the silence; `create` of an image with a fifo prints the line, and `create` of `public.ecr.aws/docker/library/alpine:3.20` prints none
+
+## Done
+
+**Done 2026-11-14.** `diagnose::report_skipped` writes the line of the
+entries that the extraction could not make, for `extract` and for the
+extraction of `create` and `run` (`run/acquire.rs`). `cargo test -p
+podvm --bin podvm diagnose::` exits 0 with the test of the text and the
+silence. By hand: `create` of an imported image with a fifo prints "1
+entries were not materialised (Fifo)"; `create` of
+`mirror.gcr.io/library/alpine:3.20`, pulled again, prints no such line.
 
 # T-1886: Concurrent extractions of one image write one tree, and the first to fail removes it under the others
 

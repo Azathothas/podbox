@@ -420,18 +420,9 @@ pub fn extract(verb: &str, args: &[String]) -> i32 {
                     true,
                 );
             }
-            if done.skipped > 0 {
-                let _ = writeln!(
-                    out,
-                    "podvm: {} entries were not materialised ({}). podvm cannot \
-                     mknod on this class of runtime, which is the premise of the \
-                     whole tool rather than a defect here",
-                    done.skipped,
-                    done.skipped_kinds.join(", ")
-                );
-            }
-            // ⛔ stdout carries the answer and nothing else, so this verb
-            // composes. T-0110 settled that channel contract.
+            crate::diagnose::report_skipped(&mut out, &done); // T-1883
+                                                              // ⛔ stdout carries the answer and nothing else, so this verb
+                                                              // composes. T-0110 settled that channel contract.
             println!("{}", done.rootfs.display());
             0
         }

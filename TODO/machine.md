@@ -3283,9 +3283,10 @@ entry with the free disk of the store and with `RLIMIT_FSIZE`, and
 refuses by name with exit 125. Under `ulimit -f 1000`, `podvm run
 windows:dos` refuses with "RLIMIT_FSIZE of this process is 1024000
 bytes" and writes no file; `cargo test -p podvm --bin podvm
-windows_fetch_refuses` exits 0. Remaining: the Range requests, the
-`.part` file and the resume, which podcrates carries in its next tag
-(podcrates@T-590, issue 350), and the progress line.
+windows_fetch_refuses` exits 0. podcrates `v0.45.0` carries the Range
+requests, the `.part` file and the resume (podcrates@T-590, issue 350),
+and podvm takes it in `4a02d45e` (`windows/origin.rs`). Remaining: the
+progress line, and the tests of the Prove against a local Range server.
 
 # T-1863: `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector
 
@@ -3386,7 +3387,7 @@ goes under `experiments/results/`.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3422,6 +3423,17 @@ argv for each option and a test that fails when a NIC device appears in the
 argv of a ValidationOS run (the check that winquick has). `podvm windows run`
 of ValidationOS keeps `-nic none`.
 
+## Done
+
+**Done 2026-11-14.** podcrates `v0.45.0` carries the plan options
+(podcrates@T-593). `podvm-windows/src/options.rs` gives `mailbox()` (no
+NIC, no media) for ValidationOS and DOS, and `desktop(accel, forwards)`
+(a user-mode `e1000e` NIC with forwards on the loopback, a USB tablet, a
+virtio RNG, and the Hyper-V flags under KVM only) for the install of
+T-1867. `windows run`, `setup` and the DOS run use `mailbox()`.
+`cargo test -p podvm-windows plan_options` exits 0: a ValidationOS plan
+has `-nic none` and no `e1000`, `virtio-net`, `netdev` or `hostfwd`; a
+desktop plan names each device, and `hv_` only under KVM.
 
 # T-1866: There is no generator of the unattended answer file or of the USB FAT media
 
@@ -3430,7 +3442,7 @@ of ValidationOS keeps `-nic none`.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3468,6 +3480,17 @@ goes to the machine record with mode 0600 (T-1869 prints it on request).
 
 ## Done
 
+**Done 2026-11-14.** podcrates `v0.45.0` writes long names in `fat16`
+(podcrates@T-610). `podvm-windows/src/media.rs` writes the stick:
+`autounattend.xml` in a FAT image with mode 0600, and its medium, a
+read-only USB drive on the xHCI bus. `cargo test -p podvm-windows
+answer_file` exits 0 with five tests: the well-formed XML of each target
+(before), the random password (before), the golden files of 11, Server
+2025 and 10 (`src/golden/`, `PODVM_BLESS=1` writes them again), the round
+trip of the image through the reader of `fat16`, and one `usb-storage`
+line with `readonly=on` and no password in any argument. The boot of an
+install with this stick is T-1867.
+
 **Partial 2026-11-14.** The answer file: `podvm-windows/src/answer.rs`,
 a pure `xml(&Answer)` for Windows 11, Server 2025 and Windows 10 (GPT
 for UEFI, the image by its index, the locale, one administrator `podvm`
@@ -3488,7 +3511,6 @@ pinned `-device usb-storage` line of the Prove come with it.
 files for 11, 2025 and 10, XML well-formedness, a round trip of the FAT image
 through the reader of `fat16`, a test that the password is not in any argv, and
 a test that pins the `-device usb-storage` line.
-
 
 # T-1867: `podvm pull windows:11` cannot install a full Windows guest
 

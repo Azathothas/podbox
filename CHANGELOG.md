@@ -8,6 +8,20 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: the answer-file stick and the boot options of a Windows guest, 2026-11-14
+
+Record: T-1865, T-1866, T-1883.
+Deployed: not deployed; no version change.
+
+- `podvm-windows` writes `autounattend.xml` into a FAT stick (mode 0600)
+  and gives its read-only USB medium; golden files pin the answer file
+  of 11, Server 2025 and 10.
+- The boot options of a Windows guest: the mailbox run of ValidationOS
+  keeps `-nic none`; a desktop gets a user-mode NIC, a USB tablet and
+  the Hyper-V flags under KVM, for the install of T-1867.
+- `create` and `run` say which entries the extraction could not make (a
+  fifo, a device node), as `extract` does.
+
 ### Changed: podcrates `v0.45.0`, 2026-11-14
 
 Record: T-1827, T-1842, T-1881, T-1882, T-1891, T-1862 (partial).

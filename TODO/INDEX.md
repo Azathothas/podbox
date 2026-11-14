@@ -527,8 +527,8 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1862](machine.md) | P1 | M | none | machine | partial | The download has no resume, no free-disk check and no `RLIMIT_FSIZE` check |
 | [T-1863](machine.md) | P1 | M | none | machine | open | `windows:validationos` has no fetch by range, and the extent of the VHDX is a fixed sector |
 | [T-1864](machine.md) | P1 | S | none | machine | open | The agent of a Windows guest runs the command with `call`, so a payload that ends in `exit` times out |
-| [T-1865](machine.md) | P1 | M | none | machine | open | The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel |
-| [T-1866](machine.md) | P1 | M | none | machine | partial | There is no generator of the unattended answer file or of the USB FAT media |
+| [T-1865](machine.md) | P1 | M | none | machine | done | The plan of a Windows guest has no NIC, no CD-ROM, no USB media, no VNC socket and no serial channel |
+| [T-1866](machine.md) | P1 | M | none | machine | done | There is no generator of the unattended answer file or of the USB FAT media |
 | [T-1867](machine.md) | P1 | L | none | machine | open | `podvm pull windows:11` cannot install a full Windows guest |
 | [T-1868](machine.md) | P2 | M | none | machine | open | A full Windows guest has no `exec`, `cp`, graceful `stop` or readiness probe |
 | [T-1869](machine.md) | P2 | M | none | machine | open | A Windows guest has no `-p`, no RDP check, no VNC, no screenshot and no `creds` |
@@ -545,7 +545,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1880](interpose.md) | P1 | M | none | interpose | done | The glibc object needs `libdl.so.2`, so the loader family refuses a glibc 2.34 image that ships none |
 | [T-1881](extract.md) | P0 | M | none | extract | done | pod-extract masks the mode of a directory, keeps the first layer's mode, and its widening can chmod a directory outside the tree through a symlink |
 | [T-1882](extract.md) | P2 | S | none | extract | done | pod-extract counts the `./` archive root as an entry it could not make |
-| [T-1883](image.md) | P2 | S | none | image | open | `create` and `run` do not report the entries that the extraction could not make |
+| [T-1883](image.md) | P2 | S | none | image | done | `create` and `run` do not report the entries that the extraction could not make |
 | [T-1884](machine.md) | P1 | S | none | machine | done | A machine run that podvm ends on SIGTERM leaves its emulator running |
 | [T-1885](machine.md) | P2 | S | none | machine | open | Piped input to a machine run with `-t` is lost before the guest terminal opens |
 | [T-1886](image.md) | P1 | S | none | image | done | Concurrent extractions of one image write one tree, and the first to fail removes it under the others |
@@ -558,7 +558,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-489 entries: 51 open, 12 partial, 2 blocked, 424 done.
+489 entries: 49 open, 11 partial, 2 blocked, 427 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -568,10 +568,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 74 | 74 |
-| P1 | 4 | 8 | 0 | 188 | 200 |
-| P2 | 31 | 2 | 2 | 140 | 175 |
+| P1 | 3 | 7 | 0 | 190 | 200 |
+| P2 | 30 | 2 | 2 | 141 | 175 |
 | P3 | 16 | 2 | 0 | 22 | 40 |
-| **All** | 51 | 12 | 2 | 424 | 489 |
+| **All** | 49 | 11 | 2 | 427 | 489 |
 
 ## Work order
 

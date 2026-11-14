@@ -100,9 +100,8 @@ pub(crate) fn dos_run(
         memory_mib: mem_mib,
         cpus: cpus.unwrap_or(podvm_windows::dos::CPUS),
         emu_args: emu_args.to_vec(),
-        // The mailbox run (podcrates `v0.45.0`): the NIC and the media of
-        // TODO/machine.md T-1865 are not chosen here yet.
-        options: Default::default(),
+        // TODO/machine.md T-1865: DOS reads the mailbox only.
+        options: podvm_windows::options::mailbox(),
     };
     // Backstops every explicit cleanup below: a panic past staging still
     // removes the per-run directory on unwind.

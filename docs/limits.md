@@ -161,7 +161,10 @@ image and gives the command's exit code (T-1656). The guest
 runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
 `PODVM_MACHINE_ACCEL=kvm` asks for KVM and refuses by name without it.
 The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
-podvm fetches into the store. The image needs `/bin/sh`. With no
+podvm fetches into the store. The guest is x86_64 (linux/amd64): an
+image of another architecture, or `--platform linux/arm64`, is refused
+by name with exit 125 before the boot (T-1889); T-1890 plans such a
+guest. The image needs `/bin/sh`. With no
 `--podvm-net none` and no `--podvm-sealed`, the guest has QEMU's
 user-mode network: it reaches the host's loopback at
 10.0.2.2. `-v HOST:GUEST[:ro]` is a 9p mount of the host directory (T-1723): a write

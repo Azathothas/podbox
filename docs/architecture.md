@@ -91,8 +91,9 @@ For an OCI image, `run` with the machine tier boots a guest
 (`crates/podvm/src/machine/guest.rs`, T-1656): the image's rootfs is a
 cached `newc` base archive, a run archive adds `/podvm-init`, QEMU boots
 the pinned kernel, and the exit code comes back through console markers
-with a per-run nonce. `create` and `exec` assess the machine legs and
-exit 125.
+with a per-run nonce. The guest is linux/amd64, and an image of another
+architecture is refused before the boot (T-1889). `create` and `exec`
+assess the machine legs and exit 125.
 The init mounts cgroup2 and brings `lo` up. `--podvm-net none`,
 `--podvm-channel`, `--podvm-sealed` and `--podvm-engine` change the guest
 (T-1751, T-1780); [the limits](limits.md#guests) state each one.

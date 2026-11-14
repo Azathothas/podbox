@@ -7,7 +7,7 @@ start.
 
 ## State
 
-489 entries: 51 open, 12 partial, 2 blocked, 424 done.
+489 entries: 49 open, 11 partial, 2 blocked, 427 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
@@ -59,9 +59,10 @@ status with `podvm-count` in the same commit as the work.
    section 9). The QA pass of
    experiment 443 is worked, and each of its entries is done. The copy
    of the rootfs on each run is T-1749: since 2026-11-14 a spare tree
-   takes it off each run after the first, and podcrates `v0.42.0` carries the
-   overlay root of the namespace rung (podcrates@T-486), which podvm takes
-   next.
+   takes it off each run after the first. The crates that podvm takes
+   carry the overlay root of the namespace rung (podcrates@T-486,
+   `v0.42.0`) and the completion of two layers (podcrates@T-567,
+   `v0.43.0`); podvm wires them next.
 2. The external QA report of `v0.2.0-beta.14` (2026-11-14): the open
    entries that it gave, to T-1860. Each P0 entry is done. Take the P1
    entries, each with the guard of its class ([T-1852](gate.md) to
@@ -70,10 +71,12 @@ status with `podvm-count` in the same commit as the work.
    (`podvm run windows:NAME`). The owner accepts the vendor terms
    (`docs/decisions.md`, "Windows media"). Take the P1 entries first:
    [T-1861](machine.md), [T-1862](machine.md), [T-1863](machine.md),
-   [T-1864](machine.md), [T-1865](machine.md), [T-1866](machine.md),
-   [T-1867](machine.md) (the first KVM proof, on `kvm.yml`) and
-   [T-1871](machine.md); then the P2 entries and T-1878 (P3). T-1862 to
-   T-1865 wait for podcrates tags.
+   [T-1864](machine.md), [T-1867](machine.md) (the first KVM proof, on `kvm.yml`) and
+   [T-1871](machine.md); then the P2 entries and T-1878 (P3). podcrates
+   `v0.45.0` carries the parts of the crates that they asked for
+   (podcrates@T-590 to podcrates@T-595, podcrates@T-610; issues 350 and
+   360), and podvm takes that tag: no entry of the plan waits for
+   podcrates, except the warm start of T-1874 (podcrates@T-596, open).
 3. The scope entries that wait for a peer: [T-1662](net.md) (partial:
    `podvm lab scenarios` and `plan` run; the lab guest, its probes and the
    judge are podcrates@T-345 to podcrates@T-347), [T-1667](cli.md)
@@ -84,8 +87,9 @@ status with `podvm-count` in the same commit as the work.
 4. [T-1740](enter.md) (partial: a cheaper syscall tier) and
    [T-1350](gate.md) (partial: the wrapper of the parked Windows lane).
 5. Low priority, the asks of podswarm (PodUtils/podcrates#124):
-   [T-1749](enter.md) (partial; COORD-071: the overlay root is
-   podcrates@T-486, open), [T-1747](cli.md) and [T-1750](machine.md).
+   [T-1749](enter.md) (partial: podvm wires the overlay root of
+   podcrates@T-486 with the completion of podcrates@T-567),
+   [T-1747](cli.md) and [T-1750](machine.md).
    V-1, V-2 (the probe cache of `run`), V-4, V-7 (`--podvm-sealed`) and
    V-8 are done.
 

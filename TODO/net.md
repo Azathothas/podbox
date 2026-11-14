@@ -599,8 +599,9 @@ status, and a `GET http://example.com/` gets `403 ... no-rule` with no
 word that the default ports are `[443]` and `--ports 80` is the fix.
 busybox `wget` sends `GET https://...` to a proxy and gets 400 from the
 broker; that is the client's form, and a client that sends `CONNECT`
-works. The clause that remains: the texts, which COORD-108 (issue 359)
-asks of podcrates, and the test `broker_upstream` of the Prove with them.
+works. The clause that remains: the texts, which podcrates `v0.45.0`
+carries (COORD-108, issue 359, podcrates@T-609), and the test
+`broker_upstream` of the Prove with them.
 
 
 # T-1847: The scenarios and knobs of `lab` differ from the surface that sand-net documents
@@ -623,8 +624,10 @@ DNS64, and `--loss` takes 0.01 to 20 percent where sand-net takes up to 49.
 
 ## Premise
 
-The surface is `pod-netlab` of podcrates (v0.40.0 at the QA, v0.42.0 now,
-`src/scenario.rs` and `src/knobs/check.rs`). The lab help says the guest
+The surface is `pod-netlab` of podcrates (v0.40.0 at the QA, v0.45.0 now,
+`src/scenario.rs` and `src/knobs/check.rs`). `v0.45.0` takes `--icmp
+allow` and gives the reason of each other difference in the README of
+the crate; the five value sets stay open (podcrates@T-586, partial). The lab help says the guest
 parts wait for podcrates (T-1662, issue 260).
 
 ## Approach

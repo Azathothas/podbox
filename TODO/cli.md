@@ -5416,8 +5416,11 @@ refusals start with `podvm run:`. `remote ssh forward tcp onlyhost` and
 
 ## Premise
 
-The knob errors are in `pod-netlab` (podcrates v0.42.0,
-`src/knobs/check.rs`, `KnobError::OutOfRange`); the fetch text is in
+The knob errors are in `pod-netlab` (`src/knobs/check.rs`,
+`KnobError::OutOfRange`); podcrates `v0.45.0` gives each one the value
+as written, its unit and its range, a text for a negative number, and a
+`--cgnat` text that agrees with the scenario (podcrates@T-586, COORD-101,
+issue 347); the fetch text is in
 `crates/podvm-windows/src`; the helper usages come from the podvm-ssh
 helpers; `probe-inside` calls the parser of `run` with the verb `run`.
 

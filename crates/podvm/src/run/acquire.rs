@@ -289,6 +289,7 @@ pub(crate) fn extract_now(
             podvm_image::error::EXIT_RUNTIME_ERROR
         })?;
     crate::diagnose::report_dropped(&mut err, &done, &podvm_probe::identity::read(), false);
+    crate::diagnose::report_skipped(&mut err, &done); // TODO/image.md T-1883
     Ok(())
 }
 

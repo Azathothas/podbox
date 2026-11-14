@@ -35,8 +35,15 @@ clauses in its own record:
 | [T-1662](net.md) | the lab guest, its probes and the judge (podcrates@T-345 to podcrates@T-347) |
 | [T-1667](cli.md) | the doctor's check of labs in a guest, with T-1662 |
 | [T-1740](enter.md) | a cheaper mechanism for the syscall tier |
-| [T-1749](enter.md) | the root with no copy (COORD-071 for the namespace rung; the loader family is podvm's) |
+| [T-1749](enter.md) | the root with no copy: podvm wires the overlay root of podcrates@T-486 with the completion of podcrates@T-567; the loader family is podvm's |
 | [T-1350](gate.md) | the wrapper of the parked Windows lane |
+| [T-1786](supervise.md) | a run that `PODVM_MODE` forces through the ladder still reads `Created` |
+| [T-1820](net.md) | the test `broker_upstream` with the texts of podcrates@T-609 |
+| [T-1852](gate.md) | the row of the setuid bit after extraction, and the machine section in `kvm.yml` |
+| [T-1861](machine.md) | `pull`, `images` and `rmi` for the Windows names, the disks of T-1863 and T-1867, the experiment |
+| [T-1862](machine.md) | the progress line, and the proof of the resume |
+| [T-1866](machine.md) | the long names of the FAT media (podcrates@T-610), the golden files and the round trip |
+| [T-1871](machine.md) | the end of the evaluation period of a golden image, and `PODVM_MACHINE_ACCEL=kvm` |
 
 ## Facts that save time
 
@@ -50,7 +57,7 @@ clauses in its own record:
 * The files that podcrates imported are frozen until podvm takes the
   crate (`AGENTS.md`, section 9, item 4). The hand-over is done (T-1681),
   and the manifests of podvm name each `pod-*` crate at `v0.45.0`
-  (COORD-083, issue 317). A fix of moved code goes to podcrates as a
+  (COORD-114, issue 369). A fix of moved code goes to podcrates as a
   COORD issue.
 * `refactor/` is not on `main`. It is on the branch
   `archive/podbox-worktree` (`docs/history/worktree-archive.md`). T-1673

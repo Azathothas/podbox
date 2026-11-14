@@ -5192,8 +5192,8 @@ the report that podvm can serve now: `life.missing-name`,
 rows, and the machine rows (`machine.refuse-*`, `machine.timeout`,
 `machine.report*`, `machine.eq-form`). Results on this host: life 90
 pass, 0 fail; sys 128 pass, 0 fail; machine 20 pass, 0 fail, with no
-emulator left. Remaining: the row of the setuid bit after extraction,
-which waits for T-1813 (pod-extract in podcrates), and the machine
+emulator left. Remaining: the row of the setuid bit after extraction
+(T-1813 is done: podcrates `v0.44.0` keeps the bits), and the machine
 section in `kvm.yml` before each release.
 
 

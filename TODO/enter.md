@@ -3523,8 +3523,9 @@ the completion: `pod_rootfs` completes one root path, and with an
 overlay its writes must land in the upper layer while its reads see the
 image below. A copy-up of a fixed list of paths would break the first
 time `pod_rootfs` touches a new path, and it cannot serve a listing that
-both layers hold. COORD-090 (issue 326) asks podcrates for a two-layer
-completion; podvm wires the overlay root when a tag carries it.
+both layers hold. COORD-090 (issue 326) asked podcrates for a two-layer
+completion; podcrates `v0.43.0` carries it (podcrates@T-567), so podvm
+can wire the overlay root now.
 
 
 # T-1758: The namespace rung has no /proc in the root: go cannot find GOROOT, /proc/self/status is missing

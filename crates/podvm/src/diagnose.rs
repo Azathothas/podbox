@@ -269,6 +269,21 @@ fn map_contents(id: &podvm_probe::identity::Identity, path: &str, map: Option<&s
     "no reading and no reason recorded".to_string()
 }
 
+/// TODO/image.md T-1883: the entries that the extraction could not make,
+/// for `extract`, `create` and `run` alike; nothing where it made each.
+pub(crate) fn report_skipped(out: &mut dyn std::io::Write, done: &podvm_extract::Extracted) {
+    if done.skipped > 0 {
+        let _ = writeln!(
+            out,
+            "podvm: {} entries were not materialised ({}). podvm cannot mknod on this \
+             class of runtime, which is the premise of the whole tool rather than a \
+             defect here",
+            done.skipped,
+            done.skipped_kinds.join(", ")
+        );
+    }
+}
+
 /// The extraction report both `extract` and `run` print: the counts, then the
 /// four-part note where the tree's ownership differs from the image's.
 ///
@@ -368,6 +383,24 @@ mod tests {
             dir_modes: 0,
             dirs_opened: 0,
         }
+    }
+
+    /// TODO/image.md T-1883: the count and the kinds, or nothing.
+    #[test]
+    fn report_skipped_names_the_kinds_and_is_silent_on_none() {
+        let mut quiet = Vec::new();
+        report_skipped(&mut quiet, &extracted_with_example(0, None));
+        assert!(quiet.is_empty());
+        let mut e = extracted_with_example(0, None);
+        e.skipped = 1;
+        e.skipped_kinds = vec!["Fifo".to_string()];
+        let mut out = Vec::new();
+        report_skipped(&mut out, &e);
+        let text = String::from_utf8(out).unwrap();
+        assert!(
+            text.contains("1 entries were not materialised (Fifo)"),
+            "{text}"
+        );
     }
 
     #[test]
