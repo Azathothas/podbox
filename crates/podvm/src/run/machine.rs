@@ -123,6 +123,13 @@ pub(super) fn machine_tier(
         );
         return EXIT_FLAG_ERROR;
     }
+    // TODO/machine.md T-1889: the guest kernel is x86_64, so an image of
+    // another architecture refuses by name before the boot. It booted and
+    // ended with "the guest gave no exit marker" (PodUtils/podrunner#102).
+    if let Some(why) = foreign_guest(platform) {
+        eprintln!("podvm {verb}: machine tier refused: {why}");
+        return EXIT_FLAG_ERROR;
+    }
     // TODO/machine.md T-1751: a sealed run takes each value of the run
     // from the bundle; a flag would put it in the argv of podvm.
     if o.sealed
@@ -252,6 +259,19 @@ pub(super) fn machine_tier(
 
 /// The flags of `o` that the guest of the machine tier does not honour
 /// (TODO/machine.md T-1808), in the order of the help.
+/// TODO/machine.md T-1889: the refusal of an image of another
+/// architecture than the guest kernel (`amd64`), or None.
+pub(super) fn foreign_guest(platform: &Platform) -> Option<String> {
+    (platform.arch != "amd64").then(|| {
+        format!(
+            "the guest of the machine tier is linux/amd64 (qemu-system-x86_64 and an x86_64 \
+             kernel), and --platform asks for linux/{}: a guest of another architecture is \
+             planned (TODO/machine.md T-1890)",
+            platform.arch
+        )
+    })
+}
+
 pub(super) fn unhonoured_flags(o: &Opts) -> Vec<&'static str> {
     let h = &o.hardening;
     [

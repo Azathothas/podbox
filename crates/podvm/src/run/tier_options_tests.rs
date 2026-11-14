@@ -101,3 +101,17 @@ fn every_field_of_opts_is_classified(o: Opts) {
         ask: _,               // TABLE: --add-host
     } = o;
 }
+
+/// TODO/machine.md T-1889: an image of another architecture refuses by
+/// name on the machine tier; linux/amd64 boots.
+#[test]
+fn machine_foreign_guest_refuses_another_architecture() {
+    let p = |a: &str| Platform {
+        os: "linux".into(),
+        arch: a.into(),
+        variant: None,
+    };
+    assert!(super::machine::foreign_guest(&p("amd64")).is_none());
+    let e = super::machine::foreign_guest(&p("arm64")).unwrap();
+    assert!(e.contains("linux/arm64") && e.contains("T-1890"), "{e}");
+}

@@ -4198,3 +4198,92 @@ A `-t` run gets each byte of its stdin, as a run without `-t` does.
 ## Prove
 
 `printf 'machine-in\n' | podvm run --rm --podvm-tier=machine -t mirror.gcr.io/library/alpine:3.20 cat` prints `machine-in` and exits 0 under TCG on the cloud host
+
+# T-1889: The machine tier boots an image of another architecture and ends with "no exit marker"
+
+**Source:** PodUtils/podrunner#102 (COORD-042 of podrunner, 2026-11-14), measured on `v0.2.0-beta.14`
+**Category:** machine
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podvm run --podvm-tier=machine --platform linux/arm64 busybox:1.37.0`
+starts `qemu-system-x86_64`, and the x86_64 kernel cannot start the
+arm64 rootfs. The run exits 125 after 1 s with "the guest gave no exit
+marker", which names no cause.
+
+## Premise
+
+The guest of the machine tier is linux/amd64: `machine/guest.rs` looks
+for `qemu-system-x86_64` only, and the kernel is the x86_64 kernel of
+the Alpine archive.
+
+## Approach
+
+Refuse an image of another architecture than amd64 by name before the
+boot, and name the entry that plans such a guest (T-1890).
+
+## Decision
+
+A run that cannot boot says why before it boots.
+
+## Prove
+
+`cargo test -p podvm --bin podvm machine_foreign_guest` exits 0, and `podvm run --rm --podvm-tier=machine --platform linux/arm64` of `mirror.gcr.io/library/alpine:3.20` exits 125 with a line that names linux/arm64 and starts no emulator
+
+## Done
+
+**Done 2026-11-14.** `run/machine.rs` (`foreign_guest`) refuses an
+image whose architecture is not amd64 before the boot, with exit 125
+and a line that names the architecture and T-1890.
+`cargo test -p podvm --bin podvm machine_foreign_guest` exits 0. By
+hand: `podvm run --rm --podvm-tier=machine --platform linux/arm64
+mirror.gcr.io/library/alpine:3.20 uname -m` exits 125 with "the guest
+of the machine tier is linux/amd64 ... --platform asks for linux/arm64",
+and `pgrep qemu` finds nothing.
+
+
+# T-1890: The machine tier has no guest of another architecture
+
+**Source:** PodUtils/podrunner#102 (COORD-042 of podrunner, 2026-11-14)
+**Category:** machine
+**Milestone:** none
+**Priority:** P2
+**Effort:** L
+**Status:** open
+
+## Problem
+
+podrunner runs a job of another architecture in its local mode, as act
+does with `--container-architecture`. podvm's machine tier boots only a
+linux/amd64 guest, so a linux/arm64 job on an x86_64 host has no tier.
+
+## Premise
+
+`qemu-system-aarch64` with the machine `virt`, the CPU `max` and TCG
+boots an aarch64 kernel on an x86_64 host. Alpine publishes an aarch64
+`linux-virt` kernel and initramfs beside the x86_64 one. The packages
+`qemu-system-arm` and `qemu-efi-aarch64` give the emulator and the
+firmware. TCG of another architecture is slow (an estimate: five to ten
+times the native time); no one measured it with podvm.
+
+## Approach
+
+Choose the emulator and the kernel from the architecture of the image:
+`qemu-system-aarch64 -M virt -cpu max` with the aarch64 kernel, the same
+init, channel and exit marker. Keep the bounds of each guest (timeout,
+no emulator after the run). Measure the start time and a small job on a
+hosted runner, and give podrunner the flag and the release.
+
+## Decision
+
+The architecture of the image chooses the guest; the caller names no
+emulator. The refusal of T-1889 stays for each architecture with no
+guest.
+
+## Prove
+
+On an x86_64 host with `qemu-system-aarch64`, `podvm run --rm --podvm-tier=machine --platform linux/arm64` of `mirror.gcr.io/library/alpine:3.20` with `uname -m` prints `aarch64` and exits 0, and no emulator stays after the run

@@ -551,10 +551,12 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1886](image.md) | P1 | S | none | image | done | Concurrent extractions of one image write one tree, and the first to fail removes it under the others |
 | [T-1887](enter.md) | P1 | S | none | enter | done | `--podvm-confine` on the userland rung resolves an absolute link of the image against the host root |
 | [T-1888](enter.md) | P2 | S | none | enter | done | A required confine path whose link leaves the tree still grants a host inode |
+| [T-1889](machine.md) | P1 | S | none | machine | done | The machine tier boots an image of another architecture and ends with "no exit marker" |
+| [T-1890](machine.md) | P2 | L | none | machine | open | The machine tier has no guest of another architecture |
 
 ## Counts
 
-485 entries: 49 open, 14 partial, 4 blocked, 418 done.
+487 entries: 50 open, 14 partial, 4 blocked, 419 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -564,10 +566,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
-| P1 | 4 | 8 | 0 | 186 | 198 |
-| P2 | 30 | 3 | 4 | 137 | 174 |
+| P1 | 4 | 8 | 0 | 187 | 199 |
+| P2 | 31 | 3 | 4 | 137 | 175 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 49 | 14 | 4 | 418 | 485 |
+| **All** | 50 | 14 | 4 | 419 | 487 |
 
 ## Work order
 

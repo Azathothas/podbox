@@ -7,7 +7,7 @@ start.
 
 ## State
 
-485 entries: 49 open, 14 partial, 4 blocked, 418 done.
+487 entries: 50 open, 14 partial, 4 blocked, 419 done.
 
 The state on 2026-11-14 (`docs/HANDOFF.md` has the detail):
 
