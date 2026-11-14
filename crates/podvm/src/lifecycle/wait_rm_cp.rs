@@ -347,15 +347,14 @@ fn copy_named(
     let record = match s.find_one(image) {
         Ok(r) => r,
         Err(image_err) => {
-            match split(arg) {
-                Some((name, _)) => match podvm_supervise::get(s, &name) {
-                    Ok(_) => {}
-                    Err(container_err) => eprintln!("podvm cp: {container_err}"),
-                },
-                None => eprintln!("podvm cp: one of the two paths has to be <name>:<path>"),
-            }
-            eprintln!("podvm cp: {image_err}");
-            return EXIT_RUNTIME_ERROR;
+            // TODO/supervise.md T-1805: one refusal, with the code of the
+            // image error (1 for a name that nothing has), not two and 125.
+            let Some((name, _)) = split(arg) else {
+                eprintln!("podvm cp: one of the two paths has to be <name>:<path>");
+                return EXIT_CLI_ERROR;
+            };
+            eprintln!("podvm cp: no container is named {name}, and {image_err}");
+            return image_err.exit_code();
         }
     };
     // ⚠ The image lock for the whole copy: the rootfs below must not be

@@ -88,9 +88,16 @@ fn store() -> Result<podvm_image::Store, i32> {
     })
 }
 
+/// TODO/supervise.md T-1805: a name that resolves to nothing, and a change
+/// that the state refuses, are the caller's error (exit 1, docker's code
+/// and podvm's own table); each other failure is podvm's (125).
 fn fail(verb: &str, e: podvm_supervise::Error) -> i32 {
     eprintln!("podvm {verb}: {e}");
-    EXIT_RUNTIME_ERROR
+    if e.is_callers() {
+        EXIT_CLI_ERROR
+    } else {
+        EXIT_RUNTIME_ERROR
+    }
 }
 
 /// `podvm create [options] <image> [command...]`, and the shared half of
@@ -217,6 +224,11 @@ fn start_one(s: &podvm_image::Store, verb: &str, want: &str) -> Result<String, i
         Ok(c) => c,
         Err(e) => return Err(fail(verb, e)),
     };
+    // TODO/supervise.md T-1805: `start` of a running container changes
+    // nothing and exits 0, as docker 29.9.2 does (measured 2026-11-14).
+    if verb == "start" && c.state == podvm_supervise::table::State::Running {
+        return Ok(c.name);
+    }
     // ⚠ The image record is needed so the LAUNCHER can hold the image lock
     // for the container's whole life. A lock this process took would go
     // with this process, which exits as soon as the container is up.

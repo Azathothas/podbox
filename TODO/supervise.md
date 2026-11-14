@@ -1537,7 +1537,7 @@ stays: the table pads by characters, so a row with a wide character
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1578,6 +1578,24 @@ the image error of `podvm-image` (exit 1 already).
 ## Prove
 
 `cargo test -p podvm --test lifecycle_exit` exits 0, with a row for each of `start`, `stop`, `restart`, `rm`, `logs`, `wait`, `kill` and `cp` on a missing name (exit 1, one line on stderr), for `kill` of an exited container and `rm` of a running one (exit 1)
+
+## Done
+
+**Done 2026-11-14.** `podvm_supervise::Error` keeps the class of
+`pod-supervise` (`Error(text, class)`, `is_callers`), and `fail`
+(`lifecycle.rs`) maps `NotFound` and `Usage` to exit 1, each other class
+to 125. `cp` prints one refusal with the code of the image error (1 for
+a name that nothing has), `restart` does not repeat the stop half for a
+missing name, and `start` of a running container exits 0. docker 29.9.2,
+started on the cloud host for this (2026-11-14), exits 1 for each of the
+eight verbs on a missing name, 1 for `kill` of an exited container and
+`rm` of a running one, and 0 for `start` of a running one; podvm now
+gives the same codes. The test `lifecycle_exit_of_a_missing_name_is_1_with_one_line`
+runs the eight verbs on a missing name (exit 1, one line). By hand:
+`kill` of an exited container and `rm` of a running one exit 1. A
+difference stays: docker prints the name on a successful `start`, and
+podvm prints nothing, as for each `start`. Experiment 443, section
+life: 74 pass, 0 fail.
 
 
 # T-1806: A foreground run records only stdout, so `logs` loses each stderr line

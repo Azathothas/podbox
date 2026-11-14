@@ -335,7 +335,10 @@ pub fn restart(args: &[String]) -> i32 {
                 }
             },
             Err(c) => {
-                eprintln!("podvm restart: {want}: the stop half failed; not started");
+                // TODO/supervise.md T-1805: a missing name is said once.
+                if c != EXIT_CLI_ERROR {
+                    eprintln!("podvm restart: {want}: the stop half failed; not started");
+                }
                 code = c;
             }
         }

@@ -8,6 +8,16 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: a missing container name exits 1, 2026-11-14
+
+Record: T-1805.
+Deployed: not deployed; no version change.
+
+- `start`, `stop`, `restart`, `rm`, `logs`, `wait`, `kill` and `cp` on a
+  name that resolves to nothing exited 125; they now exit 1 with one
+  line, as docker does. `kill` of an exited container and `rm` of a
+  running one exit 1, and `start` of a running container exits 0.
+
 ### Fixed: a glibc 2.34 image with no `libdl.so.2` on the userland rung, 2026-11-14
 
 Record: T-1880, PodUtils/podrunner#100.

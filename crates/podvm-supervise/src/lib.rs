@@ -34,9 +34,27 @@ pub use pod_supervise::end::{End, Reason, Residual};
 pub mod tree;
 pub use pod_supervise::{new_id, tail_offset};
 
-/// Everything this crate can fail with, as one sentence for the caller.
+/// Everything this crate can fail with, as one sentence for the caller,
+/// and the class of `pod-supervise` where it gave one (TODO/supervise.md
+/// T-1805): `NotFound` and `Usage` are the caller's error, exit 1.
 #[derive(Debug)]
-pub struct Error(pub String);
+pub struct Error(pub String, pub Option<pod_core::Class>);
+
+impl Error {
+    /// An error of podvm's own, with no class.
+    pub fn new(text: impl Into<String>) -> Error {
+        Error(text.into(), None)
+    }
+
+    /// True where the caller named something that is not there, or asked
+    /// for a change that the state of the container refuses.
+    pub fn is_callers(&self) -> bool {
+        matches!(
+            self.1,
+            Some(pod_core::Class::NotFound | pod_core::Class::Usage)
+        )
+    }
+}
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -47,7 +65,7 @@ impl std::fmt::Display for Error {
 /// A failure of `pod-supervise` is its sentence: podvm's callers print it.
 impl From<pod_core::Failure> for Error {
     fn from(f: pod_core::Failure) -> Error {
-        Error(f.chain())
+        Error(f.chain(), Some(f.class))
     }
 }
 
@@ -181,7 +199,7 @@ pub fn remove(store: &Store, want: &str, force: bool) -> Result<Container> {
     let c: Container = pod_supervise::remove(&settings(store), want, force)?;
     // TODO/image.md T-1781: put aside now, removed after podvm's exit.
     if let Err(e) = podvm_extract::tree::discard(store, &c.of.rootfs) {
-        return Err(Error(format!(
+        return Err(Error::new(format!(
             "{} is removed, and its rootfs {} stays: {e}",
             c.name, c.of.rootfs
         )));

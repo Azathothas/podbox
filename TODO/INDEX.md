@@ -467,7 +467,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1802](cli.md) | P0 | S | none | cli | done | A run refused before `prepare` writes the `-e` values into its report |
 | [T-1803](machine.md) | P1 | M | none | machine | open | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
 | [T-1804](enter.md) | P0 | S | none | enter | done | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
-| [T-1805](supervise.md) | P1 | M | none | supervise | open | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
+| [T-1805](supervise.md) | P1 | M | none | supervise | done | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
 | [T-1806](supervise.md) | P1 | S | none | supervise | open | A foreground run records only stdout, so `logs` loses each stderr line |
 | [T-1807](supervise.md) | P1 | S | none | supervise | open | A restarted container shows the exit code and end of its previous run while it runs |
 | [T-1808](machine.md) | P0 | M | none | machine | done | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
@@ -546,7 +546,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-477 entries: 73 open, 5 partial, 3 blocked, 396 done.
+477 entries: 72 open, 5 partial, 3 blocked, 397 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -556,10 +556,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 73 | 73 |
-| P1 | 22 | 1 | 1 | 171 | 195 |
+| P1 | 21 | 1 | 1 | 172 | 195 |
 | P2 | 36 | 2 | 2 | 130 | 170 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 73 | 5 | 3 | 396 | 477 |
+| **All** | 72 | 5 | 3 | 397 | 477 |
 
 ## Work order
 

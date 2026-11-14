@@ -179,7 +179,7 @@ fn a_foreground_record_lands_exited_with_logs() {
                 x.finished_at = Some("f".into());
                 Ok(())
             }
-            None => Err(podvm_supervise::Error("gone".into())),
+            None => Err(podvm_supervise::Error::new("gone")),
         }
     })
     .unwrap();

@@ -106,7 +106,7 @@ fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
                 c.finished_at = Some(finished.clone());
                 Ok(())
             }
-            None => Err(podvm_supervise::Error(format!(
+            None => Err(podvm_supervise::Error::new(format!(
                 "the foreground record {id} is gone"
             ))),
         }
