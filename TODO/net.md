@@ -553,7 +553,7 @@ nat44, nat66, both`.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -586,6 +586,21 @@ A 502 names its cause.
 ## Prove
 
 `cargo test -p podvm --test broker_upstream` exits 0, with a test that an allowed host behind a fixture proxy answers 200, and that a refused upstream prints its status line
+
+## Done
+
+**Partial 2026-11-14.** Measured on the cloud host, which egresses
+through its own proxy: a machine guest with `--network broker --allow
+example.com` sends `CONNECT example.com:443` with the broker's
+credential and gets `200 Connection Established`; the 502 of the QA host
+does not reproduce here, and its upstream proxy is the likely cause. Two
+gaps of the text stay, both in `pod-broker`: a 502 names no upstream
+status, and a `GET http://example.com/` gets `403 ... no-rule` with no
+word that the default ports are `[443]` and `--ports 80` is the fix.
+busybox `wget` sends `GET https://...` to a proxy and gets 400 from the
+broker; that is the client's form, and a client that sends `CONNECT`
+works. The clause that remains: the texts, which COORD-108 (issue 359)
+asks of podcrates, and the test `broker_upstream` of the Prove with them.
 
 
 # T-1847: The scenarios and knobs of `lab` differ from the surface that sand-net documents
