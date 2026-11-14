@@ -247,4 +247,4 @@
 355 issue closed
 356 issue open
 357 issue closed
-358 issue open
+358 issue closed
