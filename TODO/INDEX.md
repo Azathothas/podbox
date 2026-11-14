@@ -505,7 +505,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1840](image.md) | P2 | S | none | image | open | The `images` table cannot tell two platform records apart, `images REPO` shows only `latest`, and `inspect` has no `.Config.Labels` |
 | [T-1841](image.md) | P2 | S | none | image | open | `save` advises a `--platform` it does not have, and `pull -a` records the endpoint host, which makes a duplicate record |
 | [T-1842](image.md) | P2 | S | none | image | partial | `save` and `import` exit 125 for an input error that their error type maps to 1, and a bad insecure-registry host is taken |
-| [T-1843](image.md) | P2 | S | none | image | open | `extract --force` removes the extracted root before it takes the lock of the store |
+| [T-1843](image.md) | P2 | S | none | image | done | `extract --force` removes the extracted root before it takes the lock of the store |
 | [T-1844](interpose.md) | P2 | S | none | interpose | open | `interpose::place` writes the object through one fixed temporary name in the root |
 | [T-1845](cli.md) | P3 | S | none | cli | open | `profile show` writes a part of the document to stdout and then fails |
 | [T-1846](machine.md) | P2 | M | none | machine | open | A failed incus run leaves its instance, `ps` omits instances, `rm` calls an ERROR instance running, and `system info` takes `tier = bogus` |
@@ -552,7 +552,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-483 entries: 53 open, 14 partial, 4 blocked, 412 done.
+483 entries: 52 open, 14 partial, 4 blocked, 413 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -563,9 +563,9 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 1 | 0 | 73 | 74 |
 | P1 | 4 | 8 | 0 | 185 | 197 |
-| P2 | 34 | 3 | 4 | 132 | 173 |
+| P2 | 33 | 3 | 4 | 133 | 173 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 53 | 14 | 4 | 412 | 483 |
+| **All** | 52 | 14 | 4 | 413 | 483 |
 
 ## Work order
 

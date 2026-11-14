@@ -4219,7 +4219,7 @@ insecure-registry host (`'bad host!'`), in podvm and in `pod-oci`
 **Milestone:** none
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4247,6 +4247,23 @@ The lock of T-0204 covers each change of an extracted root.
 
 `cargo test -p podvm --bin podvm extract_force_lock` exits 0, with a test that `extract --force` takes the hold before it removes the root (the hold is observed held when the removal starts)
 
+## Correction
+
+**2026-11-14.** The Prove names `cargo test -p podvm --bin podvm
+extract_force_lock`. The test runs the binary against an exclusive
+`flock` of the image lock, so it is an integration test:
+`cargo test -p podvm --test extract_force_lock`.
+
+## Done
+
+**Done 2026-11-14.** `extract` takes the extraction lock, then the
+hold of the image, and only then removes the root under `--force`
+(`images/login_extract.rs`, from the patch of issue 358).
+`cargo test -p podvm --test extract_force_lock` exits 0: while a
+`flock -x` holds the image lock for 3 s, the file of the root stays, and
+`extract --force` ends after the release. With the removal planted
+before the hold, the test fails with "extract --force removed the root
+while the image lock was held".
 
 # T-1883: `create` and `run` do not report the entries that the extraction could not make
 
