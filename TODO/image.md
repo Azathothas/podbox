@@ -3807,3 +3807,51 @@ alpine, 811 MiB for golang); `images::drop_extractions` removes the
 extraction of each manifest digest that no record names after a
 removal. The tests `a_spare_is_taken_once_and_holds_no_write_of_a_run`
 and `a_discarded_tree_goes_aside_and_the_trash_empties` hold the parts.
+
+# T-1782: `load` spools stdin to a predictable name of `$TMPDIR`
+
+**Source:** PodUtils/podvm#336 (a report of Nemo-010 on `v0.2.0-beta.14`)
+**Category:** image
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podvm load < image.tar` copied stdin to `$TMPDIR/podvm-load-in-<pid>`
+with `File::create`. A link that another account plants at that name
+makes podvm truncate and write a file that the user never named; the
+spool was world-readable for the length of the load; and a `TMPDIR` that
+does not exist, or a small tmpfs `/tmp`, refused a load on a store with
+room.
+
+## Premise
+
+The store has a private staging area (`Store::stage`, invariant I6: a
+name unique for each call, created under the index of the store and
+locked against the sweep), which the blob staging of `load` already
+uses since T-1338.
+
+## Approach
+
+The stdin spool is a staging file of the store, held until the load ends
+and then removed.
+
+## Decision
+
+No path of `$TMPDIR` for the spool.
+
+## Prove
+
+`load` from stdin leaves a link planted at the old spool name untouched, works with `TMPDIR` pointing at a missing directory, and leaves no staging file
+
+## Done
+
+**Done 2026-11-14.** `crates/podvm/src/images/save_load.rs` takes the
+spool from `store.stage("load-stdin")`. By hand on the cloud host with
+`busybox:musl` (a tar of 892 416 bytes): with a link planted at
+`/tmp/podvm-load-in-<pid>` by the shell that then execs `podvm load`,
+the load succeeds and the target of the link still reads `PRECIOUS`;
+with `TMPDIR=/nonexistent-x` the load succeeds; the staging directory is
+empty after each load, and the store is mode 0700.

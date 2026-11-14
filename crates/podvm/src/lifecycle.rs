@@ -202,7 +202,7 @@ pub fn start(args: &[String]) -> i32 {
         }
     }
     if !any {
-        println!("usage: podvm start <container> [container...]");
+        eprintln!("usage: podvm start <container> [container...]");
         return EXIT_CLI_ERROR;
     }
     code
@@ -436,3 +436,15 @@ pub mod volume;
 
 #[cfg(test)]
 mod tests;
+
+/// TODO/cli.md T-1783 (PodUtils/podvm#334): a usage error goes to stderr
+/// with the exit of a CLI error; `--help` goes to stdout with exit 0.
+pub(super) fn usage(error: bool, text: &str) -> i32 {
+    if error {
+        eprintln!("{text}");
+        EXIT_CLI_ERROR
+    } else {
+        println!("{text}");
+        0
+    }
+}

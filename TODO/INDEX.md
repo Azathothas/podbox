@@ -456,10 +456,14 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1779](machine.md) | P1 | S | none | machine | done | The incus tier takes `--podvm-net none` and `--podvm-channel` |
 | [T-1780](machine.md) | P1 | M | none | machine | done | A guest of the machine tier runs a container engine |
 | [T-1781](image.md) | P2 | M | none | image | done | A spare tree of each image, and the removal of a `--rm` tree after podvm's exit |
+| [T-1782](image.md) | P1 | S | none | image | done | `load` spools stdin to a predictable name of `$TMPDIR` |
+| [T-1783](cli.md) | P2 | S | none | cli | done | Nine verbs print a usage error to stdout |
+| [T-1784](interpose.md) | P2 | S | none | interpose | done | The honest refusal of an identity call says that the payload runs as uid 0 |
+| [T-1785](interpose.md) | P3 | S | none | interpose | done | The notice of `--user` repeats in each process of a run |
 
 ## Counts
 
-390 entries: 2 open, 5 partial, 2 blocked, 381 done.
+394 entries: 2 open, 5 partial, 2 blocked, 385 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -469,10 +473,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 65 | 65 |
-| P1 | 0 | 1 | 0 | 168 | 169 |
-| P2 | 0 | 2 | 2 | 127 | 131 |
-| P3 | 2 | 2 | 0 | 21 | 25 |
-| **All** | 2 | 5 | 2 | 381 | 390 |
+| P1 | 0 | 1 | 0 | 169 | 170 |
+| P2 | 0 | 2 | 2 | 129 | 133 |
+| P3 | 2 | 2 | 0 | 22 | 26 |
+| **All** | 2 | 5 | 2 | 385 | 394 |
 
 ## Work order
 

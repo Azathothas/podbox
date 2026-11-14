@@ -76,7 +76,7 @@ pub(super) fn parse_save(args: &[String]) -> std::result::Result<SaveArgs, i32> 
         return Err(EXIT_FLAG_ERROR);
     }
     let Some(want) = want else {
-        print!("{SAVE_USAGE}");
+        eprint!("{SAVE_USAGE}");
         return Err(EXIT_CLI_ERROR);
     };
     Ok(SaveArgs { output, want })
@@ -149,7 +149,7 @@ pub(super) fn parse_import(args: &[String]) -> std::result::Result<ImportArgs, i
     }
     let mut it = positionals.into_iter();
     let Some(tar) = it.next() else {
-        print!("{IMPORT_USAGE}");
+        eprint!("{IMPORT_USAGE}");
         return Err(EXIT_CLI_ERROR);
     };
     let reference = it.next();
@@ -245,33 +245,29 @@ pub fn load(verb: &str, args: &[String]) -> i32 {
     };
     // ⚠ stdin spills to a file first: `load` needs a path, and a tarball
     // is streamed, never held fully in memory for the copy.
+    // ⛔ PodUtils/podvm#336: the spool is a staging file of the store (mode
+    // 0700 root, a name unique per call, locked against the sweep), never a
+    // name of `$TMPDIR` that another account can plant a link at or read.
     let file_arg: Option<std::path::PathBuf> = o.input.map(std::path::PathBuf::from);
-    let temp: Option<std::path::PathBuf>;
-    let src: &std::path::Path = match &file_arg {
-        Some(p) => {
-            temp = None;
-            p
-        }
+    let mut spool: Option<(std::path::PathBuf, podvm_image::store::StagedFile)> = None;
+    let src: std::path::PathBuf = match &file_arg {
+        Some(p) => p.clone(),
         None => {
-            let path = std::env::temp_dir().join(format!("podvm-load-in-{}", std::process::id()));
-            let mut stdin = std::io::stdin().lock();
-            let mut file = match std::fs::File::create(&path) {
-                Ok(f) => f,
-                Err(e) => {
-                    eprintln!("podvm load: {path:?}: {e}");
-                    return EXIT_RUNTIME_ERROR;
-                }
+            let (path, mut file) = match store.stage("load-stdin") {
+                Ok(s) => s,
+                Err(e) => return fail(e),
             };
+            let mut stdin = std::io::stdin().lock();
             if let Err(e) = std::io::copy(&mut stdin, &mut file) {
                 eprintln!("podvm load: stdin does not read: {e}");
                 let _ = std::fs::remove_file(&path);
                 return EXIT_RUNTIME_ERROR;
             }
-            temp = Some(path);
-            temp.as_ref().expect("just set")
+            spool = Some((path.clone(), file));
+            path
         }
     };
-    let code = match podvm_image::layout::load(&store, src) {
+    let code = match podvm_image::layout::load(&store, &src) {
         Ok(record) => {
             println!("Loaded image: {}", loaded_name(&record));
             0
@@ -281,7 +277,8 @@ pub fn load(verb: &str, args: &[String]) -> i32 {
             EXIT_RUNTIME_ERROR
         }
     };
-    if let Some(path) = temp {
+    if let Some((path, file)) = spool {
+        drop(file);
         let _ = std::fs::remove_file(&path);
     }
     code

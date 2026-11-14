@@ -40,9 +40,9 @@ pub fn wait(args: &[String]) -> i32 {
     {
         return c;
     }
+    const WAIT_USAGE: &str = "usage: podvm wait <container> [container...]";
     if args.is_empty() || args[0] == "-h" || args[0] == "--help" {
-        println!("usage: podvm wait <container> [container...]");
-        return if args.is_empty() { EXIT_CLI_ERROR } else { 0 };
+        return super::usage(args.is_empty(), WAIT_USAGE);
     }
     for want in args {
         if want.starts_with('-') {
@@ -157,7 +157,7 @@ pub fn rm(args: &[String]) -> i32 {
         }
     }
     if names.is_empty() {
-        println!("usage: podvm rm [-f|--force] <container> [container...]");
+        eprintln!("usage: podvm rm [-f|--force] <container> [container...]");
         return EXIT_CLI_ERROR;
     }
     let s = match store() {

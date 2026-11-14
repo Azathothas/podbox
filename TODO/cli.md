@@ -4537,3 +4537,46 @@ run wrote to its /tmp. `PODVM_443_ONLY=life sh
 experiments/443-qa-surface.sh` on this binary gives PASS for each of its 76
 rows, `life.cp-in.ns` and `life.exec-sees-run-fs.ns` among them.
 
+
+# T-1783: Nine verbs print a usage error to stdout
+
+**Source:** PodUtils/podvm#334 (a report of Nemo-010 on `v0.2.0-beta.14`)
+**Category:** cli
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`save`, `import`, `start`, `logs`, `stop`, `kill`, `restart`, `wait` and
+`rm` printed their usage to stdout when an argument was missing, while
+sixteen other verbs used stderr. `podvm save > image.tar` with no image
+wrote 415 bytes of usage into the file, which `file` named ASCII text.
+
+## Premise
+
+The `--help` branch and the missing-argument branch of each verb were
+two prints of the same text.
+
+## Approach
+
+A usage error goes to stderr with its exit code; `--help` stays on
+stdout with exit 0.
+
+## Decision
+
+One rule for each verb, as the sixteen others already do.
+
+## Prove
+
+`cargo test -p podvm --test usage_stream` exits 0: each of the nine verbs with no argument leaves stdout empty and names the usage on stderr, and `--help` writes it to stdout with exit 0
+
+## Done
+
+**Done 2026-11-14.** `save_load.rs`, `lifecycle.rs`, `logs_stop.rs` and
+`wait_rm_cp.rs` print the missing-argument usage with `eprint!`; `wait`
+now splits its empty case from its `--help`. The test
+`a_usage_error_leaves_stdout_empty_and_help_writes_it` passes; by hand,
+each of the nine prints 0 bytes to stdout with no argument and the same
+usage to stdout with `--help`.

@@ -75,13 +75,19 @@ unsafe fn honest(what: &[u8], rc: c_int) -> c_int {
     // deciding whether a failed drop is fatal reads `EPERM` faster than
     // `1`, and a bare number where the table has no name stays a number
     // rather than a guess.
+    // PodUtils/podvm#333: the sentence names the uid that the payload
+    // keeps, as the kernel answers it; an earlier text claimed uid 0 on a
+    // host where the payload ran as another id. Without the flag,
+    // `geteuid` forwards to the real call.
+    let uid = unsafe { geteuid() };
     say::line(&[
         what,
         b" failed with errno ",
         say::Num::new(e.unsigned_abs() as u64).as_bytes(),
         errno_name(e),
-        b"; podvm runs the payload as uid 0 and does not change it \
-          (TODO/interpose.md T-0711)",
+        b"; the payload keeps uid ",
+        say::Num::new(u64::from(uid)).as_bytes(),
+        b", and podvm does not change it (TODO/interpose.md T-0711)",
     ]);
     set_errno(e);
     rc

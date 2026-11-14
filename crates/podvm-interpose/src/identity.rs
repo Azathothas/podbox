@@ -269,14 +269,42 @@ pub unsafe fn attempt(what: &[u8], call: impl FnOnce() -> c_int, record: impl Fn
         return rc;
     }
     record();
-    crate::say::line(&[
-        what,
-        b": the runtime refused it, and --user is faking the identity, so \
-          podvm recorded the requested id and reported success \
-          (TODO/interpose.md T-0711)",
-    ]);
+    if first_of_run() {
+        crate::say::line(&[
+            what,
+            b": the runtime refused it, and --user is faking the identity, so \
+              podvm records each refused identity call and reports success; \
+              this run says it once (TODO/interpose.md T-0711)",
+        ]);
+    }
     unsafe { *__errno_location() = 0 };
     0
+}
+
+/// The variable that marks the notice of [`attempt`] as said in this run.
+const SAID: &core::ffi::CStr = c"PODVM_IDENTITY_SAID";
+
+/// TODO/interpose.md T-1785 (PodUtils/podvm#332): T-0711 decides that a run
+/// says the notice once. A flag of this process stops a second line here,
+/// and the variable [`SAID`], which each child that forks or execs with
+/// this environment inherits, stops it in the processes after.
+fn first_of_run() -> bool {
+    use core::sync::atomic::{AtomicBool, Ordering};
+    static DONE: AtomicBool = AtomicBool::new(false);
+    unsafe extern "C" {
+        fn getenv(name: *const core::ffi::c_char) -> *mut core::ffi::c_char;
+        fn setenv(name: *const core::ffi::c_char, value: *const core::ffi::c_char, overwrite: c_int) -> c_int;
+    }
+    if DONE.swap(true, Ordering::Relaxed) {
+        return false;
+    }
+    // SAFETY: a NUL-terminated name; the payload owns the environment, and
+    // the value is a static string.
+    if !unsafe { getenv(SAID.as_ptr()) }.is_null() {
+        return false;
+    }
+    unsafe { setenv(SAID.as_ptr(), c"1".as_ptr(), 1) };
+    true
 }
 
 #[cfg(test)]

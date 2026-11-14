@@ -4045,3 +4045,92 @@ image's shell with the table, and debian's `env -i /bin/bash -c 'cat
 `the_copy_of_the_start_is_taken_before_main` hold both parts; three tests
 of the exec route now expect the carried table. Experiment 443 runs
 `tools.apk.ul` again before the release.
+
+# T-1784: The honest refusal of an identity call says that the payload runs as uid 0
+
+**Source:** PodUtils/podvm#333 (a report of Nemo-010 on `v0.2.0-beta.14`)
+**Category:** interpose
+**Milestone:** none
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Without `--user`, a refused `setuid(2)` or `setgid(2)` printed "podvm
+runs the payload as uid 0 and does not change it" (T-0711). On a host
+where the payload runs as uid 966, the sentence named an identity the
+payload did not have, which the honesty rule of T-0804 forbids.
+
+## Premise
+
+Without the flag of `--user`, the interposer's `geteuid` forwards to the
+real call.
+
+## Approach
+
+The sentence names the effective uid that the kernel answers.
+
+## Decision
+
+The errno half of the sentence stays as it is: it was right.
+
+## Prove
+
+A refused `setuid` under the interposer names the real uid of the payload
+
+## Done
+
+**Done 2026-11-14.** `honest` of
+`crates/podvm-interpose/src/identity_calls.rs` prints "the payload keeps
+uid N, and podvm does not change it", with N from `geteuid`. By hand,
+in a user namespace with no id map (`unshare -U`, uid 65534), a program
+that calls `setuid(1000)` under the built interposer prints `setuid
+failed with errno 22 (EINVAL); the payload keeps uid 65534`. The tests
+of the interposer pass (96).
+
+# T-1785: The notice of `--user` repeats in each process of a run
+
+**Source:** PodUtils/podvm#332 (a report of Nemo-010 on `v0.2.0-beta.14`)
+**Category:** interpose
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With `--user` on a host that refuses `setuid(2)`, each refused identity
+call printed the notice of T-0711: `sh -c 'id; id; id'` gave six lines,
+mixed into the payload's own output. T-0711 decides that a run says it
+once.
+
+## Premise
+
+Each process of the payload loads the interposer anew, so a flag of one
+process does not reach the next. The environment does: a child that
+forks or execs with it inherits it.
+
+## Approach
+
+The first notice of a run sets `PODVM_IDENTITY_SAID=1` in the payload's
+environment, and a process flag stops a second line in the same process.
+
+## Decision
+
+The notice names the first call that was faked and says that the run
+says it once; the faking itself is unchanged.
+
+## Prove
+
+`run --user 1000:1000 public.ecr.aws/docker/library/alpine:3.20 sh -c 'id; id; id'` on the userland rung prints the notice once and `uid=1000 gid=1000` three times
+
+## Done
+
+**Done 2026-11-14.** `first_of_run` of
+`crates/podvm-interpose/src/identity.rs`. On the chroot-denied fixture
+of experiment 443 (the userland rung), `run --rm --user 1000:1000
+alpine:3.20 sh -c 'id; id; id'` prints one notice (`setgid: ... this run
+says it once`) and `uid=1000 gid=1000` three times. The tests of the
+interposer pass (96); the row `run.user-deny.ul` of experiment 443 still
+finds "faking the identity".

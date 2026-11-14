@@ -99,7 +99,7 @@ pub(super) fn parse_logs(args: &[String]) -> std::result::Result<LogsArgs, i32> 
         return Err(EXIT_FLAG_ERROR);
     }
     let Some(want) = want else {
-        println!("{LOGS_USAGE}");
+        eprintln!("{LOGS_USAGE}");
         return Err(EXIT_CLI_ERROR);
     };
     Ok(LogsArgs { follow, tail, want })
@@ -225,7 +225,7 @@ pub fn stop(args: &[String]) -> i32 {
         }
     }
     if names.is_empty() {
-        println!("usage: podvm stop [-t seconds] <container> [container...]");
+        eprintln!("usage: podvm stop [-t seconds] <container> [container...]");
         return EXIT_CLI_ERROR;
     }
     let s = match store() {
@@ -311,7 +311,7 @@ pub fn restart(args: &[String]) -> i32 {
         }
     }
     if names.is_empty() {
-        println!("{RESTART_USAGE}");
+        eprintln!("{RESTART_USAGE}");
         return EXIT_CLI_ERROR;
     }
     let s = match store() {
@@ -394,7 +394,7 @@ pub fn kill(args: &[String]) -> i32 {
         }
     }
     if names.is_empty() {
-        println!("usage: podvm kill [-s SIGNAL] <container> [container...]");
+        eprintln!("usage: podvm kill [-s SIGNAL] <container> [container...]");
         return EXIT_CLI_ERROR;
     }
     let s = match store() {
