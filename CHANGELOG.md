@@ -8,6 +8,19 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Fixed: `logs` of a foreground run, `probe --cached`, and the `=` forms of two machine flags, 2026-11-14
+
+Record: T-1806, T-1811, T-1812.
+Deployed: not deployed; no version change.
+
+- The log of a foreground run held stdout only; it now holds stderr too,
+  each write in its order.
+- `probe --cached` gave the rung that the probes select, where `probe`
+  gives the rung that `run` enters; both now give the entered rung.
+- `--podvm-net=none` and `--podvm-channel=V` were refused as "a bug in
+  podvm"; they parse as the space forms. `start`, `ps` and `rm` refuse a
+  tier other than incus by name.
+
 ### Fixed: `remote ssh` runs no `node` of PATH that is not its helper, 2026-11-14
 
 Record: T-1821.

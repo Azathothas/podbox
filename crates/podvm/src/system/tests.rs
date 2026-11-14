@@ -203,3 +203,25 @@ fn a_refusal_wraps_at_76_columns() {
     assert_eq!(words(&out), words(&text));
     assert_eq!(wrap("short", 76, "  "), "short\n");
 }
+
+/// TODO/probe.md T-1812: `probe --cached` answers from the findings of the
+/// cache with the same selection and the same entered rung as the live
+/// `probe`, so the two give one rung (the cache gave the selection alone:
+/// `supervise` where `probe` gave `userland`).
+#[test]
+fn probe_cached_rung_is_the_live_rung() {
+    let findings = podvm_probe::run();
+    let mut live = podvm_probe::select::Selection::choose(&findings);
+    to_entered(&findings, &mut live);
+    let (document, _) = podvm_image::probe_cache::measure("a test");
+    let probe = podvm_image::probe_cache::Probe {
+        document,
+        source: podvm_image::probe_cache::Source::Measured("a test".into()),
+        path: std::path::PathBuf::new(),
+        not_written: None,
+    };
+    let (cached, _) = probe.findings().expect("the document carries its findings");
+    let mut served = podvm_probe::select::Selection::choose(&cached);
+    to_entered(&cached, &mut served);
+    assert_eq!(served.rung, live.rung);
+}

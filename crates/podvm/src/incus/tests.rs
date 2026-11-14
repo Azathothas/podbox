@@ -404,3 +404,30 @@ fn the_command_file_reads_back() {
     };
     assert_eq!(super::Cmd::parse(&c.to_json()).unwrap(), c);
 }
+
+/// TODO/cli.md T-1811: another tier than incus on a lifecycle verb is a
+/// usage refusal by name, in both spellings.
+#[test]
+fn eq_form_of_another_tier_on_a_lifecycle_verb_is_refused_by_name() {
+    let v = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    assert_eq!(
+        crate::incus::other_tier(&v(&["--podvm-tier=machine", "x"])),
+        Some("machine".into())
+    );
+    assert_eq!(
+        crate::incus::other_tier(&v(&["--podvm-tier", "chroot", "x"])),
+        Some("chroot".into())
+    );
+    assert_eq!(
+        crate::incus::other_tier(&v(&["--podvm-tier=incus", "x"])),
+        None
+    );
+    assert_eq!(
+        crate::incus::intercept(Some("start"), &v(&["--podvm-tier=machine", "nosuch"])),
+        Some(podvm_image::error::EXIT_FLAG_ERROR)
+    );
+    assert_eq!(
+        crate::incus::intercept(Some("run"), &v(&["--podvm-tier=machine"])),
+        None
+    );
+}

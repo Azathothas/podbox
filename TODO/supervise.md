@@ -1614,7 +1614,7 @@ life: 74 pass, 0 fail.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1646,6 +1646,30 @@ a different defect and does not block this entry.
 ## Prove
 
 `cargo test -p podvm --test foreground_log` exits 0, with a test that a foreground payload that writes O1, E1, O2, E2 leaves a log with the four lines in that order and that a stderr-only payload leaves its line
+
+## Correction
+
+**Amended, 2026-11-14.** Two writes of the two streams that are
+microseconds apart have no order that two pipes and two pumps can keep,
+as in docker, which also reads two pipes; the order holds for writes
+1 ms apart, which the test takes. The test is the unit test
+`foreground_log_keeps_both_streams_in_write_order` of
+`run/foreground/tee_tests.rs`, not a target `foreground_log`: a run of a
+payload needs an image, which the tests of the crate have not.
+
+## Done
+
+**Done 2026-11-14.** `tee_output_to` (`run/foreground/tee.rs`) tees fd 1
+and fd 2, each through its own pump into the one log, which each pump
+opens for append; the payload keeps both streams on their own terminal
+descriptors; `fg_end` restores stderr, then stdout. By hand, on the
+namespace rung and on the fixture of the userland rung: `sh -c 'echo O1;
+echo E1 >&2; echo O2; echo E2 >&2'` prints `E1 E2` on stderr and `logs`
+gives all four lines, and a payload that writes only `ONLYERR` to stderr
+leaves it in the log; with 1 ms between the writes the log is
+`O1 E1 O2 E2`. The test `foreground_log_keeps_both_streams_in_write_order`
+tees two pipes into one log and checks that order and the bytes of each
+stream. Experiment 443, sections run and life: 313 pass, 0 fail.
 
 
 # T-1807: A restarted container shows the exit code and end of its previous run while it runs

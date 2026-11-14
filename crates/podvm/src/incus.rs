@@ -15,12 +15,40 @@ mod tests;
 /// The verbs that `--podvm-tier=incus` serves on an instance that stays
 /// (TODO/machine.md T-1722): their exit, or `None` for another verb.
 pub fn intercept(verb: Option<&str>, rest: &[String]) -> Option<i32> {
+    // TODO/cli.md T-1811: another tier on these verbs is a usage error by
+    // name; it reached the parser, whose "a bug in podvm" text was wrong.
+    if let (Some(v @ ("ps" | "start" | "stop" | "rm" | "logs" | "inspect")), Some(t)) =
+        (verb, other_tier(rest))
+    {
+        eprintln!(
+            "podvm {v}: --podvm-tier={t}: {v} takes --podvm-tier=incus only, for an \
+             instance of incus that stays (TODO/machine.md T-1722); the containers of \
+             the other tiers are named with no --podvm-tier (TODO/cli.md T-1811)"
+        );
+        return Some(podvm_image::error::EXIT_FLAG_ERROR);
+    }
     let a = verbs::wants(rest)?;
     match verb? {
         v @ ("ps" | "start" | "stop" | "rm" | "logs") => Some(verbs::dispatch(v, &a)),
         "inspect" => Some(inspect::inspect(&a)),
         _ => None,
     }
+}
+
+/// The value of a `--podvm-tier` in `args` that is not `incus`.
+pub(crate) fn other_tier(args: &[String]) -> Option<String> {
+    let mut it = args.iter();
+    while let Some(a) = it.next() {
+        let t = match a.strip_prefix("--podvm-tier=") {
+            Some(t) => t.to_string(),
+            None if a == "--podvm-tier" => it.next().cloned().unwrap_or_default(),
+            None => continue,
+        };
+        if t != "incus" {
+            return Some(t);
+        }
+    }
+    None
 }
 
 /// The command of an instance that stays (TODO/machine.md T-1722), as

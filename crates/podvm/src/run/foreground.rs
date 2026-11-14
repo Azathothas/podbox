@@ -14,7 +14,7 @@ struct Foreground {
     id: String,
     rm: bool,
     started: String,
-    tee: Option<Tee>,
+    tee: Vec<Tee>,
 }
 
 mod tee;
@@ -64,12 +64,12 @@ fn fg_begin(
         }
     };
     let log_path = podvm_supervise::table::log_path(store, &c.id);
-    match tee_stdout_to(&log_path) {
+    match tee_output_to(&log_path) {
         Ok(tee) => Ok(Foreground {
             id: c.id,
             rm: p.rm,
             started: clock::now(),
-            tee: Some(tee),
+            tee,
         }),
         Err(why) => {
             eprintln!("podvm run: the run's output could not be captured for its record: {why}");
@@ -83,7 +83,8 @@ fn fg_begin(
 /// in flight), then `Exited` with the code and the times, or the
 /// record's removal under `--rm`.
 fn fg_end(store: &podvm_image::Store, fg: Foreground, code: i32) {
-    if let Some(tee) = fg.tee {
+    // stderr first, then stdout: the reverse of the order they were taken.
+    for tee in fg.tee.into_iter().rev() {
         untee(tee);
     }
     // TODO/cli.md T-1655: the `--tmpfs` directories go with the run.

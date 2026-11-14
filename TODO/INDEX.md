@@ -468,13 +468,13 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 | [T-1803](machine.md) | P1 | M | none | machine | open | The `--report` of a machine-tier run reads as a refusal with no rung, image or exit code |
 | [T-1804](enter.md) | P0 | S | none | enter | done | `--read-only` with `-v HOST:/GUEST/:ro` leaves the volume writable |
 | [T-1805](supervise.md) | P1 | M | none | supervise | done | A name that resolves to nothing exits 125 on the lifecycle verbs, where docker and podvm's own table say 1 |
-| [T-1806](supervise.md) | P1 | S | none | supervise | open | A foreground run records only stdout, so `logs` loses each stderr line |
+| [T-1806](supervise.md) | P1 | S | none | supervise | done | A foreground run records only stdout, so `logs` loses each stderr line |
 | [T-1807](supervise.md) | P1 | S | none | supervise | open | A restarted container shows the exit code and end of its previous run while it runs |
 | [T-1808](machine.md) | P0 | M | none | machine | done | The machine tier accepts `--podvm-confine` and eight hardening flags and drops them |
 | [T-1809](machine.md) | P1 | S | none | machine | open | `--timeout` on the machine tier kills 10 s late and exits 125 in place of 137 |
 | [T-1810](machine.md) | P0 | S | none | machine | done | A sealed bundle member that leaves the guest root is skipped and the run exits 0 |
-| [T-1811](cli.md) | P1 | S | none | cli | open | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
-| [T-1812](probe.md) | P1 | S | none | probe | open | `probe --cached` reports `supervise` where `probe` reports `userland` |
+| [T-1811](cli.md) | P1 | S | none | cli | done | `--podvm-net=V` and `--podvm-channel=V` are refused as "a bug in podvm", and so is `--podvm-tier` on `start`, `ps` and `rm` |
+| [T-1812](probe.md) | P1 | S | none | probe | done | `probe --cached` reports `supervise` where `probe` reports `userland` |
 | [T-1813](extract.md) | P1 | S | none | extract | open | Extraction drops the setuid and setgid bits of a file whose mode already has owner write |
 | [T-1814](image.md) | P2 | S | none | image | open | `system df` prints the manifest digest in its IMAGE ID column |
 | [T-1815](cli.md) | P1 | S | none | cli | open | `run -d -t` and `create -t` accept `-t` and never allocate a terminal |
@@ -549,7 +549,7 @@ See [entry closure](RULES.md#5-entry-closure) for their use.
 
 ## Counts
 
-480 entries: 70 open, 6 partial, 6 blocked, 398 done.
+480 entries: 67 open, 6 partial, 6 blocked, 401 done.
 
 Counted from the rows above by
 `./target/x86_64-unknown-linux-musl/release/podvm-count` and asserted
@@ -559,10 +559,10 @@ the gate. A number here that disagrees with the rows cannot reach a commit.
 | Priority | Open | Partial | Blocked | Done | Total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 1 | 73 | 74 |
-| P1 | 20 | 1 | 1 | 173 | 195 |
+| P1 | 17 | 1 | 1 | 176 | 195 |
 | P2 | 35 | 3 | 4 | 130 | 172 |
 | P3 | 15 | 2 | 0 | 22 | 39 |
-| **All** | 70 | 6 | 6 | 398 | 480 |
+| **All** | 67 | 6 | 6 | 401 | 480 |
 
 ## Work order
 

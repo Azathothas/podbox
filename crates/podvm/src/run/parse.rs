@@ -374,6 +374,22 @@ fn parse_flags_with(
                     }
                 }
             }
+            // TODO/cli.md T-1811: the `=` forms of the two machine flags,
+            // as their space forms; they reached the T-0801 "bug" text.
+            "--podvm-net=none" => o.net_none = true,
+            other if other.starts_with("--podvm-net=") => {
+                eprintln!(
+                    "podvm {verb}: --podvm-net takes none, not {:?} (TODO/machine.md T-1751)",
+                    &other["--podvm-net=".len()..]
+                );
+                return Err(EXIT_FLAG_ERROR);
+            }
+            other if other.starts_with("--podvm-channel=") => {
+                o.channel = Some(crate::machine::guest::channel::parse(
+                    verb,
+                    &other["--podvm-channel=".len()..],
+                )?)
+            }
             other if other.starts_with("--podvm-qemu-arg=") => o
                 .qemu_args
                 .push(other["--podvm-qemu-arg=".len()..].to_string()),

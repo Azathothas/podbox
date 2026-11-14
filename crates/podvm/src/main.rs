@@ -449,34 +449,34 @@ fn cached_probe(json: bool, strictness: Strictness) -> i32 {
         let _ = writeln!(err, "podvm probe: note: the answer was not cached: {why}");
     }
 
-    let Some(rung) = probe.rung() else {
+    // TODO/probe.md T-1812: the answer of the live `probe`, from the
+    // findings of the cache: the same selection, the same entered rung (a
+    // cache of the selection alone read `supervise` where `probe` read
+    // `userland`), and the same document.
+    let Some((findings, _)) = probe.findings() else {
         let _ = writeln!(
             err,
-            "podvm probe: the document at {} carries no rung",
+            "podvm probe: {} carries no findings",
             probe.path.display()
         );
         return EXIT_RUNTIME_ERROR;
     };
+    let mut selection = Selection::choose(&findings);
+    crate::system::to_entered(&findings, &mut selection);
     if json {
-        print!("{}", probe.document);
+        print!("{}", report::document(&findings, &selection));
     } else {
-        println!("{rung}");
+        println!("{}", selection.rung.word());
     }
-
-    // ⚠ `--strict` on the cached path reads `strict_ok` out of the document
-    // rather than re-deriving it: `Selection` is not reconstructed from JSON,
-    // and a second implementation of the rung rules is exactly the copy-paste
-    // docs/conventions/code.md forbids.
-    if matches!(strictness, Strictness::Refuse) {
-        let ok = probe.document.contains("\"strict_ok\":true");
-        if !ok {
-            let _ = writeln!(
-                err,
-                "podvm probe: --strict, and this machine is {rung} rather than {}",
-                Selection::STRICT_FLOOR.word()
-            );
-            return 1;
-        }
+    let code = selection.exit_code(strictness);
+    if code != 0 {
+        let _ = writeln!(
+            err,
+            "podvm probe: --strict, and this machine is {} rather than {}",
+            selection.rung.word(),
+            Selection::STRICT_FLOOR.word()
+        );
+        return code;
     }
     0
 }

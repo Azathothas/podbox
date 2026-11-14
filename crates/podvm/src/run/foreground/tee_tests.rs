@@ -63,3 +63,54 @@ fn untee_delivers_every_byte_before_the_saved_descriptor_closes() {
     assert_eq!(got, LEN, "the target got {got} of {LEN} bytes");
     assert_eq!(logged as usize, LEN, "the log got {logged} of {LEN} bytes");
 }
+
+/// TODO/supervise.md T-1806: two tees, as a run takes them for stdout and
+/// stderr, write into one log in the order of the writes, and a stream
+/// that only the second tee carries still reaches the log. A write of each
+/// stream 5 ms after the one before stands for a payload's lines; writes of
+/// two pipes that are microseconds apart have no order that two pumps can
+/// keep, as in docker.
+#[test]
+fn foreground_log_keeps_both_streams_in_write_order() {
+    let dir = std::env::temp_dir().join(format!("podvm-tee2-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let log = dir.join("log");
+    let pipe = || {
+        let mut p = [0i32; 2];
+        podvm_probe::sys::pipe2(&mut p, podvm_probe::sys::O_CLOEXEC).unwrap();
+        (i64::from(p[0]), i64::from(p[1]))
+    };
+    let ((out_r, out_w), (err_r, err_w)) = (pipe(), pipe());
+    let drains = [out_r, err_r].map(|r| std::thread::spawn(move || drain(r)));
+    let tees = [
+        tee_fd_to(out_w, &log).unwrap(),
+        tee_fd_to(err_w, &log).unwrap(),
+    ];
+    for (fd, line) in [
+        (out_w, "O1\n"),
+        (err_w, "E1\n"),
+        (out_w, "O2\n"),
+        (err_w, "E2\n"),
+    ] {
+        podvm_probe::sys::write(fd, line.as_bytes()).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    for tee in tees.into_iter().rev() {
+        untee(tee);
+    }
+    for fd in [out_w, err_w] {
+        let _ = podvm_probe::sys::close(fd);
+    }
+    let got: Vec<usize> = drains.into_iter().map(|d| d.join().unwrap()).collect();
+    for fd in [out_r, err_r] {
+        let _ = podvm_probe::sys::close(fd);
+    }
+    let text = std::fs::read_to_string(&log).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(
+        text, "O1\nE1\nO2\nE2\n",
+        "the log is not in the order of the writes"
+    );
+    assert_eq!(got, [6, 6], "each terminal stream keeps its own lines");
+}

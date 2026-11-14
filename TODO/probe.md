@@ -1728,7 +1728,7 @@ reader and the rule of the build.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1758,6 +1758,17 @@ One document for the live and the cached answer.
 ## Prove
 
 `cargo test -p podvm --bin podvm probe_cached_rung` exits 0, with a test that `probe --json` and `probe --cached --json` give one `.rung` on a selection above the entered rung
+
+## Done
+
+**Done 2026-11-14.** `cached_probe` (`main.rs`) answers from the
+findings of the cache with `Selection::choose`, `to_entered` and
+`report::document`, as the live `probe` does, and `--strict` takes
+`Selection::exit_code`; the cache itself is unchanged, so `run`, which
+reads its findings, is unchanged. The test `probe_cached_rung_is_the_live_rung`
+writes a document of the cache and reads its findings back. By hand on
+the fixture of the userland rung: beta.17 gave `probe` `userland` and
+`probe --cached` `namespace`; this build gives `userland` for each.
 
 
 # T-1835: `compare --strict` passes an empty report, an unparsable one, or one that lost whole sections

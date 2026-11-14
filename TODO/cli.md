@@ -4707,7 +4707,7 @@ passes; experiment 443 has the row `run.report-refused-env`.
 **Milestone:** none
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4741,6 +4741,19 @@ T-1853 adds the check that each row takes both forms.
 ## Prove
 
 `cargo test -p podvm --bin podvm eq_form` exits 0, with a test that `--podvm-net=none` and `--podvm-channel=P:H:N` parse as their space forms, and that `start --podvm-tier=machine X` gives a named usage refusal and not the T-0801 text
+
+## Done
+
+**Done 2026-11-14.** `run/parse.rs` takes `--podvm-net=none`,
+`--podvm-net=V` (refused by name) and `--podvm-channel=V` as the space
+forms, and `incus::intercept` refuses another tier than `incus` on `ps`,
+`start`, `stop`, `rm`, `logs` and `inspect` by name with 125
+(`other_tier`). Tests: `eq_form_of_the_machine_flags_parses_as_the_space_form`
+and `eq_form_of_another_tier_on_a_lifecycle_verb_is_refused_by_name`. By
+hand: `run --podvm-tier=machine --podvm-net=none` goes past the flag;
+`start`, `ps` and `rm` with `--podvm-tier=machine` print "takes
+--podvm-tier=incus only" and no T-0801 text. The general split of each
+`--flag=value` at admission is T-1853.
 
 
 # T-1815: `run -d -t` and `create -t` accept `-t` and never allocate a terminal

@@ -19,8 +19,20 @@ pub(super) struct Tee {
     pub(super) handle: std::thread::JoinHandle<()>,
 }
 
-pub(super) fn tee_stdout_to(log_path: &std::path::Path) -> Result<Tee, String> {
-    tee_fd_to(1, log_path)
+/// TODO/supervise.md T-1806: stdout AND stderr, each through its own pump
+/// into the one log, which each pump opens for append, so each write lands
+/// whole and the two streams interleave in the order of their writes, as
+/// the parity row of `logs` says. stderr only reached the terminal, and a
+/// payload that wrote to stderr left nothing in the log.
+pub(super) fn tee_output_to(log_path: &std::path::Path) -> Result<Vec<Tee>, String> {
+    let out = tee_fd_to(1, log_path)?;
+    match tee_fd_to(2, log_path) {
+        Ok(err) => Ok(vec![out, err]),
+        Err(why) => {
+            untee(out);
+            Err(why)
+        }
+    }
 }
 
 /// The tee of [`tee_stdout_to`] on any descriptor `fd`. The run tees fd
