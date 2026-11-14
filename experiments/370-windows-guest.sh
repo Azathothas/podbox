@@ -5,11 +5,11 @@
 # dependency in the test?
 #
 # TODO/milestones.md T-1112. ⚠ Clauses 7 and 8 need a guest image and each
-# is skipped, out loud, where none is configured: podvm ships no Windows
-# image and no DOS base, fetches no licensed image itself, and redistributes
-# none, so a lane without `PODVM_WINDOWS_IMAGE` (a Validation OS disk)
-# or `PODVM_DOS_BASE` (FreeDOS base from 369) cannot boot that guest and
-# must say so rather than pass.
+# is skipped, out loud, where none is configured: today the driver boots
+# only an image that the lane gives, so a lane without `PODVM_WINDOWS_IMAGE`
+# (a Validation OS disk) or `PODVM_DOS_BASE` (FreeDOS base from 369) cannot
+# boot that guest and must say so rather than pass. podvm will fetch the
+# pinned media itself (docs/decisions.md, 2026-11-14, "Windows media").
 #
 # Clauses:
 #   0. conditions: binary, emulator, /dev/kvm, image.

@@ -239,8 +239,10 @@ so a cloud session runs guests under TCG. `kvm.yml` (T-1682) runs the KVM
 leg on a hosted runner.
 
 The Windows guest has no network in the current driver.
-The operator supplies a licensed disk image.
-The runtime does not publish or redistribute that image.
+Today the operator gives the disk image (`PODVM_WINDOWS_IMAGE`, or
+`windows fetch --url`). The owner accepts the vendor terms
+([decisions](decisions.md), "Windows media"), so podvm will fetch and
+verify the pinned media itself; the work is in the record.
 T-1112 records the TCG, KVM, and DOS proofs separately.
 The 2026-09-30 KVM runs on the Windows base failed at setup or command
 shutdown. An earlier KVM success does not establish current reliability.
