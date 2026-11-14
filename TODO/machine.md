@@ -3151,7 +3151,7 @@ The value stays the size of the virtual machine, as QEMU's `-m` is.
 **Milestone:** none
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3195,6 +3195,31 @@ T-1867 allows it. Language is a later flag with the default en-US.
 ## Prove
 
 `cargo test -p podvm-windows catalog` exits 0, with new tests: the pin table
+
+## Done
+
+**Partial 2026-11-14.** The catalog and the name: `podvm-windows`
+`catalog.rs` holds seven names (`dos`, `validationos`/`vos`, `11`,
+`2025`, `2022`, `2019`, `10`) with URL, size, sha256, kind, store file
+and a ceiling of size plus 1 percent; the pins of the evaluation ISOs
+are dockur/windows `src/define.sh` (each URL answered `HEAD` with its
+size, 2026-11-14), FreeDOS is experiment 369, and Validation OS
+26100.9818 was hashed by podvm over its 2 509 025 280 bytes on
+2026-11-14. `run windows:NAME` takes the door of the Windows driver with
+no `--podvm-tier` and no `--platform` (`windows::should_drive`, `named`);
+`windows:dos` fetches the pinned zip, checks it, writes the 32 MiB base
+and boots (`windows/pull.rs`); an unknown name is refused with the list
+of names. Tests: `catalog_pins_parse_and_each_name_resolves`,
+`catalog_refuses_an_unknown_name_with_the_list`,
+`catalog_zip_member_reads_a_stored_member_and_refuses_the_rest` and
+`windows_name_takes_the_driver_door_with_no_flag`. By hand on the cloud
+host with a fresh home: `podvm run windows:dos ver` fetched the zip,
+wrote the base and printed `FreeCom version 0.86` with exit 0 in 62 s
+under TCG; a second run took the base; `windows:11` is refused by name
+with T-1867 and the store path; `windows:95` lists the names; no
+emulator stays. The clauses that remain: `pull`, `images` and `rmi` for
+the Windows names, the disk of `validationos` (T-1863) and of a setup
+ISO (T-1867), and the experiment of the Prove.
 parses, each name resolves, an unknown name is refused with the list, and the
 refusal text names the store path. `cargo test -p podvm --bin podvm
 windows_name` exits 0, with new tests that `run windows:dos` and `run

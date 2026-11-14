@@ -38,6 +38,7 @@ mod args;
 mod doctor;
 mod dos;
 mod plan;
+mod pull; // TODO/machine.md T-1861
 mod run;
 mod setup;
 
@@ -54,8 +55,17 @@ pub(crate) use args::USAGE;
 /// never reaches a guest driver at all, the chroot tier shares the host
 /// kernel and cannot boot anything, and a Linux request belongs to the
 /// Linux path. Widening this is how a limit becomes a silent degradation.
-pub(crate) fn should_drive(verb: &str, detach: bool, machine: bool, os: &str) -> bool {
-    verb == "run" && !detach && machine && os == "windows"
+pub(crate) fn should_drive(
+    verb: &str,
+    detach: bool,
+    machine: bool,
+    os: &str,
+    image: Option<&str>,
+) -> bool {
+    // TODO/machine.md T-1861: a name of the catalog is a Windows guest on
+    // the machine tier with no flag.
+    let named = named(image);
+    verb == "run" && !detach && (machine || named) && (os == "windows" || named)
 }
 
 /// The disk image a run boots: the one named on the command line, or the
@@ -133,6 +143,10 @@ pub(crate) fn run_windows(
     // DOS flavor boots its base cache and the token is only bannered, never
     // fetched. The dispatch happens before `resolve_image` because that
     // refusal belongs to the disk door alone.
+    // TODO/machine.md T-1861: a name of the catalog, `windows:NAME`.
+    if let Some(name) = podvm_windows::catalog::name_of(image) {
+        return run_named(verb, mem, name, argv, qemu_extra);
+    }
     if image.is_empty() || !is_disk_request(image) {
         return dos::dos_run(verb, mem, None, qemu_extra, None, &argv.join(" "));
     }
@@ -161,6 +175,51 @@ pub(crate) fn run_windows(
 /// named. Zero is unreachable through the CLI (`args` refuses it); a zero
 /// here means the default rather than forever, because no run waits
 /// unbounded.
+/// `run windows:NAME` (TODO/machine.md T-1861): `dos` fetches its pinned
+/// base and boots; each other name is fetched and verified, and refused by
+/// name where the step that turns its download into a disk is not built.
+fn run_named(
+    verb: &str,
+    mem: Option<u64>,
+    name: &str,
+    argv: &[String],
+    qemu_extra: &[String],
+) -> i32 {
+    let e = match podvm_windows::catalog::resolve(name) {
+        Ok(e) => e,
+        Err(why) => {
+            eprintln!("podvm {verb}: {why}");
+            return podvm_image::error::EXIT_CLI_ERROR;
+        }
+    };
+    match e.kind {
+        podvm_windows::catalog::Kind::DosZip => {
+            dos::dos_run(verb, mem, None, qemu_extra, None, &argv.join(" "))
+        }
+        podvm_windows::catalog::Kind::ValidationOs | podvm_windows::catalog::Kind::Iso => {
+            let step = if e.kind == podvm_windows::catalog::Kind::Iso {
+                "the install of a setup ISO into a disk (TODO/machine.md T-1867)"
+            } else {
+                "the read of its VHDX out of the ISO (TODO/machine.md T-1863)"
+            };
+            eprintln!(
+                "podvm {verb}: windows:{}: {} is in the catalog, and this build does not do {step} \
+                 yet; its pinned download goes to {}",
+                e.name,
+                e.what,
+                podvm_windows::catalog::store_dir().join(e.file).display()
+            );
+            podvm_image::error::EXIT_RUNTIME_ERROR
+        }
+    }
+}
+
+/// True where `image` is a name of the catalog (`windows:NAME`), which takes
+/// the door of the Windows driver with no tier and no platform (T-1861).
+pub(crate) fn named(image: Option<&str>) -> bool {
+    image.is_some_and(|i| podvm_windows::catalog::name_of(i).is_some())
+}
+
 pub(crate) fn request_timeout(want: Option<u64>, default_secs: u64) -> Duration {
     Duration::from_secs(want.filter(|&n| n > 0).unwrap_or(default_secs))
 }
@@ -338,27 +397,27 @@ mod tests {
 
     #[test]
     fn only_a_foreground_machine_tier_windows_run_reaches_the_driver() {
-        assert!(should_drive("run", false, true, "windows"));
+        assert!(should_drive("run", false, true, "windows", None));
         // every other door keeps its own refusal, and each for its own reason
         assert!(
-            !should_drive("run", true, true, "windows"),
+            !should_drive("run", true, true, "windows", None),
             "detached run never reaches a driver"
         );
         assert!(
-            !should_drive("run", false, false, "windows"),
+            !should_drive("run", false, false, "windows", None),
             "the chroot tier shares the host kernel"
         );
         assert!(
-            !should_drive("create", false, true, "windows"),
+            !should_drive("create", false, true, "windows", None),
             "create writes a record"
         );
         assert!(
-            !should_drive("run", false, true, "linux"),
+            !should_drive("run", false, true, "linux", None),
             "a Linux request is the Linux path"
         );
-        assert!(!should_drive("exec", false, true, "windows"));
+        assert!(!should_drive("exec", false, true, "windows", None));
         assert!(
-            !should_drive("pull", false, true, "windows"),
+            !should_drive("pull", false, true, "windows", None),
             "there is no registry in this path"
         );
     }

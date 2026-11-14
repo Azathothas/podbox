@@ -8,6 +8,18 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+### Added: `podvm run windows:NAME`, and `windows:dos` with no setup, 2026-11-14
+
+Record: T-1861 (partial).
+Deployed: not deployed; no version change.
+
+- A catalog of Windows guests with pinned URL, size and sha256 of each:
+  `windows:dos`, `windows:validationos`, `windows:11`, `windows:2025`,
+  `windows:2022`, `windows:2019` and `windows:10`. `podvm run
+  windows:dos ver` now fetches FreeDOS itself, checks it and boots it,
+  with no flag and no script. The other names are refused by name until
+  the steps that turn their download into a disk exist.
+
 ### Fixed: the incus tier refuses the options that its instance ignored, 2026-11-14
 
 Record: T-1854.

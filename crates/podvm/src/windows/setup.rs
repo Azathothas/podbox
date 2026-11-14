@@ -26,7 +26,7 @@ const _: () = assert!(DEFAULT_MAX_BYTES > 0 && DEFAULT_MAX_BYTES < u64::MAX);
 /// rather than a shared constant in a third place.
 const FETCH_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const FETCH_READ_TIMEOUT: Duration = Duration::from_secs(120);
-const FETCH_LIMITS: Limits = Limits {
+pub(crate) const FETCH_LIMITS: Limits = Limits {
     head: FETCH_CONNECT_TIMEOUT.saturating_add(FETCH_READ_TIMEOUT),
     idle: FETCH_READ_TIMEOUT,
 };
@@ -34,7 +34,7 @@ const FETCH_LIMITS: Limits = Limits {
 /// One GET of `url` with `limits`, through the proxy of the environment
 /// (`podvm_image::net`), with the redirects followed. A black-holed origin
 /// fails loud instead of hanging a caller that cannot prompt.
-fn get(url: &str, limits: Limits) -> Result<Body, String> {
+pub(crate) fn get(url: &str, limits: Limits) -> Result<Body, String> {
     let (config, _roots) = podvm_image::tls::client_config();
     let mut net = Net::from_environment(config)?;
     net.send("GET", url, &[], true, limits)

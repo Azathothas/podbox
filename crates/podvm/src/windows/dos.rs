@@ -54,17 +54,13 @@ pub(crate) fn dos_run(
     timeout: Option<u64>,
     command: &str,
 ) -> i32 {
-    let base = podvm_windows::dos::base_cache();
-    if !base.is_file() {
-        eprintln!(
-            "podvm {verb}: no DOS base image at {} and none was named. The DOS flavor boots \
-             FreeDOS, not a disk you hand it: `experiments/369-windows-tcg-dos.sh` fetches \
-             FreeDOS 1.4 LiteUSB (pinned sha256, fetch ceiling) and writes the base. No base \
-             is fetched or committed here (TODO/milestones.md T-1112)",
-            base.display()
-        );
-        return EXIT_RUNTIME_ERROR;
-    }
+    // TODO/machine.md T-1861: podvm fetches the pinned FreeDOS 1.4 LiteUSB
+    // zip itself (the owner accepts the vendor terms, `docs/decisions.md`,
+    // "Windows media") and writes the base where it is not there.
+    let base = match super::pull::dos_base(verb) {
+        Ok(b) => b,
+        Err(c) => return c,
+    };
     let accel = match super::plan::accelerator() {
         Ok(x) => x,
         Err(c) => return c,

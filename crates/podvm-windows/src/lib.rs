@@ -131,6 +131,8 @@ pub fn base_cache() -> PathBuf {
 }
 
 /// The DOS flavor: `pod_guest::dos` with podvm's marker and base cache.
+pub mod catalog; // TODO/machine.md T-1861
+
 pub mod dos {
     use std::path::{Path, PathBuf};
 

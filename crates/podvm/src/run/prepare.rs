@@ -54,19 +54,15 @@ pub(crate) fn prepare(
         );
         return Err(EXIT_FLAG_ERROR);
     }
-    // ⭐ TODO/milestones.md T-1112. A Windows guest on the machine tier is
-    // the one platform where the OCI path below has nothing to do: the
-    // positional is a disk image, the accelerator comes from the same probe
-    // that chose the tier, and the result is the guest's own stdout, stderr
-    // and exit code. So it takes the driver's door (the very invocation the
-    // entry writes down, `run --podvm-tier=machine --platform windows/amd64`)
-    // ahead of the OS gate, which is the refusal for every *other*
-    // non-Linux platform.
+    // ⭐ TODO/milestones.md T-1112, T-1861. A Windows guest (the machine tier
+    // and the platform windows, or a name `windows:NAME`) takes the driver's
+    // door ahead of the OS gate, which refuses each other non-Linux platform.
     if crate::windows::should_drive(
         verb,
         o.detach,
         tier == crate::tier::Tier::Machine,
         &platform.os,
+        o.image.as_deref(),
     ) {
         return Err(crate::windows::run_windows(
             verb,
