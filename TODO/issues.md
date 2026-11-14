@@ -252,7 +252,7 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #353 | create and run do not report the entries the extraction could not materialise | open | T-1883 |
 | #354 | COORD-107 of Nemo-010: pod-extract applies the mode of the image to files but not to directories, and its widening pass can chmod a symlink target outside the tree (to podcrates) | open (podcrates@T-597 on its `main`, podcrates@T-598 open; both in `v0.44.0`, PodUtils/podcrates#153) | T-1881 |
 | #355 | [gh action] requested | closed (gate 43576720202, arm 43577573447, nightly trial 43578086980 and release 43580765158 green on 0f13267c) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.17` (AGENTS.md, section 9) |
-| #356 | `exec` exits 125 for an image name that resolves to nothing, where the exit table and T-1805's own decision say 1 | open | T-1842, T-1805 |
+| #356 | `exec` exits 125 for an image name that resolves to nothing, where the exit table and T-1805's own decision say 1 | closed (`0955fcab`, re-measured by the reporter) | T-1842, T-1805 |
 | #357 | `rm` leaves a detached spare-tree fill holding the image's payload lock, so an `rmi` or `image prune` in the next second is refused as "in use by a running container" while `ps -a` is empty | closed (`0814cab0`) | T-1781 |
 | #358 | Concurrent `create`, `run`, `cp` or `extract` of a never-extracted image all write the same tree, and the first to fail removes it under the others | closed (`2003aff9`) | T-1886 |
 | #359 | COORD-108: pod-broker: a 502 names no upstream status, and a no-rule 403 does not name the port (podvm T-1820) (to podcrates) | open | T-1820 |
