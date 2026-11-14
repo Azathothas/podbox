@@ -8,10 +8,12 @@ They describe their recorded revision, not the current build.
 
 ## Unreleased
 
+## 0.2.0-beta.15 (2026-11-14)
+
 ### Fixed: two lines of the interposer about identity, 2026-11-14
 
 Record: T-1784, T-1785, PodUtils/podvm#333, #332.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.15.
 
 - A refused `setuid` or `setgid` names the uid that the payload keeps,
   as the kernel answers it; before, it said uid 0 on a host where the
@@ -22,7 +24,7 @@ Deployed: not deployed; the next release carries it.
 ### Fixed: a usage error goes to stderr, 2026-11-14
 
 Record: T-1783, PodUtils/podvm#334.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.15.
 
 - `save`, `import`, `start`, `logs`, `stop`, `kill`, `restart`, `wait`
   and `rm` print a usage error to stderr, so `podvm save > image.tar`
@@ -32,14 +34,12 @@ Deployed: not deployed; the next release carries it.
 ### Fixed: the stdin spool of `load`, 2026-11-14
 
 Record: T-1782, PodUtils/podvm#336.
-Deployed: not deployed; the next release carries it.
+Deployed: version 0.2.0-beta.15.
 
 - `podvm load` from stdin spools into the store's own staging area, not
   to a predictable name of `$TMPDIR`. A link planted there could make
   podvm overwrite another file, the spool was readable by other
   accounts, and a missing or small `$TMPDIR` refused the load.
-
-## 0.2.0-beta.15 (2026-11-14)
 
 ### Changed: podcrates v0.42.0, 2026-11-14
 
