@@ -110,7 +110,10 @@ Read [PROGRESS](../TODO/PROGRESS.md) for current verification.
   448): a median `run --rm golang true` of 181 ms with the spare, 8.5 s
   without. A spare uses the disk of one more tree for each image that
   ran; `rmi` and `image prune` remove it with the extraction.
-  `PODVM_SPARE_TREE=0` turns the spare and the deferred removal off.
+  `PODVM_SPARE_TREE=0` turns the spare and the deferred removal off. podvm
+  never writes the image's own tree after the extraction, so a spare
+  stays its copy; a tool that edits that tree in place sets
+  `PODVM_SPARE_TREE=0`, or a run takes a spare filled before the edit.
 
 Forced FUSE mode enters through a rung-complete read-only server; its live
 entry arm and the permitted-tmpfs entry arm prove automatically where a

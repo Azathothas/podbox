@@ -3808,6 +3808,14 @@ extraction of each manifest digest that no record names after a
 removal. The tests `a_spare_is_taken_once_and_holds_no_write_of_a_run`
 and `a_discarded_tree_goes_aside_and_the_trash_empties` hold the parts.
 
+**Correction 2026-11-14.** The run of `arm.yml` of issue 328
+(43557049704) failed in experiment 356: its steps fx-abslink and
+fx-abslink-host write files into the image's own extracted tree, and the
+run took a spare filled before the write. podvm never writes that tree
+after the extraction, so the spare stays its copy for podvm's own verbs;
+experiment 356 sets `PODVM_SPARE_TREE=0`, and `docs/limits.md` names the
+rule for a tool that edits the tree in place.
+
 # T-1782: `load` spools stdin to a predictable name of `$TMPDIR`
 
 **Source:** PodUtils/podvm#336 (a report of Nemo-010 on `v0.2.0-beta.14`)

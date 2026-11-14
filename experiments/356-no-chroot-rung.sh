@@ -255,6 +255,9 @@ NOINVOKE=$PODVM_EXIT_CANNOT_INVOKE
 STORE="$WORK/store"
 mkdir -p "$STORE" || exit 2
 export PODVM_STORE="$STORE"
+# TODO/image.md T-1781: the steps fx-abslink and fx-abslink-host write into
+# the image's own tree, which a spare tree filled before them does not hold.
+export PODVM_SPARE_TREE=0
 fail=0
 # TODO/interpose.md T-1721: the loader family runs on x86_64 and aarch64.
 # The native-static rung, and the emulate tier on it, is x86_64 only

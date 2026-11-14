@@ -233,4 +233,4 @@ section 11): #313 in `54258666`, #314 in `c5f9e315`; both are closed.
 | #335 | COORD-092 of Nemo-010: `store_exec` attributes an `EACCES` to the filesystem on a mount that is not noexec (to podcrates) | open | none: podcrates@T-569 (PodUtils/podcrates#147) |
 | #336 | `podvm load` spools stdin to `$TMPDIR/podvm-load-in-<pid>`, so a planted symlink truncates a file the user never named | open | T-1782 |
 | #337 | COORD-093 of Nemo-010: the machine-tier refusal runs its legs together, and `probe` prints the verdict twice (to podcrates) | open | none: podcrates@T-570 (PodUtils/podcrates#147) |
-| #328 | [gh action] requested | open | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
+| #328 | [gh action] requested | closed (gate 43556212876 green on 772734fa; arm 43557049704 failed: experiment 356 wrote into the image tree under a spare tree) | none: a request of the gate, `arm.yml`, the nightly trial and the release `0.2.0-beta.15` (AGENTS.md, section 9) |
