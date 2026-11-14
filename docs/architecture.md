@@ -16,7 +16,7 @@ issue (`AGENTS.md`, section 9).
 
 ## Rootfs execution
 
-1. The probe runs operations in disposable children (`pod-hostprobe`).
+1. The probe runs operations in disposable children (`pod-hostprobe`). `run` takes the findings from the probe cache, and probes again only where the cache holds none for its key (T-1746); `PODVM_DEBUG=1` names the source.
 2. The image client selects a platform and verifies registry content (`pod-oci`).
 3. The extractor applies ordered layers and whiteouts (`pod-extract`).
 4. The completion layer prepares devices, account files, resolver data, and package configuration (`pod-rootfs`).
@@ -93,6 +93,9 @@ cached `newc` base archive, a run archive adds `/podvm-init`, QEMU boots
 the pinned kernel, and the exit code comes back through console markers
 with a per-run nonce. `create` and `exec` assess the machine legs and
 exit 125.
+The init mounts cgroup2 and brings `lo` up. `--podvm-net none`,
+`--podvm-channel`, `--podvm-sealed` and `--podvm-engine` change the guest
+(T-1751, T-1780); [the limits](limits.md#guests) state each one.
 
 Three commands boot a guest now:
 

@@ -148,8 +148,9 @@ image and gives the command's exit code (T-1656). The guest
 runs under KVM where `/dev/kvm` opens and under TCG elsewhere;
 `PODVM_MACHINE_ACCEL=kvm` asks for KVM and refuses by name without it.
 The guest kernel is the pinned `vmlinuz-virt` of Alpine 3.22.6, which
-podvm fetches into the store. The image needs `/bin/sh`. The guest
-has QEMU's user-mode network: it reaches the host's loopback at
+podvm fetches into the store. The image needs `/bin/sh`. With no
+`--podvm-net none` and no `--podvm-sealed`, the guest has QEMU's
+user-mode network: it reaches the host's loopback at
 10.0.2.2. `-v HOST:GUEST[:ro]` is a 9p mount of the host directory (T-1723): a write
 in the guest lands there with the host user's ownership, and `:ro` refuses a
 write with EROFS. The 9p modules come from the pinned modloop. With a kernel
@@ -162,6 +163,32 @@ the size during the run does not reach the guest. `create` and `exec`
 with the machine tier report the profile and exit 125.
 `podvm machine ssh` and `podvm windows` boot a guest now
 ([architecture](architecture.md)).
+
+The init of each guest mounts cgroup2 at `/sys/fs/cgroup`, and
+`podvm guest-net --load` brings `lo` up in each guest that carries podvm
+(T-1780). These flags of the machine tier change the
+guest; each other tier refuses them, except as the incus paragraph below
+states:
+
+- `--podvm-net none` boots the guest with `-nic none`, so `lo` is its
+  only link (T-1751). It refuses `--network broker`.
+- `--podvm-channel HOST_SOCKET:127.0.0.1:PORT` gives the guest one
+  `virtio-serial` port on a chardev socket in a directory of mode 0700.
+  In the guest, a connection to the loopback port reaches a new
+  connection to `HOST_SOCKET` on the host (T-1751, T-1778).
+- `--podvm-sealed` takes the run as a tar bundle on stdin: a file
+  `.podvm-run.json` with `argv`, `env` and `workdir`, and the files of
+  the guest (T-1751). The bundle reaches the guest through the one
+  `virtio-serial` port only. The guest has no NIC, no 9p volume and no
+  stdin file. A command, `-e`, `-w`, `-v`, `-t` and `--network broker`
+  are refused. Experiment 445 finds no value of the bundle in a host
+  process or a host file, during and after the run.
+- `--podvm-engine` loads the modules of a container engine (a bridge,
+  `veth`, netfilter, overlayfs) from the pinned modloop at the boot
+  (T-1780). Docker 27.5.1 then runs with overlay2 on cgroup2 and a
+  bridge network (experiment 447). The modules load only with the flag,
+  because they add time to each boot. podvm adds no `iptables`: the
+  image of the engine brings it.
 
 `run --podvm-tier=emulate IMAGE CMD` runs the command under a static
 qemu-user of `PATH` (`qemu-ARCH-static`, else `qemu-ARCH`), and the
@@ -185,7 +212,11 @@ follows the log, `inspect` gives the state, and `tier = incus` in
 `$store/config` selects the tier with no flag where an incusd answers;
 `-v` is a disk device of the instance (T-1722), and `--podvm-mem` and `--podvm-qemu-arg` are refused by
 name, and the instance has no network
-under route A. A run where no incusd answers exits 125 and names the
+under route A. `--podvm-net none` masks each NIC of the profile, and
+`--podvm-channel HOST_SOCKET:127.0.0.1:PORT` mounts the host socket in the
+instance, where podvm's init relays each connection to the loopback port
+to that socket; it is not an incus `proxy` device (T-1779, [incus](incus.md)).
+A run where no incusd answers exits 125 and names the
 socket. The image carries podvm as the init of the instance (T-1722).
 
 The owner lifted the KVM deferral on 2026-11-09 ([decisions](decisions.md)).

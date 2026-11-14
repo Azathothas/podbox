@@ -149,6 +149,28 @@ selects the incus tier with no flag:
 
 Clause 13 of experiment 434 runs each of them.
 
+## No network and one channel (T-1779)
+
+`run` with `--podvm-tier=incus` takes `--podvm-net none` and
+`--podvm-channel HOST_SOCKET:127.0.0.1:PORT`, also with `run -d`
+(`crates/podvm/src/incus/net.rs`):
+
+* `--podvm-net none` adds a device of type `none` for each NIC of the
+  expanded profile, so the instance has `lo` only.
+* `--podvm-channel` adds a `disk` device that mounts `HOST_SOCKET` at
+  `/.podvm/channel.sock`, and podvm pushes the port to
+  `/.podvm/channel.port` before the start. `guest-hold` brings `lo` up,
+  binds `127.0.0.1:PORT`, writes `/.podvm/channel.ready`, and relays each
+  connection to the mounted socket. A foreground run waits for the ready
+  file before its command starts.
+* The caller gives the socket file a mode that lets the root of the
+  instance connect, and keeps the file in a directory that guards it.
+
+The channel is not an incus `proxy` device: on a hosted runner of
+podrunner, the start of a `proxy` device failed with "Failed to safely
+open namespace file descriptor based on pidfd" (PodUtils/podrunner#90).
+Clause 15 of experiment 434 holds the tier.
+
 ## What stays open
 
 * incus virtual machines and their speed: they need `/dev/kvm`; the runner

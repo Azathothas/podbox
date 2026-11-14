@@ -15,6 +15,11 @@ Most mechanisms are shared crates of
 The machine tier boots a Linux guest from an OCI image (`run
 --podvm-tier=machine`, TODO/machine.md T-1656), and Windows, DOS, and
 `machine ssh` guests.
+A Linux guest can have no NIC (`--podvm-net none`), one channel to a host
+socket (`--podvm-channel`), its run as a bundle on stdin with no host
+file of the run (`--podvm-sealed`, T-1751), and a container engine
+(`--podvm-engine`, T-1780); the incus tier also takes the first two
+(T-1779). [The limits](docs/limits.md#guests) state each flag.
 `--podvm-tier` also selects `incus` (an incusd over its REST API,
 T-1718; `tier = incus` in `$store/config` selects it with no flag,
 T-1722), `runsc` (gVisor, rootless, T-1729), `emulate` (a static

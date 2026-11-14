@@ -50,7 +50,7 @@ clauses in its own record:
 * The files that podcrates imported are frozen until podvm takes the
   crate (`AGENTS.md`, section 9, item 4). The hand-over is done (T-1681),
   and the manifests of podvm name each `pod-*` crate at `v0.40.0`
-  (COORD-080, issue 309). A fix of moved code goes to podcrates as a
+  (COORD-083, issue 317). A fix of moved code goes to podcrates as a
   COORD issue.
 * `refactor/` is not on `main`. It is on the branch
   `archive/podbox-worktree` (`docs/history/worktree-archive.md`). T-1673
